@@ -10,15 +10,15 @@ Los diagramas están organizados en carpetas por tipo:
 
 ```
 DIAGRAMAS/
-├── 📁 arquitectura/         → Arquitectura del sistema (6 archivos)
+├── 📁 arquitectura/         → Arquitectura del sistema (10 archivos)
 ├── 📁 flujos-usuario/       → Flujos de usuario (2 archivos)
-├── 📁 secuencia/            → Diagramas de secuencia (10 archivos)
+├── 📁 secuencia/            → Diagramas de secuencia (18 archivos)
 ├── 📁 seguridad/            → Seguridad y permisos (2 archivos)
-├── 📁 infraestructura/      → DevOps y despliegue (2 archivos)
+├── 📁 infraestructura/      → DevOps y despliegue (3 archivos)
 └── 📄 DIAGRAMAS_README.md   → Este archivo
 ```
 
-**Total:** 22 diagramas organizados en 5 categorías
+**Total:** 35 diagramas organizados en 5 categorías
 
 ---
 
@@ -111,6 +111,55 @@ Flujos completos del panel de administración para vendedores:
 - Diagrama C4 - Context Level
 - Diagrama de Dependencias entre Componentes
 - Principios de Diseño de Componentes
+
+#### `arquitectura/DIAGRAMA_ARQUITECTURA_ANALYTICS.md` 🆕
+- Pipeline de datos en tiempo real (Streaming)
+- Arquitectura de Data Warehouse (OLAP)
+- Procesamiento Batch (ETL Diario)
+- Stack tecnológico (Kafka, ClickHouse, Prometheus)
+- Opciones: Open Source vs Cloud-Native
+- Esquema de eventos y métricas clave
+- Queries de ejemplo en ClickHouse
+- Costos estimados
+
+#### `arquitectura/DIAGRAMA_ARQUITECTURA_BUSQUEDA.md` 🆕
+- Arquitectura completa de búsqueda
+- Índice de Elasticsearch (Schema)
+- Pipeline de sincronización (PostgreSQL → ES)
+- Búsqueda multi-criterio con scoring
+- Sistema de autocompletado (Trie + Suggestions)
+- Sistema de recomendaciones (ML)
+- Query DSL de ejemplo
+- Stack tecnológico (Elasticsearch vs Typesense vs Algolia)
+- Implementación de Sync Service
+- Costos comparativos
+
+#### `arquitectura/DIAGRAMA_INTEGRACIONES_EXTERNAS.md` 🆕
+- Arquitectura de integraciones con servicios de terceros
+- Pasarelas de pago (Niubiz, Culqi, MercadoPago, Yape)
+- Google Maps APIs (Geocoding, Distance Matrix, Places)
+- OAuth Social (Google, Facebook)
+- Mensajería (SendGrid, Twilio, WhatsApp Business)
+- Couriers de envío (Olva, Shalom, Urbano)
+- PSE - Facturación electrónica (Nubefact, FactuSol)
+- Adapter pattern para abstraer integraciones
+- Circuit breaker y retry con exponential backoff
+- Rate limiting y manejo de cuotas
+- Health check de servicios externos
+- Implementación de adaptadores TypeScript
+
+#### `arquitectura/DIAGRAMA_SEO_MARKETING.md` 🆕
+- SEO Técnico y Marketing Digital
+- URLs amigables (slug generation) y sistema de redirects 301
+- Meta tags dinámicos (Open Graph, Twitter Cards)
+- Schema.org JSON-LD (Product, LocalBusiness, Review, Breadcrumb)
+- Sitemap XML dinámico y Robots.txt
+- Email marketing automation (abandoned cart, newsletters)
+- Campañas con A/B testing y segmentación
+- Píxeles de conversión (Facebook Pixel, Google Ads)
+- UTM tracking y Google Analytics 4
+- Landing pages dinámicas para campañas
+- Google Tag Manager integration
 
 ---
 
@@ -212,6 +261,87 @@ Operaciones adicionales del sistema:
 9. Actualización de Perfil
 10. Eliminación de Cuenta
 
+#### `secuencia/DIAGRAMAS_SECUENCIA_ANALYTICS.md` 🆕
+Sistema de analytics y reportes para vendedores:
+1. Recolección de Eventos (Event Tracking)
+2. Dashboard de Vendedor - Métricas en Tiempo Real
+3. Reporte de Productos Top
+4. Comparativa de Períodos
+5. Exportar Reporte (PDF/Excel)
+6. Análisis de Tráfico (Funnel de Conversión)
+
+Incluye: Tablas de BD, Jobs programados, ejemplos de código
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_BUSQUEDA.md` 🆕
+Búsqueda avanzada y recomendaciones personalizadas:
+1. Búsqueda con Filtros y Geolocalización
+2. Autocompletado en Tiempo Real
+3. Reindexación de Producto (Sync)
+4. Búsqueda con "¿Quisiste decir?"
+5. Productos Recomendados (Personalizados)
+6. "Productos Relacionados" (Content-Based)
+7. Búsqueda Semántica (con Embeddings)
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_ENVIOS.md` 🆕
+Integración con couriers y logística de envíos:
+1. Cálculo de Costo de Envío
+2. Generación de Etiqueta de Envío
+3. Tracking en Tiempo Real
+4. Gestión de Incidencia en Envío
+5. Cambio de Dirección de Entrega
+
+Incluye: Integraciones con Olva, Shalom, Urbano. Webhooks para actualizaciones. CDC con Outbox Pattern.
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_FACTURACION.md` 🆕
+Sistema de facturación electrónica (SUNAT - Perú):
+1. Emisión de Boleta Electrónica (03)
+2. Emisión de Factura con RUC (01)
+3. Nota de Crédito (Anulación) (07)
+4. Resumen Diario (RC)
+
+Incluye: Integración con PSE (Nubefact, FactuSol). Formato UBL 2.1. Cálculo de IGV (18%). Firma digital.
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_WEBHOOKS.md` 🆕
+Sistema de webhooks para integraciones externas:
+1. Configuración de Webhook por Vendedor
+2. Trigger de Webhook en Evento (order.created)
+3. Retry con Exponential Backoff
+4. Consulta de Historial de Entregas
+5. Reenvío Manual de Webhook
+
+Incluye: HMAC signature verification. Retry schedule (1min, 5min, 30min, 2h, 8h, 24h). Delivery tracking.
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_REFERIDOS_LEALTAD.md` 🆕
+Sistema de referidos y programa de lealtad:
+1. Generación de Código de Referido
+2. Registro con Código de Referido (Bonos)
+3. Acumulación de Puntos por Compra
+4. Canje de Puntos por Descuento
+5. Upgrade Automático de Nivel de Membresía
+6. Dashboard de Referidos del Usuario
+
+Incluye: Tiers (Bronze, Silver, Gold, Platinum). Multiplicadores de puntos. Sistema de recompensas. Expiración de puntos.
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_LIBRO_RECLAMACIONES.md` 🆕
+Libro de Reclamaciones Digital (Ley N° 29571 - Perú):
+1. Cliente Registra Reclamo
+2. Tienda Responde a Reclamo
+3. Cliente Acepta/Rechaza Solución
+4. Super Admin Gestiona Reclamo Escalado
+5. Consulta Pública de Reclamos (Transparencia)
+
+Incluye: Cumplimiento legal SUNAT. Plazos de 30 días hábiles. Sistema de sanciones. PDFs oficiales.
+
+#### `secuencia/DIAGRAMAS_SECUENCIA_SOPORTE_TICKETS.md` 🆕
+Sistema de soporte técnico y tickets:
+1. Cliente Crea Ticket de Soporte
+2. Agente Responde a Ticket
+3. Cliente Continúa Conversación
+4. Escalamiento a Supervisor
+5. Cierre de Ticket y Encuesta de Satisfacción
+
+Incluye: SLA (Service Level Agreement). Asignación automática. Prioridades. Métricas CSAT. Categorías.
+
 ---
 
 ### 🛡️ Seguridad y Escalabilidad
@@ -291,6 +421,21 @@ Sistema de control de acceso basado en roles:
 - Estimación de costos mensuales (~$4,400)
 - Configuración de Terraform completa
 
+#### `infraestructura/DIAGRAMA_OBSERVABILIDAD.md` 🆕
+Sistema completo de monitoreo y observabilidad:
+- Los 3 Pilares: Métricas, Logs, Traces
+- Stack de Métricas (Prometheus + Grafana)
+- Stack de Logs (Loki + Promtail)
+- Distributed Tracing (Tempo / Jaeger)
+- Métricas Clave (RED & USE Methods)
+- Dashboards de Grafana (Application, Infrastructure, Business)
+- Alertas Críticas con Alertmanager
+- Instrumentación de aplicaciones (Node.js ejemplo)
+- LogQL y PromQL queries
+- SLOs (Service Level Objectives)
+- Opciones: Self-hosted vs Managed
+- Costos comparativos
+
 ---
 
 ## 🎯 Uso Recomendado
@@ -302,23 +447,57 @@ Sistema de control de acceso basado en roles:
 4. **Backend**: Revisar `secuencia/` según la funcionalidad a implementar
 5. **Base de Datos**: Usar `arquitectura/DIAGRAMA_BASE_DATOS.md` como referencia
 6. **Multi-tenant**: Revisar `arquitectura/DIAGRAMA_ARQUITECTURA_MULTITENANT.md` para entender aislamiento de datos
+7. **Búsqueda**: `arquitectura/DIAGRAMA_ARQUITECTURA_BUSQUEDA.md` y `secuencia/DIAGRAMAS_SECUENCIA_BUSQUEDA.md` 🆕
+8. **Analytics**: `arquitectura/DIAGRAMA_ARQUITECTURA_ANALYTICS.md` y `secuencia/DIAGRAMAS_SECUENCIA_ANALYTICS.md` 🆕
+9. **Integraciones**: `arquitectura/DIAGRAMA_INTEGRACIONES_EXTERNAS.md` (Pagos, Maps, Couriers, PSE) 🆕
+10. **Envíos**: `secuencia/DIAGRAMAS_SECUENCIA_ENVIOS.md` (Olva, Shalom, Urbano) 🆕
+11. **Facturación**: `secuencia/DIAGRAMAS_SECUENCIA_FACTURACION.md` (SUNAT, PSE) 🆕
+12. **Webhooks**: `secuencia/DIAGRAMAS_SECUENCIA_WEBHOOKS.md` (Event-driven, Retry) 🆕
+13. **SEO y Marketing**: `arquitectura/DIAGRAMA_SEO_MARKETING.md` (URLs, Schema.org, Email marketing) 🆕
+14. **Sistema de Lealtad**: `secuencia/DIAGRAMAS_SECUENCIA_REFERIDOS_LEALTAD.md` (Referidos, Puntos) 🆕
+15. **Soporte**: `secuencia/DIAGRAMAS_SECUENCIA_SOPORTE_TICKETS.md` (Tickets, SLA) 🆕
 
 ### Para DevOps
 1. **Despliegue en Azure**: `infraestructura/DIAGRAMA_DESPLIEGUE_AZURE.md`
 2. **CI/CD**: `infraestructura/DIAGRAMA_CI_CD.md`
-3. **Escalabilidad**: `seguridad/PATRONES_SEGURIDAD_ESCALABILIDAD.md`
-4. **Monitoreo**: Secciones de observabilidad en archivos de infraestructura
+3. **Observabilidad**: `infraestructura/DIAGRAMA_OBSERVABILIDAD.md` (Métricas, Logs, Traces) 🆕
+4. **Escalabilidad**: `seguridad/PATRONES_SEGURIDAD_ESCALABILIDAD.md`
 5. **Infraestructura como Código**: Terraform en despliegue Azure
 
 ### Para Product Managers
 1. **Flujos de usuario**: `flujos-usuario/DIAGRAMAS_FLUJO_TIENDI.md`
 2. **Panel de vendedor**: `flujos-usuario/DIAGRAMAS_FLUJO_PANEL_VENDEDOR.md`
-3. **Funcionalidades**: Diagramas de secuencia específicos en `secuencia/`
+3. **Analytics y métricas**: `secuencia/DIAGRAMAS_SECUENCIA_ANALYTICS.md` (Dashboard vendedor) 🆕
+4. **Envíos y logística**: `secuencia/DIAGRAMAS_SECUENCIA_ENVIOS.md` (Couriers peruanos) 🆕
+5. **Facturación electrónica**: `secuencia/DIAGRAMAS_SECUENCIA_FACTURACION.md` (SUNAT) 🆕
+6. **Integraciones API**: `secuencia/DIAGRAMAS_SECUENCIA_WEBHOOKS.md` 🆕
+7. **Funcionalidades**: Diagramas de secuencia específicos en `secuencia/`
+
+### Para Data Engineers
+1. **Pipeline de datos**: `arquitectura/DIAGRAMA_ARQUITECTURA_ANALYTICS.md` 🆕
+2. **Event tracking**: `secuencia/DIAGRAMAS_SECUENCIA_ANALYTICS.md` 🆕
+3. **Data warehouse**: Queries y esquemas en arquitectura analytics
 
 ### Para Security
 1. **Revisión de seguridad**: `seguridad/PATRONES_SEGURIDAD_ESCALABILIDAD.md`
 2. **RBAC**: `seguridad/DIAGRAMAS_RBAC_PERMISOS.md`
 3. **Autenticación**: `secuencia/DIAGRAMAS_SECUENCIA_AUTENTICACION.md`
+
+### Para Marketing
+1. **SEO y Marketing Digital**: `arquitectura/DIAGRAMA_SEO_MARKETING.md` (URLs, Meta tags, Schema.org) 🆕
+2. **Email Campaigns**: `arquitectura/DIAGRAMA_SEO_MARKETING.md` (Automation, A/B testing) 🆕
+3. **Tracking y Analytics**: `arquitectura/DIAGRAMA_SEO_MARKETING.md` (Píxeles, UTM, GA4) 🆕
+4. **Landing Pages**: `arquitectura/DIAGRAMA_SEO_MARKETING.md` (Campañas dinámicas) 🆕
+5. **Sistema de Lealtad**: `secuencia/DIAGRAMAS_SECUENCIA_REFERIDOS_LEALTAD.md` (Programa de puntos) 🆕
+
+### Para Legal/Compliance
+1. **Libro de Reclamaciones**: `secuencia/DIAGRAMAS_SECUENCIA_LIBRO_RECLAMACIONES.md` (Ley N° 29571) 🆕
+2. **Facturación SUNAT**: `secuencia/DIAGRAMAS_SECUENCIA_FACTURACION.md` (Comprobantes electrónicos) 🆕
+
+### Para Customer Support
+1. **Sistema de Tickets**: `secuencia/DIAGRAMAS_SECUENCIA_SOPORTE_TICKETS.md` (SLA, CSAT) 🆕
+2. **Chat en vivo**: `secuencia/DIAGRAMAS_SECUENCIA_CHAT.md`
+3. **Libro de Reclamaciones**: `secuencia/DIAGRAMAS_SECUENCIA_LIBRO_RECLAMACIONES.md` 🆕
 
 ---
 
@@ -385,5 +564,5 @@ Al agregar nuevos diagramas:
 
 ---
 
-**Última actualización:** 2025-01-24 (Reorganización en carpetas por tipo de diagrama)
+**Última actualización:** 2025-01-25 (Agregados diagramas de baja prioridad: Referidos y Lealtad, Libro de Reclamaciones, Soporte y Tickets, SEO y Marketing)
 **Mantenido por:** Equipo de Desarrollo Tiendi
