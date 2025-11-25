@@ -340,68 +340,6 @@
 
 ---
 
-## Tecnologías y Características Técnicas Requeridas
-
-### Frontend
-- **Framework:** React/Next.js o Vue.js/Nuxt.js
-- **Mapa:** Integración con Google Maps o Mapbox
-- **Estado global:** Redux, Zustand o Context API
-- **Autenticación social:** OAuth 2.0 (Google, Facebook)
-- **Chat en tiempo real:** WebSockets o Firebase Realtime
-- **Responsive design:** Mobile-first approach
-
-### Backend
-- **API RESTful** o GraphQL
-- **Base de datos:** PostgreSQL o MongoDB
-- **Autenticación:** JWT
-- **Geolocalización:** PostGIS o servicios de geolocalización
-- **Notificaciones:** Email (SMTP) y Push notifications
-- **Pasarela de pago:** Integración con Visa, Mastercard, PayPal
-
-### Integraciones
-- **WhatsApp Business API**
-- **Google Maps API**
-- **Servicios de email** (SendGrid, Mailgun)
-- **CDN** para imágenes
-
----
-
-## Priorización de Desarrollo (Sugerencia)
-
-### Fase 1 - MVP (Mínimo Producto Viable)
-1. ✅ Autenticación de usuarios (login/registro)
-2. ✅ Búsqueda de tiendas con geolocalización
-3. ✅ Catálogo de productos básico
-4. ✅ Carrito de compras
-5. ✅ Checkout básico (sin integración de pagos)
-6. ✅ Gestión de pedidos básica
-
-### Fase 2 - Funcionalidades Principales
-1. ✅ Integración de medios de pago
-2. ✅ Sistema de filtros avanzados
-3. ✅ Detalle de producto completo
-4. ✅ Historial de pedidos con estados
-5. ✅ Favoritos
-6. ✅ Perfil de usuario
-
-### Fase 3 - Características Avanzadas
-1. ✅ Sistema de mensajería/chat
-2. ✅ Notificaciones push y email
-3. ✅ Sistema de valoraciones y reseñas
-4. ✅ Dashboard para vendedores
-5. ✅ Analytics y reportes
-6. ✅ Sistema de cupones y descuentos
-
-### Fase 4 - Optimizaciones y Extras
-1. ✅ Progressive Web App (PWA)
-2. ✅ Optimización SEO
-3. ✅ Panel administrativo completo
-4. ✅ Integración con WhatsApp Business
-5. ✅ Sistema de recomendaciones
-6. ✅ Multi-idioma
-
----
-
 ## Flujos de Usuario Principales
 
 ### 1. Flujo de Compra
@@ -425,6 +363,24 @@ Seleccionar Pedido → Ver Detalle →
 Chat con Tienda (opcional)
 ```
 
+### 4. Flujo de Comunicación con Tienda
+```
+Opción A (desde producto/tienda):
+Ver Tienda/Producto → Click en Mensajes/Chat →
+Seleccionar Tienda → Escribir Mensaje →
+Enviar (o usar Plantilla) → Recibir Respuesta
+
+Opción B (desde pedido existente):
+Mis Pedidos → Ver Detalle de Pedido →
+Click en Chat/Contactar Tienda → Ver Conversación →
+Escribir Mensaje → Enviar → Recibir Respuesta
+
+Opción C (desde lista de mensajes):
+Click en ícono Mensajes (header) → Ver Lista de Conversaciones →
+Seleccionar Conversación → Ver Historial →
+Escribir Mensaje → Enviar
+```
+
 ---
 
 ## Notas Adicionales
@@ -438,5 +394,299 @@ Chat con Tienda (opcional)
 
 ---
 
+## Aspectos Críticos a Considerar
+
+### 1. Arquitectura SaaS Multi-Tenant
+- **Decisión clave:** ¿Cómo aislar los datos de cada tienda?
+  - **Opción A:** Base de datos por tenant (mayor aislamiento, más costoso, complejo de mantener)
+  - **Opción B:** Schema por tenant (balance entre aislamiento y costo)
+  - **Opción C:** Registro discriminador con campo `tenant_id` (más económico, menos aislamiento)
+- **Consideraciones:**
+  - Escalabilidad horizontal
+  - Backups y recuperación por tenant
+  - Migraciones de schema
+  - Performance y queries multi-tenant
+
+### 2. Sistema de Inventario en Tiempo Real
+- **Problemas críticos:**
+  - Sincronización de stock entre múltiples usuarios
+  - Prevención de sobreventa (race conditions)
+  - Reservas temporales en carrito (¿cuánto tiempo?)
+  - Liberación automática de stock reservado
+- **Soluciones requeridas:**
+  - Sistema de locks optimistas o pesimistas
+  - Cola de procesamiento de pedidos
+  - Logs de auditoría de inventario
+  - Alertas de stock bajo/agotado
+
+### 3. Geolocalización y Performance
+- **Costos operativos:**
+  - APIs de mapas tienen límites y costos (Google Maps, Mapbox, OpenStreetMap)
+  - Búsquedas geoespaciales son intensivas computacionalmente
+- **Optimizaciones necesarias:**
+  - Implementar PostGIS o MongoDB con índices geoespaciales
+  - Caché de búsquedas frecuentes (Redis con TTL)
+  - Geocodificación de direcciones en batch
+  - Clustering de marcadores en mapa
+
+### 4. Sistema de Pagos y Compliance
+- **Integraciones de pago:**
+  - Pasarelas peruanas: Niubiz, Culqi, MercadoPago, Izipay
+  - Manejo de webhooks para confirmación asíncrona
+  - Gestión de reembolsos y contracargos
+  - PCI DSS compliance (no almacenar datos de tarjetas)
+- **Compliance fiscal:**
+  - Facturación electrónica SUNAT
+  - Boletas y facturas (CPE)
+  - Notas de crédito/débito
+  - Reportes fiscales
+
+### 5. Panel de Administración para Vendedores
+- **Funcionalidades críticas no diseñadas:**
+  - Gestión de catálogo (CRUD productos con imágenes)
+  - Gestión de inventario (entradas/salidas/ajustes)
+  - Gestión de pedidos (confirmación, rechazo, estados)
+  - Configuración de tienda (horarios, medios de pago, delivery)
+  - Dashboard de ventas y reportes
+  - Gestión de promociones y descuentos
+  - Sistema de notificaciones
+
+### 6. Seguridad y Privacidad
+- **Autenticación y autorización:**
+  - Implementación de RBAC (Role-Based Access Control)
+  - Protección contra CSRF, XSS, SQL Injection
+  - Rate limiting en APIs críticas
+  - Validación de permisos por tenant
+- **Privacidad de datos:**
+  - Cumplimiento GDPR/Ley de Protección de Datos Personales (Perú)
+  - Consentimiento explícito para datos personales
+  - Derecho al olvido (eliminación de cuenta)
+  - Encriptación de datos sensibles
+
+### 7. Comunicaciones en Tiempo Real
+- **Sistema de chat:**
+  - WebSockets vs Server-Sent Events vs Polling
+  - Persistencia de mensajes
+  - Notificaciones push (web y móvil)
+  - Indicadores de lectura/escritura
+- **Escalabilidad:**
+  - Manejo de múltiples conexiones simultáneas
+  - Balance de carga para WebSockets
+  - Fallback para conexiones inestables
+
+### 8. Gestión de Imágenes y Media
+- **Consideraciones:**
+  - CDN para delivery rápido
+  - Optimización automática (compresión, WebP, lazy loading)
+  - Múltiples tamaños (thumbnail, preview, full)
+  - Límites de tamaño y formato
+  - Protección contra contenido inapropiado
+
+---
+
+## Aspectos Faltantes Importantes
+
+### 1. Sistema de Roles y Permisos
+- **Roles requeridos:**
+  - **Super Admin** (Tiendi): Control total de la plataforma
+  - **Admin de Tienda** (Owner): Gestión completa de su tienda
+  - **Empleado de Tienda**: Permisos limitados (gestión de pedidos, inventario)
+  - **Cliente**: Compras y gestión de perfil
+- **Permisos granulares:**
+  - Ver/editar productos
+  - Gestionar inventario
+  - Ver/confirmar pedidos
+  - Acceso a reportes financieros
+  - Configuración de tienda
+
+### 2. Modelo de Monetización y Comisiones
+- **Estrategias posibles:**
+  - Comisión por transacción (ej: 5-15% del valor de venta)
+  - Suscripción mensual por tienda (planes: Básico, Pro, Enterprise)
+  - Modelo híbrido (suscripción + comisión reducida)
+  - Cargos por servicios premium (destacados, publicidad)
+- **Sistema requerido:**
+  - Cálculo automático de comisiones
+  - Dashboard financiero para vendedores
+  - Sistema de pagos/retiros para vendedores
+  - Facturación automática de comisiones
+
+### 3. Sistema de Valoraciones y Reseñas
+- **Para productos:**
+  - Calificación de 1-5 estrellas
+  - Comentarios de clientes
+  - Verificación de compra
+  - Moderación de contenido
+- **Para tiendas:**
+  - Reputación global
+  - Tiempo de respuesta
+  - Calidad de servicio
+  - Impacto en ranking de búsqueda
+
+### 4. Moderación y Control de Calidad
+- **Onboarding de vendedores:**
+  - Verificación de identidad (RUC/DNI)
+  - Aprobación manual de nuevas tiendas
+  - Verificación de dirección física
+  - Validación de documentos legales
+- **Moderación de contenido:**
+  - Revisión de productos nuevos
+  - Detección de precios/información fraudulenta
+  - Imágenes inapropiadas
+  - Sistema de reportes de usuarios
+- **Sanciones:**
+  - Advertencias
+  - Suspensión temporal
+  - Cierre definitivo de tienda
+
+### 5. Sistema de Cupones y Promociones
+- **Tipos de descuentos:**
+  - Código de cupón (ej: VERANO2025)
+  - Descuento por primera compra
+  - Descuento por monto mínimo
+  - Promociones por categoría
+  - Happy hour / Time-limited offers
+- **Gestión:**
+  - Creación por vendedor o administrador
+  - Límites de uso (por usuario, total)
+  - Vigencia (fecha inicio/fin)
+  - Exclusiones (productos, categorías)
+
+### 6. Sistema de Notificaciones
+- **Canales:**
+  - Push notifications (web y móvil)
+  - Email
+  - SMS (para confirmaciones críticas)
+  - WhatsApp Business (opcional)
+- **Eventos:**
+  - Confirmación de pedido
+  - Cambio de estado de pedido
+  - Mensaje nuevo en chat
+  - Promociones y ofertas
+  - Recordatorios de carrito abandonado
+- **Configuración:**
+  - Preferencias de usuario (opt-in/opt-out)
+  - Frecuencia de notificaciones
+  - Horarios permitidos
+
+### 7. Analytics y Reportes
+- **Dashboard para Vendedores:**
+  - Ventas por período (día/semana/mes)
+  - Productos más vendidos
+  - Ticket promedio
+  - Tasa de conversión
+  - Productos con bajo stock
+  - Pedidos por estado
+- **Dashboard para Administradores (Tiendi):**
+  - GMV (Gross Merchandise Value) total
+  - Comisiones generadas
+  - Usuarios activos (DAU/MAU)
+  - Tiendas activas
+  - Métricas de búsqueda
+  - Tasas de conversión globales
+  - Análisis geográfico
+
+### 8. SEO y Marketing Digital
+- **SEO técnico:**
+  - URLs amigables por tienda (/tienda/nombre-tienda)
+  - URLs por producto (/producto/nombre-producto)
+  - Meta tags dinámicos por página
+  - Schema markup (Product, LocalBusiness, Review)
+  - Sitemap XML dinámico
+- **Marketing:**
+  - Landing pages por ciudad/categoría
+  - Blog de contenido
+  - Integraciones con redes sociales
+  - Píxeles de conversión (Facebook, Google Ads)
+  - Email marketing (newsletters, carritos abandonados)
+
+### 9. Sistema de Devoluciones y Disputas
+- **Proceso de devoluciones:**
+  - Solicitud por parte del cliente
+  - Evaluación por vendedor
+  - Políticas de devolución por tienda
+  - Reembolsos automáticos o manuales
+  - Estados: Solicitado, Aprobado, Rechazado, Completado
+- **Disputas:**
+  - Mediación entre cliente y vendedor
+  - Escalamiento a soporte Tiendi
+  - Sistema de evidencias (fotos, mensajes)
+  - Resolución y sanciones
+
+### 10. Gestión de Direcciones y Zonas de Cobertura
+- **Direcciones de clientes:**
+  - Múltiples direcciones guardadas
+  - Geocodificación automática
+  - Validación de cobertura por tienda
+  - Dirección predeterminada
+- **Zonas de delivery:**
+  - Definición de áreas de cobertura por tienda
+  - Costos de envío por zona
+  - Tiempo estimado de entrega
+  - Restricciones geográficas
+
+### 11. Sistema de Carrito Persistente
+- **Funcionalidades:**
+  - Carrito persistente entre sesiones
+  - Sincronización entre dispositivos
+  - Notificaciones de cambio de precio
+  - Alertas de productos agotados
+  - Recordatorios de carrito abandonado (24h, 48h)
+  - Guardado de "listas de deseos" o "comprar después"
+
+### 12. Soporte al Cliente
+- **Canales de soporte:**
+  - Chat en vivo (para Tiendi admin)
+  - Sistema de tickets
+  - Preguntas frecuentes (FAQ)
+  - Base de conocimiento
+  - Video tutoriales (para vendedores)
+- **Para clientes:**
+  - Ayuda con pedidos
+  - Problemas de pago
+  - Reclamos y devoluciones
+- **Para vendedores:**
+  - Onboarding y capacitación
+  - Soporte técnico
+  - Consultas sobre comisiones
+
+### 13. Cumplimiento Legal
+- **Documentos requeridos:**
+  - Términos y condiciones completos
+  - Política de privacidad detallada
+  - Política de cookies
+  - Términos de uso para vendedores
+  - Contrato de servicio (SLA)
+- **Libro de reclamaciones digital:**
+  - Requerido por ley peruana
+  - Formulario de reclamo
+  - Seguimiento de casos
+  - Exportación a INDECOPI
+
+### 14. Sistema de Referidos y Lealtad
+- **Programa de referidos:**
+  - Código único por usuario
+  - Incentivos para referidor y referido
+  - Tracking de conversiones
+- **Programa de lealtad:**
+  - Puntos por compra
+  - Niveles de membresía
+  - Beneficios exclusivos
+  - Canje de puntos
+
+### 15. Modo Offline y PWA
+- **Progressive Web App:**
+  - Instalable en dispositivos
+  - Funcionalidad offline básica
+  - Service workers
+  - Caché inteligente
+- **Sincronización:**
+  - Cola de acciones offline
+  - Sincronización al recuperar conexión
+  - Indicadores de estado de conexión
+
+---
+
 **Fecha de análisis:** 2025-11-23
 **Basado en:** 32 imágenes de prototipo del sistema Tiendi
+**Última actualización:** 2025-11-24
