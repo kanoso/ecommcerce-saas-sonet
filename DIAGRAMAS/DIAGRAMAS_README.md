@@ -189,6 +189,90 @@ Operaciones adicionales del sistema:
 
 ---
 
+### 🆕 Diagramas Adicionales del Sistema
+
+#### `DIAGRAMA_ARQUITECTURA_MULTITENANT.md`
+- Arquitectura multi-tenant con aislamiento de datos por tienda
+- Estrategias de multi-tenancy (DB por tenant, Schema, Discriminador)
+- Row-Level Security (RLS) en PostgreSQL
+- Queries multi-tenant y seguridad
+- Backup y recuperación por tenant
+
+#### `DIAGRAMAS_SECUENCIA_INVENTARIO.md`
+- Gestión de inventario en tiempo real
+- Reserva y liberación de stock
+- Prevención de sobreventa (locks optimista y pesimista)
+- Ajustes manuales de inventario
+- Alertas de stock bajo
+- Importación masiva
+
+#### `DIAGRAMAS_RBAC_PERMISOS.md`
+- Sistema de control de acceso basado en roles
+- Jerarquía de roles (Super Admin, Store Admin, Staff, Customer)
+- Matriz de permisos completa
+- Validación de permisos y ownership
+- Implementación de middleware
+
+#### `DIAGRAMAS_SECUENCIA_COMISIONES.md`
+- Sistema de monetización y comisiones
+- Cálculo automático de comisiones
+- Proceso de payout a vendedores
+- Dashboard financiero
+- Facturación de suscripciones
+- Cambio de planes
+
+#### `DIAGRAMAS_FLUJO_PANEL_VENDEDOR.md`
+- Flujos completos del panel de administración para vendedores
+- Dashboard principal
+- Gestión de productos (CRUD)
+- Gestión de inventario
+- Gestión de pedidos
+- Configuración de tienda
+- Reportes y analytics
+- Sistema de cupones
+- Respuesta a mensajes
+
+#### `DIAGRAMAS_SECUENCIA_VALORACIONES.md`
+- Sistema de reseñas y valoraciones de productos
+- Verificación de compra para valorar
+- Moderación de reseñas
+- Respuesta del vendedor
+- Cálculo de reputación de tienda
+- Sistema de badges
+
+#### `DIAGRAMAS_SECUENCIA_CUPONES.md`
+- Creación y gestión de cupones de descuento
+- Validación de cupones en checkout
+- Límites de uso y restricciones
+- Cupones por porcentaje o monto fijo
+- Aplicabilidad por producto/categoría
+
+#### `DIAGRAMAS_SECUENCIA_DEVOLUCIONES.md`
+- Proceso completo de devoluciones
+- Solicitud por parte del cliente
+- Evaluación por vendedor
+- Procesamiento de reembolsos
+- Sistema de disputas
+- Mediación por equipo Tiendi
+
+#### `DIAGRAMAS_SECUENCIA_MODERACION.md`
+- Onboarding y verificación KYC de vendedores
+- Aprobación manual de tiendas
+- Moderación automática de productos
+- Sistema de reportes
+- Suspensión de tiendas
+- Auditoría completa
+
+#### `DIAGRAMA_NOTIFICACIONES.md`
+- Arquitectura del sistema de notificaciones
+- Múltiples canales (Email, Push, SMS, WhatsApp, In-App)
+- Notificaciones transaccionales y de marketing
+- Gestión de preferencias de usuario
+- Templates y campañas
+- WebSocket para tiempo real
+
+---
+
 ## 🎯 Uso Recomendado
 
 ### Para Desarrolladores

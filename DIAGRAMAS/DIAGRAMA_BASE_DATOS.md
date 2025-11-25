@@ -584,5 +584,90 @@ EXECUTE FUNCTION generate_order_number();
 
 ---
 
+## Tablas Adicionales del Sistema
+
+### Roles y Permisos (RBAC)
+
+```sql
+-- Ver DIAGRAMAS_RBAC_PERMISOS.md para detalles completos
+CREATE TABLE roles (...);
+CREATE TABLE permissions (...);
+CREATE TABLE role_permissions (...);
+CREATE TABLE user_roles (...);
+```
+
+### Suscripciones y Comisiones
+
+```sql
+-- Ver DIAGRAMAS_SECUENCIA_COMISIONES.md para detalles
+CREATE TABLE subscription_plans (...);
+CREATE TABLE subscriptions (...);
+CREATE TABLE commissions (...);
+CREATE TABLE payouts (...);
+CREATE TABLE invoices (...);
+```
+
+### Inventario
+
+```sql
+-- Ver DIAGRAMAS_SECUENCIA_INVENTARIO.md para detalles
+CREATE TABLE inventory_adjustments (...);
+CREATE TABLE stock_reservations (...);
+CREATE TABLE stock_alerts (...);
+```
+
+### Valoraciones
+
+```sql
+-- Ver DIAGRAMAS_SECUENCIA_VALORACIONES.md para detalles
+CREATE TABLE reviews (...);
+CREATE TABLE review_images (...);
+CREATE TABLE review_reports (...);
+CREATE TABLE store_reputation (...);
+```
+
+### Cupones
+
+```sql
+-- Ver DIAGRAMAS_SECUENCIA_CUPONES.md para detalles
+CREATE TABLE coupons (...);
+CREATE TABLE coupon_usages (...);
+```
+
+### Devoluciones y Disputas
+
+```sql
+-- Ver DIAGRAMAS_SECUENCIA_DEVOLUCIONES.md para detalles
+CREATE TABLE returns (...);
+CREATE TABLE return_images (...);
+CREATE TABLE refunds (...);
+CREATE TABLE disputes (...);
+CREATE TABLE dispute_messages (...);
+```
+
+### Moderación
+
+```sql
+-- Ver DIAGRAMAS_SECUENCIA_MODERACION.md para detalles
+CREATE TABLE seller_applications (...);
+CREATE TABLE reports (...);
+CREATE TABLE moderation_actions (...);
+CREATE TABLE audit_logs (...);
+```
+
+### Notificaciones
+
+```sql
+-- Ver DIAGRAMA_NOTIFICACIONES.md para detalles
+CREATE TABLE notifications (...);
+CREATE TABLE notification_preferences (...);
+CREATE TABLE notification_templates (...);
+CREATE TABLE notification_campaigns (...);
+CREATE TABLE device_tokens (...);
+```
+
+---
+
 **Fecha de creación:** 2025-11-24
-**Versión:** 1.0
+**Versión:** 1.1
+**Última actualización:** 2025-11-24 - Referenciadas nuevas tablas de los diagramas adicionales
