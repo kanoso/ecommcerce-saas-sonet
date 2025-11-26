@@ -88,17 +88,295 @@ Tiendi Platform
 
 ### 2.3 Flujos de Usuario Principales
 
-**Flujo de Compra:**
-```
-Home → Búsqueda Geolocalizada → Selección Tienda →
-Catálogo → Carrito → Checkout → Pago → Confirmación
+#### 2.3.1 Flujo de Compra (Cliente)
+
+**Descripción General:**
+
+Home → Búsqueda Geolocalizada → Selección Tienda → Catálogo → Carrito → Checkout → Pago → Confirmación
+
+**Diagrama Simplificado:**
+
+```mermaid
+flowchart LR
+    A[Home] --> B[Búsqueda<br/>Geolocalizada]
+    B --> C[Selección<br/>Tienda]
+    C --> D[Catálogo<br/>Productos]
+    D --> E[Carrito]
+    E --> F[Checkout]
+    F --> G[Pago]
+    G --> H[Confirmación]
+
+    style B fill:#e3f2fd
+    style G fill:#fff3e0
+    style H fill:#e8f5e9
 ```
 
-**Flujo de Vendedor:**
+**Pasos Principales:**
+
+1. **Búsqueda Geolocalizada** - El cliente permite ubicación y ve tiendas cercanas en mapa
+2. **Selección de Tienda** - Click en una tienda para ver su catálogo
+3. **Navegación de Catálogo** - Búsqueda y filtrado de productos
+4. **Agregar al Carrito** - Selección de productos y cantidades
+5. **Checkout** - Login/registro + dirección de entrega
+6. **Procesamiento de Pago** - Integración con Niubiz/Culqi para pagos
+7. **Confirmación** - Orden creada con notificaciones al cliente y vendedor
+
+**Tiempo Total:** ~5-7 segundos (proceso de pago incluido)
+
+> **📄 Diagrama Detallado:** Ver flujo completo con todos los participantes y casos de error en [`DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md`](DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md#5-flujo-de-compra-completo-cliente)
+
+**Resumen del Flujo:**
+
+| Fase | Pasos | Tiempo Estimado | Servicios Involucrados |
+|------|-------|-----------------|------------------------|
+| **1. Búsqueda Geolocalizada** | 1-2 | 500ms | Store Service, Google Maps, Redis |
+| **2. Selección de Tienda** | 3 | 200ms | Store Service, Redis |
+| **3. Navegación de Catálogo** | 4-5 | 300ms | Product Service, Search Service, Redis |
+| **4. Agregar al Carrito** | 6-7 | 100ms | Cart Service, PostgreSQL |
+| **5. Checkout** | 8-9 | 500ms | Auth Service, Cart Service, Google Maps |
+| **6. Procesamiento de Pago** | 10-11 | 3-5s | Payment Service, Order Service, Niubiz/Culqi |
+| **7. Confirmación** | 12 | 200ms | Notification Service |
+| **TOTAL** | - | **5-7 segundos** | - |
+
+**Endpoints de API utilizados:**
+
+```typescript
+// 1. Búsqueda de tiendas cercanas
+GET /api/v1/stores/nearby?lat={lat}&lng={lng}&radius={km}
+
+// 2. Detalles de tienda
+GET /api/v1/stores/:slug
+
+// 3. Productos de tienda
+GET /api/v1/stores/:id/products?category={cat}&page={n}
+
+// 4. Búsqueda de productos
+GET /api/v1/search?q={query}&store_id={id}
+
+// 5. Carrito - Agregar item
+POST /api/v1/cart/items
+Body: { product_id: string, quantity: number }
+
+// 6. Carrito - Obtener
+GET /api/v1/cart
+
+// 7. Crear sesión de pago
+POST /api/v1/payments/session
+Body: { amount: number, currency: string }
+
+// 8. Crear orden
+POST /api/v1/orders
+Body: {
+  cart_id: string,
+  delivery_address: object,
+  delivery_type: 'pickup' | 'delivery',
+  payment_method: string,
+  card_token?: string
+}
+
+// 9. Obtener orden
+GET /api/v1/orders/:id
 ```
-Registro Tienda → Verificación → Configuración →
-Agregar Productos → Recibir Pedidos → Gestionar Envíos
+
+**Validaciones Importantes:**
+
+1. **Stock disponible:** Verificar antes de crear orden
+2. **Precio actual:** Usar precio al momento del pedido, no del carrito
+3. **Horario de tienda:** Verificar que esté abierta
+4. **Zona de entrega:** Validar que la dirección esté en cobertura
+5. **Monto mínimo:** Validar si la tienda tiene monto mínimo
+6. **Autenticación:** JWT válido en checkout
+
+**Casos de Error:**
+
+| Error | Código | Mensaje | Acción |
+|-------|--------|---------|--------|
+| Stock insuficiente | 400 | "Producto sin stock" | Actualizar carrito |
+| Tienda cerrada | 400 | "Tienda cerrada" | Mostrar horarios |
+| Fuera de cobertura | 400 | "Dirección fuera de zona" | Solicitar otra dirección |
+| Pago rechazado | 402 | "Pago no autorizado" | Reintentar o cambiar método |
+| Token expirado | 401 | "Sesión expirada" | Redirigir a login |
+
+#### 2.3.2 Flujo de Gestión de Vendedor
+
+**Descripción General:**
+
+Registro → Verificación (Admin) → Configuración → Agregar Productos → Recibir Pedidos → Gestionar Pedidos → Analytics
+
+**Diagrama Simplificado:**
+
+```mermaid
+flowchart TD
+    A[Registro<br/>Vendedor] --> B[Verificación<br/>Admin]
+    B --> C[Configuración<br/>Tienda]
+    C --> D[Agregar<br/>Productos]
+    D --> E[Recibir<br/>Pedidos]
+    E --> F{Acción}
+    F -->|Confirmar| G[Preparar<br/>Pedido]
+    F -->|Rechazar| H[Notificar<br/>Cliente]
+    G --> I[Marcar en<br/>Camino]
+    I --> J[Entregado]
+    J --> K[Analytics]
+    H --> K
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style E fill:#e8f5e9
+    style K fill:#fce4ec
 ```
+
+**Fases Principales:**
+
+1. **Registro** (5 min) - Vendedor completa formulario de solicitud
+2. **Verificación** (1-2 días) - Admin aprueba y crea cuenta
+3. **Configuración** (15-20 min) - Wizard guiado: logo, horarios, ubicación, métodos de pago
+4. **Agregar Productos** (5 min/producto) - Catálogo con imágenes y stock
+5. **Recibir Pedidos** (tiempo real) - Notificaciones push/email/in-app
+6. **Gestionar Pedidos** - Confirmar → En camino → Entregado (o Rechazar)
+7. **Analytics** - Dashboard con ventas, productos top, gráficos
+
+**Estados de Pedido:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> PorEnviar: Pedido creado
+
+    PorEnviar --> Confirmado: Vendedor acepta
+    PorEnviar --> Rechazado: Vendedor rechaza
+
+    Confirmado --> EnCamino: Preparado para envío
+
+    EnCamino --> Entregado: Cliente recibe
+
+    Entregado --> [*]
+    Rechazado --> [*]
+
+    note right of PorEnviar
+        Estado inicial
+        Cliente espera
+    end note
+
+    note right of Confirmado
+        Vendedor prepara
+        el pedido
+    end note
+
+    note right of Entregado
+        Estado final
+        exitoso
+    end note
+```
+
+**Descripción de Estados:**
+
+| Estado | Código | Color | Actor Responsable | Siguiente Acción |
+|--------|--------|-------|-------------------|------------------|
+| Por Enviar | `por_enviar` | 🔴 Rojo | Sistema | Vendedor debe confirmar |
+| Confirmado | `confirmado` | 🔵 Azul | Vendedor | Preparar pedido |
+| En Camino | `en_camino` | 🔵 Azul | Vendedor/Delivery | Entregar al cliente |
+| Entregado | `entregado` | 🟢 Verde | Cliente | Completado ✓ |
+| Rechazado | `rechazado` | 🔴 Rojo | Vendedor | Notificar cliente |
+
+> **📄 Diagrama Detallado:** Ver flujo completo con todos los pasos de configuración y gestión en [`DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md`](DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md#6-flujo-de-gestión-de-vendedor)
+
+**Resumen del Flujo de Vendedor:**
+
+| Fase | Duración | Responsable | Estado |
+|------|----------|-------------|--------|
+| **1. Registro** | 5 minutos | Vendedor | Inmediato |
+| **2. Verificación** | 1-2 días | Admin | Manual |
+| **3. Configuración** | 15-20 minutos | Vendedor | Guiado |
+| **4. Agregar Productos** | 5 min/producto | Vendedor | Continuo |
+| **5. Recibir Pedidos** | Tiempo real | Sistema | Automático |
+| **6. Gestionar Pedidos** | Varía | Vendedor | Por pedido |
+| **7. Analytics** | Instantáneo | Sistema | Tiempo real |
+
+**Endpoints de API del Vendedor:**
+
+```typescript
+// Registro
+POST /api/v1/seller-leads
+Body: { name, email, phone, business_type, document }
+
+// Configuración de tienda
+PUT /api/v1/stores/:id/settings
+PUT /api/v1/stores/:id/delivery
+POST /api/v1/stores/:id/payment-methods
+
+// Productos
+POST /api/v1/products
+PUT /api/v1/products/:id
+DELETE /api/v1/products/:id
+POST /api/v1/upload/product-image
+
+// Pedidos
+GET /api/v1/vendor/orders?status={status}
+GET /api/v1/orders/:id
+PUT /api/v1/orders/:id/confirm
+PUT /api/v1/orders/:id/dispatch
+PUT /api/v1/orders/:id/complete
+PUT /api/v1/orders/:id/reject
+
+// Analytics
+GET /api/v1/vendor/analytics?period={period}
+GET /api/v1/vendor/reports/sales?from={date}&to={date}
+```
+
+**Transiciones de Estados:**
+
+El diagrama completo de estados se encuentra en la sección 2.3.2 arriba ⬆️
+
+#### 2.3.3 Flujo de Chat en Tiempo Real
+
+**Descripción General:**
+
+Sistema de mensajería en tiempo real entre cliente y vendedor sobre pedidos específicos usando WebSocket (Socket.io).
+
+**Diagrama Simplificado:**
+
+```mermaid
+flowchart LR
+    A[Cliente/Vendedor] --> B[Conectar<br/>WebSocket]
+    B --> C[Unirse a Sala<br/>order_id]
+    C --> D[Cargar<br/>Historial]
+    D --> E{Nueva Acción}
+    E -->|Enviar| F[Mensaje<br/>en Tiempo Real]
+    E -->|Leer| G[Marcar<br/>Leído]
+    F --> H[Guardar en<br/>MongoDB]
+    H --> I[Broadcast<br/>a Sala]
+    G --> J[Actualizar<br/>Estado]
+
+    style B fill:#e3f2fd
+    style F fill:#fff3e0
+    style I fill:#e8f5e9
+```
+
+**Características Principales:**
+
+- **Tecnología:** WebSocket con Socket.io
+- **Persistencia:** MongoDB para almacenar mensajes
+- **Autenticación:** JWT token en conexión WebSocket
+- **Salas:** Una sala por pedido (order_id)
+- **Estados de Mensaje:**
+  - ✓ Enviado
+  - ✓✓ Entregado
+  - ✓✓ (azul) Leído
+- **Notificaciones Offline:** Email + Push si el destinatario está desconectado
+- **Reconexión Automática:** Si se pierde conexión, reconecta y sincroniza
+
+**Eventos Socket.io:**
+
+| Evento | Dirección | Descripción |
+|--------|-----------|-------------|
+| `connect` | Client → Server | Establecer conexión WebSocket |
+| `join_room` | Client → Server | Unirse a sala del pedido |
+| `send_message` | Client → Server | Enviar nuevo mensaje |
+| `new_message` | Server → Client | Notificar nuevo mensaje en sala |
+| `mark_as_read` | Client → Server | Marcar mensajes como leídos |
+| `messages_read` | Server → Client | Notificar que mensajes fueron leídos |
+
+> **📄 Diagrama Detallado:** Ver flujo completo con autenticación, broadcast y notificaciones en [`DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md`](DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md#7-flujo-de-chat-en-tiempo-real)
 
 ---
 
@@ -108,28 +386,28 @@ Agregar Productos → Recibir Pedidos → Gestionar Envíos
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENTS LAYER                            │
+│                         CLIENTS LAYER                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Web App (Next.js)  │  PWA  │  Mobile App (React Native)       │
+│  Web App (Next.js)  │  PWA  │  Mobile App (React Native)        │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CDN & EDGE LAYER                              │
+│                    CDN & EDGE LAYER                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  Azure Front Door  │  Azure CDN  │  WAF  │  Edge Functions     │
+│  Azure Front Door  │  Azure CDN  │  WAF  │  Edge Functions      │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      API GATEWAY LAYER                           │
+│                      API GATEWAY LAYER                          │
 ├─────────────────────────────────────────────────────────────────┤
 │  API Gateway  │  Auth Service (JWT)  │  Rate Limiting           │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   MICROSERVICES LAYER (AKS)                      │
+│                   MICROSERVICES LAYER (AKS)                     │
 ├─────────────────────────────────────────────────────────────────┤
 │  User Service   │  Store Service   │  Product Service           │
 │  Order Service  │  Payment Service │  Chat Service              │
@@ -138,7 +416,7 @@ Agregar Productos → Recibir Pedidos → Gestionar Envíos
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                        DATA LAYER                                │
+│                        DATA LAYER                               │
 ├─────────────────────────────────────────────────────────────────┤
 │  PostgreSQL (Primary + Replica)  │  Redis Cache                 │
 │  MongoDB (Chat/Logs)  │  Elasticsearch (Search)                 │
@@ -147,22 +425,211 @@ Agregar Productos → Recibir Pedidos → Gestionar Envíos
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                  EXTERNAL INTEGRATIONS                           │
+│                  EXTERNAL INTEGRATIONS                          │
 ├─────────────────────────────────────────────────────────────────┤
-│  Google Maps  │  Niubiz/Culqi (Pagos)  │  SendGrid (Email)     │
+│  Google Maps  │  Niubiz/Culqi (Pagos)  │  SendGrid (Email)      │
 │  Twilio (SMS/WhatsApp)  │  Nubefact (Facturación SUNAT)         │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                  MONITORING & LOGGING                            │
+│                  MONITORING & LOGGING                           │
 ├─────────────────────────────────────────────────────────────────┤
 │  Azure Monitor  │  Application Insights  │  Log Analytics       │
 │  Sentry (Error Tracking)  │  Datadog (APM)                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Principios Arquitectónicos
+### 3.2 Diagrama de Arquitectura C4 - Nivel Contenedor
+
+El siguiente diagrama muestra la arquitectura a nivel de contenedores siguiendo el modelo C4:
+
+```mermaid
+graph TB
+    subgraph "Usuario Final"
+        USER[Cliente/Vendedor<br/>Web Browser/Mobile]
+    end
+
+    subgraph "Azure Front Door + CDN"
+        AFD[Azure Front Door<br/>Global Load Balancer<br/>+ WAF]
+        CDN[Azure CDN<br/>Static Assets]
+    end
+
+    subgraph "AKS Cluster - Application Containers"
+
+        subgraph "API Gateway Layer"
+            GATEWAY[API Gateway Container<br/>NestJS<br/>Port: 3000<br/>Routing + Auth]
+        end
+
+        subgraph "Backend Services Containers"
+            USER_SVC[User Service<br/>NestJS<br/>Authentication<br/>User Management]
+
+            STORE_SVC[Store Service<br/>NestJS<br/>Store CRUD<br/>Geolocation]
+
+            PRODUCT_SVC[Product Service<br/>NestJS<br/>Catalog<br/>Inventory]
+
+            ORDER_SVC[Order Service<br/>NestJS<br/>Order Processing<br/>Tracking]
+
+            PAYMENT_SVC[Payment Service<br/>NestJS<br/>Payment Gateway<br/>Webhooks]
+
+            CHAT_SVC[Chat Service<br/>NestJS + Socket.io<br/>Real-time Messaging]
+
+            NOTIF_SVC[Notification Service<br/>NestJS<br/>Multi-channel<br/>Notifications]
+
+            SEARCH_SVC[Search Service<br/>NestJS<br/>Elasticsearch Client]
+        end
+
+        subgraph "Frontend Container"
+            WEB_APP[Web Application<br/>Next.js 14<br/>SSR + CSR<br/>Port: 3000]
+        end
+
+        subgraph "Background Workers"
+            WORKER[Background Workers<br/>Bull Queue<br/>Async Jobs]
+        end
+    end
+
+    subgraph "Data Stores - Azure Managed Services"
+        POSTGRES[(PostgreSQL<br/>Flexible Server<br/>Primary + Replica<br/>Transactional Data)]
+
+        REDIS[(Redis Cache<br/>Premium Tier<br/>Sessions + Cache<br/>Pub/Sub)]
+
+        MONGO[(Cosmos DB<br/>MongoDB API<br/>Chat Messages<br/>Logs)]
+
+        ELASTIC[(Elasticsearch<br/>Search Index<br/>Full-text Search<br/>Geospatial)]
+
+        BLOB[Azure Blob Storage<br/>Images + Assets<br/>Hot/Cool/Archive]
+    end
+
+    subgraph "External Systems"
+        GOOGLE_MAPS[Google Maps API<br/>Geocoding<br/>Distance Matrix]
+
+        PAYMENT_GW[Payment Gateways<br/>Niubiz/Culqi<br/>Card Processing]
+
+        SENDGRID[SendGrid<br/>Email Service<br/>Transactional]
+
+        TWILIO[Twilio<br/>SMS + WhatsApp<br/>Business API]
+
+        NUBEFACT[Nubefact<br/>SUNAT<br/>E-invoicing]
+    end
+
+    subgraph "Monitoring & Observability"
+        APP_INSIGHTS[Application Insights<br/>APM + Tracing<br/>Performance]
+
+        MONITOR[Azure Monitor<br/>Metrics + Alerts<br/>Dashboards]
+
+        SENTRY[Sentry<br/>Error Tracking<br/>Crash Reports]
+    end
+
+    %% User connections
+    USER -->|HTTPS| AFD
+    AFD --> CDN
+    AFD --> GATEWAY
+    CDN --> WEB_APP
+
+    %% API Gateway to Services
+    GATEWAY --> USER_SVC
+    GATEWAY --> STORE_SVC
+    GATEWAY --> PRODUCT_SVC
+    GATEWAY --> ORDER_SVC
+    GATEWAY --> PAYMENT_SVC
+    GATEWAY --> CHAT_SVC
+    GATEWAY --> NOTIF_SVC
+    GATEWAY --> SEARCH_SVC
+
+    %% Services to Data Stores
+    USER_SVC --> POSTGRES
+    USER_SVC --> REDIS
+
+    STORE_SVC --> POSTGRES
+    STORE_SVC --> REDIS
+    STORE_SVC --> ELASTIC
+
+    PRODUCT_SVC --> POSTGRES
+    PRODUCT_SVC --> REDIS
+    PRODUCT_SVC --> ELASTIC
+
+    ORDER_SVC --> POSTGRES
+    ORDER_SVC --> REDIS
+
+    PAYMENT_SVC --> POSTGRES
+
+    CHAT_SVC --> MONGO
+    CHAT_SVC --> REDIS
+
+    NOTIF_SVC --> POSTGRES
+    NOTIF_SVC --> REDIS
+
+    SEARCH_SVC --> ELASTIC
+
+    %% Background Workers
+    ORDER_SVC -.->|Queue Jobs| REDIS
+    PAYMENT_SVC -.->|Queue Jobs| REDIS
+    NOTIF_SVC -.->|Queue Jobs| REDIS
+    REDIS -.->|Process Jobs| WORKER
+    WORKER --> POSTGRES
+
+    %% External Integrations
+    STORE_SVC --> GOOGLE_MAPS
+    SEARCH_SVC --> GOOGLE_MAPS
+    PAYMENT_SVC --> PAYMENT_GW
+    NOTIF_SVC --> SENDGRID
+    NOTIF_SVC --> TWILIO
+    ORDER_SVC --> NUBEFACT
+
+    %% Storage
+    PRODUCT_SVC --> BLOB
+    STORE_SVC --> BLOB
+    USER_SVC --> BLOB
+
+    %% Monitoring
+    GATEWAY --> APP_INSIGHTS
+    USER_SVC --> APP_INSIGHTS
+    STORE_SVC --> APP_INSIGHTS
+    PRODUCT_SVC --> APP_INSIGHTS
+    ORDER_SVC --> APP_INSIGHTS
+    PAYMENT_SVC --> APP_INSIGHTS
+    WEB_APP --> APP_INSIGHTS
+
+    APP_INSIGHTS --> MONITOR
+    GATEWAY --> SENTRY
+    WEB_APP --> SENTRY
+
+    %% Styling
+    style GATEWAY fill:#3498db,color:#fff
+    style POSTGRES fill:#336791,color:#fff
+    style REDIS fill:#DC382D,color:#fff
+    style MONGO fill:#4DB33D,color:#fff
+    style ELASTIC fill:#FEC514,color:#000
+    style AFD fill:#0078D4,color:#fff
+    style APP_INSIGHTS fill:#68217A,color:#fff
+```
+
+**Descripción de Contenedores:**
+
+| Contenedor | Tecnología | Responsabilidad | Escala |
+|------------|------------|-----------------|--------|
+| **API Gateway** | NestJS + Express | Enrutamiento, autenticación, rate limiting | 3-5 pods |
+| **User Service** | NestJS + TypeORM | Gestión de usuarios, auth, perfiles | 2-4 pods |
+| **Store Service** | NestJS + TypeORM | CRUD tiendas, geolocalización | 2-4 pods |
+| **Product Service** | NestJS + TypeORM | Catálogo, inventario, categorías | 3-6 pods |
+| **Order Service** | NestJS + TypeORM | Procesamiento de pedidos, estados | 3-6 pods |
+| **Payment Service** | NestJS | Integración pagos, webhooks | 2-3 pods |
+| **Chat Service** | NestJS + Socket.io | Mensajería en tiempo real | 2-4 pods |
+| **Notification Service** | NestJS + Bull | Notificaciones multi-canal | 2-3 pods |
+| **Search Service** | NestJS + Elasticsearch | Búsqueda full-text y geoespacial | 2-3 pods |
+| **Web Application** | Next.js 14 | Frontend SSR/CSR | 2-4 pods |
+| **Background Workers** | Bull Workers | Procesamiento asíncrono | 2-4 pods |
+
+**Protocolos de Comunicación:**
+
+- **Usuario → Azure:** HTTPS (TLS 1.3)
+- **API Gateway → Services:** HTTP/REST (interno)
+- **Services → Databases:** TCP (conexiones persistentes)
+- **Chat:** WebSocket (Socket.io)
+- **Workers:** Redis Pub/Sub
+- **External APIs:** HTTPS/REST
+
+### 3.3 Principios Arquitectónicos
 
 1. **Microservicios:** Servicios independientes y escalables
 2. **API-First:** Contratos de API bien definidos
@@ -751,11 +1218,65 @@ class PaymentAdapterFactory {
 
 ### 10.2 Flujo de Notificación
 
+**Descripción General:**
+
+Sistema event-driven para notificaciones multi-canal (Email, Push, SMS, WhatsApp) con gestión de preferencias de usuario.
+
+**Diagrama Simplificado:**
+
+```mermaid
+flowchart LR
+    A[Evento<br/>order_created] --> B[Message<br/>Queue]
+    B --> C[Notification<br/>Router]
+    C --> D[Obtener<br/>Preferencias]
+    D --> E{Filtrar<br/>Canales}
+    E --> F[Renderizar<br/>Template]
+    F --> G{Envío<br/>Paralelo}
+    G -->|Email| H1[SendGrid]
+    G -->|Push| H2[FCM]
+    G -->|SMS| H3[Twilio]
+    G -->|WhatsApp| H4[Twilio]
+    H1 --> I[Registrar<br/>en DB]
+    H2 --> I
+    H3 --> I
+    H4 --> I
+
+    style A fill:#e3f2fd
+    style C fill:#fff3e0
+    style G fill:#e8f5e9
+    style I fill:#f3e5f5
 ```
-Event Source → Message Queue → Notification Router →
-  → Check Preferences → Render Template →
-  → Send via Channels → Log Result
-```
+
+**Componentes Principales:**
+
+1. **Event Source** - Servicios publican eventos (order_created, order_delivered, etc.)
+2. **Message Queue** - Redis/RabbitMQ para desacoplar y garantizar entrega
+3. **Notification Router** - Coordina el proceso de envío
+4. **Preference Service** - Consulta preferencias del usuario (canales activos, horarios silenciosos)
+5. **Template Service** - Renderiza templates con variables personalizadas
+6. **Multi-Channel Delivery** - Envío paralelo por Email, Push, SMS, WhatsApp
+7. **Persistencia** - Guarda historial de notificaciones en PostgreSQL
+
+**Canales de Notificación:**
+
+| Canal | Proveedor | Tiempo | Costo |
+|-------|-----------|--------|-------|
+| Email | SendGrid | ~200ms | $0.0006 |
+| Push | FCM | ~100ms | Gratis |
+| SMS | Twilio | ~300ms | $0.04 |
+| WhatsApp | Twilio | ~200ms | $0.005 |
+
+**Características:**
+
+- **Preferencias de Usuario:** Cada usuario controla qué canales recibe
+- **Horarios Silenciosos:** No enviar entre 22:00 - 08:00 (configurable)
+- **Retry Logic:** Reintentos automáticos si falla un canal
+- **Fallback:** Si email falla, intenta otros canales
+- **Templates Dinámicos:** Variables como `{order_number}`, `{amount}`, `{customer_name}`
+
+**Tiempo Total de Procesamiento:** ~500ms
+
+> **📄 Diagrama Detallado:** Ver flujo completo con sequence diagram, manejo de errores y todos los tipos de notificaciones en [`DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md`](DIAGRAMAS/secuencia/FLUJOS_ADICIONALES.md#8-flujo-de-sistema-de-notificaciones)
 
 ### 10.3 Gestión de Preferencias
 
