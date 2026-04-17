@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,19 +19,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item active"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -72,7 +69,77 @@
       <div style="border-bottom:1px solid var(--border);margin-bottom:24px">
         <div style="display:flex;gap:0">
           <button class="tab-page active" onclick="showTab('comprobantes', this)">Comprobantes</button>
-          <button class="tab-page" onclick="showTab('reclamaciones', this)">Libro de Reclamaciones</button>
+          <button class="tab-page" onclick="showTab('configuracion', this)">⚙ Configuración SUNAT</button>
+          <button class="tab-page" onclick="showTab('reclamaciones', this)">📋 Libro de Reclamaciones</button>
+        </div>
+      </div>
+
+      <!-- TAB: CONFIGURACIÓN SUNAT -->
+      <div id="tab-configuracion" class="tab-content">
+        <div class="card" style="max-width:640px">
+          <div class="card-header">
+            <h3>Configuración de Facturación Electrónica</h3>
+            <span class="tag tag-pro">Plan Pro</span>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+            <div class="alert alert-info" style="font-size:12px">
+              <span class="material-icons-outlined" style="font-size:16px">info</span>
+              El OSE Token se guarda cifrado y nunca se muestra después de guardado.
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ruc">RUC <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="ruc" class="form-control" value="20601234567" maxlength="11" placeholder="20XXXXXXXXX">
+              <small class="form-hint">RUC de 11 dígitos de tu empresa</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="razonSocial">Razón Social <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="razonSocial" class="form-control" value="Bodega Don Carlos E.I.R.L.">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="direccionFiscal">Dirección Fiscal <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="direccionFiscal" class="form-control" value="Jr. Tarapacá 340, Barranco, Lima">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regimen">Régimen Tributario</label>
+              <select id="regimen" class="form-control">
+                <option selected>Nuevo RUS</option>
+                <option>Régimen Especial de Renta</option>
+                <option>MYPE Tributario</option>
+                <option>Régimen General</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="oseToken">Token OSE (Nubefact / Efact / FacturaloPerú) 🔒</label>
+              <input type="password" id="oseToken" class="form-control" value="••••••••••••••••••••••••••••" placeholder="Token de API del proveedor OSE">
+              <small class="form-hint">Encriptado AES-256. Una vez guardado no se muestra el valor real.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número de series</label>
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div style="flex:1;min-width:120px">
+                  <label class="form-label" for="serieBoleta">Serie Boleta</label>
+                  <input type="text" id="serieBoleta" class="form-control" value="B001">
+                </div>
+                <div style="flex:1;min-width:120px">
+                  <label class="form-label" for="serieFactura">Serie Factura</label>
+                  <input type="text" id="serieFactura" class="form-control" value="F001">
+                </div>
+              </div>
+            </div>
+            <div class="toggle-wrap">
+              <label class="toggle">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span style="font-size:14px">Emitir comprobante automáticamente al marcar pedido como Entregado</span>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+              <button class="btn btn-ghost" onclick="showToast('Cambios descartados')">Cancelar</button>
+              <button class="btn btn-primary" onclick="showToast('Configuración SUNAT guardada ✓')">
+                <span class="material-icons-outlined" style="font-size:16px">save</span> Guardar configuración
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -159,7 +226,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
           <div style="font-size:13px;color:var(--text-muted)">3 reclamaciones · 1 pendiente de respuesta</div>
           <div style="font-size:12px;background:#FEF3C7;color:#92400E;padding:6px 12px;border-radius:8px">
-            ⚠ El plazo legal para responder es de <strong>15 días hábiles</strong>
+            ⚠ El plazo legal para responder es de <strong>30 días hábiles</strong> (Ley N° 29571 — INDECOPI)
           </div>
         </div>
 

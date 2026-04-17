@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,19 +19,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item active"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item active"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -189,9 +186,41 @@
             <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Puede ver y gestionar pedidos únicamente. Sin acceso a configuración.</div>
           </div>
           <div style="padding:14px;background:var(--bg);border-radius:10px">
-            <div class="font-semibold" style="margin-bottom:6px">📦 Depósito</div>
-            <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Puede actualizar stock de productos. Sin acceso a ventas ni configuración.</div>
+            <div class="font-semibold" style="margin-bottom:6px">📦 Depósito (WAREHOUSE)</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Puede ver productos y actualizar stock. Sin acceso a ventas ni configuración.</div>
           </div>
+        </div>
+      </div>
+
+      <!-- MATRIZ DE PERMISOS -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><h3>Matriz de permisos</h3></div>
+        <div class="table-wrap">
+          <table class="perms-table">
+            <thead>
+              <tr>
+                <th>Módulo</th>
+                <th>STORE_OWNER</th>
+                <th>MANAGER</th>
+                <th>CASHIER</th>
+                <th>WAREHOUSE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Dashboard</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td></tr>
+              <tr><td>Pedidos — ver</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td></tr>
+              <tr><td>Pedidos — gestionar</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td></tr>
+              <tr><td>Productos — ver</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-yes">✓</td></tr>
+              <tr><td>Productos — editar</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+              <tr><td>Stock — actualizar</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-yes">✓</td></tr>
+              <tr><td>Configuración tienda</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+              <tr><td>Analytics</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+              <tr><td>Clientes</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+              <tr><td>Staff</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+              <tr><td>Suscripción / Plan</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+              <tr><td>Facturación y Legal</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

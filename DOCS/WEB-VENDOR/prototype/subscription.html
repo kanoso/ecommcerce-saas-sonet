@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,19 +19,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item active"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item active"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -56,34 +53,56 @@
 
     <main class="content">
 
-      <!-- PLAN ACTUAL -->
-      <div class="card" style="background:linear-gradient(135deg,#065F46,#10B981);color:#fff;margin-bottom:24px">
-        <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <!-- TRIAL BANNER (visible si está en trial) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:1px solid #F59E0B;border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:24px">⏳</span>
           <div>
-            <div style="font-size:12px;opacity:.8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Plan actual</div>
-            <div style="font-size:28px;font-weight:800;margin-bottom:4px">Plan Pro ✨</div>
-            <div style="opacity:.85;font-size:14px">Próxima renovación: 14 de mayo, 2026</div>
-            <div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap">
-              <div>
-                <div style="font-size:22px;font-weight:700">47</div>
-                <div style="font-size:11px;opacity:.75">de 200 productos</div>
+            <div style="font-size:14px;font-weight:700;color:#92400E">Trial Pro activo — quedan <strong>7 días</strong></div>
+            <div style="font-size:12px;color:#B45309">Estás usando todas las funciones del Plan Pro. Actualizá antes del 23 de abril para no perder acceso.</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="showToast('Redirigiendo a upgrade...')">
+          <span class="material-icons-outlined" style="font-size:16px">upgrade</span> Actualizar a Pro ahora
+        </button>
+      </div>
+
+      <!-- PLAN ACTUAL -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h3>Plan actual</h3>
+            <span class="tag tag-pro">PRO</span>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:var(--primary)">S/ 49.00 / mes</div>
+        </div>
+        <div class="card-body">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Renovación: 15 de mayo, 2026</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span>Productos activos</span><span class="font-semibold">47 / 200</span>
               </div>
-              <div>
-                <div style="font-size:22px;font-weight:700">148</div>
-                <div style="font-size:11px;opacity:.75">pedidos este mes</div>
+              <div class="progress"><div class="progress-bar" style="width:23.5%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span>Pedidos este mes</span><span class="font-semibold">127 / ∞</span>
               </div>
-              <div>
-                <div style="font-size:22px;font-weight:700">∞</div>
-                <div style="font-size:11px;opacity:.75">clientes</div>
+              <div class="progress"><div class="progress-bar" style="width:30%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span>Staff activo</span><span class="font-semibold">2 / 5</span>
               </div>
+              <div class="progress"><div class="progress-bar" style="width:40%"></div></div>
             </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:14px;opacity:.8;margin-bottom:4px">S/ 79.90 / mes</div>
-            <div style="background:rgba(255,255,255,.2);border-radius:8px;padding:8px 16px;font-size:13px;margin-bottom:8px">
-              ✅ Activo · Renovación automática
-            </div>
-            <button class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px" onclick="cancelSubscription()">Cancelar plan</button>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="if(confirm('¿Cancelar el plan al final del período?')) showToast('Plan cancelado al 15 de mayo')">Cancelar plan</button>
+            <button class="btn btn-primary" onclick="document.querySelector('.plans-section').scrollIntoView({behavior:'smooth'})">
+              <span class="material-icons-outlined" style="font-size:16px">upgrade</span> Cambiar plan
+            </button>
           </div>
         </div>
       </div>
@@ -98,68 +117,51 @@
         <span style="font-size:14px;font-weight:600">Anual <span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;font-size:12px;margin-left:4px">Ahorrá 20%</span></span>
       </div>
 
-      <!-- PLANES -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-bottom:24px">
+      <!-- PLANES DISPONIBLES -->
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px" class="plans-section">Planes disponibles</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px">
 
-        <!-- PLAN BÁSICO -->
+        <!-- PLAN GRATUITO -->
         <div class="plan-card">
-          <div class="plan-header">
-            <div class="plan-name">Básico</div>
-            <div class="plan-price"><span id="basicPrice">S/ 29.90</span><span class="plan-period"> / mes</span></div>
-            <div class="plan-desc">Para empezar y testear la plataforma</div>
-          </div>
-          <ul class="plan-features">
-            <li class="feature-ok">Hasta 30 productos</li>
-            <li class="feature-ok">Pedidos ilimitados</li>
-            <li class="feature-ok">Clientes ilimitados</li>
-            <li class="feature-ok">Dashboard básico</li>
-            <li class="feature-ok">Solo dueño (1 usuario)</li>
-            <li class="feature-no">Analytics avanzado</li>
-            <li class="feature-no">Soporte prioritario</li>
-            <li class="feature-no">Personalización de tienda</li>
-          </ul>
-          <button class="btn btn-ghost" style="width:100%" onclick="selectPlan('Básico')">Cambiar a Básico</button>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Gratuito</div>
+          <div class="plan-price">S/ 0<small> / mes</small></div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px">Para empezar</div>
+          <div class="plan-feature">20 productos</div>
+          <div class="plan-feature">50 pedidos / mes</div>
+          <div class="plan-feature">1 staff (solo dueño)</div>
+          <div class="plan-feature">Analytics básico</div>
+          <div class="plan-feature" style="color:var(--danger)">✗ Sin facturación SUNAT</div>
+          <div class="plan-feature" style="color:var(--danger)">✗ Sin soporte chat</div>
+          <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="if(confirm('¿Degradar al Plan Gratuito? Esto aplica al siguiente ciclo.')) showToast('Downgrade programado para el 15 de mayo')">Degradar a Gratuito</button>
         </div>
 
         <!-- PLAN PRO (ACTUAL) -->
-        <div class="plan-card plan-current">
-          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap">Plan actual ✨</div>
-          <div class="plan-header">
-            <div class="plan-name" style="color:var(--primary)">Pro</div>
-            <div class="plan-price"><span id="proPrice">S/ 79.90</span><span class="plan-period"> / mes</span></div>
-            <div class="plan-desc">Para tiendas en crecimiento</div>
-          </div>
-          <ul class="plan-features">
-            <li class="feature-ok">Hasta 200 productos</li>
-            <li class="feature-ok">Pedidos ilimitados</li>
-            <li class="feature-ok">Clientes ilimitados</li>
-            <li class="feature-ok">Dashboard completo</li>
-            <li class="feature-ok">Hasta 5 colaboradores</li>
-            <li class="feature-ok">Analytics avanzado</li>
-            <li class="feature-ok">Soporte prioritario</li>
-            <li class="feature-no">API de integración</li>
-          </ul>
-          <button class="btn btn-primary" style="width:100%" disabled>Plan activo</button>
+        <div class="plan-card current" style="position:relative">
+          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:3px 14px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap">Plan actual ✓</div>
+          <div style="font-size:12px;color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Pro</div>
+          <div class="plan-price">S/ 49<small> / mes</small></div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px">Para tiendas en crecimiento</div>
+          <div class="plan-feature">200 productos</div>
+          <div class="plan-feature">Pedidos ilimitados</div>
+          <div class="plan-feature">5 staff</div>
+          <div class="plan-feature">Analytics avanzado</div>
+          <div class="plan-feature" style="color:var(--primary)">✓ Facturación SUNAT</div>
+          <div class="plan-feature" style="color:var(--primary)">✓ Soporte chat</div>
+          <button class="btn btn-primary" style="width:100%;margin-top:12px" disabled>Plan activo</button>
         </div>
 
-        <!-- PLAN BUSINESS -->
+        <!-- PLAN ENTERPRISE -->
         <div class="plan-card">
-          <div class="plan-header">
-            <div class="plan-name">Business</div>
-            <div class="plan-price"><span id="businessPrice">S/ 149.90</span><span class="plan-period"> / mes</span></div>
-            <div class="plan-desc">Para negocios con alto volumen</div>
-          </div>
-          <ul class="plan-features">
-            <li class="feature-ok">Productos ilimitados</li>
-            <li class="feature-ok">Pedidos ilimitados</li>
-            <li class="feature-ok">Clientes ilimitados</li>
-            <li class="feature-ok">Dashboard completo</li>
-            <li class="feature-ok">Colaboradores ilimitados</li>
-            <li class="feature-ok">Analytics avanzado</li>
-            <li class="feature-ok">Soporte 24/7</li>
-            <li class="feature-ok">API de integración</li>
-          </ul>
-          <button class="btn btn-secondary" style="width:100%" onclick="selectPlan('Business')">Cambiar a Business</button>
+          <div style="font-size:12px;color:#7C3AED;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Enterprise</div>
+          <div class="plan-price">S/ 149<small> / mes</small></div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px">Para alto volumen</div>
+          <div class="plan-feature">Productos ilimitados</div>
+          <div class="plan-feature">Pedidos ilimitados</div>
+          <div class="plan-feature">Staff ilimitado</div>
+          <div class="plan-feature">Analytics Full + Export PDF</div>
+          <div class="plan-feature" style="color:var(--primary)">✓ Facturación SUNAT</div>
+          <div class="plan-feature" style="color:var(--primary)">✓ Soporte dedicado</div>
+          <button class="btn btn-secondary" style="width:100%;margin-top:12px" onclick="showToast('Upgrade a Enterprise programado')">Upgrade →</button>
         </div>
 
       </div>

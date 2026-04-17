@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,19 +19,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item active"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -56,32 +53,53 @@
 
     <main class="content">
 
-      <!-- FILTROS / TABS -->
-      <div class="card" style="margin-bottom:20px;padding:0">
+      <!-- FILTROS -->
+      <div class="filter-bar" style="margin-bottom:16px;align-items:center">
+        <select class="form-control" style="width:auto" onchange="showToast('Filtro estado aplicado')">
+          <option value="">Estado: Todos</option>
+          <option>PENDING — Pendiente</option>
+          <option>CONFIRMED — Confirmado</option>
+          <option>DISPATCHED — En camino</option>
+          <option>DELIVERED — Entregado</option>
+          <option>REJECTED — Rechazado</option>
+        </select>
+        <select class="form-control" style="width:auto" onchange="showToast('Filtro período aplicado')">
+          <option value="">Período: Todos</option>
+          <option>Hoy</option>
+          <option>Ayer</option>
+          <option>Últimos 7 días</option>
+          <option>Este mes</option>
+        </select>
+        <select class="form-control" style="width:auto" onchange="showToast('Filtro pago aplicado')">
+          <option value="">Pago: Todos</option>
+          <option>Efectivo</option>
+          <option>Yape</option>
+          <option>Plin</option>
+          <option>Transferencia</option>
+          <option>Tarjeta</option>
+        </select>
+        <select class="form-control" style="width:auto" onchange="showToast('Filtro entrega aplicado')">
+          <option value="">Entrega: Todos</option>
+          <option>Delivery</option>
+          <option>Pickup</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="showToast('Filtros limpiados')">Limpiar</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="showToast('Exportando CSV...')">
+          <span class="material-icons-outlined" style="font-size:16px">download</span> Exportar CSV
+        </button>
+      </div>
+
+      <!-- STATUS TABS -->
+      <div class="card" style="margin-bottom:16px;padding:0">
         <div class="tabs" style="padding:0 20px">
           <button class="tab active" onclick="filterOrders('all', this)">Todos <span class="tab-count">12</span></button>
           <button class="tab" onclick="filterOrders('PENDIENTE', this)">Pendientes <span class="tab-count warning">5</span></button>
           <button class="tab" onclick="filterOrders('CONFIRMADO', this)">Confirmados <span class="tab-count">3</span></button>
           <button class="tab" onclick="filterOrders('ENVIADO', this)">En camino <span class="tab-count">2</span></button>
           <button class="tab" onclick="filterOrders('ENTREGADO', this)">Entregados <span class="tab-count">2</span></button>
+          <button class="tab" onclick="filterOrders('RECHAZADO', this)">Rechazados <span class="tab-count">0</span></button>
         </div>
-      </div>
-
-      <!-- TOOLBAR -->
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
-        <div class="search-box" style="flex:1;min-width:200px">
-          <span class="material-icons-outlined" style="font-size:18px;color:var(--text-muted)">search</span>
-          <input type="text" placeholder="Buscar por N° pedido, cliente..." oninput="searchOrders(this.value)">
-        </div>
-        <select class="form-select" style="width:160px" onchange="filterByDate(this.value)">
-          <option value="">Todas las fechas</option>
-          <option value="today">Hoy</option>
-          <option value="week">Esta semana</option>
-          <option value="month">Este mes</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="exportOrders()">
-          <span class="material-icons-outlined" style="font-size:16px">download</span> Exportar CSV
-        </button>
       </div>
 
       <!-- TABLA PEDIDOS -->

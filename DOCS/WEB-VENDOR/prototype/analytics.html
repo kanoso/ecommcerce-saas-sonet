@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,19 +20,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item active"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -48,11 +45,18 @@
       </div>
       <div class="topbar-actions">
         <select class="form-select" style="width:150px;font-size:13px" onchange="updatePeriod(this.value)">
-          <option value="7">Últimos 7 días</option>
-          <option value="30" selected>Últimos 30 días</option>
-          <option value="90">Últimos 3 meses</option>
+          <option value="today">Hoy</option>
+          <option value="7">Esta semana</option>
+          <option value="30" selected>Este mes</option>
           <option value="365">Este año</option>
+          <option value="custom">Rango personalizado</option>
         </select>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Exportando CSV... (Pro)')">
+          <span class="material-icons-outlined" style="font-size:16px">download</span> CSV
+        </button>
+        <button class="btn btn-secondary btn-sm" title="Requiere Plan Enterprise" onclick="showToast('Exportar PDF disponible en Plan Enterprise')">
+          <span class="material-icons-outlined" style="font-size:16px">picture_as_pdf</span> PDF 🔒
+        </button>
         <a href="notifications.html" class="icon-btn">
           <span class="material-icons-outlined" style="font-size:20px">notifications</span>
           <span class="badge">3</span>
@@ -62,6 +66,21 @@
     </header>
 
     <main class="content">
+
+      <!-- PERIOD SELECTOR + CUSTOM RANGE -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="selectPeriod(this,'today')">Hoy</button>
+        <button class="btn btn-secondary btn-sm active-period" onclick="selectPeriod(this,'week')">Semana</button>
+        <button class="btn btn-secondary btn-sm" onclick="selectPeriod(this,'month')">Mes</button>
+        <button class="btn btn-secondary btn-sm" onclick="selectPeriod(this,'year')">Año</button>
+        <div id="customRange" style="display:none;align-items:center;gap:8px">
+          <input type="date" class="form-control" style="width:140px;font-size:13px" value="2026-04-01">
+          <span style="font-size:13px;color:var(--text-muted)">al</span>
+          <input type="date" class="form-control" style="width:140px;font-size:13px" value="2026-04-16">
+          <button class="btn btn-primary btn-sm" onclick="showToast('Aplicando rango personalizado...')">Aplicar</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleCustomRange()">Rango personalizado</button>
+      </div>
 
       <!-- KPI CARDS -->
       <div class="kpi-grid" style="margin-bottom:20px">
@@ -281,6 +300,31 @@ function setPeriodBtn(btn, chart) {
 function updatePeriod(val) {
   // In real app, would refetch data
 }
+
+function selectPeriod(btn, period) {
+  document.querySelectorAll('.btn.active-period').forEach(b => b.classList.remove('active-period'));
+  btn.classList.add('active-period');
+  const customRange = document.getElementById('customRange');
+  if (customRange) customRange.style.display = 'none';
+}
+
+function toggleCustomRange() {
+  const el = document.getElementById('customRange');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
 </script>
+
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:999">
+  <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
 </body>
 </html>

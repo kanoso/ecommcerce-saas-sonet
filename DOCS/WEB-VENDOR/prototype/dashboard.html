@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,19 +20,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item active"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -56,6 +53,27 @@
     </header>
 
     <main class="content">
+
+      <!-- ONBOARDING CHECKLIST (visible until completed) -->
+      <div class="card" style="margin-bottom:20px;border-left:4px solid var(--primary);background:linear-gradient(135deg,#F0FDF4,#DCFCE7)">
+        <div class="card-body" style="padding:16px 20px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px">Completá tu tienda — 60% listo</div>
+              <div style="background:#E5E7EB;border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden"><div style="width:60%;height:100%;background:var(--primary);border-radius:4px"></div></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:12px;color:var(--primary);display:flex;align-items:center;gap:6px"><span class="material-icons-outlined" style="font-size:14px">check_circle</span> Perfil y logo configurados</div>
+                <div style="font-size:12px;color:var(--primary);display:flex;align-items:center;gap:6px"><span class="material-icons-outlined" style="font-size:14px">check_circle</span> Primer producto agregado</div>
+                <div style="font-size:12px;color:var(--primary);display:flex;align-items:center;gap:6px"><span class="material-icons-outlined" style="font-size:14px">check_circle</span> Horarios configurados</div>
+                <div style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px"><span class="material-icons-outlined" style="font-size:14px">radio_button_unchecked</span> Subir banner <span style="color:var(--primary-accent);font-size:11px">(mejora conversión +23%)</span></div>
+                <div style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px"><span class="material-icons-outlined" style="font-size:14px">radio_button_unchecked</span> Agregar 5+ productos</div>
+                <div style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px"><span class="material-icons-outlined" style="font-size:14px">radio_button_unchecked</span> Configurar facturación electrónica</div>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="color:var(--text-muted)" onclick="this.closest('.card').style.display='none'" title="Cerrar">✕</button>
+          </div>
+        </div>
+      </div>
 
       <!-- KPI CARDS -->
       <div class="kpi-grid">

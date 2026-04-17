@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,19 +19,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item active"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -182,7 +179,7 @@
           <div class="card">
             <div class="card-header"><h3>Gestión del pedido</h3></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-              <button class="btn btn-primary" style="width:100%" onclick="changeStatus('CONFIRMADO')">
+              <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('confirmModal').classList.remove('hidden')">
                 <span class="material-icons-outlined" style="font-size:16px">check_circle</span> Confirmar pedido
               </button>
               <button class="btn btn-secondary" style="width:100%" onclick="changeStatus('ENVIADO')">
@@ -192,7 +189,7 @@
                 <span class="material-icons-outlined" style="font-size:16px">done_all</span> Marcar como entregado
               </button>
               <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
-              <button class="btn btn-danger-ghost" style="width:100%" onclick="changeStatus('RECHAZADO')">
+              <button class="btn btn-danger-ghost" style="width:100%" onclick="openRejectModal()">
                 <span class="material-icons-outlined" style="font-size:16px">cancel</span> Rechazar pedido
               </button>
             </div>
@@ -278,6 +275,48 @@
   <span id="toast-msg"></span>
 </div>
 
+<!-- MODAL: RECHAZO -->
+<div id="rejectModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reject-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="reject-title">Rechazar pedido</h2>
+      <button class="modal-close" onclick="closeRejectModal()" aria-label="Cerrar">
+        <span class="material-icons-outlined" style="font-size:20px">close</span>
+      </button>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+      Al rechazar este pedido, el cliente recibirá una notificación con el motivo. Esta acción es irreversible.
+    </p>
+    <div class="form-group">
+      <label class="form-label" for="rejectReason">Motivo del rechazo <span style="color:var(--danger)">*</span></label>
+      <textarea id="rejectReason" class="form-control" rows="4" placeholder="Explicá el motivo del rechazo al cliente (mínimo 10 caracteres)..." oninput="validateRejectReason(this)"></textarea>
+      <div id="rejectReasonError" style="font-size:11px;color:var(--danger);margin-top:4px;display:none" role="alert">
+        El motivo debe tener al menos 10 caracteres
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px" id="rejectCharCount">0 / mín. 10 caracteres</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeRejectModal()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmRejectBtn" onclick="confirmReject()" disabled>Rechazar pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIRMAR PEDIDO -->
+<div id="confirmModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="confirm-title">¿Confirmás este pedido?</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">Se va a descontar el stock de los productos automáticamente.</p>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Juan Pérez va a recibir una notificación por WhatsApp.</p>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('confirmModal').classList.add('hidden')">Cancelar</button>
+      <button class="btn btn-primary" onclick="changeStatus('CONFIRMADO');document.getElementById('confirmModal').classList.add('hidden')">Sí, confirmar</button>
+    </div>
+  </div>
+</div>
+
 <style>
 .btn-danger-ghost { background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:8px; padding:8px 16px; cursor:pointer; font-size:14px; font-weight:500; display:inline-flex; align-items:center; gap:6px; }
 .btn-danger-ghost:hover { background:#FEE2E2; }
@@ -308,6 +347,33 @@ const statusMap = {
   ENTREGADO:  { label: 'Entregado', cls: 'tag-delivered', step: 3 },
   RECHAZADO:  { label: 'Rechazado', cls: 'tag-rejected', step: -1 },
 };
+
+function openRejectModal() {
+  document.getElementById('rejectModal').classList.remove('hidden');
+  document.getElementById('rejectReason').value = '';
+  document.getElementById('rejectCharCount').textContent = '0 / mín. 10 caracteres';
+  document.getElementById('confirmRejectBtn').disabled = true;
+  document.getElementById('rejectReasonError').style.display = 'none';
+}
+
+function closeRejectModal() {
+  document.getElementById('rejectModal').classList.add('hidden');
+}
+
+function validateRejectReason(el) {
+  const len = el.value.trim().length;
+  document.getElementById('rejectCharCount').textContent = len + ' / mín. 10 caracteres';
+  const valid = len >= 10;
+  document.getElementById('confirmRejectBtn').disabled = !valid;
+  document.getElementById('rejectReasonError').style.display = (!valid && len > 0) ? 'block' : 'none';
+}
+
+function confirmReject() {
+  const reason = document.getElementById('rejectReason').value.trim();
+  if (reason.length < 10) return;
+  closeRejectModal();
+  changeStatus('RECHAZADO');
+}
 
 function changeStatus(status) {
   const s = statusMap[status];

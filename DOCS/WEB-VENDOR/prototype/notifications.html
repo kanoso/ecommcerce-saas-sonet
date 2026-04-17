@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-PE">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,19 +19,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Principal</div>
       <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
       <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
       <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
-      <div class="nav-section">Gestión</div>
       <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
       <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
       <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
-      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
-      <div class="nav-section">Configuración</div>
       <a href="notifications.html" class="nav-item active"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
       <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
-      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Plan y Suscripción</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
@@ -46,7 +43,13 @@
         <small>3 sin leer</small>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Marcar todas como leídas</button>
+        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">
+          <span class="material-icons-outlined" style="font-size:16px">done_all</span> Marcar todo ✓
+        </button>
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
         <div class="avatar">CL</div>
       </div>
     </header>
@@ -165,12 +168,52 @@
         </div>
 
         <div class="notif-item" data-type="system" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#D1FAE5;color:#065F46;font-size:20px">✅</div>
+          <div class="notif-content">
+            <div class="notif-title">Pago confirmado — Pedido PED-004</div>
+            <div class="notif-desc">El pago de Ana Ríos por S/ 45.00 fue validado correctamente</div>
+            <div class="notif-time">14 abr, 02:00 pm</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='orders-detail.html'">Ver pedido</button>
+        </div>
+
+        <div class="notif-item" data-type="orders" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#FEF3C7;color:#92400E;font-size:20px">⏰</div>
+          <div class="notif-content">
+            <div class="notif-title">Pedido sin atender — PED-006</div>
+            <div class="notif-desc">El pedido de Roberto Sánchez lleva 45 minutos sin acción. Revisá antes de que el cliente cancele.</div>
+            <div class="notif-time">14 abr, 12:00 pm</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='orders-detail.html'">Atender</button>
+        </div>
+
+        <div class="notif-item" data-type="system" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#EDE9FE;color:#5B21B6;font-size:20px">💳</div>
+          <div class="notif-content">
+            <div class="notif-title">Tu Plan Pro vence en 7 días</div>
+            <div class="notif-desc">Renovación el 23 de abril. Actualizá tu método de pago o el plan pasará a Gratuito automáticamente.</div>
+            <div class="notif-time">13 abr, 08:00 am</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='subscription.html'">Renovar</button>
+        </div>
+
+        <div class="notif-item" data-type="system" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#D1FAE5;color:#065F46;font-size:20px">🏪</div>
+          <div class="notif-content">
+            <div class="notif-title">¡Tu tienda fue aprobada por Tiendi!</div>
+            <div class="notif-desc">Bienvenido. Tu tienda "Bodega Don Carlos" ya es visible en el catálogo. Completá la configuración para empezar a vender.</div>
+            <div class="notif-time">12 abr, 10:00 am</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='onboarding.html'">Configurar</button>
+        </div>
+
+        <div class="notif-item" data-type="system" onclick="readNotif(this)">
           <div class="notif-icon" style="background:#F3F4F6;color:#6B7280">
             <span class="material-icons-outlined" style="font-size:20px">credit_card</span>
           </div>
           <div class="notif-content">
             <div class="notif-title">Suscripción renovada exitosamente</div>
-            <div class="notif-desc">Tu plan Pro fue renovado por S/ 79.90 · Próxima renovación: 14 may 2026</div>
+            <div class="notif-desc">Tu plan Pro fue renovado por S/ 49.00 · Próxima renovación: 15 may 2026</div>
             <div class="notif-time">14 abr, 08:00 am</div>
           </div>
           <button class="notif-action" onclick="event.stopPropagation(); location.href='subscription.html'">Ver plan</button>
@@ -178,39 +221,65 @@
 
       </div>
 
-      <!-- CONFIGURACIÓN NOTIFICACIONES -->
+      <!-- CARGAR MÁS -->
+      <div style="text-align:center;margin:16px 0">
+        <button class="btn btn-secondary" onclick="showToast('Cargando más notificaciones...')">Cargar más</button>
+      </div>
+
+      <!-- CONFIGURACIÓN DE CANALES POR TIPO -->
       <div class="card" style="margin-top:24px">
         <div class="card-header">
-          <h3>Preferencias de notificaciones</h3>
+          <h3>⚙ Configuración de alertas por canal</h3>
         </div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="font-semibold" style="font-size:13px">Nuevos pedidos</div>
-              <div style="font-size:12px;color:var(--text-muted)">Notificar cuando llegue un pedido nuevo</div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- Nuevo pedido -->
+          <div>
+            <div class="font-semibold" style="font-size:13px;margin-bottom:8px">🛒 Nuevo pedido</div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">In-app</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">Email</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">WhatsApp</span></div>
             </div>
-            <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="font-semibold" style="font-size:13px">Alertas de stock</div>
-              <div style="font-size:12px;color:var(--text-muted)">Avisar cuando un producto tenga stock bajo</div>
+
+          <!-- Stock bajo -->
+          <div>
+            <div class="font-semibold" style="font-size:13px;margin-bottom:4px">⚠️ Stock bajo</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Umbral: <input type="number" value="5" min="1" style="width:50px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"> unidades</div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">In-app</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">Email</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label><span style="font-size:13px">WhatsApp</span></div>
             </div>
-            <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="font-semibold" style="font-size:13px">Reseñas de clientes</div>
-              <div style="font-size:12px;color:var(--text-muted)">Notificar cuando un cliente deje una reseña</div>
+
+          <!-- Sin atender -->
+          <div>
+            <div class="font-semibold" style="font-size:13px;margin-bottom:4px">⏰ Pedido sin atender</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Recordatorio a los <input type="number" value="30" min="5" style="width:50px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"> min</div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">In-app</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label><span style="font-size:13px">Email</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">WhatsApp</span></div>
             </div>
-            <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="font-semibold" style="font-size:13px">Actualizaciones del sistema</div>
-              <div style="font-size:12px;color:var(--text-muted)">Novedades y mantenimientos de Tiendi</div>
+
+          <!-- Plan por vencer -->
+          <div>
+            <div class="font-semibold" style="font-size:13px;margin-bottom:4px">💳 Plan por vencer</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Avisar con <input type="number" value="7" min="1" style="width:50px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"> días de anticipación</div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">In-app</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label><span style="font-size:13px">Email</span></div>
+              <div class="toggle-wrap"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label><span style="font-size:13px">WhatsApp</span></div>
             </div>
-            <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;border-top:1px solid var(--border);padding-top:16px">
+            <button class="btn btn-primary" onclick="showToast('Preferencias de notificaciones guardadas ✓')">
+              <span class="material-icons-outlined" style="font-size:16px">save</span> Guardar preferencias
+            </button>
           </div>
         </div>
       </div>
