@@ -435,8 +435,8 @@ flowchart LR
 ┌─────────────────────────────────────────────────────────────────┐
 │                  MONITORING & LOGGING                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Azure Monitor  │  Application Insights  │  Log Analytics       │
-│  Sentry (Error Tracking)  │  Datadog (APM)                      │
+│  Prometheus (métricas)  │  Loki (logs)  │  Grafana (dashboards) │
+│  Sentry (error tracking)  │  Better Uptime (disponibilidad)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -484,7 +484,7 @@ graph TB
         end
 
         subgraph "Background Workers"
-            WORKER[Background Workers<br/>Bull Queue<br/>Async Jobs]
+            WORKER[Background Workers<br/>BullMQ Queue<br/>Async Jobs]
         end
     end
 
@@ -513,11 +513,15 @@ graph TB
     end
 
     subgraph "Monitoring & Observability"
-        APP_INSIGHTS[Application Insights<br/>APM + Tracing<br/>Performance]
+        PROMETHEUS[Prometheus<br/>Métricas + Alertas<br/>Dashboards]
 
-        MONITOR[Azure Monitor<br/>Metrics + Alerts<br/>Dashboards]
+        LOKI[Loki<br/>Log Storage<br/>Retención 90d]
+
+        GRAFANA[Grafana<br/>Dashboards<br/>Métricas + Logs]
 
         SENTRY[Sentry<br/>Error Tracking<br/>Crash Reports]
+
+        BETTERUPTIME[Better Uptime<br/>Disponibilidad<br/>Alertas]
     end
 
     %% User connections
@@ -609,16 +613,16 @@ graph TB
 | Contenedor | Tecnología | Responsabilidad | Escala |
 |------------|------------|-----------------|--------|
 | **API Gateway** | NestJS + Express | Enrutamiento, autenticación, rate limiting | 3-5 pods |
-| **User Service** | NestJS + TypeORM | Gestión de usuarios, auth, perfiles | 2-4 pods |
-| **Store Service** | NestJS + TypeORM | CRUD tiendas, geolocalización | 2-4 pods |
-| **Product Service** | NestJS + TypeORM | Catálogo, inventario, categorías | 3-6 pods |
-| **Order Service** | NestJS + TypeORM | Procesamiento de pedidos, estados | 3-6 pods |
+| **User Service** | NestJS + Prisma | Gestión de usuarios, auth, perfiles | 2-4 pods |
+| **Store Service** | NestJS + Prisma | CRUD tiendas, geolocalización | 2-4 pods |
+| **Product Service** | NestJS + Prisma | Catálogo, inventario, categorías | 3-6 pods |
+| **Order Service** | NestJS + Prisma | Procesamiento de pedidos, estados | 3-6 pods |
 | **Payment Service** | NestJS | Integración pagos, webhooks | 2-3 pods |
 | **Chat Service** | NestJS + Socket.io | Mensajería en tiempo real | 2-4 pods |
-| **Notification Service** | NestJS + Bull | Notificaciones multi-canal | 2-3 pods |
+| **Notification Service** | NestJS + BullMQ | Notificaciones multi-canal | 2-3 pods |
 | **Search Service** | NestJS + Elasticsearch | Búsqueda full-text y geoespacial | 2-3 pods |
 | **Web Application** | Next.js 14 | Frontend SSR/CSR | 2-4 pods |
-| **Background Workers** | Bull Workers | Procesamiento asíncrono | 2-4 pods |
+| **Background Workers** | BullMQ Workers | Procesamiento asíncrono | 2-4 pods |
 
 **Protocolos de Comunicación:**
 
@@ -666,11 +670,11 @@ graph TB
 | **Node.js** | 20 LTS | Runtime |
 | **NestJS** | 10+ | Framework backend |
 | **TypeScript** | 5.0+ | Lenguaje principal |
-| **TypeORM** | 0.3+ | ORM para PostgreSQL |
+| **Prisma** | 5+ | ORM para PostgreSQL *(migrado de TypeORM — tipos automáticos, migraciones declarativas)* |
 | **Passport.js** | 0.7+ | Autenticación |
 | **JWT** | 9.0+ | Tokens de acceso |
-| **Class-validator** | 0.14+ | Validación de DTOs |
-| **Bull** | 4.12+ | Job queue con Redis |
+| **Zod** | 3.22+ | Validación de schemas *(migrado de class-validator — inferencia TypeScript, compartible con frontend)* |
+| **BullMQ** | 5+ | Job queue con Redis *(migrado de Bull — soporte Redis 6+, mejor API)* |
 | **Socket.io** | 4.6+ | WebSocket server |
 | **Helmet** | 7.1+ | Security headers |
 
@@ -710,8 +714,11 @@ graph TB
 | **Twilio** | SMS y WhatsApp Business |
 | **Nubefact** | Facturación electrónica SUNAT |
 | **Firebase FCM** | Push notifications |
-| **Sentry** | Error tracking |
-| **Datadog** | APM y logging |
+| **Sentry** | Error tracking y crash reports |
+| **Prometheus** | Métricas de infraestructura y aplicación |
+| **Loki** | Almacenamiento de logs estructurados |
+| **Grafana** | Dashboards de métricas y logs |
+| **Better Uptime** | Monitoreo de disponibilidad y alertas |
 
 ---
 
@@ -877,7 +884,7 @@ backend/
 │   │   └── integrations.config.ts
 │   │
 │   ├── database/
-│   │   ├── migrations/             # Migraciones TypeORM
+│   │   ├── migrations/             # Migraciones Prisma (prisma migrate)
 │   │   ├── seeds/                  # Seeders
 │   │   └── entities/               # Entidades
 │   │
@@ -1097,7 +1104,7 @@ CREATE INDEX idx_orders_store_status ON orders(store_id, status);
 
 ### 8.3 Optimizaciones
 
-1. **Connection Pooling:** pgBouncer o TypeORM pool
+1. **Connection Pooling:** pgBouncer o Prisma connection pool (Accelerate)
 2. **Read Replicas:** Para queries de lectura intensiva
 3. **Partitioning:** Particionar tabla `orders` por fecha
 4. **Materialized Views:** Para reportes y analytics
@@ -1514,7 +1521,7 @@ spec:
 - Rate limiting: 100 req/min por IP
 - CORS configurado correctamente
 - Helmet.js para security headers
-- Input validation con class-validator
+- Input validation con Zod
 - SQL Injection prevention (ORM)
 - XSS prevention (sanitización)
 - CSRF tokens
@@ -1540,7 +1547,7 @@ spec:
 
 - Microsoft Defender for Cloud
 - Azure Security Center
-- Sentry para error tracking
+- Sentry para error tracking y alertas de producción
 - Logs de auditoría completos
 - Alertas de actividad sospechosa
 
@@ -1548,70 +1555,98 @@ spec:
 
 ## 14. Monitoreo y Observabilidad
 
-### 14.1 Métricas (Azure Monitor)
+Stack open source deployable con Docker Compose, sin costo operativo inicial.
 
-**Métricas de Infraestructura:**
-- CPU, Memory, Disk usage
-- Network throughput
-- Container metrics
-- Database connections
+### 14.1 Error Tracking — Sentry
 
-**Métricas de Aplicación:**
-- Request rate y latency
+Captura errores en producción con stack trace completo, contexto de usuario y release tracking.
+
+- SDK oficial para NestJS (`@sentry/node`)
+- Alertas por email al ocurrir errores nuevos
+- Plan gratuito: 5.000 errores/mes (suficiente para MVP)
+- Variables de entorno: `SENTRY_DSN`
+
+### 14.2 Logs — Winston + Pino + Loki
+
+**Winston** como logger principal en NestJS — logs estructurados en JSON con niveles (`error`, `warn`, `info`, `debug`).
+
+**Pino** como transport de alta performance para producción.
+
+**Loki** como almacenamiento centralizado de logs (integrado con Grafana).
+
+```
+NestJS (Winston/Pino) → Loki → Grafana
+```
+
+**Logs que se registran:**
+- Requests HTTP (método, ruta, status, latencia)
+- Errores de base de datos
+- Eventos de negocio (pedido creado, pago procesado)
+- Audit log (acciones de usuarios y admin)
+- Jobs de BullMQ (inicio, fin, error)
+
+**Retención:** 90 días (producción), 30 días (staging)
+
+### 14.3 Métricas — Prometheus + Grafana
+
+**Prometheus** recolecta métricas expuestas por NestJS via `/metrics` (endpoint protegido).
+
+**Grafana** visualiza métricas y logs en dashboards unificados.
+
+**Métricas de infraestructura:**
+- CPU, memoria, disco
+- Conexiones de red
+- Container health
+
+**Métricas de aplicación:**
+- Request rate y latencia (p50, p95, p99)
 - Error rate (4xx, 5xx)
-- Active users
-- Transactions per second
+- Queries lentas a PostgreSQL
+- Jobs en cola BullMQ (pending, active, failed)
 
-**Métricas de Negocio:**
-- Orders created
+**Métricas de negocio:**
+- Pedidos creados por hora
 - GMV (Gross Merchandise Value)
-- Conversion rate
-- Active stores
+- Tiendas activas
+- Tasa de conversión
 
-### 14.2 Logging (Log Analytics)
+### 14.4 Disponibilidad — Better Uptime
 
-**Logs Centralizados:**
-- Application logs (stdout/stderr)
-- Access logs (nginx)
-- Database query logs
-- Audit logs
+Monitoreo de uptime con alertas si el servicio no responde.
 
-**Retention:** 90 días (production), 30 días (staging)
+- Plan gratuito disponible
+- Chequeos cada 3 minutos
+- Alertas por email y SMS
+- Status page pública (opcional)
 
-### 14.3 Tracing (Application Insights)
+### 14.5 Alertas
 
-- Distributed tracing
-- Request correlation
-- Dependency tracking
-- Performance profiling
-- Slow query detection
+| Condición | Umbral | Canal |
+|-----------|--------|-------|
+| Error rate alto | > 5% | Sentry + email |
+| Latencia alta | p95 > 2s | Grafana alert |
+| Servicio caído | timeout | Better Uptime + SMS |
+| Cola BullMQ bloqueada | > 100 jobs fallidos | Grafana alert |
+| Disco bajo | < 15% libre | Grafana alert |
+| PostgreSQL saturado | > 90% connections | Grafana alert |
 
-### 14.4 Alerting
+### 14.6 Docker Compose (observabilidad local)
 
-**Alertas Críticas:**
-- High error rate (> 5%)
-- High latency (p95 > 2s)
-- Database connection pool exhausted
-- Disk space low (< 10%)
-- Service down
+```yaml
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
 
-**Canales de Notificación:**
-- Slack (equipo dev)
-- Email (on-call engineer)
-- PagerDuty (incidentes críticos)
+  loki:
+    image: grafana/loki:latest
+    ports: ["3100:3100"]
 
-### 14.5 Dashboards
-
-**Azure Dashboards:**
-- Infrastructure overview
-- Application performance
-- Business metrics
-- Cost analysis
-
-**Grafana:**
-- Custom dashboards
-- Real-time metrics
-- Historical trends
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3001:3000"]
+    depends_on: [prometheus, loki]
+```
 
 ---
 

@@ -1,0 +1,6 @@
+[submodule "FUENTES/tiendi-api"]
+	path = FUENTES/tiendi-api
+	url = https://github.com/kanoso/tiendi-api.git
+[submodule "FUENTES/tiendi-web"]
+	path = FUENTES/tiendi-web
+	url = https://github.com/kanoso/tiendihector.git

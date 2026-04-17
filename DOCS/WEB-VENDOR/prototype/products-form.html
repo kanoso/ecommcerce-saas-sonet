@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuevo Producto — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item active"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <a href="products.html" style="color:var(--text-muted);text-decoration:none;font-size:13px;font-weight:400">← Productos</a>
+        <div>Nuevo producto</div>
+        <small>Completá la información del producto</small>
+      </div>
+      <div class="topbar-actions">
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <form onsubmit="saveProduct(event)" novalidate>
+        <div class="grid-2" style="gap:20px;align-items:start">
+
+          <!-- COLUMNA IZQUIERDA — FORMULARIO -->
+          <div style="display:flex;flex-direction:column;gap:20px">
+
+            <!-- INFO BÁSICA -->
+            <div class="card">
+              <div class="card-header"><h3>Información básica</h3></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+                <div class="form-group">
+                  <label class="form-label">Nombre del producto <span class="required">*</span></label>
+                  <input type="text" class="form-input" id="productName" placeholder="Ej: Leche Gloria 400ml" required oninput="updatePreview()">
+                  <div class="form-hint">Será visible para los clientes en el catálogo</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Descripción corta</label>
+                  <textarea class="form-input" rows="3" id="productDesc" placeholder="Breve descripción del producto..." oninput="updatePreview()"></textarea>
+                  <div class="form-hint">Máximo 150 caracteres — <span id="charCount">0</span>/150</div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="form-group">
+                    <label class="form-label">Categoría global <span class="required">*</span></label>
+                    <select class="form-select form-input" id="globalCategory" required onchange="updateSubcats(this.value)">
+                      <option value="">Seleccionar...</option>
+                      <option value="lacteos">🥛 Lácteos</option>
+                      <option value="abarrotes">🛒 Abarrotes</option>
+                      <option value="bebidas">🥤 Bebidas</option>
+                      <option value="panaderia">🍞 Panadería</option>
+                      <option value="carnes">🥩 Carnes y pescados</option>
+                      <option value="verduras">🥦 Verduras y frutas</option>
+                    </select>
+                    <div class="form-hint">Definida por Tiendi</div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Subcategoría propia</label>
+                    <select class="form-select form-input" id="subcategory" disabled>
+                      <option value="">— Sin subcategoría —</option>
+                    </select>
+                    <div class="form-hint" id="subcatHint">Seleccioná una categoría primero</div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="form-group" style="grid-column:1">
+                    <label class="form-label">SKU / Código</label>
+                    <input type="text" class="form-input" placeholder="Ej: GLO-400ML">
+                    <div class="form-hint">Código interno de referencia</div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Presentación</label>
+                  <input type="text" class="form-input" placeholder="Ej: 500ml, 1kg, Pack x6, Unidad">
+                  <div class="form-hint">Informativo para el cliente — no genera SKUs separados</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PRECIO Y STOCK -->
+            <div class="card">
+              <div class="card-header"><h3>Precio y stock</h3></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="form-group">
+                    <label class="form-label">Precio regular <span class="required">*</span></label>
+                    <div style="position:relative">
+                      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px">S/</span>
+                      <input type="number" class="form-input" style="padding-left:32px" id="productPrice" placeholder="0.00" min="0" step="0.01" required oninput="updatePreview()">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Precio de oferta</label>
+                    <div style="position:relative">
+                      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px">S/</span>
+                      <input type="number" class="form-input" style="padding-left:32px" id="productSalePrice" placeholder="0.00" min="0" step="0.01" oninput="updatePreview()">
+                    </div>
+                    <div class="form-hint">Dejar vacío si no hay oferta</div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Stock disponible <span class="required">*</span></label>
+                  <input type="number" class="form-input" id="productStock" placeholder="0" min="0" required oninput="updateStockAlert()">
+                  <div id="stockAlert" style="display:none" class="alert alert-warning" style="margin-top:8px;font-size:12px">
+                    ⚠️ Stock bajo — se notificará cuando baje de 5 unidades
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Stock mínimo para alerta</label>
+                  <input type="number" class="form-input" placeholder="5" min="0">
+                  <div class="form-hint">Recibirás una notificación cuando el stock baje de este valor</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- OPCIONES -->
+            <div class="card">
+              <div class="card-header"><h3>Opciones</h3></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Producto activo</div>
+                    <div style="font-size:12px;color:var(--text-muted)">Visible en el catálogo para los clientes</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Oferta del día</div>
+                    <div style="font-size:12px;color:var(--text-muted)">Aparece en la sección de ofertas destacadas</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Producto destacado</div>
+                    <div style="font-size:12px;color:var(--text-muted)">Aparece primero en el catálogo</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- COLUMNA DERECHA -->
+          <div style="display:flex;flex-direction:column;gap:20px">
+
+            <!-- IMÁGENES -->
+            <div class="card">
+              <div class="card-header"><h3>Imágenes</h3></div>
+              <div class="card-body">
+                <div id="dropZone" class="drop-zone" onclick="document.getElementById('imgInput').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
+                  <input type="file" id="imgInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+                  <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">cloud_upload</span>
+                  <div style="font-weight:500;margin-top:8px">Arrastrar imágenes aquí</div>
+                  <div style="font-size:12px;color:var(--text-muted)">o hacer clic para seleccionar</div>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:4px">PNG, JPG — máx. 2MB por imagen</div>
+                </div>
+                <div id="imgPreview" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-top:12px"></div>
+              </div>
+            </div>
+
+            <!-- PREVIEW DEL PRODUCTO -->
+            <div class="card">
+              <div class="card-header"><h3>Vista previa</h3></div>
+              <div class="card-body">
+                <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:220px;margin:0 auto">
+                  <div style="height:120px;background:var(--bg);display:flex;align-items:center;justify-content:center">
+                    <span class="material-icons-outlined" style="font-size:48px;color:var(--text-muted)">inventory_2</span>
+                  </div>
+                  <div style="padding:12px">
+                    <div style="font-size:11px;color:var(--text-muted)">Categoría</div>
+                    <div id="prev-name" class="font-semibold" style="font-size:14px;margin-bottom:6px">Nombre del producto</div>
+                    <div id="prev-price" style="font-size:16px;font-weight:700;color:var(--primary)">S/ 0.00</div>
+                    <div id="prev-sale" style="font-size:12px;text-decoration:line-through;color:var(--text-muted);display:none"></div>
+                  </div>
+                </div>
+                <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:12px">Así verán el producto tus clientes</p>
+              </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="card">
+              <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+                <button type="submit" class="btn btn-primary" style="width:100%">
+                  <span class="material-icons-outlined" style="font-size:16px">save</span> Guardar producto
+                </button>
+                <button type="button" class="btn btn-secondary" style="width:100%" onclick="saveDraft()">
+                  <span class="material-icons-outlined" style="font-size:16px">drafts</span> Guardar como borrador
+                </button>
+                <a href="products.html" class="btn btn-ghost" style="width:100%;text-align:center">Cancelar</a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </form>
+    </main>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:999">
+  <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
+
+<style>
+.form-group { display:flex;flex-direction:column;gap:6px; }
+.form-label { font-size:13px;font-weight:500;color:var(--text); }
+.form-hint { font-size:12px;color:var(--text-muted); }
+.required { color:var(--danger); }
+.drop-zone { border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s; }
+.drop-zone:hover { border-color:var(--primary);background:rgba(16,185,129,.04); }
+.img-thumb { position:relative;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg); }
+.img-thumb img { width:100%;height:100%;object-fit:cover; }
+.img-thumb .remove-img { position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px; }
+.alert-warning { background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:8px; }
+</style>
+
+<script>
+// Subcategorías propias por categoría global (simuladas)
+const subcatsByCategory = {
+  abarrotes: ['Aceites y condimentos', 'Granos y cereales'],
+  bebidas:   ['Gaseosas'],
+  lacteos:   [],
+  panaderia: [],
+  carnes:    [],
+  verduras:  [],
+};
+
+function updateSubcats(val) {
+  const sel = document.getElementById('subcategory');
+  const hint = document.getElementById('subcatHint');
+  sel.innerHTML = '<option value="">— Sin subcategoría —</option>';
+
+  if (!val) {
+    sel.disabled = true;
+    hint.textContent = 'Seleccioná una categoría primero';
+    return;
+  }
+
+  const subs = subcatsByCategory[val] || [];
+  if (subs.length === 0) {
+    sel.disabled = true;
+    hint.innerHTML = 'Sin subcategorías propias — <a href="products.html#categories" style="color:var(--primary)">crear una</a>';
+  } else {
+    subs.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.toLowerCase().replace(/\s+/g, '-');
+      opt.textContent = s;
+      sel.appendChild(opt);
+    });
+    sel.disabled = false;
+    hint.textContent = 'Opcional — para organizar mejor tu catálogo';
+  }
+}
+
+function showToast(msg, color = 'var(--primary)') {
+  const t = document.getElementById('toast');
+  t.style.background = color;
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function updatePreview() {
+  const name = document.getElementById('productName').value || 'Nombre del producto';
+  const price = parseFloat(document.getElementById('productPrice').value) || 0;
+  const sale  = parseFloat(document.getElementById('productSalePrice').value) || 0;
+
+  document.getElementById('prev-name').textContent = name;
+  document.getElementById('prev-price').textContent = 'S/ ' + (sale > 0 ? sale.toFixed(2) : price.toFixed(2));
+
+  const saleEl = document.getElementById('prev-sale');
+  if (sale > 0 && price > 0) {
+    saleEl.style.display = '';
+    saleEl.textContent = 'S/ ' + price.toFixed(2);
+  } else {
+    saleEl.style.display = 'none';
+  }
+}
+
+const descInput = document.getElementById('productDesc');
+descInput.addEventListener('input', () => {
+  document.getElementById('charCount').textContent = descInput.value.length;
+});
+
+function updateStockAlert() {
+  const stock = parseInt(document.getElementById('productStock').value) || 0;
+  document.getElementById('stockAlert').style.display = stock > 0 && stock < 5 ? 'block' : 'none';
+}
+
+function handleFiles(files) {
+  const preview = document.getElementById('imgPreview');
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const div = document.createElement('div');
+      div.className = 'img-thumb';
+      div.innerHTML = `<img src="${e.target.result}"><button class="remove-img" onclick="this.parentNode.remove()">✕</button>`;
+      preview.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  handleFiles(e.dataTransfer.files);
+}
+
+function saveProduct(e) {
+  e.preventDefault();
+  const name = document.getElementById('productName').value.trim();
+  if (!name) { showToast('El nombre del producto es requerido', 'var(--danger)'); return; }
+  showToast('Producto guardado correctamente');
+  setTimeout(() => location.href = 'products.html', 1500);
+}
+
+function saveDraft() {
+  showToast('Borrador guardado', '#6B7280');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item active"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        Staff y Empleados
+        <small>Administrá tu equipo — 2 de 5 slots usados (Plan Pro)</small>
+      </div>
+      <div class="topbar-actions">
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- SLOTS BANNER -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 20px;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="material-icons-outlined" style="color:#2563EB;font-size:22px">group</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1E40AF">Usando 3 de 5 slots — Plan Pro</div>
+            <div style="font-size:12px;color:#3B82F6">¿Necesitás más colaboradores? Pasá al plan Business</div>
+          </div>
+        </div>
+        <a href="subscription.html" class="btn btn-ghost btn-sm" style="color:#2563EB;border-color:#BFDBFE">Ver planes →</a>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="font-size:16px;font-weight:600;margin:0">Miembros del equipo</h2>
+          <div style="font-size:13px;color:var(--text-muted)">3 activos · 1 invitación pendiente</div>
+        </div>
+        <button class="btn btn-primary" onclick="openInviteModal()">
+          <span class="material-icons-outlined" style="font-size:16px">person_add</span> Invitar colaborador
+        </button>
+      </div>
+
+      <!-- TABLA STAFF -->
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Miembro</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- DUEÑO -->
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px">CG</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:14px">Carlos García</div>
+                      <div style="font-size:12px;color:var(--text-muted)">carlos@bodega.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="staff-tag tag-owner">DUEÑO</span></td>
+                <td><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block"></span>Activo</span></td>
+                <td><span style="font-size:12px;color:var(--text-muted)">Sin acciones</span></td>
+              </tr>
+              <!-- CAJERA -->
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px">ML</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:14px">Maria López</div>
+                      <div style="font-size:12px;color:var(--text-muted)">maria@bodega.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="staff-tag tag-cashier">CAJERA</span></td>
+                <td><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block"></span>Activo</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="openRoleModal('Maria López', 'CAJERA')">Cambiar rol</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="removeStaff('Maria López')">Quitar</button>
+                  </div>
+                </td>
+              </tr>
+              <!-- DEPÓSITO -->
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px">JQ</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:14px">Juan Quispe</div>
+                      <div style="font-size:12px;color:var(--text-muted)">juan@bodega.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="staff-tag tag-deposit">DEPÓSITO</span></td>
+                <td><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block"></span>Activo</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="openRoleModal('Juan Quispe', 'DEPÓSITO')">Cambiar rol</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="removeStaff('Juan Quispe')">Quitar</button>
+                  </div>
+                </td>
+              </tr>
+              <!-- INVITACIÓN PENDIENTE -->
+              <tr style="background:#FFFBEB">
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#F59E0B">?</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:14px;color:var(--text-muted)">pedro@mail.com</div>
+                      <div style="font-size:12px;color:var(--text-muted)">(pendiente de aceptar)</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="staff-tag tag-manager">GERENTE</span></td>
+                <td><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:20px;font-weight:500">⏳ Invitación pendiente</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="showToast('Invitación reenviada a pedro@mail.com')">Reenviar</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="removeStaff('pedro@mail.com')">Cancelar</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ROLES INFO -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><h3>Descripción de roles</h3></div>
+        <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
+          <div style="padding:14px;background:var(--bg);border-radius:10px">
+            <div class="font-semibold" style="margin-bottom:6px">👑 Dueño</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Acceso completo a todas las funciones. No puede ser modificado.</div>
+          </div>
+          <div style="padding:14px;background:var(--bg);border-radius:10px">
+            <div class="font-semibold" style="margin-bottom:6px">🏢 Gerente</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Gestión de pedidos, productos y clientes. No puede modificar suscripción.</div>
+          </div>
+          <div style="padding:14px;background:var(--bg);border-radius:10px">
+            <div class="font-semibold" style="margin-bottom:6px">💰 Cajero/a</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Puede ver y gestionar pedidos únicamente. Sin acceso a configuración.</div>
+          </div>
+          <div style="padding:14px;background:var(--bg);border-radius:10px">
+            <div class="font-semibold" style="margin-bottom:6px">📦 Depósito</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Puede actualizar stock de productos. Sin acceso a ventas ni configuración.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: INVITAR COLABORADOR -->
+<div id="inviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:440px;width:90%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0">Invitar colaborador</h3>
+      <button class="btn-icon" onclick="closeInviteModal()"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="form-group">
+        <label class="form-label">Email del colaborador <span style="color:var(--danger)">*</span></label>
+        <input type="email" class="form-input" id="inviteEmail" placeholder="colaborador@ejemplo.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
+        <select class="form-select form-input" id="inviteRole" onchange="updateRoleDesc()">
+          <option value="">Seleccionar rol...</option>
+          <option value="GERENTE">Gerente</option>
+          <option value="CAJERO">Cajero/a</option>
+          <option value="DEPÓSITO">Depósito</option>
+        </select>
+        <div id="roleDesc" style="font-size:12px;color:var(--text-muted);margin-top:4px;min-height:16px"></div>
+      </div>
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;font-size:12px;color:#92400E">
+        <span class="material-icons-outlined" style="font-size:14px;vertical-align:middle">info</span>
+        El colaborador recibirá un email para aceptar la invitación y crear su contraseña.
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeInviteModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="sendInvite()">Enviar invitación</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CAMBIAR ROL -->
+<div id="roleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:380px;width:90%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0" id="roleModalTitle">Cambiar rol</h3>
+      <button class="btn-icon" onclick="closeRoleModal()"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="form-group">
+        <label class="form-label">Nuevo rol</label>
+        <select class="form-select form-input" id="newRole">
+          <option value="GERENTE">Gerente</option>
+          <option value="CAJERO">Cajero/a</option>
+          <option value="DEPÓSITO">Depósito</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeRoleModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveRole()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:999">
+  <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
+
+<style>
+.staff-tag { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.04em; }
+.tag-owner   { background:#EDE9FE; color:#5B21B6; }
+.tag-manager { background:#DBEAFE; color:#1E40AF; }
+.tag-cashier { background:#D1FAE5; color:#065F46; }
+.tag-deposit { background:#FEF3C7; color:#92400E; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-label { font-size:13px; font-weight:500; }
+</style>
+
+<script>
+const roleDescriptions = {
+  GERENTE: 'Gestión de pedidos, productos y clientes. No puede modificar suscripción.',
+  CAJERO: 'Puede ver y gestionar pedidos únicamente. Sin acceso a configuración.',
+  'DEPÓSITO': 'Puede actualizar stock de productos. Sin acceso a ventas ni configuración.'
+};
+
+function showToast(msg, color = 'var(--primary)') {
+  const t = document.getElementById('toast');
+  t.style.background = color;
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function openInviteModal() {
+  document.getElementById('inviteModal').style.display = 'flex';
+}
+
+function closeInviteModal() {
+  document.getElementById('inviteModal').style.display = 'none';
+  document.getElementById('inviteEmail').value = '';
+  document.getElementById('inviteRole').value = '';
+  document.getElementById('roleDesc').textContent = '';
+}
+
+function updateRoleDesc() {
+  const role = document.getElementById('inviteRole').value;
+  document.getElementById('roleDesc').textContent = roleDescriptions[role] || '';
+}
+
+function sendInvite() {
+  const email = document.getElementById('inviteEmail').value.trim();
+  const role = document.getElementById('inviteRole').value;
+  if (!email || !role) { showToast('Completá todos los campos', '#EF4444'); return; }
+  closeInviteModal();
+  showToast('Invitación enviada a ' + email);
+}
+
+let editingMember = '';
+
+function openRoleModal(name, currentRole) {
+  editingMember = name;
+  document.getElementById('roleModalTitle').textContent = 'Cambiar rol — ' + name;
+  document.getElementById('newRole').value = currentRole;
+  document.getElementById('roleModal').style.display = 'flex';
+}
+
+function closeRoleModal() {
+  document.getElementById('roleModal').style.display = 'none';
+}
+
+function saveRole() {
+  const role = document.getElementById('newRole').value;
+  closeRoleModal();
+  showToast('Rol de ' + editingMember + ' actualizado a ' + role);
+}
+
+function removeStaff(name) {
+  if (confirm('¿Quitar a ' + name + ' del equipo?')) {
+    showToast(name + ' eliminado del equipo', '#EF4444');
+  }
+}
+</script>
+</body>
+</html>

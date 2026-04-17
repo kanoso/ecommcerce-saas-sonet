@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clientes — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item active"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        Clientes
+        <small>Compradores de tu tienda</small>
+      </div>
+      <div class="topbar-actions">
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- KPI RÁPIDOS -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--primary)">148</div>
+          <div style="font-size:13px;color:var(--text-muted)">Clientes totales</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--secondary)">32</div>
+          <div style="font-size:13px;color:var(--text-muted)">Nuevos este mes</div>
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--warning)">S/ 124.50</div>
+          <div style="font-size:13px;color:var(--text-muted)">Compra promedio</div>
+        </div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <div class="search-box" style="flex:1;min-width:200px">
+          <span class="material-icons-outlined" style="font-size:18px;color:var(--text-muted)">search</span>
+          <input type="text" placeholder="Buscar por nombre, teléfono o email..." oninput="searchCustomers(this.value)">
+        </div>
+        <select class="form-select" style="width:160px" onchange="filterCustomers(this.value)">
+          <option value="">Todos los clientes</option>
+          <option value="vip">VIP (5+ pedidos)</option>
+          <option value="new">Nuevos (1 pedido)</option>
+          <option value="inactive">Inactivos (60+ días)</option>
+        </select>
+        <button class="btn btn-ghost btn-sm">
+          <span class="material-icons-outlined" style="font-size:16px">download</span> Exportar
+        </button>
+      </div>
+
+      <!-- TABLA CLIENTES -->
+      <div class="card">
+        <div class="table-wrap">
+          <table id="customersTable">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Pedidos</th>
+                <th>Total comprado</th>
+                <th>Último pedido</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="customer-row" data-type="vip">
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#8B5CF6">JP</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Juan Pérez</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 987 654 321</div>
+                      <div style="font-size:11px;color:var(--text-muted)">juan.perez@mail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="font-semibold">12</span>
+                  <div style="font-size:11px;color:var(--text-muted)">pedidos</div>
+                </td>
+                <td>
+                  <span class="font-semibold" style="color:var(--primary)">S/ 1,420.50</span>
+                </td>
+                <td>
+                  <div style="font-size:13px">Hace 2 días</div>
+                  <div style="font-size:11px;color:var(--text-muted)">16 abr, 2026</div>
+                </td>
+                <td><span class="tag" style="background:#EDE9FE;color:#5B21B6">VIP ⭐</span></td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="openCustomer('Juan Pérez', 12, 'S/ 1,420.50')">Ver detalle</button>
+                </td>
+              </tr>
+              <tr class="customer-row" data-type="vip">
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#F59E0B">LM</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Luis Mamani</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 998 765 432</div>
+                      <div style="font-size:11px;color:var(--text-muted)">l.mamani@mail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="font-semibold">8</span><div style="font-size:11px;color:var(--text-muted)">pedidos</div></td>
+                <td><span class="font-semibold" style="color:var(--primary)">S/ 980.00</span></td>
+                <td><div style="font-size:13px">Hace 4 días</div><div style="font-size:11px;color:var(--text-muted)">12 abr, 2026</div></td>
+                <td><span class="tag" style="background:#EDE9FE;color:#5B21B6">VIP ⭐</span></td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openCustomer('Luis Mamani', 8, 'S/ 980.00')">Ver detalle</button></td>
+              </tr>
+              <tr class="customer-row" data-type="regular">
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px">ML</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Maria López</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 945 678 901</div>
+                      <div style="font-size:11px;color:var(--text-muted)">m.lopez@mail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="font-semibold">4</span><div style="font-size:11px;color:var(--text-muted)">pedidos</div></td>
+                <td><span class="font-semibold" style="color:var(--primary)">S/ 342.00</span></td>
+                <td><div style="font-size:13px">Hace 1 semana</div><div style="font-size:11px;color:var(--text-muted)">9 abr, 2026</div></td>
+                <td><span class="tag" style="background:#D1FAE5;color:#065F46">Regular</span></td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openCustomer('Maria López', 4, 'S/ 342.00')">Ver detalle</button></td>
+              </tr>
+              <tr class="customer-row" data-type="regular">
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#10B981">AR</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Ana Ríos</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 923 456 789</div>
+                      <div style="font-size:11px;color:var(--text-muted)">a.rios@mail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="font-semibold">3</span><div style="font-size:11px;color:var(--text-muted)">pedidos</div></td>
+                <td><span class="font-semibold" style="color:var(--primary)">S/ 215.50</span></td>
+                <td><div style="font-size:13px">Hace 3 días</div><div style="font-size:11px;color:var(--text-muted)">13 abr, 2026</div></td>
+                <td><span class="tag" style="background:#D1FAE5;color:#065F46">Regular</span></td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openCustomer('Ana Ríos', 3, 'S/ 215.50')">Ver detalle</button></td>
+              </tr>
+              <tr class="customer-row" data-type="new">
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#6B7280">CV</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Carlos Vera</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 912 345 678</div>
+                      <div style="font-size:11px;color:var(--text-muted)">c.vera@mail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="font-semibold">1</span><div style="font-size:11px;color:var(--text-muted)">pedidos</div></td>
+                <td><span class="font-semibold" style="color:var(--primary)">S/ 67.00</span></td>
+                <td><div style="font-size:13px">Hoy</div><div style="font-size:11px;color:var(--text-muted)">16 abr, 2026</div></td>
+                <td><span class="tag" style="background:#DBEAFE;color:#1E40AF">Nuevo 🆕</span></td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openCustomer('Carlos Vera', 1, 'S/ 67.00')">Ver detalle</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span style="font-size:13px;color:var(--text-muted)">Mostrando 5 de 148 clientes</span>
+          <div style="display:flex;gap:4px">
+            <button class="page-btn" disabled>‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">30</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- CUSTOMER DETAIL MODAL -->
+<div id="customerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:0;max-width:480px;width:90%;max-height:80vh;overflow:auto">
+    <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <h3 id="modalCustomerName">Juan Pérez</h3>
+      <button class="btn-icon" onclick="closeModal()"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:var(--bg);border-radius:8px;padding:12px;text-align:center">
+          <div id="modalOrders" class="font-semibold" style="font-size:20px;color:var(--primary)">12</div>
+          <div style="font-size:12px;color:var(--text-muted)">Pedidos</div>
+        </div>
+        <div style="background:var(--bg);border-radius:8px;padding:12px;text-align:center">
+          <div id="modalTotal" class="font-semibold" style="font-size:20px;color:var(--primary)">S/ 1,420</div>
+          <div style="font-size:12px;color:var(--text-muted)">Total comprado</div>
+        </div>
+      </div>
+      <div>
+        <div class="font-semibold" style="font-size:13px;margin-bottom:8px">Historial de pedidos recientes</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;padding:8px;background:var(--bg);border-radius:6px;font-size:13px">
+            <span>PED-001</span><span>16 abr</span><span class="font-semibold">S/ 85.00</span><span class="tag tag-pending" style="font-size:11px">Pendiente</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px;background:var(--bg);border-radius:6px;font-size:13px">
+            <span>PED-008</span><span>10 abr</span><span class="font-semibold">S/ 120.00</span><span class="tag tag-delivered" style="font-size:11px">Entregado</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px;background:var(--bg);border-radius:6px;font-size:13px">
+            <span>PED-014</span><span>2 abr</span><span class="font-semibold">S/ 95.50</span><span class="tag tag-delivered" style="font-size:11px">Entregado</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <a href="#" class="btn btn-primary" style="flex:1;text-align:center">Ver todos los pedidos</a>
+        <a href="tel:+51987654321" class="btn btn-ghost" style="flex:1;text-align:center">
+          <span class="material-icons-outlined" style="font-size:16px">phone</span> Llamar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.form-select { border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;background:#fff;cursor:pointer;outline:none; }
+</style>
+
+<script>
+function searchCustomers(val) {
+  const q = val.toLowerCase();
+  document.querySelectorAll('.customer-row').forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function filterCustomers(val) {
+  document.querySelectorAll('.customer-row').forEach(r => {
+    r.style.display = (!val || r.dataset.type === val) ? '' : 'none';
+  });
+}
+
+function openCustomer(name, orders, total) {
+  document.getElementById('modalCustomerName').textContent = name;
+  document.getElementById('modalOrders').textContent = orders;
+  document.getElementById('modalTotal').textContent = total;
+  document.getElementById('customerModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('customerModal').style.display = 'none';
+}
+</script>
+</body>
+</html>

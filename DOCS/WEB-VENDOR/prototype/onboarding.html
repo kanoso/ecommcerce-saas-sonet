@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuración inicial — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body style="background:var(--surface);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+
+  <!-- HEADER LOGO -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px">
+    <div class="logo-icon" style="width:36px;height:36px;font-size:16px">T</div>
+    <span style="font-size:18px;font-weight:700;color:var(--text-primary)">Tiendi Vendor</span>
+  </div>
+
+  <!-- WIZARD CONTAINER -->
+  <div style="background:#fff;border-radius:16px;box-shadow:var(--shadow-md);max-width:600px;width:100%;padding:32px 36px">
+
+    <!-- STEPPER -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:32px" id="stepper">
+      <div class="step-dot active" id="dot-1">1</div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-dot" id="dot-2">2</div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-dot" id="dot-3">3</div>
+      <div class="step-line" id="line-3"></div>
+      <div class="step-dot" id="dot-4">4</div>
+    </div>
+
+    <!-- STEP INDICATOR -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em" id="stepIndicator">Paso 1 de 4</div>
+      <div style="font-size:22px;font-weight:700;margin-top:4px" id="stepTitle">Datos de tu tienda</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-top:4px" id="stepSubtitle">Completá la información básica de tu negocio</div>
+    </div>
+
+    <!-- ── PASO 1: PERFIL ── -->
+    <div id="step-1" class="wizard-step">
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- LOGO UPLOAD -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:8px">
+          <div id="logoPreview" style="width:88px;height:88px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:700;cursor:pointer;position:relative;overflow:hidden" onclick="document.getElementById('logoInput').click()">
+            B
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s" class="logo-overlay">
+              <span class="material-icons-outlined" style="color:#fff;font-size:22px">add_a_photo</span>
+            </div>
+          </div>
+          <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="handleLogo(this)">
+          <div style="font-size:12px;color:var(--text-muted)">Logo de tu tienda — PNG o JPG, 200×200px recomendado</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nombre de la tienda <span style="color:var(--danger)">*</span></label>
+          <input type="text" class="form-input" value="Bodega Don Carlos" id="storeName">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción corta</label>
+          <textarea class="form-input" rows="2" placeholder="Ej: La mejor bodega del barrio con productos frescos..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dirección</label>
+          <input type="text" class="form-input" placeholder="Av. Los Rosales 456, San Borja, Lima">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input type="tel" class="form-input" placeholder="+51 987 654 321">
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <button class="btn btn-ghost" onclick="skipStep()">Hacer esto después</button>
+          <button class="btn btn-primary" onclick="nextStep()">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 2: PRIMER PRODUCTO ── -->
+    <div id="step-2" class="wizard-step" style="display:none">
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- DROP IMAGEN -->
+        <div class="form-group">
+          <label class="form-label">Imagen del producto</label>
+          <div class="drop-zone" style="height:100px" onclick="alert('Seleccionar imagen')">
+            <span class="material-icons-outlined" style="font-size:28px;color:var(--text-muted)">image</span>
+            <div style="font-size:12px;color:var(--text-muted)">Arrastrá o hacé click para subir</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nombre del producto <span style="color:var(--danger)">*</span></label>
+          <input type="text" class="form-input" placeholder="Ej: Leche Gloria 400ml">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label class="form-label">Precio (S/) <span style="color:var(--danger)">*</span></label>
+            <div style="position:relative">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px">S/</span>
+              <input type="number" class="form-input" style="padding-left:32px" placeholder="0.00" min="0" step="0.01">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stock inicial</label>
+            <input type="number" class="form-input" placeholder="0" min="0">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <button class="btn btn-ghost" onclick="skipStep()">Omitir por ahora</button>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-ghost" onclick="prevStep()">← Atrás</button>
+            <button class="btn btn-primary" onclick="nextStep()">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 3: HORARIOS Y DELIVERY ── -->
+    <div id="step-3" class="wizard-step" style="display:none">
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px;background:var(--bg);border-radius:10px">
+          <div>
+            <div class="font-semibold">Ofrezco delivery</div>
+            <div style="font-size:12px;color:var(--text-muted)">Entrega a domicilio para tus clientes</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="deliveryToggle" checked onchange="toggleDelivery()"><span class="slider"></span></label>
+        </div>
+
+        <!-- HORARIOS SIMPLIFICADOS -->
+        <div>
+          <div style="font-size:13px;font-weight:500;margin-bottom:10px">Horario de atención</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;width:80px;color:var(--text-muted)">Lun – Vie</span>
+              <input type="time" class="form-input" style="width:100px" value="08:00">
+              <span style="color:var(--text-muted);font-size:13px">—</span>
+              <input type="time" class="form-input" style="width:100px" value="22:00">
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;width:80px;color:var(--text-muted)">Sábado</span>
+              <input type="time" class="form-input" style="width:100px" value="08:00">
+              <span style="color:var(--text-muted);font-size:13px">—</span>
+              <input type="time" class="form-input" style="width:100px" value="20:00">
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <label class="toggle" style="margin-right:4px"><input type="checkbox"><span class="slider"></span></label>
+              <span style="font-size:13px;width:68px;color:var(--text-muted)">Domingo</span>
+              <input type="time" class="form-input" style="width:100px" disabled>
+              <span style="color:var(--text-muted);font-size:13px">—</span>
+              <input type="time" class="form-input" style="width:100px" disabled>
+            </div>
+          </div>
+        </div>
+
+        <!-- DELIVERY OPTIONS (visibles si delivery ON) -->
+        <div id="deliveryOptions" style="display:flex;flex-direction:column;gap:12px;background:var(--bg);border-radius:10px;padding:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+              <label class="form-label">Radio de entrega (km)</label>
+              <input type="range" min="1" max="20" value="5" oninput="document.getElementById('kmVal').textContent = this.value + ' km'">
+              <div style="font-size:13px;font-weight:500;color:var(--primary)" id="kmVal">5 km</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Costo de envío (S/)</label>
+              <div style="position:relative">
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px">S/</span>
+                <input type="number" class="form-input" style="padding-left:32px" value="5.00" min="0" step="0.50">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <button class="btn btn-ghost" onclick="skipStep()">Omitir</button>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-ghost" onclick="prevStep()">← Atrás</button>
+            <button class="btn btn-primary" onclick="nextStep()">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 4: MÉTODOS DE PAGO ── -->
+    <div id="step-4" class="wizard-step" style="display:none">
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="material-icons-outlined" style="color:#25D366">account_balance_wallet</span>
+            <span class="font-semibold" style="font-size:13px">Efectivo</span>
+          </div>
+          <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="material-icons-outlined" style="color:#0055FF">smartphone</span>
+            <span class="font-semibold" style="font-size:13px">Yape</span>
+          </div>
+          <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="material-icons-outlined" style="color:#00B4D8">smartphone</span>
+            <span class="font-semibold" style="font-size:13px">Plin</span>
+          </div>
+          <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="material-icons-outlined" style="color:var(--secondary)">account_balance</span>
+            <span class="font-semibold" style="font-size:13px">Transferencia bancaria</span>
+          </div>
+          <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="material-icons-outlined" style="color:var(--primary)">credit_card</span>
+            <span class="font-semibold" style="font-size:13px">Tarjeta (Culqi)</span>
+          </div>
+          <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+        </div>
+
+        <!-- CHECKLIST RESUMEN -->
+        <div style="margin-top:12px;background:#D1FAE5;border-radius:10px;padding:14px">
+          <div style="font-size:13px;font-weight:600;color:#065F46;margin-bottom:8px">¡Ya casi estás listo!</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#065F46">
+            <div>✅ Datos de la tienda configurados</div>
+            <div>✅ Primer producto agregado</div>
+            <div>✅ Horarios y delivery configurados</div>
+            <div id="payCheck">⬜ Métodos de pago</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center">
+          <button class="btn btn-ghost" onclick="prevStep()">← Atrás</button>
+          <a href="dashboard.html" class="btn btn-primary" style="font-size:15px;padding:12px 28px" onclick="showToast('¡Bienvenido a Tiendi!')">¡Listo! Ver mi panel →</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /wizard -->
+
+  <div style="margin-top:16px;font-size:12px;color:var(--text-muted)">
+    ¿Ya tenés cuenta? <a href="dashboard.html" style="color:var(--primary);text-decoration:none">Ir al panel →</a>
+  </div>
+
+</div><!-- /body -->
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:999">
+  <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
+
+<style>
+/* Wizard steps */
+.wizard-step { animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* Stepper */
+.step-dot {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; flex-shrink:0;
+  background:var(--border); color:var(--text-muted);
+  transition:all .3s;
+}
+.step-dot.active { background:var(--primary); color:#fff; }
+.step-dot.done { background:var(--primary-light); color:var(--primary); }
+.step-line { flex:1; height:2px; background:var(--border); transition:background .3s; min-width:40px; }
+.step-line.done { background:var(--primary); }
+
+/* Form */
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-label { font-size:13px; font-weight:500; }
+.form-hint { font-size:12px; color:var(--text-muted); }
+.drop-zone { border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px; }
+.logo-overlay { border-radius: 50%; }
+#logoPreview:hover .logo-overlay { opacity:1 !important; }
+</style>
+
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+
+const stepData = [
+  { indicator: 'Paso 1 de 4', title: 'Datos de tu tienda', subtitle: 'Completá la información básica de tu negocio' },
+  { indicator: 'Paso 2 de 4', title: 'Tu primer producto', subtitle: 'Agregá un producto para empezar tu catálogo' },
+  { indicator: 'Paso 3 de 4', title: 'Horarios y Delivery', subtitle: 'Configurá cuándo y cómo entregás pedidos' },
+  { indicator: 'Paso 4 de 4', title: 'Métodos de pago', subtitle: 'Elegí cómo querés recibir pagos' },
+];
+
+function updateStepper() {
+  stepData.forEach((s, i) => {
+    const n = i + 1;
+    const dot = document.getElementById('dot-' + n);
+    dot.className = 'step-dot';
+    if (n === currentStep) dot.classList.add('active');
+    else if (n < currentStep) dot.classList.add('done');
+
+    if (n < totalSteps) {
+      const line = document.getElementById('line-' + n);
+      line.className = 'step-line' + (n < currentStep ? ' done' : '');
+    }
+  });
+
+  const s = stepData[currentStep - 1];
+  document.getElementById('stepIndicator').textContent = s.indicator;
+  document.getElementById('stepTitle').textContent = s.title;
+  document.getElementById('stepSubtitle').textContent = s.subtitle;
+
+  document.querySelectorAll('.wizard-step').forEach((el, i) => {
+    el.style.display = (i + 1 === currentStep) ? '' : 'none';
+  });
+}
+
+function nextStep() {
+  if (currentStep < totalSteps) {
+    currentStep++;
+    updateStepper();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    updateStepper();
+  }
+}
+
+function skipStep() {
+  nextStep();
+}
+
+function toggleDelivery() {
+  const on = document.getElementById('deliveryToggle').checked;
+  document.getElementById('deliveryOptions').style.display = on ? '' : 'none';
+}
+
+function handleLogo(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const prev = document.getElementById('logoPreview');
+      prev.style.backgroundImage = 'url(' + e.target.result + ')';
+      prev.style.backgroundSize = 'cover';
+      prev.textContent = '';
+      showToast('Logo actualizado');
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+// Init
+updateStepper();
+</script>
+</body>
+</html>

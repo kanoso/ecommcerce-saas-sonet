@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item active"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        Productos
+        <small>47 de 200 productos del plan Pro</small>
+      </div>
+      <div class="topbar-actions">
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- TABS PRODUCTOS / CATEGORÍAS -->
+      <div style="border-bottom:1px solid var(--border);margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end">
+        <div style="display:flex">
+          <button class="tab-page active" id="tabProducts" onclick="showProductTab('products', this)">
+            <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle">inventory_2</span> Productos
+          </button>
+          <button class="tab-page" id="tabCategories" onclick="showProductTab('categories', this)">
+            <span class="material-icons-outlined" style="font-size:16px;vertical-align:middle">category</span> Categorías
+          </button>
+        </div>
+        <div id="tabAction" style="padding-bottom:8px">
+          <a href="products-form.html" class="btn btn-primary" id="btnNewProduct">
+            <span class="material-icons-outlined" style="font-size:16px">add</span> Nuevo producto
+          </a>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: PRODUCTOS -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div id="tab-products">
+
+      <!-- TOOLBAR -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+        <div class="search-box" style="flex:1;min-width:200px">
+          <span class="material-icons-outlined" style="font-size:18px;color:var(--text-muted)">search</span>
+          <input type="text" placeholder="Buscar producto..." oninput="searchProducts(this.value)">
+        </div>
+        <select class="form-select" style="width:160px" onchange="filterCategory(this.value)">
+          <option value="">Todas las categorías</option>
+          <option value="lacteos">Lácteos</option>
+          <option value="abarrotes">Abarrotes</option>
+          <option value="bebidas">Bebidas</option>
+          <option value="panaderia">Panadería</option>
+        </select>
+        <select class="form-select" style="width:140px" onchange="filterStock(this.value)">
+          <option value="">Todo el stock</option>
+          <option value="low">Stock bajo</option>
+          <option value="out">Sin stock</option>
+          <option value="ok">Stock OK</option>
+        </select>
+        <div style="display:flex;gap:6px">
+          <button class="btn-icon active" id="btnGrid" title="Vista cuadrícula" onclick="setView('grid')"><span class="material-icons-outlined" style="font-size:20px">grid_view</span></button>
+          <button class="btn-icon" id="btnList" title="Vista lista" onclick="setView('list')"><span class="material-icons-outlined" style="font-size:20px">view_list</span></button>
+        </div>
+        <a href="products-form.html" class="btn btn-primary">
+          <span class="material-icons-outlined" style="font-size:16px">add</span> Nuevo producto
+        </a>
+        <button class="btn btn-secondary" onclick="openImportModal()">
+          <span class="material-icons-outlined" style="font-size:16px">upload_file</span> Importar CSV
+        </button>
+      </div>
+
+      <!-- PLAN USAGE -->
+      <div style="margin-bottom:20px;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:16px">
+        <span class="material-icons-outlined" style="font-size:20px;color:var(--primary)">inventory</span>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:13px;font-weight:500">Uso del plan</span>
+            <span style="font-size:13px;color:var(--text-muted)">47 / 200 productos</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:23.5%"></div></div>
+        </div>
+        <a href="subscription.html" class="btn btn-ghost btn-sm">Ampliar plan →</a>
+      </div>
+
+      <!-- VISTA GRILLA -->
+      <div id="gridView" class="product-grid">
+
+        <div class="product-card" data-category="lacteos" data-stock="low">
+          <div class="product-card-img">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">inventory_2</span>
+            <span class="product-badge badge-featured">Destacado</span>
+          </div>
+          <div class="product-card-body">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Lácteos</div>
+            <div class="font-semibold" style="font-size:14px;margin-bottom:6px">Leche Gloria 400ml</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:16px;font-weight:700;color:var(--primary)">S/ 4.50</span>
+              <span class="stock-low" style="font-size:12px">2 uds ⚠️</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="products-form.html" class="btn btn-ghost btn-sm" style="flex:1;text-align:center">Editar</a>
+              <button class="btn-icon" title="Eliminar" onclick="deleteProduct(this, 'Leche Gloria 400ml')"><span class="material-icons-outlined" style="font-size:18px;color:var(--danger)">delete_outline</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card" data-category="abarrotes" data-stock="low">
+          <div class="product-card-img">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">inventory_2</span>
+          </div>
+          <div class="product-card-body">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Abarrotes</div>
+            <div class="font-semibold" style="font-size:14px;margin-bottom:6px">Arroz Costeño 1kg</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:16px;font-weight:700;color:var(--primary)">S/ 3.20</span>
+              <span class="stock-low" style="font-size:12px">1 ud ⚠️</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="products-form.html" class="btn btn-ghost btn-sm" style="flex:1;text-align:center">Editar</a>
+              <button class="btn-icon" title="Eliminar" onclick="deleteProduct(this, 'Arroz Costeño 1kg')"><span class="material-icons-outlined" style="font-size:18px;color:var(--danger)">delete_outline</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card" data-category="abarrotes" data-stock="out">
+          <div class="product-card-img" style="position:relative">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">inventory_2</span>
+            <span class="product-badge badge-out">Sin stock</span>
+          </div>
+          <div class="product-card-body">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Abarrotes</div>
+            <div class="font-semibold" style="font-size:14px;margin-bottom:6px">Azúcar Rubia 1kg</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:16px;font-weight:700;color:var(--primary)">S/ 2.80</span>
+              <span class="stock-zero" style="font-size:12px">0 uds 🔴</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="products-form.html" class="btn btn-ghost btn-sm" style="flex:1;text-align:center">Editar</a>
+              <button class="btn-icon" title="Eliminar" onclick="deleteProduct(this, 'Azúcar Rubia 1kg')"><span class="material-icons-outlined" style="font-size:18px;color:var(--danger)">delete_outline</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card" data-category="bebidas" data-stock="ok">
+          <div class="product-card-img">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">inventory_2</span>
+          </div>
+          <div class="product-card-body">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Bebidas</div>
+            <div class="font-semibold" style="font-size:14px;margin-bottom:6px">Inca Kola 1.5L</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:16px;font-weight:700;color:var(--primary)">S/ 5.50</span>
+              <span style="font-size:12px;color:var(--success);font-weight:500">24 uds ✓</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="products-form.html" class="btn btn-ghost btn-sm" style="flex:1;text-align:center">Editar</a>
+              <button class="btn-icon" title="Eliminar" onclick="deleteProduct(this, 'Inca Kola 1.5L')"><span class="material-icons-outlined" style="font-size:18px;color:var(--danger)">delete_outline</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card" data-category="abarrotes" data-stock="ok">
+          <div class="product-card-img">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">inventory_2</span>
+          </div>
+          <div class="product-card-body">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Abarrotes</div>
+            <div class="font-semibold" style="font-size:14px;margin-bottom:6px">Aceite Primor 1L</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div>
+                <span style="font-size:16px;font-weight:700;color:var(--primary)">S/ 7.90</span>
+                <span style="font-size:12px;text-decoration:line-through;color:var(--text-muted);margin-left:4px">S/ 9.90</span>
+              </div>
+              <span style="font-size:12px;color:var(--success);font-weight:500">18 uds ✓</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="products-form.html" class="btn btn-ghost btn-sm" style="flex:1;text-align:center">Editar</a>
+              <button class="btn-icon" title="Eliminar" onclick="deleteProduct(this, 'Aceite Primor 1L')"><span class="material-icons-outlined" style="font-size:18px;color:var(--danger)">delete_outline</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card" data-category="panaderia" data-stock="ok">
+          <div class="product-card-img">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted)">inventory_2</span>
+            <span class="product-badge badge-featured">Oferta del día</span>
+          </div>
+          <div class="product-card-body">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Panadería</div>
+            <div class="font-semibold" style="font-size:14px;margin-bottom:6px">Pan de Molde Bimbo</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:16px;font-weight:700;color:var(--primary)">S/ 6.00</span>
+              <span style="font-size:12px;color:var(--success);font-weight:500">35 uds ✓</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="products-form.html" class="btn btn-ghost btn-sm" style="flex:1;text-align:center">Editar</a>
+              <button class="btn-icon" title="Eliminar" onclick="deleteProduct(this, 'Pan de Molde Bimbo')"><span class="material-icons-outlined" style="font-size:18px;color:var(--danger)">delete_outline</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add product card -->
+        <a href="products-form.html" class="product-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-decoration:none;border:2px dashed var(--border);background:transparent;min-height:200px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center">
+            <span class="material-icons-outlined" style="font-size:24px;color:var(--primary)">add</span>
+          </div>
+          <span style="font-size:13px;font-weight:500;color:var(--primary)">Agregar producto</span>
+        </a>
+
+      </div>
+
+      <!-- PAGINATION -->
+      <div class="pagination" style="margin-top:20px">
+        <span style="font-size:13px;color:var(--text-muted)">Mostrando 6 de 47 productos</span>
+        <div style="display:flex;gap:4px">
+          <button class="page-btn" disabled>‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">…</button>
+          <button class="page-btn">8</button>
+          <button class="page-btn">›</button>
+        </div>
+      </div>
+
+      </div><!-- /tab-products -->
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- TAB: CATEGORÍAS -->
+      <!-- ═══════════════════════════════════════════ -->
+      <div id="tab-categories" style="display:none">
+
+        <!-- CALLOUT INFO -->
+        <div style="display:flex;align-items:flex-start;gap:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-bottom:20px">
+          <span class="material-icons-outlined" style="font-size:20px;color:#2563EB;flex-shrink:0;margin-top:1px">info</span>
+          <div style="font-size:13px;color:#1E40AF;line-height:1.5">
+            <strong>Categorías globales</strong> son definidas por el equipo de Tiendi y están disponibles para todos los vendedores.
+            Vos podés crear <strong>subcategorías propias</strong> dentro de ellas para organizar mejor tu catálogo.
+          </div>
+        </div>
+
+        <div class="grid-2" style="gap:20px;align-items:start">
+
+          <!-- ÁRBOL DE CATEGORÍAS -->
+          <div style="display:flex;flex-direction:column;gap:12px">
+
+            <!-- Categoría Global: Abarrotes -->
+            <div class="cat-group">
+              <div class="cat-global-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="material-icons-outlined" style="font-size:18px;color:#6B7280">shopping_basket</span>
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Abarrotes</div>
+                    <div style="font-size:11px;color:var(--text-muted)">Categoría global · 12 productos</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="tag" style="background:#F3F4F6;color:#6B7280;font-size:11px">Global 🌐</span>
+                  <button class="btn btn-ghost btn-sm" onclick="openAddSubcat('Abarrotes', 'abarrotes')">+ Subcategoría</button>
+                  <button class="btn-icon" onclick="toggleGroup(this)">
+                    <span class="material-icons-outlined" style="font-size:18px">expand_more</span>
+                  </button>
+                </div>
+              </div>
+              <div class="cat-children">
+                <div class="cat-subcat-item" data-parent="abarrotes">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="material-icons-outlined" style="font-size:14px;color:var(--primary)">subdirectory_arrow_right</span>
+                    <span style="font-size:13px;font-weight:500">Aceites y condimentos</span>
+                    <span class="tag" style="background:#D1FAE5;color:#065F46;font-size:11px">Propia ✨</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:12px;color:var(--text-muted)">3 productos</span>
+                    <button class="btn-icon" title="Editar" onclick="editSubcat(this, 'Aceites y condimentos')"><span class="material-icons-outlined" style="font-size:16px">edit</span></button>
+                    <button class="btn-icon" title="Eliminar" onclick="deleteSubcat(this, 'Aceites y condimentos')"><span class="material-icons-outlined" style="font-size:16px;color:var(--danger)">delete_outline</span></button>
+                  </div>
+                </div>
+                <div class="cat-subcat-item" data-parent="abarrotes">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="material-icons-outlined" style="font-size:14px;color:var(--primary)">subdirectory_arrow_right</span>
+                    <span style="font-size:13px;font-weight:500">Granos y cereales</span>
+                    <span class="tag" style="background:#D1FAE5;color:#065F46;font-size:11px">Propia ✨</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:12px;color:var(--text-muted)">5 productos</span>
+                    <button class="btn-icon" title="Editar" onclick="editSubcat(this, 'Granos y cereales')"><span class="material-icons-outlined" style="font-size:16px">edit</span></button>
+                    <button class="btn-icon" title="Eliminar" onclick="deleteSubcat(this, 'Granos y cereales')"><span class="material-icons-outlined" style="font-size:16px;color:var(--danger)">delete_outline</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categoría Global: Lácteos -->
+            <div class="cat-group">
+              <div class="cat-global-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="material-icons-outlined" style="font-size:18px;color:#6B7280">egg_alt</span>
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Lácteos</div>
+                    <div style="font-size:11px;color:var(--text-muted)">Categoría global · 8 productos</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="tag" style="background:#F3F4F6;color:#6B7280;font-size:11px">Global 🌐</span>
+                  <button class="btn btn-ghost btn-sm" onclick="openAddSubcat('Lácteos', 'lacteos')">+ Subcategoría</button>
+                  <button class="btn-icon" onclick="toggleGroup(this)">
+                    <span class="material-icons-outlined" style="font-size:18px">expand_more</span>
+                  </button>
+                </div>
+              </div>
+              <div class="cat-children">
+                <div class="cat-empty" style="font-size:13px;color:var(--text-muted);padding:10px 0 4px 24px;font-style:italic">
+                  Sin subcategorías — usás la categoría global directamente
+                </div>
+              </div>
+            </div>
+
+            <!-- Categoría Global: Bebidas -->
+            <div class="cat-group">
+              <div class="cat-global-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="material-icons-outlined" style="font-size:18px;color:#6B7280">local_cafe</span>
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Bebidas</div>
+                    <div style="font-size:11px;color:var(--text-muted)">Categoría global · 6 productos</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="tag" style="background:#F3F4F6;color:#6B7280;font-size:11px">Global 🌐</span>
+                  <button class="btn btn-ghost btn-sm" onclick="openAddSubcat('Bebidas', 'bebidas')">+ Subcategoría</button>
+                  <button class="btn-icon" onclick="toggleGroup(this)">
+                    <span class="material-icons-outlined" style="font-size:18px">expand_more</span>
+                  </button>
+                </div>
+              </div>
+              <div class="cat-children">
+                <div class="cat-subcat-item" data-parent="bebidas">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="material-icons-outlined" style="font-size:14px;color:var(--primary)">subdirectory_arrow_right</span>
+                    <span style="font-size:13px;font-weight:500">Gaseosas</span>
+                    <span class="tag" style="background:#D1FAE5;color:#065F46;font-size:11px">Propia ✨</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:12px;color:var(--text-muted)">4 productos</span>
+                    <button class="btn-icon" title="Editar" onclick="editSubcat(this, 'Gaseosas')"><span class="material-icons-outlined" style="font-size:16px">edit</span></button>
+                    <button class="btn-icon" title="Eliminar" onclick="deleteSubcat(this, 'Gaseosas')"><span class="material-icons-outlined" style="font-size:16px;color:var(--danger)">delete_outline</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categoría Global: Panadería -->
+            <div class="cat-group">
+              <div class="cat-global-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="material-icons-outlined" style="font-size:18px;color:#6B7280">bakery_dining</span>
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Panadería</div>
+                    <div style="font-size:11px;color:var(--text-muted)">Categoría global · 4 productos</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="tag" style="background:#F3F4F6;color:#6B7280;font-size:11px">Global 🌐</span>
+                  <button class="btn btn-ghost btn-sm" onclick="openAddSubcat('Panadería', 'panaderia')">+ Subcategoría</button>
+                  <button class="btn-icon" onclick="toggleGroup(this)">
+                    <span class="material-icons-outlined" style="font-size:18px">expand_more</span>
+                  </button>
+                </div>
+              </div>
+              <div class="cat-children">
+                <div class="cat-empty" style="font-size:13px;color:var(--text-muted);padding:10px 0 4px 24px;font-style:italic">
+                  Sin subcategorías — usás la categoría global directamente
+                </div>
+              </div>
+            </div>
+
+            <!-- Categoría Global: Carnes (vacía, sin productos del vendor) -->
+            <div class="cat-group" style="opacity:.6">
+              <div class="cat-global-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="material-icons-outlined" style="font-size:18px;color:#6B7280">set_meal</span>
+                  <div>
+                    <div class="font-semibold" style="font-size:14px">Carnes y pescados</div>
+                    <div style="font-size:11px;color:var(--text-muted)">Categoría global · 0 productos tuyos</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="tag" style="background:#F3F4F6;color:#6B7280;font-size:11px">Global 🌐</span>
+                  <button class="btn btn-ghost btn-sm" onclick="openAddSubcat('Carnes y pescados', 'carnes')">+ Subcategoría</button>
+                  <button class="btn-icon" onclick="toggleGroup(this)">
+                    <span class="material-icons-outlined" style="font-size:18px">expand_more</span>
+                  </button>
+                </div>
+              </div>
+              <div class="cat-children" style="display:none"></div>
+            </div>
+
+          </div>
+
+          <!-- PANEL LATERAL: RESUMEN + FORM NUEVA SUBCATEGORÍA -->
+          <div style="display:flex;flex-direction:column;gap:16px">
+
+            <!-- STATS -->
+            <div class="card">
+              <div class="card-header"><h3>Resumen</h3></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
+                  <span style="font-size:13px">Categorías globales</span>
+                  <span class="font-semibold" style="color:#6B7280">5 disponibles</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
+                  <span style="font-size:13px">Subcategorías propias</span>
+                  <span class="font-semibold" style="color:var(--primary)">3 creadas</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
+                  <span style="font-size:13px">Productos sin categoría</span>
+                  <span class="font-semibold" style="color:var(--warning)">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- FORM: NUEVA SUBCATEGORÍA -->
+            <div class="card" id="subcatForm">
+              <div class="card-header">
+                <h3 id="subcatFormTitle">Nueva subcategoría</h3>
+              </div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px">Categoría padre</label>
+                  <div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px;display:flex;align-items:center;gap:8px">
+                    <span class="material-icons-outlined" style="font-size:16px;color:#6B7280">shopping_basket</span>
+                    <span id="subcatParentLabel" class="font-semibold">—</span>
+                    <span class="tag" style="background:#F3F4F6;color:#6B7280;font-size:11px;margin-left:auto">Global 🌐</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:4px">No se puede cambiar — la subcategoría pertenece a una categoría global</div>
+                </div>
+                <div>
+                  <label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px">Nombre de la subcategoría <span style="color:var(--danger)">*</span></label>
+                  <input type="text" class="form-input" id="subcatName" placeholder="Ej: Aceites y condimentos">
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Será visible en el catálogo junto a la categoría padre</div>
+                </div>
+                <div>
+                  <label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px">Descripción (opcional)</label>
+                  <textarea class="form-input" rows="2" placeholder="Breve descripción de esta subcategoría..."></textarea>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary" style="flex:1" onclick="saveSubcat()">Guardar</button>
+                  <button class="btn btn-ghost" onclick="resetSubcatForm()">Cancelar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CÓMO FUNCIONA -->
+            <div class="card" style="background:var(--bg);border:none">
+              <div class="card-body">
+                <div class="font-semibold" style="font-size:13px;margin-bottom:10px">¿Cómo funcionan las categorías?</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-muted);line-height:1.5">
+                  <div style="display:flex;gap:8px">
+                    <span style="color:var(--primary);font-weight:600;flex-shrink:0">1.</span>
+                    <span>Las <strong>categorías globales</strong> las define Tiendi — no podés editarlas ni eliminarlas.</span>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <span style="color:var(--primary);font-weight:600;flex-shrink:0">2.</span>
+                    <span>Podés crear <strong>subcategorías propias</strong> dentro de cualquier categoría global para organizar mejor tu catálogo.</span>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <span style="color:var(--primary);font-weight:600;flex-shrink:0">3.</span>
+                    <span>Al crear un producto, elegís primero la categoría global y luego (opcionalmente) tu subcategoría.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /tab-categories -->
+
+    </main>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:480px;width:90%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0">Importar productos</h3>
+      <button class="btn-icon" onclick="closeImportModal()"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:14px;color:var(--text-muted)">
+        <strong>Paso 1:</strong> Descargá la plantilla y completala con tus productos.
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:fit-content" onclick="alert('Descargando plantilla...')">
+        <span class="material-icons-outlined" style="font-size:16px">download</span> Descargar plantilla CSV
+      </button>
+      <div style="font-size:14px;color:var(--text-muted)"><strong>Paso 2:</strong> Subí el archivo completado.</div>
+      <div class="drop-zone" style="padding:20px" onclick="document.getElementById('csvInput').click()">
+        <input type="file" id="csvInput" accept=".csv,.xlsx" style="display:none" onchange="handleCSVUpload(this)">
+        <span class="material-icons-outlined" style="font-size:32px;color:var(--text-muted)">upload_file</span>
+        <div style="margin-top:8px;font-size:13px;font-weight:500">Arrastrá tu archivo CSV o Excel</div>
+        <div style="font-size:12px;color:var(--text-muted)">Máximo 500 productos por importación</div>
+      </div>
+      <div id="csvResult" style="display:none;background:#D1FAE5;border-radius:8px;padding:12px;font-size:13px;color:#065F46">
+        ✅ <strong>47 productos creados</strong> · 🔄 3 actualizados · ❌ 0 errores
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeImportModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="simulateImport()">Importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:380px;width:90%;text-align:center">
+    <span class="material-icons-outlined" style="font-size:48px;color:var(--danger)">delete_forever</span>
+    <h3 style="margin:12px 0 8px">¿Eliminar producto?</h3>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px" id="deleteMsg"></p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger)" onclick="confirmDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* PRODUCTOS GRID */
+.product-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px; }
+.product-card { background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; transition:box-shadow .2s; cursor:pointer; }
+.product-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
+.product-card-img { height:120px; background:var(--bg); display:flex; align-items:center; justify-content:center; position:relative; }
+.product-card-body { padding:12px; }
+.product-badge { position:absolute; top:8px; left:8px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
+.badge-featured { background:#D1FAE5; color:#065F46; }
+.badge-out { background:#FEE2E2; color:#991B1B; }
+
+/* TABS */
+.tab-page { padding:12px 20px; border:none; background:transparent; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-muted); border-bottom:2px solid transparent; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+.tab-page.active { color:var(--primary); border-bottom-color:var(--primary); }
+
+/* DROP ZONE */
+.drop-zone { border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px; }
+
+/* CATEGORÍAS */
+.cat-group { background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.cat-global-header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:default; }
+.cat-children { padding:0 16px 12px 16px; border-top:1px solid var(--border); }
+.cat-subcat-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+.cat-subcat-item:last-child { border-bottom:none; }
+</style>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:999">
+  <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+let pendingDeleteEl = null;
+let editingSubcatEl = null;
+
+// ── TAB SWITCH ────────────────────────────────────────────────
+function showProductTab(tab, btn) {
+  document.querySelectorAll('.tab-page').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.getElementById('tab-products').style.display   = tab === 'products'   ? '' : 'none';
+  document.getElementById('tab-categories').style.display = tab === 'categories' ? '' : 'none';
+
+  // swap action button
+  const action = document.getElementById('tabAction');
+  if (tab === 'products') {
+    action.innerHTML = '<a href="products-form.html" class="btn btn-primary"><span class="material-icons-outlined" style="font-size:16px">add</span> Nuevo producto</a>';
+  } else {
+    action.innerHTML = '';
+  }
+}
+
+// ── PRODUCTOS ─────────────────────────────────────────────────
+function setView(v) {
+  document.getElementById('btnGrid').classList.toggle('active', v === 'grid');
+  document.getElementById('btnList').classList.toggle('active', v === 'list');
+}
+
+function searchProducts(val) {
+  const q = val.toLowerCase();
+  document.querySelectorAll('.product-card:not(a)').forEach(c => {
+    c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function filterCategory(val) {
+  document.querySelectorAll('.product-card:not(a)').forEach(c => {
+    c.style.display = (!val || c.dataset.category === val) ? '' : 'none';
+  });
+}
+
+function filterStock(val) {
+  document.querySelectorAll('.product-card:not(a)').forEach(c => {
+    c.style.display = (!val || c.dataset.stock === val) ? '' : 'none';
+  });
+}
+
+function deleteProduct(btn, name) {
+  pendingDeleteEl = btn.closest('.product-card');
+  document.getElementById('deleteMsg').textContent = 'Esta acción no se puede deshacer. El producto "' + name + '" será eliminado permanentemente.';
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('deleteModal').style.display = 'none';
+  pendingDeleteEl = null;
+}
+
+function confirmDelete() {
+  if (pendingDeleteEl) pendingDeleteEl.remove();
+  closeModal();
+}
+
+// ── CATEGORÍAS ────────────────────────────────────────────────
+function toggleGroup(btn) {
+  const children = btn.closest('.cat-group').querySelector('.cat-children');
+  const icon = btn.querySelector('.material-icons-outlined');
+  const isOpen = children.style.display !== 'none';
+  children.style.display = isOpen ? 'none' : '';
+  icon.textContent = isOpen ? 'expand_more' : 'expand_less';
+}
+
+let currentParent = { label: '', id: '' };
+
+function openAddSubcat(label, id) {
+  currentParent = { label, id };
+  editingSubcatEl = null;
+  document.getElementById('subcatFormTitle').textContent = 'Nueva subcategoría';
+  document.getElementById('subcatParentLabel').textContent = label;
+  document.getElementById('subcatName').value = '';
+  document.getElementById('subcatName').focus();
+}
+
+function editSubcat(btn, name) {
+  editingSubcatEl = btn.closest('.cat-subcat-item');
+  const parent = editingSubcatEl.dataset.parent;
+  document.getElementById('subcatFormTitle').textContent = 'Editar subcategoría';
+  document.getElementById('subcatParentLabel').textContent =
+    { abarrotes: 'Abarrotes', lacteos: 'Lácteos', bebidas: 'Bebidas', panaderia: 'Panadería', carnes: 'Carnes y pescados' }[parent] || parent;
+  document.getElementById('subcatName').value = name;
+  document.getElementById('subcatName').focus();
+}
+
+function resetSubcatForm() {
+  editingSubcatEl = null;
+  currentParent = { label: '', id: '' };
+  document.getElementById('subcatFormTitle').textContent = 'Nueva subcategoría';
+  document.getElementById('subcatParentLabel').textContent = '—';
+  document.getElementById('subcatName').value = '';
+}
+
+function saveSubcat() {
+  const name = document.getElementById('subcatName').value.trim();
+  if (!name) { showToast('Ingresá un nombre para la subcategoría', '#EF4444'); return; }
+
+  if (editingSubcatEl) {
+    // Editar existente
+    editingSubcatEl.querySelector('.font-semibold').textContent = name;
+    showToast('Subcategoría actualizada');
+  } else {
+    if (!currentParent.id) { showToast('Seleccioná una categoría padre primero', '#EF4444'); return; }
+    // Crear nueva — insertar en el grupo correcto
+    const groups = document.querySelectorAll('.cat-group');
+    let target = null;
+    groups.forEach(g => {
+      if (g.querySelector('.cat-global-header .font-semibold')?.textContent === currentParent.label) target = g;
+    });
+    if (target) {
+      // Quitar "sin subcategorías" si existe
+      const empty = target.querySelector('.cat-empty');
+      if (empty) empty.remove();
+
+      const children = target.querySelector('.cat-children');
+      const item = document.createElement('div');
+      item.className = 'cat-subcat-item';
+      item.dataset.parent = currentParent.id;
+      item.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="material-icons-outlined" style="font-size:14px;color:var(--primary)">subdirectory_arrow_right</span>
+          <span class="font-semibold" style="font-size:13px">${name}</span>
+          <span class="tag" style="background:#D1FAE5;color:#065F46;font-size:11px">Propia ✨</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:12px;color:var(--text-muted)">0 productos</span>
+          <button class="btn-icon" title="Editar" onclick="editSubcat(this, '${name}')"><span class="material-icons-outlined" style="font-size:16px">edit</span></button>
+          <button class="btn-icon" title="Eliminar" onclick="deleteSubcat(this, '${name}')"><span class="material-icons-outlined" style="font-size:16px;color:var(--danger)">delete_outline</span></button>
+        </div>`;
+      children.appendChild(item);
+      children.style.display = '';
+      showToast('Subcategoría "' + name + '" creada');
+    }
+  }
+  resetSubcatForm();
+}
+
+function deleteSubcat(btn, name) {
+  if (!confirm('¿Eliminar la subcategoría "' + name + '"? Los productos asignados quedarán en la categoría padre.')) return;
+  const item = btn.closest('.cat-subcat-item');
+  const children = item.parentNode;
+  item.remove();
+  if (!children.querySelector('.cat-subcat-item')) {
+    children.innerHTML = '<div class="cat-empty" style="font-size:13px;color:var(--text-muted);padding:10px 0 4px 24px;font-style:italic">Sin subcategorías — usás la categoría global directamente</div>';
+  }
+  showToast('Subcategoría eliminada');
+}
+
+function openImportModal() {
+  document.getElementById('importModal').style.display = 'flex';
+}
+function closeImportModal() {
+  document.getElementById('importModal').style.display = 'none';
+  document.getElementById('csvResult').style.display = 'none';
+}
+function handleCSVUpload(input) {
+  if (input.files.length) showToast('Archivo "' + input.files[0].name + '" cargado');
+}
+function simulateImport() {
+  document.getElementById('csvResult').style.display = 'block';
+  showToast('Importación completada');
+}
+
+function showToast(msg, color = 'var(--primary)') {
+  const t = document.getElementById('toast');
+  t.style.background = color;
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+</script>
+</body>
+</html>

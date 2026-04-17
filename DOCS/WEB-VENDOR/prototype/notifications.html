@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notificaciones — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item active"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        Notificaciones
+        <small>3 sin leer</small>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Marcar todas como leídas</button>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content" style="max-width:700px">
+
+      <!-- TABS -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
+        <button class="tab-page active" onclick="filterNotif('all', this)">Todas <span class="tab-count">12</span></button>
+        <button class="tab-page" onclick="filterNotif('unread', this)">Sin leer <span class="tab-count warning">3</span></button>
+        <button class="tab-page" onclick="filterNotif('orders', this)">Pedidos</button>
+        <button class="tab-page" onclick="filterNotif('stock', this)">Stock</button>
+        <button class="tab-page" onclick="filterNotif('system', this)">Sistema</button>
+      </div>
+
+      <!-- NOTIFICACIONES HOY -->
+      <div class="notif-group">
+        <div class="notif-group-label">Hoy</div>
+
+        <div class="notif-item unread" data-type="orders" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#D1FAE5;color:#065F46">
+            <span class="material-icons-outlined" style="font-size:20px">receipt_long</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Nuevo pedido recibido — PED-001</div>
+            <div class="notif-desc">Juan Pérez realizó un pedido por S/ 85.00 · 3 productos</div>
+            <div class="notif-time">Hace 32 minutos</div>
+          </div>
+          <div class="notif-dot"></div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='orders-detail.html'">Ver pedido</button>
+        </div>
+
+        <div class="notif-item unread" data-type="stock" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#FEE2E2;color:#991B1B">
+            <span class="material-icons-outlined" style="font-size:20px">warning</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Stock crítico — Azúcar Rubia 1kg</div>
+            <div class="notif-desc">El stock llegó a 0 unidades. Es necesario reabastecer.</div>
+            <div class="notif-time">Hace 1 hora</div>
+          </div>
+          <div class="notif-dot"></div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='products-form.html'">Agregar stock</button>
+        </div>
+
+        <div class="notif-item unread" data-type="orders" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#D1FAE5;color:#065F46">
+            <span class="material-icons-outlined" style="font-size:20px">receipt_long</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Nuevo pedido recibido — PED-005</div>
+            <div class="notif-desc">Carlos Vera realizó un pedido por S/ 67.00 · 2 productos</div>
+            <div class="notif-time">Hace 2 horas</div>
+          </div>
+          <div class="notif-dot"></div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='orders-detail.html'">Ver pedido</button>
+        </div>
+
+      </div>
+
+      <!-- NOTIFICACIONES AYER -->
+      <div class="notif-group">
+        <div class="notif-group-label">Ayer</div>
+
+        <div class="notif-item" data-type="orders" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#DBEAFE;color:#1E40AF">
+            <span class="material-icons-outlined" style="font-size:20px">local_shipping</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Pedido PED-003 — Confirmación de entrega</div>
+            <div class="notif-desc">Luis Mamani confirmó que recibió su pedido correctamente</div>
+            <div class="notif-time">15 abr, 03:20 pm</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='orders-detail.html'">Ver</button>
+        </div>
+
+        <div class="notif-item" data-type="stock" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#FEF3C7;color:#92400E">
+            <span class="material-icons-outlined" style="font-size:20px">inventory_2</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Stock bajo — Leche Gloria 400ml</div>
+            <div class="notif-desc">Quedan solo 2 unidades. Considerá reabastecer pronto.</div>
+            <div class="notif-time">15 abr, 10:00 am</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='products-form.html'">Ver producto</button>
+        </div>
+
+        <div class="notif-item" data-type="system" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#EDE9FE;color:#5B21B6">
+            <span class="material-icons-outlined" style="font-size:20px">star</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Nueva reseña de 5 estrellas ⭐⭐⭐⭐⭐</div>
+            <div class="notif-desc">Ana Ríos dejó una reseña: "Excelente servicio, muy rápido y los productos frescos"</div>
+            <div class="notif-time">15 abr, 08:45 am</div>
+          </div>
+          <button class="notif-action">Ver reseña</button>
+        </div>
+
+      </div>
+
+      <!-- MÁS ANTIGUAS -->
+      <div class="notif-group">
+        <div class="notif-group-label">Esta semana</div>
+
+        <div class="notif-item" data-type="system" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#F3F4F6;color:#6B7280">
+            <span class="material-icons-outlined" style="font-size:20px">celebration</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">¡Alcanzaste 100 pedidos completados!</div>
+            <div class="notif-desc">Felicidades, tu tienda ha crecido mucho. Seguí así.</div>
+            <div class="notif-time">14 abr, 12:00 pm</div>
+          </div>
+        </div>
+
+        <div class="notif-item" data-type="system" onclick="readNotif(this)">
+          <div class="notif-icon" style="background:#F3F4F6;color:#6B7280">
+            <span class="material-icons-outlined" style="font-size:20px">credit_card</span>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">Suscripción renovada exitosamente</div>
+            <div class="notif-desc">Tu plan Pro fue renovado por S/ 79.90 · Próxima renovación: 14 may 2026</div>
+            <div class="notif-time">14 abr, 08:00 am</div>
+          </div>
+          <button class="notif-action" onclick="event.stopPropagation(); location.href='subscription.html'">Ver plan</button>
+        </div>
+
+      </div>
+
+      <!-- CONFIGURACIÓN NOTIFICACIONES -->
+      <div class="card" style="margin-top:24px">
+        <div class="card-header">
+          <h3>Preferencias de notificaciones</h3>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="font-semibold" style="font-size:13px">Nuevos pedidos</div>
+              <div style="font-size:12px;color:var(--text-muted)">Notificar cuando llegue un pedido nuevo</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="font-semibold" style="font-size:13px">Alertas de stock</div>
+              <div style="font-size:12px;color:var(--text-muted)">Avisar cuando un producto tenga stock bajo</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="font-semibold" style="font-size:13px">Reseñas de clientes</div>
+              <div style="font-size:12px;color:var(--text-muted)">Notificar cuando un cliente deje una reseña</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="font-semibold" style="font-size:13px">Actualizaciones del sistema</div>
+              <div style="font-size:12px;color:var(--text-muted)">Novedades y mantenimientos de Tiendi</div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<style>
+.tab-page { padding:12px 20px;border:none;background:transparent;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .2s; }
+.tab-page.active { color:var(--primary);border-bottom-color:var(--primary); }
+.tab-count { display:inline-block;background:var(--bg);border-radius:20px;padding:1px 6px;font-size:11px;margin-left:4px; }
+.tab-count.warning { background:#FEF3C7;color:#92400E; }
+
+.notif-group { margin-bottom:24px; }
+.notif-group-label { font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding:0 4px; }
+
+.notif-item { display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:10px;cursor:pointer;transition:background .15s;position:relative;margin-bottom:4px; }
+.notif-item:hover { background:var(--bg); }
+.notif-item.unread { background:#F0FDF9;border-left:3px solid var(--primary); }
+.notif-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.notif-content { flex:1;min-width:0; }
+.notif-title { font-size:13px;font-weight:600;margin-bottom:3px; }
+.notif-desc { font-size:12px;color:var(--text-muted);line-height:1.4; }
+.notif-time { font-size:11px;color:var(--text-muted);margin-top:4px; }
+.notif-dot { width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:6px; }
+.notif-item:not(.unread) .notif-dot { display:none; }
+.notif-action { flex-shrink:0;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:var(--text);white-space:nowrap;margin-top:2px; }
+.notif-action:hover { background:var(--bg); }
+</style>
+
+<script>
+function filterNotif(type, btn) {
+  document.querySelectorAll('.tab-page').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.notif-item').forEach(n => {
+    if (type === 'all') { n.style.display = ''; }
+    else if (type === 'unread') { n.style.display = n.classList.contains('unread') ? '' : 'none'; }
+    else { n.style.display = n.dataset.type === type ? '' : 'none'; }
+  });
+}
+
+function readNotif(el) {
+  el.classList.remove('unread');
+  const dot = el.querySelector('.notif-dot');
+  if (dot) dot.style.display = 'none';
+  updateBadge();
+}
+
+function markAllRead() {
+  document.querySelectorAll('.notif-item.unread').forEach(n => {
+    n.classList.remove('unread');
+    const dot = n.querySelector('.notif-dot');
+    if (dot) dot.style.display = 'none';
+  });
+  updateBadge();
+}
+
+function updateBadge() {
+  const unread = document.querySelectorAll('.notif-item.unread').length;
+  document.querySelectorAll('.badge').forEach(b => b.textContent = unread || '');
+  document.querySelector('.topbar-title small').textContent = unread ? unread + ' sin leer' : 'Todo leído';
+}
+</script>
+</body>
+</html>

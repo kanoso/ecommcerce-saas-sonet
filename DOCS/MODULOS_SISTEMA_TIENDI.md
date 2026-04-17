@@ -343,42 +343,68 @@
 ## Flujos de Usuario Principales
 
 ### 1. Flujo de Compra
-```
-Home → Búsqueda → Selección de Tienda → Catálogo →
-Agregar al Carrito → Ver Carrito → Checkout →
-Selección de Despacho → Selección de Pago → Confirmar Pedido →
-Confirmación
+```mermaid
+graph LR
+    Home[Home] --> Busqueda[Búsqueda]
+    Busqueda --> SeleccionTienda[Selección de Tienda]
+    SeleccionTienda --> Catalogo[Catálogo]
+    Catalogo --> AgregarCarrito[Agregar al Carrito]
+    AgregarCarrito --> VerCarrito[Ver Carrito]
+    VerCarrito --> Checkout[Checkout]
+    Checkout --> SeleccionDespacho[Selección de Despacho]
+    SeleccionDespacho --> SeleccionPago[Selección de Pago]
+    SeleccionPago --> ConfirmarPedido[Confirmar Pedido]
+    ConfirmarPedido --> Confirmacion[Confirmación]
 ```
 
 ### 2. Flujo de Registro/Login
-```
-Click en "Ingresar" → Login (o Registro) →
-Autenticación Social (opcional) → Home Autenticado
+```mermaid
+graph LR
+    ClickIngresar["Click en 'Ingresar'"] --> LoginRegistro[Login o Registro]
+    LoginRegistro --> AuthSocial["Autenticación Social (Opcional)"]
+    AuthSocial --> HomeAuth[Home Autenticado]
+    LoginRegistro --> HomeAuth
 ```
 
 ### 3. Flujo de Seguimiento de Pedido
-```
-Click en Pedidos → Ver Mis Pedidos →
-Seleccionar Pedido → Ver Detalle →
-Chat con Tienda (opcional)
+```mermaid
+graph LR
+    ClickPedidos[Click en Pedidos] --> VerMisPedidos[Ver Mis Pedidos]
+    VerMisPedidos --> SeleccionarPedido[Seleccionar Pedido]
+    SeleccionarPedido --> VerDetalle[Ver Detalle]
+    VerDetalle --> ChatTienda["Chat con Tienda (Opcional)"]
 ```
 
 ### 4. Flujo de Comunicación con Tienda
+#### Opción A: Desde Producto/Tienda
+```mermaid
+graph LR
+    VerTienda[Ver Tienda/Producto] --> ClickMensajes[Click en Mensajes/Chat]
+    ClickMensajes --> SeleccionarTienda[Seleccionar Tienda]
+    SeleccionarTienda --> Escribir[Escribir Mensaje]
+    Escribir --> Enviar[Enviar o Usar Plantilla]
+    Enviar --> Recibir[Recibir Respuesta]
 ```
-Opción A (desde producto/tienda):
-Ver Tienda/Producto → Click en Mensajes/Chat →
-Seleccionar Tienda → Escribir Mensaje →
-Enviar (o usar Plantilla) → Recibir Respuesta
 
-Opción B (desde pedido existente):
-Mis Pedidos → Ver Detalle de Pedido →
-Click en Chat/Contactar Tienda → Ver Conversación →
-Escribir Mensaje → Enviar → Recibir Respuesta
+#### Opción B: Desde Pedido Existente
+```mermaid
+graph LR
+    MisPedidos[Mis Pedidos] --> VerDetalle[Ver Detalle de Pedido]
+    VerDetalle --> ClickChat[Click en Chat/Contactar Tienda]
+    ClickChat --> VerConv[Ver Conversación]
+    VerConv --> Escribir[Escribir Mensaje]
+    Escribir --> Enviar[Enviar]
+    Enviar --> Recibir[Recibir Respuesta]
+```
 
-Opción C (desde lista de mensajes):
-Click en ícono Mensajes (header) → Ver Lista de Conversaciones →
-Seleccionar Conversación → Ver Historial →
-Escribir Mensaje → Enviar
+#### Opción C: Desde Lista de Mensajes
+```mermaid
+graph LR
+    IconoMensajes[Click en ícono Mensajes] --> VerLista[Ver Lista de Conversaciones]
+    VerLista --> Seleccionar[Seleccionar Conversación]
+    Seleccionar --> VerHist[Ver Historial]
+    VerHist --> Escribir[Escribir Mensaje]
+    Escribir --> Enviar[Enviar]
 ```
 
 ---

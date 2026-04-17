@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item active"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        Analytics
+        <small>Estadísticas y métricas de tu tienda</small>
+      </div>
+      <div class="topbar-actions">
+        <select class="form-select" style="width:150px;font-size:13px" onchange="updatePeriod(this.value)">
+          <option value="7">Últimos 7 días</option>
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="90">Últimos 3 meses</option>
+          <option value="365">Este año</option>
+        </select>
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <div class="kpi-card">
+          <div class="kpi-label"><span class="material-icons-outlined" style="font-size:16px;color:var(--primary)">attach_money</span> Ventas totales</div>
+          <div class="kpi-value">S/ 18,420</div>
+          <div class="kpi-change up"><span class="material-icons-outlined" style="font-size:14px">trending_up</span> +23% vs mes anterior</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span class="material-icons-outlined" style="font-size:16px;color:var(--secondary)">receipt_long</span> Pedidos</div>
+          <div class="kpi-value">148</div>
+          <div class="kpi-change up"><span class="material-icons-outlined" style="font-size:14px">trending_up</span> +18% vs mes anterior</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span class="material-icons-outlined" style="font-size:16px;color:var(--warning)">shopping_cart</span> Ticket promedio</div>
+          <div class="kpi-value">S/ 124.50</div>
+          <div class="kpi-change down"><span class="material-icons-outlined" style="font-size:14px">trending_down</span> -5% vs mes anterior</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span class="material-icons-outlined" style="font-size:16px;color:var(--danger)">group</span> Clientes nuevos</div>
+          <div class="kpi-value">32</div>
+          <div class="kpi-change up"><span class="material-icons-outlined" style="font-size:14px">trending_up</span> +12% vs mes anterior</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:20px;margin-bottom:20px">
+
+        <!-- VENTAS LINE CHART -->
+        <div class="card" style="grid-column:1 / -1">
+          <div class="card-header">
+            <h3>Evolución de ventas</h3>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm active-period" onclick="setPeriodBtn(this,'sales')">Semana</button>
+              <button class="btn btn-ghost btn-sm" onclick="setPeriodBtn(this,'sales')">Mes</button>
+              <button class="btn btn-ghost btn-sm" onclick="setPeriodBtn(this,'sales')">Trimestre</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <canvas id="salesChart" height="100"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="grid-2" style="gap:20px;margin-bottom:20px">
+
+        <!-- PRODUCTOS MÁS VENDIDOS -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Productos más vendidos</h3>
+            <a href="products.html" class="btn btn-ghost btn-sm">Ver todos →</a>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+            <div class="top-product-row">
+              <span class="rank-badge">1</span>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <span class="font-semibold" style="font-size:13px">Arroz Costeño 1kg</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--primary)">S/ 3,200</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:85%"></div></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">320 unidades vendidas</div>
+              </div>
+            </div>
+            <div class="top-product-row">
+              <span class="rank-badge">2</span>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <span class="font-semibold" style="font-size:13px">Leche Gloria 400ml</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--primary)">S/ 2,430</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">270 unidades vendidas</div>
+              </div>
+            </div>
+            <div class="top-product-row">
+              <span class="rank-badge">3</span>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <span class="font-semibold" style="font-size:13px">Inca Kola 1.5L</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--primary)">S/ 1,980</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:52%"></div></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">180 unidades vendidas</div>
+              </div>
+            </div>
+            <div class="top-product-row">
+              <span class="rank-badge" style="background:#E5E7EB;color:#6B7280">4</span>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <span class="font-semibold" style="font-size:13px">Aceite Primor 1L</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--primary)">S/ 1,422</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:38%"></div></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">108 unidades vendidas</div>
+              </div>
+            </div>
+            <div class="top-product-row">
+              <span class="rank-badge" style="background:#E5E7EB;color:#6B7280">5</span>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <span class="font-semibold" style="font-size:13px">Pan de Molde Bimbo</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--primary)">S/ 1,200</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:32%"></div></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">100 unidades vendidas</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DISTRIBUCIÓN POR CATEGORÍA -->
+        <div class="card">
+          <div class="card-header"><h3>Ventas por categoría</h3></div>
+          <div class="card-body" style="display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap">
+            <canvas id="categoryChart" width="180" height="180"></canvas>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="legend-item"><span class="legend-dot" style="background:#10B981"></span> Abarrotes — 40%</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#3B82F6"></span> Lácteos — 25%</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span> Bebidas — 20%</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#8B5CF6"></span> Panadería — 10%</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#EF4444"></span> Otros — 5%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PEDIDOS POR HORA -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><h3>Pedidos por hora del día</h3></div>
+        <div class="card-body">
+          <canvas id="hourChart" height="80"></canvas>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<style>
+.kpi-change.down { color:var(--danger); }
+.top-product-row { display:flex; align-items:flex-start; gap:12px; }
+.rank-badge { width:24px; height:24px; border-radius:50%; background:var(--primary); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.legend-item { display:flex; align-items:center; gap:8px; font-size:13px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.active-period { background:var(--primary)!important; color:#fff!important; }
+.form-select { border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:13px; background:#fff; cursor:pointer; outline:none; }
+</style>
+
+<script>
+// Sales line chart
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+new Chart(salesCtx, {
+  type: 'line',
+  data: {
+    labels: ['1 Mar','5 Mar','10 Mar','15 Mar','20 Mar','25 Mar','31 Mar','5 Abr','10 Abr','15 Abr'],
+    datasets: [{
+      label: 'Ventas (S/)',
+      data: [420,680,520,890,750,1100,820,1340,980,1580],
+      borderColor: '#10B981',
+      backgroundColor: 'rgba(16,185,129,.08)',
+      tension: 0.4, fill: true,
+      pointBackgroundColor: '#10B981', pointRadius: 4,
+    },{
+      label: 'Mes anterior',
+      data: [320,510,430,720,600,880,650,1100,810,1200],
+      borderColor: '#D1D5DB',
+      backgroundColor: 'transparent',
+      tension: 0.4, fill: false,
+      pointRadius: 0, borderDash: [4,4],
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#F3F4F6' }, ticks: { callback: v => 'S/ ' + v } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Category donut
+const catCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(catCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Abarrotes','Lácteos','Bebidas','Panadería','Otros'],
+    datasets: [{ data: [40,25,20,10,5], backgroundColor: ['#10B981','#3B82F6','#F59E0B','#8B5CF6','#EF4444'], borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: { responsive: false, plugins: { legend: { display: false } }, cutout: '65%' }
+});
+
+// Hour bar chart
+const hourCtx = document.getElementById('hourChart').getContext('2d');
+new Chart(hourCtx, {
+  type: 'bar',
+  data: {
+    labels: ['8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm'],
+    datasets: [{ label: 'Pedidos', data: [2,5,8,12,18,22,15,10,8,14,20,16,12,8,3], backgroundColor: 'rgba(16,185,129,.7)', borderRadius: 4 }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#F3F4F6' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+function setPeriodBtn(btn, chart) {
+  btn.parentNode.querySelectorAll('button').forEach(b => b.classList.remove('active-period'));
+  btn.classList.add('active-period');
+}
+
+function updatePeriod(val) {
+  // In real app, would refetch data
+}
+</script>
+</body>
+</html>

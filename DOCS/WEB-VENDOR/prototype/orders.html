@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos — Tiendi Vendor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">T</div>
+      <div>
+        <span>Tiendi Vendor</span>
+        <small>Bodega Don Carlos</small>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="dashboard.html" class="nav-item"><span class="mi material-icons-outlined">dashboard</span> Dashboard</a>
+      <a href="orders.html" class="nav-item active"><span class="mi material-icons-outlined">receipt_long</span> Pedidos <span class="badge">5</span></a>
+      <a href="products.html" class="nav-item"><span class="mi material-icons-outlined">inventory_2</span> Productos</a>
+      <div class="nav-section">Gestión</div>
+      <a href="store.html" class="nav-item"><span class="mi material-icons-outlined">store</span> Mi Tienda</a>
+      <a href="analytics.html" class="nav-item"><span class="mi material-icons-outlined">bar_chart</span> Analytics</a>
+      <a href="customers.html" class="nav-item"><span class="mi material-icons-outlined">group</span> Clientes</a>
+      <a href="staff.html" class="nav-item"><span class="mi material-icons-outlined">manage_accounts</span> Staff</a>
+      <div class="nav-section">Configuración</div>
+      <a href="notifications.html" class="nav-item"><span class="mi material-icons-outlined">notifications</span> Notificaciones <span class="badge">3</span></a>
+      <a href="legal.html" class="nav-item"><span class="mi material-icons-outlined">receipt</span> Facturación y Legal <span class="badge badge-warning">!</span></a>
+      <a href="subscription.html" class="nav-item"><span class="mi material-icons-outlined">credit_card</span> Suscripción</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-item"><span class="mi material-icons-outlined">logout</span> Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        Pedidos
+        <small>Gestión de órdenes de compra</small>
+      </div>
+      <div class="topbar-actions">
+        <a href="notifications.html" class="icon-btn">
+          <span class="material-icons-outlined" style="font-size:20px">notifications</span>
+          <span class="badge">3</span>
+        </a>
+        <div class="avatar">CL</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- FILTROS / TABS -->
+      <div class="card" style="margin-bottom:20px;padding:0">
+        <div class="tabs" style="padding:0 20px">
+          <button class="tab active" onclick="filterOrders('all', this)">Todos <span class="tab-count">12</span></button>
+          <button class="tab" onclick="filterOrders('PENDIENTE', this)">Pendientes <span class="tab-count warning">5</span></button>
+          <button class="tab" onclick="filterOrders('CONFIRMADO', this)">Confirmados <span class="tab-count">3</span></button>
+          <button class="tab" onclick="filterOrders('ENVIADO', this)">En camino <span class="tab-count">2</span></button>
+          <button class="tab" onclick="filterOrders('ENTREGADO', this)">Entregados <span class="tab-count">2</span></button>
+        </div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <div class="search-box" style="flex:1;min-width:200px">
+          <span class="material-icons-outlined" style="font-size:18px;color:var(--text-muted)">search</span>
+          <input type="text" placeholder="Buscar por N° pedido, cliente..." oninput="searchOrders(this.value)">
+        </div>
+        <select class="form-select" style="width:160px" onchange="filterByDate(this.value)">
+          <option value="">Todas las fechas</option>
+          <option value="today">Hoy</option>
+          <option value="week">Esta semana</option>
+          <option value="month">Este mes</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="exportOrders()">
+          <span class="material-icons-outlined" style="font-size:16px">download</span> Exportar CSV
+        </button>
+      </div>
+
+      <!-- TABLA PEDIDOS -->
+      <div class="card">
+        <div class="table-wrap">
+          <table id="ordersTable">
+            <thead>
+              <tr>
+                <th>N° Pedido</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Productos</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="tr-link order-row" data-status="PENDIENTE">
+                <td><span class="font-semibold">PED-001</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="avatar" style="width:28px;height:28px;font-size:11px">JP</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Juan Pérez</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 987 654 321</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size:13px">16 abr, 2026</div>
+                  <div style="font-size:11px;color:var(--text-muted)">10:32 am</div>
+                </td>
+                <td>3 productos</td>
+                <td><span class="font-semibold">S/ 85.00</span></td>
+                <td><span class="tag tag-pending">Pendiente</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="orders-detail.html" class="btn btn-primary btn-sm">Ver detalle</a>
+                    <button class="btn btn-secondary btn-sm" onclick="confirmOrder('PED-001')">Confirmar</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="tr-link order-row" data-status="PENDIENTE">
+                <td><span class="font-semibold">PED-005</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="avatar" style="width:28px;height:28px;font-size:11px">CV</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Carlos Vera</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 912 345 678</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size:13px">16 abr, 2026</div>
+                  <div style="font-size:11px;color:var(--text-muted)">09:15 am</div>
+                </td>
+                <td>2 productos</td>
+                <td><span class="font-semibold">S/ 67.00</span></td>
+                <td><span class="tag tag-pending">Pendiente</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="orders-detail.html" class="btn btn-primary btn-sm">Ver detalle</a>
+                    <button class="btn btn-secondary btn-sm" onclick="confirmOrder('PED-005')">Confirmar</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="tr-link order-row" data-status="CONFIRMADO">
+                <td><span class="font-semibold">PED-002</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="avatar" style="width:28px;height:28px;font-size:11px">ML</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Maria López</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 945 678 901</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size:13px">15 abr, 2026</div>
+                  <div style="font-size:11px;color:var(--text-muted)">04:20 pm</div>
+                </td>
+                <td>1 producto</td>
+                <td><span class="font-semibold">S/ 32.50</span></td>
+                <td><span class="tag tag-confirmed">Confirmado</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="orders-detail.html" class="btn btn-primary btn-sm">Ver detalle</a>
+                    <button class="btn btn-secondary btn-sm" onclick="dispatchOrder('PED-002')">Despachar</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="tr-link order-row" data-status="ENVIADO">
+                <td><span class="font-semibold">PED-003</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="avatar" style="width:28px;height:28px;font-size:11px">LM</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Luis Mamani</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 998 765 432</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size:13px">15 abr, 2026</div>
+                  <div style="font-size:11px;color:var(--text-muted)">11:00 am</div>
+                </td>
+                <td>5 productos</td>
+                <td><span class="font-semibold">S/ 120.00</span></td>
+                <td><span class="tag tag-dispatched">En camino</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="orders-detail.html" class="btn btn-primary btn-sm">Ver detalle</a>
+                    <button class="btn btn-secondary btn-sm" onclick="deliverOrder('PED-003')">Entregado</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="tr-link order-row" data-status="ENTREGADO">
+                <td><span class="font-semibold">PED-004</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="avatar" style="width:28px;height:28px;font-size:11px">AR</div>
+                    <div>
+                      <div class="font-semibold" style="font-size:13px">Ana Ríos</div>
+                      <div style="font-size:11px;color:var(--text-muted)">+51 923 456 789</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size:13px">14 abr, 2026</div>
+                  <div style="font-size:11px;color:var(--text-muted)">02:45 pm</div>
+                </td>
+                <td>2 productos</td>
+                <td><span class="font-semibold">S/ 45.00</span></td>
+                <td><span class="tag tag-delivered">Entregado</span></td>
+                <td>
+                  <a href="orders-detail.html" class="btn btn-ghost btn-sm">Ver detalle</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINATION -->
+        <div class="pagination">
+          <span style="font-size:13px;color:var(--text-muted)">Mostrando 5 de 12 pedidos</span>
+          <div style="display:flex;gap:4px">
+            <button class="page-btn" disabled>‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn" onclick="this.classList.add('active')">2</button>
+            <button class="page-btn" onclick="this.classList.add('active')">3</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:999">
+  <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function filterOrders(status, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.order-row').forEach(row => {
+    row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+  });
+}
+
+function searchOrders(val) {
+  const q = val.toLowerCase();
+  document.querySelectorAll('.order-row').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function filterByDate(val) {
+  showToast('Filtrado por: ' + (val || 'todas las fechas'));
+}
+
+function exportOrders() {
+  showToast('Exportando CSV...');
+}
+
+function confirmOrder(id) {
+  const row = event.target.closest('tr');
+  row.querySelector('.tag').className = 'tag tag-confirmed';
+  row.querySelector('.tag').textContent = 'Confirmado';
+  event.target.textContent = 'Despachar';
+  event.target.onclick = () => dispatchOrder(id);
+  showToast('Pedido ' + id + ' confirmado');
+}
+
+function dispatchOrder(id) {
+  const row = event.target.closest('tr');
+  row.querySelector('.tag').className = 'tag tag-dispatched';
+  row.querySelector('.tag').textContent = 'En camino';
+  event.target.textContent = 'Entregado';
+  event.target.onclick = () => deliverOrder(id);
+  showToast('Pedido ' + id + ' despachado');
+}
+
+function deliverOrder(id) {
+  const row = event.target.closest('tr');
+  row.querySelector('.tag').className = 'tag tag-delivered';
+  row.querySelector('.tag').textContent = 'Entregado';
+  event.target.remove();
+  showToast('Pedido ' + id + ' marcado como entregado');
+}
+</script>
+</body>
+</html>

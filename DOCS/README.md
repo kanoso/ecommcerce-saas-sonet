@@ -27,9 +27,10 @@
 - **Framework**: NestJS (Node.js + TypeScript)
 - **Base de datos**: PostgreSQL
 - **Caché**: Redis
-- **ORM**: TypeORM
+- **ORM**: Prisma *(migrado de TypeORM — mejor DX, tipos TypeScript automáticos, migraciones más limpias)*
 - **Autenticación**: JWT + Passport.js
-- **Validación**: class-validator
+- **Validación**: Zod *(migrado de class-validator — inferencia de tipos, compartible con frontend)*
+- **Job Queue**: BullMQ *(migrado de Bull — soporte Redis 6+, mejor API)*
 
 ### Frontend
 - **Framework**: Angular 17+
@@ -42,8 +43,13 @@
 - **Containerización**: Docker
 - **CI/CD**: GitHub Actions
 - **Cloud**: AWS / Azure
-- **CDN**: CloudFront / Cloudinary
-- **Monitoring**: Sentry, New Relic
+- **CDN**: CloudFront
+- **Imágenes**: Cloudinary *(resize, WebP, optimización automática — reemplaza AWS S3 para media)*
+- **Errores**: Sentry
+- **Logs**: Winston + Pino (estructurados en JSON)
+- **Log storage**: Loki + Grafana
+- **Métricas**: Prometheus + Grafana
+- **Uptime**: Better Uptime
 
 ### Integraciones
 - **Pagos**: Stripe, PayPal
@@ -239,11 +245,10 @@ TWILIO_WHATSAPP_NUMBER=+14155238886
 SENDGRID_API_KEY=your-sendgrid-key
 SENDGRID_FROM_EMAIL=noreply@tiendi.com
 
-# AWS S3 (opcional)
-AWS_ACCESS_KEY_ID=your-aws-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret
-AWS_S3_BUCKET=tiendi-uploads
-AWS_REGION=us-east-1
+# Cloudinary (imágenes de productos, logos, banners)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
 # Frontend URL
 FRONTEND_URL=http://localhost:4200
@@ -506,16 +511,16 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 ## Capturas de Pantalla
 
 ### Landing Page
-![Landing](./prototype/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_1.jpg)
+![Landing](./PROTOTIPO/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_1.jpg)
 
 ### Búsqueda Geolocalizada
-![Búsqueda](./prototype/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_5.jpg)
+![Búsqueda](./PROTOTIPO/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_5.jpg)
 
 ### Catálogo de Productos
-![Catálogo](./prototype/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_15.jpg)
+![Catálogo](./PROTOTIPO/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_15.jpg)
 
 ### Detalle de Pedido
-![Pedido](./prototype/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_16.jpg)
+![Pedido](./PROTOTIPO/1762757910483-2fc067d7-3853-4d16-8bd5-4ead66843644_16.jpg)
 
 ---
 

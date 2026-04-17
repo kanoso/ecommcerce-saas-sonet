@@ -673,7 +673,7 @@ time_intervals:
 
 Cada alerta debe tener un runbook asociado con:
 
-```markdown
+````markdown
 # Runbook: High Error Rate
 
 ## Severity
@@ -720,7 +720,7 @@ Error rate > 5% for more than 5 minutes
 If not resolved in 15 minutes, escalate to:
 - Backend Lead: @juan.perez
 - CTO: @maria.garcia
-```
+````
 
 ---
 
@@ -757,101 +757,101 @@ graph TD
 
 **Fase 1: Detección (0-5 min)**
 
-```yaml
-Acciones:
-  - Alerta recibida por PagerDuty
-  - On-call reconoce la alerta
-  - Verificar si es falsa alarma
-  - Clasificar severidad
-  - Crear ticket en Jira
-
-Responsable:
-  - On-call engineer
-
-Salida:
-  - Ticket creado
-  - Severidad confirmada
-  - Equipo notificado
+```mermaid
+graph TD
+    Start[Alerta Recibida] --> Ack[On-call Reconoce Alerta]
+    Ack --> Verify{¿Es Falsa Alarma?}
+    Verify -->|Sí| Close[Cerrar Alerta]
+    Verify -->|No| Classify[Clasificar Severidad]
+    Classify --> Ticket[Crear Ticket Jira]
+    Ticket --> Notify[Notificar Equipo]
+    Notify --> End1((Fin Fase 1))
 ```
 
 **Fase 2: Triaje (5-15 min)**
 
-```yaml
-Acciones:
-  - Evaluar impacto en usuarios
-  - Identificar sistemas afectados
-  - Revisar dashboards relevantes
-  - Revisar logs recientes
-  - Identificar cambios recientes (deployments, configs)
-
-Herramientas:
-  - Grafana: https://grafana.tiendi.pe
-  - Kibana: https://logs.tiendi.pe
-  - Azure Portal: https://portal.azure.com
-
-Salida:
-  - Hipótesis inicial
-  - Plan de acción
-  - Decision: Escalar o continuar
+```mermaid
+graph TD
+    Start2((Inicio Fase 2)) --> Eval[Evaluar Impacto Usuarios]
+    Eval --> Identify[Identificar Sistemas Afectados]
+    Identify --> Check[Revisar Dashboards/Logs]
+    Check --> Changes[Identificar Cambios Recientes]
+    Changes --> Hypo[Formular Hipótesis]
+    Hypo --> Plan[Crear Plan de Acción]
+    Plan --> Decision{¿Necesita Escalar?}
+    Decision -->|Sí| Escalate[Escalar a Nivel Superior]
+    Decision -->|No| Continue[Continuar a Mitigación]
+    Escalate --> Continue
+    Continue --> End2((Fin Fase 2))
 ```
 
 **Fase 3: Mitigación (15-60 min)**
 
-```yaml
-Acciones:
-  - Implementar fix temporal (workaround)
-  - Rollback si fue causado por deployment
-  - Scale up/down recursos si es necesario
-  - Reiniciar servicios si corresponde
-  - Habilitar circuit breakers
+```mermaid
+graph TD
+    Start3((Inicio Fase 3)) --> Action{Acción de Mitigación}
+    
+    subgraph AccionesTecnicas["Acciones Técnicas"]
+    Action --> Fix[Fix Temporal]
+    Action --> Rollback[Rollback Deployment]
+    Action --> Scale[Scale Up/Down]
+    Action --> Restart[Reiniciar Servicios]
+    Action --> CB[Circuit Breakers]
+    end
 
-Comunicación:
-  - Actualizar status page cada 15 min
-  - Notificar a stakeholders
-  - Mantener timeline del incidente
+    subgraph Comunicacion["Comunicación"]
+    Action -.-> Comm[Actualizar Status Page]
+    Action -.-> Stake[Notificar Stakeholders]
+    Action -.-> Timeline[Mantener Timeline]
+    end
 
-Salida:
-  - Servicio estabilizado
-  - Impacto minimizado
+    Fix --> Stable{¿Servicio Estable?}
+    Rollback --> Stable
+    Scale --> Stable
+    Restart --> Stable
+    CB --> Stable
+
+    Stable -->|No| Action
+    Stable -->|Sí| End3((Fin Fase 3))
 ```
 
 **Fase 4: Resolución (1-4 horas)**
 
-```yaml
-Acciones:
-  - Implementar fix permanente
-  - Validar en staging
-  - Deploy a producción
-  - Monitorear métricas
-  - Confirmar resolución
-
-Validación:
-  - Error rate < 0.1%
-  - Latencia dentro de SLO
-  - No hay más alertas
-  - Usuarios reportan normalidad
-
-Salida:
-  - Incidente resuelto
-  - Servicio operando normalmente
+```mermaid
+graph TD
+    Start4((Inicio Fase 4)) --> PermFix[Implementar Fix Permanente]
+    PermFix --> Stage[Validar en Staging]
+    Stage --> Prod[Deploy a Producción]
+    Prod --> Monitor[Monitorear Métricas]
+    Monitor --> Validate{Validación}
+    
+    Validate -->|"Error Rate < 0.1%"| Success
+    Validate -->|Latencia OK| Success
+    Validate -->|No Alertas| Success
+    
+    Success[Confirmar Resolución] --> End4((Fin Fase 4))
 ```
 
 **Fase 5: Post-Mortem (24-48 horas)**
 
-```yaml
-Acciones:
-  - Programar reunión de post-mortem
-  - Documentar timeline del incidente
-  - Identificar root cause
-  - Definir action items
-  - Asignar responsables
-
-Deliverables:
-  - Post-mortem document
-  - Action items en backlog
-  - Mejoras implementadas
-
-Ver: Sección 10 - Post-Mortems
+```mermaid
+graph TD
+    Start5((Inicio Fase 5)) --> Schedule[Programar Reunión]
+    Schedule --> Doc[Documentar Timeline]
+    Doc --> RootCause[Identificar Causa Raíz]
+    RootCause --> ActionItems[Definir Action Items]
+    ActionItems --> Assign[Asignar Responsables]
+    Assign --> Deliver[Entregables]
+    
+    subgraph Entregables
+    DocPM[Documento Post-Mortem]
+    Backlog[Items en Backlog]
+    Improv[Mejoras Implementadas]
+    end
+    
+    Deliver --> DocPM
+    Deliver --> Backlog
+    Deliver --> Improv
 ```
 
 ### 6.3 War Room
