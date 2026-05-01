@@ -1,0 +1,49 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+} from '@angular/core';
+import { NgClass } from '@angular/common';
+
+export type SpinnerSize = 'sm' | 'md' | 'lg';
+
+@Component({
+  selector: 'td-spinner',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [NgClass],
+  template: `
+    <span
+      [ngClass]="['spinner', 'spinner-' + size()]"
+      role="status"
+      aria-label="Cargando..."
+    >
+      <span class="sr-only">Cargando...</span>
+    </span>
+  `,
+  styles: [`
+    .spinner {
+      display: inline-block;
+      border-radius: 50%;
+      border-style: solid;
+      border-color: var(--border);
+      border-top-color: var(--primary);
+      animation: spin 0.7s linear infinite;
+    }
+
+    .spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+    .spinner-md { width: 24px; height: 24px; border-width: 3px; }
+    .spinner-lg { width: 40px; height: 40px; border-width: 4px; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation-duration: 1.5s; }
+    }
+  `],
+})
+export class SpinnerComponent {
+  size = input<SpinnerSize>('md');
+}

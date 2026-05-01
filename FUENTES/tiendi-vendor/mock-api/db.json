@@ -1,0 +1,2007 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "name": "Carlos García",
+      "email": "carlos@tiendi.app",
+      "role": "STORE_OWNER",
+      "storeId": "s1",
+      "avatar": null
+    },
+    {
+      "id": "u2",
+      "name": "María López",
+      "email": "maria@tiendi.app",
+      "role": "MANAGER",
+      "storeId": "s1",
+      "avatar": null
+    },
+    {
+      "id": "u3",
+      "name": "Juan Quispe",
+      "email": "juan@tiendi.app",
+      "role": "CASHIER",
+      "storeId": "s1",
+      "avatar": null
+    },
+    {
+      "id": "u4",
+      "name": "Rosa Huanca",
+      "email": "rosa@tiendi.app",
+      "role": "WAREHOUSE",
+      "storeId": "s1",
+      "avatar": null
+    },
+    {
+      "id": "u5",
+      "name": "Luis Cliente",
+      "email": "luis@tiendi.app",
+      "role": "CUSTOMER",
+      "storeId": null,
+      "avatar": null
+    }
+  ],
+  "stores": [
+    {
+      "id": "s1",
+      "name": "Bodega Don Carlos",
+      "slug": "bodega-don-carlos",
+      "description": "Abarrotes, bebidas y snacks al mejor precio",
+      "address": "Jr. Tarapacá 340, Barranco, Lima",
+      "phone": "+51 999 111 222",
+      "whatsapp": "+51 999 111 222",
+      "logoUrl": null,
+      "bannerUrl": null,
+      "status": "ACTIVE",
+      "onboardingCompleted": true,
+      "ruc": "20123456789",
+      "businessName": "Bodega Don Carlos E.I.R.L.",
+      "openingHours": {
+        "monday": {
+          "open": true,
+          "from": "08:00",
+          "to": "22:00"
+        },
+        "tuesday": {
+          "open": true,
+          "from": "08:00",
+          "to": "22:00"
+        },
+        "wednesday": {
+          "open": true,
+          "from": "08:00",
+          "to": "22:00"
+        },
+        "thursday": {
+          "open": true,
+          "from": "08:00",
+          "to": "22:00"
+        },
+        "friday": {
+          "open": true,
+          "from": "08:00",
+          "to": "22:00"
+        },
+        "saturday": {
+          "open": true,
+          "from": "09:00",
+          "to": "21:00"
+        },
+        "sunday": {
+          "open": false,
+          "from": null,
+          "to": null
+        }
+      },
+      "deliveryConfig": {
+        "enabled": true,
+        "radiusKm": 3,
+        "cost": 5,
+        "minOrder": 20,
+        "freeFrom": 80,
+        "estimatedMinMin": 30,
+        "estimatedMinMax": 60
+      },
+      "paymentMethods": {
+        "cash": {
+          "enabled": true,
+          "message": "Tener cambio exacto"
+        },
+        "yape": {
+          "enabled": true,
+          "message": ""
+        },
+        "plin": {
+          "enabled": false,
+          "message": ""
+        },
+        "transfer": {
+          "enabled": false,
+          "message": "BCP cuenta 123-456-789"
+        },
+        "card": {
+          "enabled": false,
+          "message": ""
+        }
+      },
+      "oseToken": null,
+      "oseTokenSaved": false,
+      "invoiceSeries": {
+        "boleta": "B001",
+        "factura": "F001"
+      },
+      "autoEmitInvoice": false,
+      "taxRegime": "RUS",
+      "holidayToday": false,
+      "createdAt": "2026-01-10T08:00:00Z"
+    },
+    {
+      "id": "s2",
+      "name": "Nueva Tienda",
+      "slug": "nueva-tienda-test",
+      "description": "",
+      "address": "",
+      "phone": "",
+      "whatsapp": "",
+      "logoUrl": null,
+      "bannerUrl": null,
+      "status": "ACTIVE",
+      "onboardingCompleted": false,
+      "ruc": null,
+      "businessName": null,
+      "openingHours": {},
+      "deliveryConfig": {
+        "enabled": false
+      },
+      "paymentMethods": {},
+      "oseToken": null,
+      "oseTokenSaved": false,
+      "createdAt": "2026-04-01T08:00:00Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat1",
+      "name": "Abarrotes",
+      "global": true
+    },
+    {
+      "id": "cat2",
+      "name": "Lácteos",
+      "global": true
+    },
+    {
+      "id": "cat3",
+      "name": "Bebidas",
+      "global": true
+    },
+    {
+      "id": "cat4",
+      "name": "Snacks",
+      "global": true
+    },
+    {
+      "id": "cat5",
+      "name": "Limpieza",
+      "global": true
+    },
+    {
+      "id": "cat6",
+      "name": "Panadería",
+      "global": true
+    }
+  ],
+  "products": [
+    {
+      "storeId": "s1",
+      "name": "Leche Gloria 400ml",
+      "description": "",
+      "categoryId": "cat2",
+      "presentation": "400ml",
+      "sku": "GLO-001",
+      "price": 4.5,
+      "discountPrice": null,
+      "stock": 3,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "id": "p1"
+    },
+    {
+      "id": "p2",
+      "storeId": "s1",
+      "name": "Arroz Costeño 1kg",
+      "description": "",
+      "categoryId": "cat1",
+      "presentation": "1kg",
+      "sku": "ARR-001",
+      "price": 3.2,
+      "discountPrice": null,
+      "stock": 2,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "p3",
+      "storeId": "s1",
+      "name": "Aceite Primor 900ml",
+      "description": "",
+      "categoryId": "cat1",
+      "presentation": "900ml",
+      "sku": "ACE-001",
+      "price": 8.5,
+      "discountPrice": 7.5,
+      "stock": 12,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "p4",
+      "storeId": "s1",
+      "name": "Azúcar Rubia 1kg",
+      "description": "",
+      "categoryId": "cat1",
+      "presentation": "1kg",
+      "sku": "AZU-001",
+      "price": 2.8,
+      "discountPrice": null,
+      "stock": 0,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": false,
+      "imageUrls": [],
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "p5",
+      "storeId": "s1",
+      "name": "Inca Kola 1.5L",
+      "description": "",
+      "categoryId": "cat3",
+      "presentation": "1.5L",
+      "sku": "INC-001",
+      "price": 5.5,
+      "discountPrice": null,
+      "stock": 20,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-16T10:00:00Z"
+    },
+    {
+      "id": "p6",
+      "storeId": "s1",
+      "name": "Coca Cola 500ml",
+      "description": "",
+      "categoryId": "cat3",
+      "presentation": "500ml",
+      "sku": "COC-001",
+      "price": 3,
+      "discountPrice": null,
+      "stock": 15,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-16T10:00:00Z"
+    },
+    {
+      "id": "p7",
+      "storeId": "s1",
+      "name": "Detergente Ariel 500g",
+      "description": "",
+      "categoryId": "cat5",
+      "presentation": "500g",
+      "sku": "DET-001",
+      "price": 6.9,
+      "discountPrice": null,
+      "stock": 8,
+      "stockAlert": 3,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-17T10:00:00Z"
+    },
+    {
+      "id": "p8",
+      "storeId": "s1",
+      "name": "Pan de Molde Bimbo",
+      "description": "",
+      "categoryId": "cat6",
+      "presentation": "Pack",
+      "sku": "PAN-001",
+      "price": 7.5,
+      "discountPrice": null,
+      "stock": 6,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-17T10:00:00Z"
+    },
+    {
+      "id": "p9",
+      "storeId": "s1",
+      "name": "Papas Lays 100g",
+      "description": "",
+      "categoryId": "cat4",
+      "presentation": "100g",
+      "sku": "LAY-001",
+      "price": 2.5,
+      "discountPrice": null,
+      "stock": 25,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-18T10:00:00Z"
+    },
+    {
+      "id": "p10",
+      "storeId": "s1",
+      "name": "Yogurt Gloria 1L",
+      "description": "",
+      "categoryId": "cat2",
+      "presentation": "1L",
+      "sku": "YOG-001",
+      "price": 9.9,
+      "discountPrice": 8.5,
+      "stock": 4,
+      "stockAlert": 5,
+      "isActive": true,
+      "isAvailable": true,
+      "imageUrls": [],
+      "createdAt": "2026-01-18T10:00:00Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "o1",
+      "orderNumber": "PED-2026-001",
+      "storeId": "s1",
+      "userId": "u5",
+      "customerName": "Juan Pérez",
+      "customerEmail": "juan@mail.com",
+      "customerPhone": "+51 999 111 001",
+      "status": "PENDING",
+      "deliveryType": "DELIVERY",
+      "deliveryAddress": "Jr. Lima 123, Barranco",
+      "paymentMethod": "CASH",
+      "subtotal": 85,
+      "deliveryFee": 5,
+      "total": 90,
+      "items": [
+        {
+          "productId": "p1",
+          "name": "Leche Gloria 400ml",
+          "qty": 2,
+          "unitPrice": 4.5
+        },
+        {
+          "productId": "p3",
+          "name": "Aceite Primor 900ml",
+          "qty": 1,
+          "unitPrice": 8.5
+        }
+      ],
+      "statusHistory": [
+        {
+          "status": "PENDING",
+          "at": "2026-04-17T10:23:00Z"
+        }
+      ],
+      "invoiceId": null,
+      "rejectionReason": null,
+      "confirmedAt": null,
+      "createdAt": "2026-04-17T10:23:00Z"
+    },
+    {
+      "id": "o2",
+      "orderNumber": "PED-2026-002",
+      "storeId": "s1",
+      "userId": "u5",
+      "customerName": "María López",
+      "customerEmail": "maria@mail.com",
+      "customerPhone": "+51 999 111 002",
+      "status": "CONFIRMED",
+      "deliveryType": "PICKUP",
+      "deliveryAddress": null,
+      "paymentMethod": "YAPE",
+      "subtotal": 32.5,
+      "deliveryFee": 0,
+      "total": 32.5,
+      "items": [
+        {
+          "productId": "p5",
+          "name": "Inca Kola 1.5L",
+          "qty": 2,
+          "unitPrice": 5.5
+        },
+        {
+          "productId": "p9",
+          "name": "Papas Lays 100g",
+          "qty": 3,
+          "unitPrice": 2.5
+        }
+      ],
+      "statusHistory": [
+        {
+          "status": "PENDING",
+          "at": "2026-04-17T10:45:00Z"
+        },
+        {
+          "status": "CONFIRMED",
+          "at": "2026-04-17T10:50:00Z"
+        }
+      ],
+      "invoiceId": null,
+      "rejectionReason": null,
+      "confirmedAt": "2026-04-17T10:50:00Z",
+      "createdAt": "2026-04-17T10:45:00Z"
+    },
+    {
+      "id": "o3",
+      "orderNumber": "PED-2026-003",
+      "storeId": "s1",
+      "userId": "u5",
+      "customerName": "Luis Mamani",
+      "customerEmail": "luis@mail.com",
+      "customerPhone": "+51 999 111 003",
+      "status": "DISPATCHED",
+      "deliveryType": "DELIVERY",
+      "deliveryAddress": "Av. Grau 456, Miraflores",
+      "paymentMethod": "CARD",
+      "subtotal": 120,
+      "deliveryFee": 5,
+      "total": 125,
+      "items": [
+        {
+          "productId": "p3",
+          "name": "Aceite Primor 900ml",
+          "qty": 5,
+          "unitPrice": 8.5
+        },
+        {
+          "productId": "p8",
+          "name": "Pan de Molde Bimbo",
+          "qty": 4,
+          "unitPrice": 7.5
+        }
+      ],
+      "statusHistory": [
+        {
+          "status": "PENDING",
+          "at": "2026-04-17T08:00:00Z"
+        },
+        {
+          "status": "CONFIRMED",
+          "at": "2026-04-17T08:05:00Z"
+        },
+        {
+          "status": "DISPATCHED",
+          "at": "2026-04-17T08:30:00Z"
+        }
+      ],
+      "invoiceId": null,
+      "rejectionReason": null,
+      "confirmedAt": "2026-04-17T08:05:00Z",
+      "createdAt": "2026-04-17T08:00:00Z"
+    },
+    {
+      "id": "o4",
+      "orderNumber": "PED-2026-004",
+      "storeId": "s1",
+      "userId": "u5",
+      "customerName": "Ana Rodríguez",
+      "customerEmail": "ana@mail.com",
+      "customerPhone": "+51 999 111 004",
+      "status": "DELIVERED",
+      "deliveryType": "PICKUP",
+      "deliveryAddress": null,
+      "paymentMethod": "TRANSFER",
+      "subtotal": 45,
+      "deliveryFee": 0,
+      "total": 45,
+      "items": [
+        {
+          "productId": "p7",
+          "name": "Detergente Ariel 500g",
+          "qty": 2,
+          "unitPrice": 6.9
+        },
+        {
+          "productId": "p10",
+          "name": "Yogurt Gloria 1L",
+          "qty": 2,
+          "unitPrice": 8.5
+        }
+      ],
+      "statusHistory": [
+        {
+          "status": "PENDING",
+          "at": "2026-04-16T14:00:00Z"
+        },
+        {
+          "status": "CONFIRMED",
+          "at": "2026-04-16T14:05:00Z"
+        },
+        {
+          "status": "DISPATCHED",
+          "at": "2026-04-16T14:30:00Z"
+        },
+        {
+          "status": "DELIVERED",
+          "at": "2026-04-16T15:00:00Z"
+        }
+      ],
+      "invoiceId": "inv1",
+      "rejectionReason": null,
+      "confirmedAt": "2026-04-16T14:05:00Z",
+      "createdAt": "2026-04-16T14:00:00Z"
+    },
+    {
+      "id": "o5",
+      "orderNumber": "PED-2026-005",
+      "storeId": "s1",
+      "userId": "u5",
+      "customerName": "Pedro Flores",
+      "customerEmail": "pedro@mail.com",
+      "customerPhone": "+51 999 111 005",
+      "status": "REJECTED",
+      "deliveryType": "DELIVERY",
+      "deliveryAddress": "Jr. Tacna 789, Lima",
+      "paymentMethod": "CASH",
+      "subtotal": 67,
+      "deliveryFee": 5,
+      "total": 72,
+      "items": [
+        {
+          "productId": "p2",
+          "name": "Arroz Costeño 1kg",
+          "qty": 5,
+          "unitPrice": 3.2
+        },
+        {
+          "productId": "p6",
+          "name": "Coca Cola 500ml",
+          "qty": 8,
+          "unitPrice": 3
+        }
+      ],
+      "statusHistory": [
+        {
+          "status": "PENDING",
+          "at": "2026-04-16T18:00:00Z"
+        },
+        {
+          "status": "REJECTED",
+          "at": "2026-04-16T18:10:00Z"
+        }
+      ],
+      "invoiceId": null,
+      "rejectionReason": "Sin stock suficiente de Arroz Costeño en este momento.",
+      "confirmedAt": null,
+      "createdAt": "2026-04-16T18:00:00Z"
+    },
+    {
+      "id": "o6",
+      "orderNumber": "PED-2026-006",
+      "storeId": "s1",
+      "userId": "u5",
+      "customerName": "Carmen Vega",
+      "customerEmail": "carmen@mail.com",
+      "customerPhone": "+51 999 111 006",
+      "status": "PENDING",
+      "deliveryType": "DELIVERY",
+      "deliveryAddress": "Calle Los Pinos 12, Surco",
+      "paymentMethod": "YAPE",
+      "subtotal": 55,
+      "deliveryFee": 5,
+      "total": 60,
+      "items": [
+        {
+          "productId": "p5",
+          "name": "Inca Kola 1.5L",
+          "qty": 5,
+          "unitPrice": 5.5
+        },
+        {
+          "productId": "p9",
+          "name": "Papas Lays 100g",
+          "qty": 5,
+          "unitPrice": 2.5
+        }
+      ],
+      "statusHistory": [
+        {
+          "status": "PENDING",
+          "at": "2026-04-17T09:10:00Z"
+        }
+      ],
+      "invoiceId": null,
+      "rejectionReason": null,
+      "confirmedAt": null,
+      "createdAt": "2026-04-17T09:10:00Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": "c1",
+      "storeId": "s1",
+      "name": "Juan Pérez",
+      "phone": "+51 987 654 321",
+      "email": "juan.perez@mail.com",
+      "totalOrders": 12,
+      "totalSpent": 1420.5,
+      "lastOrderDate": "2026-04-16",
+      "lastOrderId": "o1",
+      "type": "vip",
+      "avatarColor": "#8B5CF6"
+    },
+    {
+      "id": "c2",
+      "storeId": "s1",
+      "name": "Luis Mamani",
+      "phone": "+51 998 765 432",
+      "email": "l.mamani@mail.com",
+      "totalOrders": 8,
+      "totalSpent": 980,
+      "lastOrderDate": "2026-04-12",
+      "lastOrderId": "o3",
+      "type": "vip",
+      "avatarColor": "#F59E0B"
+    },
+    {
+      "id": "c3",
+      "storeId": "s1",
+      "name": "Maria López",
+      "phone": "+51 945 678 901",
+      "email": "m.lopez@mail.com",
+      "totalOrders": 4,
+      "totalSpent": 342,
+      "lastOrderDate": "2026-04-09",
+      "lastOrderId": "o5",
+      "type": "regular",
+      "avatarColor": "#6B7280"
+    },
+    {
+      "id": "c4",
+      "storeId": "s1",
+      "name": "Ana Ríos",
+      "phone": "+51 923 456 789",
+      "email": "a.rios@mail.com",
+      "totalOrders": 3,
+      "totalSpent": 215.5,
+      "lastOrderDate": "2026-04-13",
+      "lastOrderId": "o2",
+      "type": "regular",
+      "avatarColor": "#10B981"
+    },
+    {
+      "id": "c5",
+      "storeId": "s1",
+      "name": "Carlos Vera",
+      "phone": "+51 912 345 678",
+      "email": "c.vera@mail.com",
+      "totalOrders": 1,
+      "totalSpent": 67,
+      "lastOrderDate": "2026-04-19",
+      "lastOrderId": "o6",
+      "type": "new",
+      "avatarColor": "#6B7280"
+    },
+    {
+      "id": "c6",
+      "storeId": "s1",
+      "name": "Rosa Cárdenas",
+      "phone": "+51 976 543 210",
+      "email": "r.cardenas@mail.com",
+      "totalOrders": 0,
+      "totalSpent": 0,
+      "lastOrderDate": "",
+      "lastOrderId": null,
+      "type": "inactive",
+      "avatarColor": "#9CA3AF"
+    },
+    {
+      "id": "c7",
+      "storeId": "s1",
+      "name": "Pedro Huanca",
+      "phone": "+51 965 432 109",
+      "email": "p.huanca@mail.com",
+      "totalOrders": 6,
+      "totalSpent": 540,
+      "lastOrderDate": "2026-04-05",
+      "lastOrderId": "o7",
+      "type": "regular",
+      "avatarColor": "#3B82F6"
+    },
+    {
+      "id": "c8",
+      "storeId": "s1",
+      "name": "Sofía Torres",
+      "phone": "+51 954 321 098",
+      "email": "s.torres@mail.com",
+      "totalOrders": 2,
+      "totalSpent": 134.5,
+      "lastOrderDate": "2026-04-18",
+      "lastOrderId": "o8",
+      "type": "new",
+      "avatarColor": "#EC4899"
+    }
+  ],
+  "employees": [
+    {
+      "id": "e1",
+      "storeId": "s1",
+      "userId": "u1",
+      "role": "STORE_OWNER",
+      "status": "ACTIVE",
+      "inviteToken": null,
+      "inviteExpires": null,
+      "invitedAt": "2026-01-10T08:00:00Z",
+      "acceptedAt": "2026-01-10T08:00:00Z"
+    },
+    {
+      "id": "e2",
+      "storeId": "s1",
+      "userId": "u2",
+      "role": "MANAGER",
+      "status": "ACTIVE",
+      "inviteToken": null,
+      "inviteExpires": null,
+      "invitedAt": "2026-01-15T08:00:00Z",
+      "acceptedAt": "2026-01-15T09:00:00Z"
+    },
+    {
+      "id": "e3",
+      "storeId": "s1",
+      "userId": "u3",
+      "role": "CASHIER",
+      "status": "ACTIVE",
+      "inviteToken": null,
+      "inviteExpires": null,
+      "invitedAt": "2026-01-20T08:00:00Z",
+      "acceptedAt": "2026-01-20T09:00:00Z"
+    },
+    {
+      "id": "e4",
+      "storeId": "s1",
+      "userId": "u4",
+      "role": "WAREHOUSE",
+      "status": "ACTIVE",
+      "inviteToken": null,
+      "inviteExpires": null,
+      "invitedAt": "2026-02-01T08:00:00Z",
+      "acceptedAt": "2026-02-01T10:00:00Z"
+    },
+    {
+      "id": "e5",
+      "storeId": "s1",
+      "userId": null,
+      "role": "MANAGER",
+      "status": "PENDING",
+      "inviteToken": "tok-invite-abc123",
+      "inviteExpires": "2026-04-20T00:00:00Z",
+      "email": "pedro@correo.com",
+      "invitedAt": "2026-04-17T08:00:00Z",
+      "acceptedAt": null
+    }
+  ],
+  "notifications": [
+    {
+      "id": "n1",
+      "storeId": "s1",
+      "type": "NEW_ORDER",
+      "title": "Nuevo pedido #PED-2026-006",
+      "body": "Carmen Vega · S/60.00 · Delivery",
+      "read": true,
+      "resourceType": "order",
+      "resourceId": "o6",
+      "createdAt": "2026-04-17T09:10:00Z"
+    },
+    {
+      "id": "n2",
+      "storeId": "s1",
+      "type": "LOW_STOCK",
+      "title": "Stock bajo: Arroz Costeño 1kg",
+      "body": "Quedan 1 unidades — actualizá el stock",
+      "read": true,
+      "resourceType": "product",
+      "resourceId": "p2",
+      "createdAt": "2026-04-17T09:15:00Z"
+    },
+    {
+      "id": "n3",
+      "storeId": "s1",
+      "type": "NEW_ORDER",
+      "title": "Nuevo pedido #PED-2026-001",
+      "body": "Juan Pérez · S/90.00 · Delivery",
+      "read": true,
+      "resourceType": "order",
+      "resourceId": "o1",
+      "createdAt": "2026-04-17T10:23:00Z"
+    },
+    {
+      "id": "n4",
+      "storeId": "s1",
+      "type": "ORDER_DELIVERED",
+      "title": "Pedido #PED-2026-004 entregado",
+      "body": "Ana Rodríguez · S/45.00",
+      "read": true,
+      "resourceType": "order",
+      "resourceId": "o4",
+      "createdAt": "2026-04-16T15:00:00Z"
+    },
+    {
+      "id": "n5",
+      "storeId": "s1",
+      "type": "ORDER_REJECTED",
+      "title": "Pedido #PED-2026-005 rechazado",
+      "body": "Pedro Flores · S/72.00",
+      "read": true,
+      "resourceType": "order",
+      "resourceId": "o5",
+      "createdAt": "2026-04-16T18:10:00Z"
+    }
+  ],
+  "notification-settings": [
+    {
+      "id": "ns1",
+      "storeId": "s1",
+      "newOrder": {
+        "inApp": true,
+        "email": true,
+        "whatsapp": true
+      },
+      "lowStock": {
+        "inApp": true,
+        "email": true,
+        "whatsapp": false
+      },
+      "unattended": {
+        "inApp": true,
+        "email": false,
+        "whatsapp": true,
+        "thresholdMinutes": 30
+      },
+      "planExpiring": {
+        "inApp": true,
+        "email": true,
+        "whatsapp": false,
+        "daysAhead": 7
+      },
+      "stockAlertThreshold": 5
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv1",
+      "storeId": "s1",
+      "series": "B001-001",
+      "customerName": "Juan Pérez",
+      "type": "boleta",
+      "status": "emitted",
+      "total": 85,
+      "date": "2026-04-16",
+      "orderId": "o1"
+    },
+    {
+      "id": "inv2",
+      "storeId": "s1",
+      "series": "B001-002",
+      "customerName": "Maria López",
+      "type": "boleta",
+      "status": "emitted",
+      "total": 32.5,
+      "date": "2026-04-15",
+      "orderId": "o5"
+    },
+    {
+      "id": "inv3",
+      "storeId": "s1",
+      "series": "F001-001",
+      "customerName": "Distribuidora Lima SAC",
+      "type": "factura",
+      "status": "emitted",
+      "total": 450,
+      "date": "2026-04-14",
+      "orderId": "o3"
+    }
+  ],
+  "complaints": [
+    {
+      "id": "cmp1",
+      "storeId": "s1",
+      "code": "REC-001",
+      "customerName": "Ana Ríos",
+      "type": "reclamo",
+      "status": "PENDING",
+      "description": "Pedido PED-004 llegó con el producto equivocado. Pedí Arroz Costeño 1kg pero me llegó Arroz Costeño 5kg. Solicito cambio o devolución.",
+      "vendorResponse": null,
+      "responseDraft": null,
+      "createdAt": "2026-04-10",
+      "deadlineAt": "2026-04-30"
+    },
+    {
+      "id": "cmp2",
+      "storeId": "s1",
+      "code": "REC-002",
+      "customerName": "Luis Mamani",
+      "type": "queja",
+      "status": "IN_REVIEW",
+      "description": "El delivery demoró más de 2 horas cuando la página indicaba 30-45 minutos. No se avisó del retraso.",
+      "vendorResponse": null,
+      "responseDraft": null,
+      "createdAt": "2026-04-05",
+      "deadlineAt": "2026-04-25"
+    },
+    {
+      "id": "cmp3",
+      "storeId": "s1",
+      "code": "REC-003",
+      "customerName": "Carlos Vera",
+      "type": "reclamo",
+      "status": "CLOSED",
+      "description": "Producto recibido estaba vencido. Fecha de vencimiento: 15 mar 2026.",
+      "vendorResponse": "Estimado Carlos, pedimos disculpas. Le realizamos un reembolso completo y mejoramos nuestro control de fechas de vencimiento.",
+      "responseDraft": null,
+      "createdAt": "2026-03-20",
+      "deadlineAt": "2026-04-20"
+    }
+  ],
+  "analytics-summary": [
+    {
+      "id": "as1",
+      "storeId": "s1",
+      "period": "month",
+      "totalSales": 18420,
+      "totalSalesChange": 23,
+      "totalOrders": 148,
+      "totalOrdersChange": 18,
+      "avgTicket": 124.5,
+      "avgTicketChange": -5,
+      "newCustomers": 32,
+      "newCustomersChange": 12
+    },
+    {
+      "id": "as2",
+      "storeId": "s1",
+      "period": "week",
+      "totalSales": 4200,
+      "totalSalesChange": 8,
+      "totalOrders": 34,
+      "totalOrdersChange": 5,
+      "avgTicket": 123.5,
+      "avgTicketChange": 2,
+      "newCustomers": 7,
+      "newCustomersChange": 16
+    },
+    {
+      "id": "as3",
+      "storeId": "s1",
+      "period": "today",
+      "totalSales": 620,
+      "totalSalesChange": 5,
+      "totalOrders": 6,
+      "totalOrdersChange": -2,
+      "avgTicket": 103.33,
+      "avgTicketChange": 7,
+      "newCustomers": 1,
+      "newCustomersChange": 0
+    },
+    {
+      "id": "as4",
+      "storeId": "s1",
+      "period": "year",
+      "totalSales": 98400,
+      "totalSalesChange": 31,
+      "totalOrders": 820,
+      "totalOrdersChange": 25,
+      "avgTicket": 120,
+      "avgTicketChange": 4,
+      "newCustomers": 184,
+      "newCustomersChange": 40
+    }
+  ],
+  "analytics-sales-chart": [
+    {
+      "id": "sc1",
+      "storeId": "s1",
+      "period": "month",
+      "labels": [
+        "1 Mar",
+        "5 Mar",
+        "10 Mar",
+        "15 Mar",
+        "20 Mar",
+        "25 Mar",
+        "31 Mar",
+        "5 Abr",
+        "10 Abr",
+        "15 Abr"
+      ],
+      "current": [
+        420,
+        680,
+        520,
+        890,
+        750,
+        1100,
+        820,
+        1340,
+        980,
+        1580
+      ],
+      "previous": [
+        320,
+        510,
+        430,
+        720,
+        600,
+        880,
+        650,
+        1100,
+        810,
+        1200
+      ]
+    },
+    {
+      "id": "sc2",
+      "storeId": "s1",
+      "period": "week",
+      "labels": [
+        "Lun",
+        "Mar",
+        "Mié",
+        "Jue",
+        "Vie",
+        "Sáb",
+        "Dom"
+      ],
+      "current": [
+        480,
+        620,
+        390,
+        710,
+        840,
+        1020,
+        140
+      ],
+      "previous": [
+        420,
+        580,
+        310,
+        650,
+        780,
+        920,
+        100
+      ]
+    },
+    {
+      "id": "sc3",
+      "storeId": "s1",
+      "period": "today",
+      "labels": [
+        "8am",
+        "10am",
+        "12pm",
+        "2pm",
+        "4pm",
+        "6pm",
+        "8pm"
+      ],
+      "current": [
+        40,
+        80,
+        140,
+        110,
+        60,
+        120,
+        70
+      ],
+      "previous": [
+        30,
+        70,
+        120,
+        90,
+        50,
+        100,
+        50
+      ]
+    },
+    {
+      "id": "sc4",
+      "storeId": "s1",
+      "period": "year",
+      "labels": [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic"
+      ],
+      "current": [
+        6200,
+        7100,
+        8400,
+        9200,
+        8800,
+        7600,
+        8200,
+        9400,
+        8100,
+        9800,
+        8600,
+        7000
+      ],
+      "previous": [
+        5000,
+        5800,
+        6200,
+        7100,
+        6800,
+        5900,
+        6400,
+        7200,
+        6100,
+        7800,
+        6600,
+        5400
+      ]
+    }
+  ],
+  "analytics-top-products": [
+    {
+      "id": "tp1",
+      "storeId": "s1",
+      "period": "month",
+      "items": [
+        {
+          "rank": 1,
+          "name": "Arroz Costeño 1kg",
+          "revenue": 3200,
+          "units": 320,
+          "maxRevenue": 3200
+        },
+        {
+          "rank": 2,
+          "name": "Leche Gloria 400ml",
+          "revenue": 2430,
+          "units": 270,
+          "maxRevenue": 3200
+        },
+        {
+          "rank": 3,
+          "name": "Inca Kola 1.5L",
+          "revenue": 1980,
+          "units": 180,
+          "maxRevenue": 3200
+        },
+        {
+          "rank": 4,
+          "name": "Aceite Primor 1L",
+          "revenue": 1422,
+          "units": 108,
+          "maxRevenue": 3200
+        },
+        {
+          "rank": 5,
+          "name": "Pan de Molde Bimbo",
+          "revenue": 1200,
+          "units": 100,
+          "maxRevenue": 3200
+        }
+      ]
+    },
+    {
+      "id": "tp2",
+      "storeId": "s1",
+      "period": "week",
+      "items": [
+        {
+          "rank": 1,
+          "name": "Arroz Costeño 1kg",
+          "revenue": 720,
+          "units": 72,
+          "maxRevenue": 720
+        },
+        {
+          "rank": 2,
+          "name": "Coca Cola 500ml",
+          "revenue": 540,
+          "units": 60,
+          "maxRevenue": 720
+        },
+        {
+          "rank": 3,
+          "name": "Leche Gloria 400ml",
+          "revenue": 490,
+          "units": 55,
+          "maxRevenue": 720
+        },
+        {
+          "rank": 4,
+          "name": "Pan de Molde Bimbo",
+          "revenue": 310,
+          "units": 26,
+          "maxRevenue": 720
+        },
+        {
+          "rank": 5,
+          "name": "Papas Lays 100g",
+          "revenue": 200,
+          "units": 80,
+          "maxRevenue": 720
+        }
+      ]
+    },
+    {
+      "id": "tp3",
+      "storeId": "s1",
+      "period": "today",
+      "items": [
+        {
+          "rank": 1,
+          "name": "Inca Kola 1.5L",
+          "revenue": 165,
+          "units": 30,
+          "maxRevenue": 165
+        },
+        {
+          "rank": 2,
+          "name": "Arroz Costeño 1kg",
+          "revenue": 128,
+          "units": 40,
+          "maxRevenue": 165
+        },
+        {
+          "rank": 3,
+          "name": "Leche Gloria 400ml",
+          "revenue": 90,
+          "units": 20,
+          "maxRevenue": 165
+        }
+      ]
+    },
+    {
+      "id": "tp4",
+      "storeId": "s1",
+      "period": "year",
+      "items": [
+        {
+          "rank": 1,
+          "name": "Arroz Costeño 1kg",
+          "revenue": 18400,
+          "units": 1840,
+          "maxRevenue": 18400
+        },
+        {
+          "rank": 2,
+          "name": "Leche Gloria 400ml",
+          "revenue": 14200,
+          "units": 1578,
+          "maxRevenue": 18400
+        },
+        {
+          "rank": 3,
+          "name": "Inca Kola 1.5L",
+          "revenue": 11600,
+          "units": 1055,
+          "maxRevenue": 18400
+        },
+        {
+          "rank": 4,
+          "name": "Aceite Primor 1L",
+          "revenue": 8800,
+          "units": 668,
+          "maxRevenue": 18400
+        },
+        {
+          "rank": 5,
+          "name": "Pan de Molde Bimbo",
+          "revenue": 7200,
+          "units": 600,
+          "maxRevenue": 18400
+        }
+      ]
+    }
+  ],
+  "analytics-categories": [
+    {
+      "id": "ac1",
+      "storeId": "s1",
+      "period": "month",
+      "items": [
+        {
+          "label": "Abarrotes",
+          "value": 40,
+          "color": "#047857"
+        },
+        {
+          "label": "Lácteos",
+          "value": 25,
+          "color": "#3B82F6"
+        },
+        {
+          "label": "Bebidas",
+          "value": 20,
+          "color": "#F59E0B"
+        },
+        {
+          "label": "Panadería",
+          "value": 10,
+          "color": "#8B5CF6"
+        },
+        {
+          "label": "Otros",
+          "value": 5,
+          "color": "#EF4444"
+        }
+      ]
+    },
+    {
+      "id": "ac2",
+      "storeId": "s1",
+      "period": "week",
+      "items": [
+        {
+          "label": "Abarrotes",
+          "value": 38,
+          "color": "#047857"
+        },
+        {
+          "label": "Bebidas",
+          "value": 28,
+          "color": "#F59E0B"
+        },
+        {
+          "label": "Lácteos",
+          "value": 20,
+          "color": "#3B82F6"
+        },
+        {
+          "label": "Snacks",
+          "value": 9,
+          "color": "#8B5CF6"
+        },
+        {
+          "label": "Otros",
+          "value": 5,
+          "color": "#EF4444"
+        }
+      ]
+    },
+    {
+      "id": "ac3",
+      "storeId": "s1",
+      "period": "today",
+      "items": [
+        {
+          "label": "Bebidas",
+          "value": 45,
+          "color": "#F59E0B"
+        },
+        {
+          "label": "Abarrotes",
+          "value": 35,
+          "color": "#047857"
+        },
+        {
+          "label": "Snacks",
+          "value": 20,
+          "color": "#8B5CF6"
+        }
+      ]
+    },
+    {
+      "id": "ac4",
+      "storeId": "s1",
+      "period": "year",
+      "items": [
+        {
+          "label": "Abarrotes",
+          "value": 42,
+          "color": "#047857"
+        },
+        {
+          "label": "Lácteos",
+          "value": 22,
+          "color": "#3B82F6"
+        },
+        {
+          "label": "Bebidas",
+          "value": 18,
+          "color": "#F59E0B"
+        },
+        {
+          "label": "Limpieza",
+          "value": 10,
+          "color": "#8B5CF6"
+        },
+        {
+          "label": "Panadería",
+          "value": 5,
+          "color": "#EC4899"
+        },
+        {
+          "label": "Otros",
+          "value": 3,
+          "color": "#EF4444"
+        }
+      ]
+    }
+  ],
+  "subscription-plans": [
+    {
+      "id": "free",
+      "name": "Gratuito",
+      "monthlyPrice": 0,
+      "annualPrice": 0,
+      "maxProducts": 20,
+      "maxOrders": 50,
+      "maxStaff": 1,
+      "features": [
+        "20 productos",
+        "50 pedidos / mes",
+        "1 staff (solo dueño)",
+        "Analytics básico"
+      ],
+      "missingFeatures": [
+        "Facturación SUNAT",
+        "Soporte chat"
+      ]
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "monthlyPrice": 49,
+      "annualPrice": 39,
+      "maxProducts": 200,
+      "maxOrders": null,
+      "maxStaff": 5,
+      "features": [
+        "200 productos",
+        "Pedidos ilimitados",
+        "5 staff",
+        "Analytics avanzado",
+        "Facturación SUNAT",
+        "Soporte chat"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "enterprise",
+      "name": "Enterprise",
+      "monthlyPrice": 149,
+      "annualPrice": 119,
+      "maxProducts": null,
+      "maxOrders": null,
+      "maxStaff": null,
+      "features": [
+        "Productos ilimitados",
+        "Pedidos ilimitados",
+        "Staff ilimitado",
+        "Analytics Full + Export PDF",
+        "Facturación SUNAT",
+        "Soporte dedicado"
+      ],
+      "missingFeatures": []
+    }
+  ],
+  "store-subscriptions": [
+    {
+      "id": "ss1",
+      "storeId": "s1",
+      "planId": "pro",
+      "status": "trial",
+      "billingCycle": "monthly",
+      "currentPeriodEnd": "2026-05-15",
+      "trialEndsAt": "2026-04-26",
+      "usageProducts": 47,
+      "usageOrders": 127,
+      "usageStaff": 2
+    }
+  ],
+  "payment-history": [
+    {
+      "id": "ph1",
+      "storeId": "s1",
+      "date": "2026-04-14",
+      "description": "Plan Pro — Mes de mayo 2026",
+      "amount": 79.9,
+      "status": "paid"
+    },
+    {
+      "id": "ph2",
+      "storeId": "s1",
+      "date": "2026-03-14",
+      "description": "Plan Pro — Mes de abril 2026",
+      "amount": 79.9,
+      "status": "paid"
+    },
+    {
+      "id": "ph3",
+      "storeId": "s1",
+      "date": "2026-02-14",
+      "description": "Plan Pro — Mes de marzo 2026",
+      "amount": 79.9,
+      "status": "paid"
+    },
+    {
+      "id": "ph4",
+      "storeId": "s1",
+      "date": "2026-01-14",
+      "description": "Plan Básico → Pro — Upgrade",
+      "amount": 50,
+      "status": "paid"
+    }
+  ],
+  "payment-methods": [
+    {
+      "id": "pm1",
+      "storeId": "s1",
+      "brand": "VISA",
+      "last4": "4242",
+      "expMonth": 12,
+      "expYear": 2028
+    }
+  ],
+  "analytics-hourly": [
+    {
+      "id": "ah1",
+      "storeId": "s1",
+      "period": "month",
+      "items": [
+        {
+          "hour": "8am",
+          "orders": 2
+        },
+        {
+          "hour": "9am",
+          "orders": 5
+        },
+        {
+          "hour": "10am",
+          "orders": 8
+        },
+        {
+          "hour": "11am",
+          "orders": 12
+        },
+        {
+          "hour": "12pm",
+          "orders": 18
+        },
+        {
+          "hour": "1pm",
+          "orders": 22
+        },
+        {
+          "hour": "2pm",
+          "orders": 15
+        },
+        {
+          "hour": "3pm",
+          "orders": 10
+        },
+        {
+          "hour": "4pm",
+          "orders": 8
+        },
+        {
+          "hour": "5pm",
+          "orders": 14
+        },
+        {
+          "hour": "6pm",
+          "orders": 20
+        },
+        {
+          "hour": "7pm",
+          "orders": 16
+        },
+        {
+          "hour": "8pm",
+          "orders": 12
+        },
+        {
+          "hour": "9pm",
+          "orders": 8
+        },
+        {
+          "hour": "10pm",
+          "orders": 3
+        }
+      ]
+    },
+    {
+      "id": "ah2",
+      "storeId": "s1",
+      "period": "week",
+      "items": [
+        {
+          "hour": "8am",
+          "orders": 1
+        },
+        {
+          "hour": "9am",
+          "orders": 3
+        },
+        {
+          "hour": "10am",
+          "orders": 5
+        },
+        {
+          "hour": "11am",
+          "orders": 8
+        },
+        {
+          "hour": "12pm",
+          "orders": 12
+        },
+        {
+          "hour": "1pm",
+          "orders": 14
+        },
+        {
+          "hour": "2pm",
+          "orders": 9
+        },
+        {
+          "hour": "3pm",
+          "orders": 6
+        },
+        {
+          "hour": "4pm",
+          "orders": 5
+        },
+        {
+          "hour": "5pm",
+          "orders": 9
+        },
+        {
+          "hour": "6pm",
+          "orders": 13
+        },
+        {
+          "hour": "7pm",
+          "orders": 10
+        },
+        {
+          "hour": "8pm",
+          "orders": 7
+        },
+        {
+          "hour": "9pm",
+          "orders": 4
+        },
+        {
+          "hour": "10pm",
+          "orders": 1
+        }
+      ]
+    },
+    {
+      "id": "ah3",
+      "storeId": "s1",
+      "period": "today",
+      "items": [
+        {
+          "hour": "8am",
+          "orders": 0
+        },
+        {
+          "hour": "9am",
+          "orders": 1
+        },
+        {
+          "hour": "10am",
+          "orders": 1
+        },
+        {
+          "hour": "11am",
+          "orders": 2
+        },
+        {
+          "hour": "12pm",
+          "orders": 3
+        },
+        {
+          "hour": "1pm",
+          "orders": 2
+        },
+        {
+          "hour": "2pm",
+          "orders": 1
+        },
+        {
+          "hour": "3pm",
+          "orders": 0
+        },
+        {
+          "hour": "4pm",
+          "orders": 1
+        },
+        {
+          "hour": "5pm",
+          "orders": 2
+        },
+        {
+          "hour": "6pm",
+          "orders": 3
+        },
+        {
+          "hour": "7pm",
+          "orders": 0
+        }
+      ]
+    },
+    {
+      "id": "ah4",
+      "storeId": "s1",
+      "period": "year",
+      "items": [
+        {
+          "hour": "8am",
+          "orders": 18
+        },
+        {
+          "hour": "9am",
+          "orders": 42
+        },
+        {
+          "hour": "10am",
+          "orders": 68
+        },
+        {
+          "hour": "11am",
+          "orders": 95
+        },
+        {
+          "hour": "12pm",
+          "orders": 140
+        },
+        {
+          "hour": "1pm",
+          "orders": 168
+        },
+        {
+          "hour": "2pm",
+          "orders": 120
+        },
+        {
+          "hour": "3pm",
+          "orders": 82
+        },
+        {
+          "hour": "4pm",
+          "orders": 65
+        },
+        {
+          "hour": "5pm",
+          "orders": 110
+        },
+        {
+          "hour": "6pm",
+          "orders": 158
+        },
+        {
+          "hour": "7pm",
+          "orders": 128
+        },
+        {
+          "hour": "8pm",
+          "orders": 94
+        },
+        {
+          "hour": "9pm",
+          "orders": 62
+        },
+        {
+          "hour": "10pm",
+          "orders": 24
+        }
+      ]
+    }
+  ],
+  "customers-summary": [
+    {
+      "id": "cs1",
+      "storeId": "s1",
+      "total": 148,
+      "newThisMonth": 32,
+      "avgTicket": 124.5
+    }
+  ],
+  "customer-details": [
+    {
+      "id": "c1",
+      "storeId": "s1",
+      "name": "Juan Pérez",
+      "phone": "+51 987 654 321",
+      "email": "juan.perez@mail.com",
+      "totalOrders": 12,
+      "totalSpent": 1420.5,
+      "lastOrderDate": "2026-04-16",
+      "lastOrderId": "o1",
+      "type": "vip",
+      "avatarColor": "#8B5CF6",
+      "recentOrders": [
+        {
+          "id": "ro1",
+          "code": "PED-001",
+          "date": "2026-04-16",
+          "total": 85,
+          "status": "PENDING"
+        },
+        {
+          "id": "ro2",
+          "code": "PED-008",
+          "date": "2026-04-10",
+          "total": 120,
+          "status": "DELIVERED"
+        },
+        {
+          "id": "ro3",
+          "code": "PED-014",
+          "date": "2026-04-02",
+          "total": 95.5,
+          "status": "DELIVERED"
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "storeId": "s1",
+      "name": "Luis Mamani",
+      "phone": "+51 998 765 432",
+      "email": "l.mamani@mail.com",
+      "totalOrders": 8,
+      "totalSpent": 980,
+      "lastOrderDate": "2026-04-12",
+      "lastOrderId": "o3",
+      "type": "vip",
+      "avatarColor": "#F59E0B",
+      "recentOrders": [
+        {
+          "id": "ro4",
+          "code": "PED-003",
+          "date": "2026-04-12",
+          "total": 150,
+          "status": "DELIVERED"
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "storeId": "s1",
+      "name": "Maria López",
+      "phone": "+51 945 678 901",
+      "email": "m.lopez@mail.com",
+      "totalOrders": 4,
+      "totalSpent": 342,
+      "lastOrderDate": "2026-04-09",
+      "lastOrderId": "o5",
+      "type": "regular",
+      "avatarColor": "#6B7280",
+      "recentOrders": [
+        {
+          "id": "ro5",
+          "code": "PED-005",
+          "date": "2026-04-09",
+          "total": 95,
+          "status": "DELIVERED"
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "storeId": "s1",
+      "name": "Ana Ríos",
+      "phone": "+51 923 456 789",
+      "email": "a.rios@mail.com",
+      "totalOrders": 3,
+      "totalSpent": 215.5,
+      "lastOrderDate": "2026-04-13",
+      "lastOrderId": "o2",
+      "type": "regular",
+      "avatarColor": "#10B981",
+      "recentOrders": []
+    },
+    {
+      "id": "c5",
+      "storeId": "s1",
+      "name": "Carlos Vera",
+      "phone": "+51 912 345 678",
+      "email": "c.vera@mail.com",
+      "totalOrders": 1,
+      "totalSpent": 67,
+      "lastOrderDate": "2026-04-19",
+      "lastOrderId": "o6",
+      "type": "new",
+      "avatarColor": "#6B7280",
+      "recentOrders": []
+    },
+    {
+      "id": "c6",
+      "storeId": "s1",
+      "name": "Rosa Cárdenas",
+      "phone": "+51 976 543 210",
+      "email": "r.cardenas@mail.com",
+      "totalOrders": 0,
+      "totalSpent": 0,
+      "lastOrderDate": "",
+      "lastOrderId": null,
+      "type": "inactive",
+      "avatarColor": "#9CA3AF",
+      "recentOrders": []
+    },
+    {
+      "id": "c7",
+      "storeId": "s1",
+      "name": "Pedro Huanca",
+      "phone": "+51 965 432 109",
+      "email": "p.huanca@mail.com",
+      "totalOrders": 6,
+      "totalSpent": 540,
+      "lastOrderDate": "2026-04-05",
+      "lastOrderId": "o7",
+      "type": "regular",
+      "avatarColor": "#3B82F6",
+      "recentOrders": [
+        {
+          "id": "ro6",
+          "code": "PED-011",
+          "date": "2026-04-05",
+          "total": 90,
+          "status": "DELIVERED"
+        },
+        {
+          "id": "ro7",
+          "code": "PED-007",
+          "date": "2026-03-28",
+          "total": 75,
+          "status": "DELIVERED"
+        }
+      ]
+    },
+    {
+      "id": "c8",
+      "storeId": "s1",
+      "name": "Sofía Torres",
+      "phone": "+51 954 321 098",
+      "email": "s.torres@mail.com",
+      "totalOrders": 2,
+      "totalSpent": 134.5,
+      "lastOrderDate": "2026-04-18",
+      "lastOrderId": "o8",
+      "type": "new",
+      "avatarColor": "#EC4899",
+      "recentOrders": [
+        {
+          "id": "ro8",
+          "code": "PED-016",
+          "date": "2026-04-18",
+          "total": 134.5,
+          "status": "CONFIRMED"
+        }
+      ]
+    }
+  ]
+}

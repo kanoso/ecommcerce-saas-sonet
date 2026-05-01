@@ -1,0 +1,121 @@
+
+> tiendi-vendor@0.0.0 lint
+> ng lint
+
+
+Linting "tiendi-vendor"...
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\customers\components\customer-detail-modal.component.ts
+  461:3  error  Output bindings, including aliases, should not be named as standard DOM events          @angular-eslint/no-output-native
+   26:7  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+   34:9  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+   34:9  error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\legal\components\complaints-tab.component.ts
+  92:21  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  92:21  error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\legal\components\sunat-config-tab.component.ts
+  243:12  error  Output bindings, including aliases, should not be named as standard DOM events          @angular-eslint/no-output-native
+   42:13  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   50:13  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   55:13  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   60:13  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   76:13  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   81:13  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   93:11  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+  113:9   error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+  118:11  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  118:11  error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\onboarding\components\onboarding-step2.component.ts
+  21:9  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\onboarding\components\onboarding-step4.component.ts
+  188:3  error  Output bindings, including aliases, should not be named as standard DOM events  @angular-eslint/no-output-native
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\orders\components\order-actions.component.ts
+  101:7  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  144:7  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\staff\pages\staff-invite.page.ts
+  30:13  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  38:13  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\staff\pages\staff-list.page.ts
+   81:7   error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+   81:7   error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+   82:9   error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+   82:9   error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+   91:15  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+   98:15  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+  126:7   error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  126:7   error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+  127:9   error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  127:9   error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+  136:15  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+  156:7   error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  156:7   error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+  157:9   error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  157:9   error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\store-config\components\store-appearance-tab.component.ts
+  22:15  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+  40:15  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+  41:15  error  click must be accompanied by either keyup, keydown or keypress event for accessibility  @angular-eslint/template/click-events-have-key-events
+  41:15  error  Elements with interaction handlers must be focusable                                    @angular-eslint/template/interactive-supports-focus
+  60:15  error  A label component must be associated with a form element                                @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\store-config\components\store-delivery-tab.component.ts
+  33:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  41:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  50:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  63:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\store-config\components\store-info-tab.component.ts
+  265:69  error  Unexpected empty arrow function                           @typescript-eslint/no-empty-function
+   41:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+   46:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+   52:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+   65:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+   71:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  134:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  141:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  148:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\store-config\components\store-invoicing-tab.component.ts
+  29:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  33:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  44:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  49:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  54:15  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  73:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  77:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\store-config\components\store-payments-tab.component.ts
+  47:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+  54:17  error  A label component must be associated with a form element  @angular-eslint/template/label-has-associated-control
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\features\subscription\components\current-plan-card.component.ts
+  236:12  error  Output bindings, including aliases, should not be named as standard DOM events  @angular-eslint/no-output-native
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\shared\layout\shell.component.ts
+  7:3  error  'signal' is defined but never used  @typescript-eslint/no-unused-vars
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\shared\ui\atoms\chip.component.ts
+  72:3  error  Output bindings, including aliases, should not be named as standard DOM events  @angular-eslint/no-output-native
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\shared\ui\organisms\bottom-sheet.component.ts
+  90:3  error  Output bindings, including aliases, should not be named as standard DOM events  @angular-eslint/no-output-native
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\shared\ui\organisms\data-table.component.ts
+  256:27  error  '__row' is defined but never used  @typescript-eslint/no-unused-vars
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\shared\ui\organisms\dialog.component.ts
+  166:3  error  Output bindings, including aliases, should not be named as standard DOM events  @angular-eslint/no-output-native
+
+G:\PROYECTOS\ecommcerce-saas-sonet\FUENTES\tiendi-vendor\src\app\vendor\shared\ui\organisms\drawer.component.ts
+  161:3  error  Output bindings, including aliases, should not be named as standard DOM events  @angular-eslint/no-output-native
+
+✖ 72 problems (72 errors, 0 warnings)
+

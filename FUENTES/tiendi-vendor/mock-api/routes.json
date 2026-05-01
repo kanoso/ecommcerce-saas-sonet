@@ -1,0 +1,16 @@
+{
+  "/vendor/dashboard": "/vendor-dashboard",
+  "/vendor/orders": "/orders",
+  "/vendor/products/low-stock": "/products",
+  "/vendor/customers": "/customers",
+  "/vendor/notifications": "/notifications",
+  "/vendor/notification-settings": "/notification-settings",
+  "/vendor/analytics": "/analytics-data",
+  "/vendor/complaints": "/complaints",
+  "/vendor/invoices": "/invoices",
+  "/stores/:storeId/products": "/products",
+  "/stores/:storeId/employees": "/employees",
+  "/subscription-plans": "/subscription-plans",
+  "/subscriptions/my": "/store-subscriptions",
+  "/auth/refresh": "/auth-refresh"
+}

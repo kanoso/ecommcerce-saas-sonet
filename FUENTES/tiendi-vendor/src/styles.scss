@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+
+/* ── CSS Custom Properties (tokens del diseño) ────────────── */
+:root {
+  --primary:          #047857;
+  --primary-dark:     #065F46;
+  --primary-light:    #D1FAE5;
+  --primary-accent:   #10B981;
+  --secondary:        #6366F1;
+  --warning:          #F59E0B;
+  --warning-light:    #FEF3C7;
+  --danger:           #EF4444;
+  --danger-light:     #FEE2E2;
+  --danger-dark:      #B91C1C;
+  --info:             #3B82F6;
+  --info-light:       #DBEAFE;
+  --surface:          #F9FAFB;
+  --card:             #FFFFFF;
+  --border:           #E5E7EB;
+  --text-primary:     #111827;
+  --text-secondary:   #4B5563;
+  --text-muted:       #6B7280;
+  --text-disabled:    #D1D5DB;
+  --text-on-warning:  #111827;
+  --text-on-danger:   #111827;
+  --sidebar-bg:       #1F2937;
+  --sidebar-width:    240px;
+  --topbar-height:    60px;
+  --radius:           8px;
+  --radius-lg:        12px;
+  --shadow:           0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:        0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+/* ── Reset base ───────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Status tag colors (reutilizados en todo el panel) ─────── */
+.tag-pending    { background: #FEF3C7; color: #92400E; border-color: #FCD34D; }
+.tag-confirmed  { background: #DBEAFE; color: #1E40AF; border-color: #93C5FD; }
+.tag-dispatched { background: #EDE9FE; color: #5B21B6; border-color: #C4B5FD; }
+.tag-delivered  { background: #D1FAE5; color: #065F46; border-color: #6EE7B7; }
+.tag-rejected   { background: #FEE2E2; color: #991B1B; border-color: #FCA5A5; }
+
+/* ── Scrollbar custom (sidebar) ───────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Focus visible (accesibilidad) ───────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}
+
+/* ── Screen reader only ───────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
