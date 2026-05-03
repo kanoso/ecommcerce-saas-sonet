@@ -1,4 +1,9 @@
-import { APP_INITIALIZER, ApplicationConfig, inject, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  APP_INITIALIZER,
+  ApplicationConfig,
+  inject,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
@@ -11,6 +16,10 @@ import { loadingInterceptor } from './vendor/core/interceptors/loading.intercept
 import { retryInterceptor } from './vendor/core/interceptors/retry.interceptor';
 import { AuthStore } from './vendor/core/services/auth.store';
 
+/**
+ * Application configuration for the Angular bootstrap.
+ * Provides router, HTTP client with interceptors, charts library, and auth initialization.
+ */
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
