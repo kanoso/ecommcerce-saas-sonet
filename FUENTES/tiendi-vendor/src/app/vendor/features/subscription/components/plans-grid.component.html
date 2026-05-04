@@ -1,0 +1,77 @@
+<section class="plans-section" aria-labelledby="plans-heading">
+  <h2 class="plans-section__title" id="plans-heading">Elegí tu plan</h2>
+
+  <div class="plans-grid" role="list">
+    @for (plan of sortedPlans(); track plan.id) {
+      <div
+        class="plan-item"
+        [class.plan-item--current]="plan.id === currentPlanId()"
+        role="listitem">
+
+        @if (plan.id === currentPlanId()) {
+          <div class="plan-item__current-badge" aria-label="Plan actual">
+            Plan actual ✓
+          </div>
+        }
+
+        <div class="plan-item__header">
+          <h3 class="plan-item__name">{{ plan.name }}</h3>
+          <div class="plan-item__price">
+            @if (price(plan) === 0) {
+              <span class="plan-item__amount">Gratis</span>
+            } @else {
+              <span class="plan-item__amount">S/ {{ price(plan) }}</span>
+              <span class="plan-item__period">/{{ cycle() === 'annual' ? 'mes*' : 'mes' }}</span>
+            }
+          </div>
+          @if (cycle() === 'annual' && price(plan) > 0) {
+            <span class="plan-item__annual-note">*facturado anualmente</span>
+          }
+        </div>
+
+        <ul class="plan-item__features" aria-label="Características incluidas">
+          @for (feature of plan.features; track feature) {
+            <li class="plan-item__feature plan-item__feature--included">
+              <span class="plan-item__feature-icon" aria-hidden="true">✓</span>
+              {{ feature }}
+            </li>
+          }
+          @for (missing of plan.missingFeatures; track missing) {
+            <li class="plan-item__feature plan-item__feature--excluded" aria-label="{{ missing }} no incluido">
+              <span class="plan-item__feature-icon" aria-hidden="true">✗</span>
+              {{ missing }}
+            </li>
+          }
+        </ul>
+
+        <div class="plan-item__action">
+          @switch (buttonType(plan.id)) {
+            @case ('current') {
+              <button class="btn btn--disabled" type="button" disabled aria-disabled="true">
+                Plan activo
+              </button>
+            }
+            @case ('upgrade') {
+              <button
+                class="btn btn--primary"
+                type="button"
+                (click)="selectPlan.emit(plan.id)"
+                [attr.aria-label]="'Actualizar a ' + plan.name">
+                Upgrade →
+              </button>
+            }
+            @case ('downgrade') {
+              <button
+                class="btn btn--ghost"
+                type="button"
+                (click)="selectPlan.emit(plan.id)"
+                [attr.aria-label]="'Degradar a ' + plan.name">
+                Degradar
+              </button>
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>
