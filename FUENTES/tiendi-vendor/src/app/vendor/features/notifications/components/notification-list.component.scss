@@ -1,0 +1,125 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.group {
+  margin-bottom: 24px;
+}
+
+.group__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.notif-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  border-radius: var(--radius-lg);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--surface);
+  }
+}
+
+.notif-row--unread {
+  background: #F0FDF9;
+  border-left: 3px solid var(--primary);
+
+  &:hover {
+    background: #ECFDF5;
+  }
+}
+
+.notif {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-lg);
+  color: inherit;
+  font-family: inherit;
+}
+
+.notif--unread {
+  background: transparent;
+}
+
+.notif__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.notif__desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.notif__time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.notif__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.notif__action {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+  margin-top: 2px;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--surface);
+  }
+}

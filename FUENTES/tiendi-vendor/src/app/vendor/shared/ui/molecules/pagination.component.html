@@ -1,0 +1,50 @@
+<nav
+  class="pagination"
+  role="navigation"
+  aria-label="Paginación"
+>
+  <span class="pagination__info" aria-live="polite">
+    Mostrando {{ rangeStart() }}-{{ rangeEnd() }} de {{ totalItems() }}
+  </span>
+
+  <div class="pagination__controls">
+    <button
+      type="button"
+      class="pagination__btn"
+      [disabled]="currentPage() === 1"
+      [attr.aria-disabled]="currentPage() === 1"
+      aria-label="Página anterior"
+      (click)="onPage(currentPage() - 1)"
+    >
+      <span class="material-icons-outlined" aria-hidden="true">chevron_left</span>
+    </button>
+
+    @for (page of visiblePages(); track page) {
+      @if (page === -1) {
+        <span class="pagination__ellipsis" aria-hidden="true">…</span>
+      } @else {
+        <button
+          type="button"
+          class="pagination__btn"
+          [ngClass]="{ 'pagination__btn--active': page === currentPage() }"
+          [attr.aria-current]="page === currentPage() ? 'page' : null"
+          [attr.aria-label]="'Página ' + page"
+          (click)="onPage(page)"
+        >
+          {{ page }}
+        </button>
+      }
+    }
+
+    <button
+      type="button"
+      class="pagination__btn"
+      [disabled]="currentPage() === totalPages()"
+      [attr.aria-disabled]="currentPage() === totalPages()"
+      aria-label="Página siguiente"
+      (click)="onPage(currentPage() + 1)"
+    >
+      <span class="material-icons-outlined" aria-hidden="true">chevron_right</span>
+    </button>
+  </div>
+</nav>

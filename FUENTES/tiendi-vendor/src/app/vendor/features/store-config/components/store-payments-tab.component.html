@@ -1,0 +1,47 @@
+<div class="payments-wrap">
+  <div class="card">
+    <div class="card__header"><h3>Métodos de pago aceptados</h3></div>
+    <div class="card__body">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        @for (method of methods; track method.key) {
+          <div class="payment-row">
+            <div class="payment-info">
+              <span class="material-icons-outlined" [style.color]="method.color" style="font-size:20px">{{ method.icon }}</span>
+              <div>
+                <div class="payment-label">{{ method.label }}</div>
+                <div class="payment-desc">{{ method.desc }}</div>
+              </div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" [formControlName]="method.key">
+              <span class="slider"></span>
+            </label>
+          </div>
+        }
+
+        <hr class="divider">
+
+        @if (form.get('cash')?.value) {
+          <div class="form-group">
+            <label class="form-label" for="payments-cash-msg">Mensaje para pagos en efectivo</label>
+            <textarea id="payments-cash-msg" class="form-input" rows="2" placeholder='Ej: "Tener cambio exacto por favor"' formControlName="cashMessage"></textarea>
+          </div>
+        }
+
+        @if (form.get('transfer')?.value) {
+          <div class="form-group">
+            <label class="form-label" for="payments-transfer-data">Datos para transferencia bancaria</label>
+            <textarea id="payments-transfer-data" class="form-input" rows="2" placeholder='Ej: "BCP cuenta 123-456-789 a nombre de..."' formControlName="transferData"></textarea>
+          </div>
+        }
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+            @if (isSaving()) { Guardando... } @else { Guardar }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

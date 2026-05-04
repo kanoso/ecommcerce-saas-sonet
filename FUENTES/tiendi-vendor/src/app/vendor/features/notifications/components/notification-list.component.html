@@ -1,0 +1,49 @@
+@if (groups().length === 0) {
+  <div class="empty">
+    <span class="material-icons-outlined" style="font-size:40px;color:var(--border)">notifications_off</span>
+    <p>No hay notificaciones</p>
+  </div>
+}
+
+@for (group of groups(); track group.label) {
+  <div class="group">
+    <div class="group__label">{{ group.label }}</div>
+
+    @for (notif of group.items; track notif.id) {
+      <div class="notif-row" [class.notif-row--unread]="!notif.read">
+        <button
+          class="notif"
+          [class.notif--unread]="!notif.read"
+          (click)="read.emit(notif.id)"
+          [attr.aria-label]="(notif.read ? 'Notificación: ' : 'Sin leer: ') + notif.title"
+        >
+          <div
+            class="notif__icon"
+            [style.background]="meta(notif.type).bg"
+            [style.color]="meta(notif.type).color"
+            aria-hidden="true"
+          >
+            <span class="material-icons-outlined" style="font-size:20px">{{ meta(notif.type).icon }}</span>
+          </div>
+
+          <div class="notif__body">
+            <div class="notif__title">{{ notif.title }}</div>
+            <div class="notif__desc">{{ notif.body }}</div>
+            <div class="notif__time">{{ time(notif.createdAt) }}</div>
+          </div>
+
+          @if (!notif.read) {
+            <div class="notif__dot" aria-hidden="true"></div>
+          }
+        </button>
+
+        @if (getActionRoute(notif); as route) {
+          <a
+            [routerLink]="route"
+            class="notif__action"
+          >{{ getActionLabel(notif.resourceType) }}</a>
+        }
+      </div>
+    }
+  </div>
+}

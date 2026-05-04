@@ -80,9 +80,9 @@ Estos quedan a criterio. Si el template se siente difícil de leer o editar, ext
 - [x] `order-filters.component.ts` — 63 líneas ✓
 - [x] `recent-orders-widget.component.ts` — 61 líneas ✓
 - [x] `current-plan-card.component.ts` — 61 líneas ✓
-- [ ] `customers-kpi-bar.component.ts` — 55 líneas
-- [ ] `product-image-upload.component.ts` — 54 líneas
-- [ ] `payment-history-table.component.ts` — 54 líneas
+- [x] `customers-kpi-bar.component.ts` — 55 líneas ✓
+- [x] `product-image-upload.component.ts` — 54 líneas ✓
+- [x] `payment-history-table.component.ts` — 54 líneas ✓
 - [ ] `order-items-list.component.ts` — 52 líneas
 - [ ] `pagination.component.ts` — 52 líneas
 - [ ] `notification-list.component.ts` — 51 líneas
