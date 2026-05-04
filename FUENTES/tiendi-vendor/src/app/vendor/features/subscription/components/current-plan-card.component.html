@@ -1,0 +1,59 @@
+@if (subscription(); as sub) {
+  <div class="plan-card" aria-label="Plan actual">
+    <div class="plan-card__header">
+      <div class="plan-card__info">
+        <span class="plan-badge" [class]="'plan-badge--' + sub.planId">
+          {{ plan()?.name ?? sub.planId }}
+        </span>
+        <div class="plan-card__price">
+          @if (plan()?.monthlyPrice === 0) {
+            <span class="plan-card__amount">Gratis</span>
+          } @else {
+            <span class="plan-card__amount">S/ {{ plan()?.monthlyPrice ?? 0 }}</span>
+            <span class="plan-card__period">/mes</span>
+          }
+        </div>
+      </div>
+      <div class="plan-card__renewal">
+        <span class="plan-card__renewal-label">Próxima renovación</span>
+        <span class="plan-card__renewal-date">{{ formatDate(sub.currentPeriodEnd) }}</span>
+      </div>
+    </div>
+
+    <div class="plan-card__usage">
+      <h3 class="plan-card__usage-title">Uso del plan</h3>
+      <div class="plan-card__bars">
+        <app-usage-bar
+          label="Productos"
+          [used]="sub.usageProducts"
+          [max]="plan()?.maxProducts ?? null" />
+        <app-usage-bar
+          label="Pedidos este mes"
+          [used]="sub.usageOrders"
+          [max]="plan()?.maxOrders ?? null" />
+        <app-usage-bar
+          label="Staff"
+          [used]="sub.usageStaff"
+          [max]="plan()?.maxStaff ?? null" />
+      </div>
+    </div>
+
+    <div class="plan-card__actions">
+      <button
+        class="btn btn--ghost btn--danger"
+        type="button"
+        [disabled]="sub.status === 'cancelled'"
+        (click)="cancelPlan.emit()"
+        aria-label="Cancelar plan actual">
+        {{ sub.status === 'cancelled' ? 'Plan cancelado' : 'Cancelar plan' }}
+      </button>
+      <button
+        class="btn btn--primary"
+        type="button"
+        (click)="changePlan.emit()"
+        aria-label="Cambiar de plan">
+        Cambiar plan
+      </button>
+    </div>
+  </div>
+}

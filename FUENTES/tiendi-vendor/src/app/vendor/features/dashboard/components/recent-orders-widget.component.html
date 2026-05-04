@@ -1,0 +1,59 @@
+<div class="widget" role="region" aria-label="Pedidos recientes">
+  <div class="widget__header">
+    <h2 class="widget__title">Pedidos recientes</h2>
+    <a routerLink="/vendor/orders" class="widget__link">Ver todos →</a>
+  </div>
+
+  <div class="widget__body">
+    @if (isLoading()) {
+      <table class="orders-table" aria-busy="true">
+        <tbody>
+          @for (row of skeletonRows; track $index) {
+            <tr>
+              <td><td-skeleton variant="line" width="80px" /></td>
+              <td><td-skeleton variant="line" width="120px" /></td>
+              <td><td-skeleton variant="line" width="60px" /></td>
+              <td><td-skeleton variant="line" width="80px" /></td>
+              <td><td-skeleton variant="circle" width="28px" height="28px" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (orders().length === 0) {
+      <p class="widget__empty">Sin pedidos aún</p>
+    } @else {
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th scope="col">N°</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Total</th>
+            <th scope="col">Estado</th>
+            <th scope="col"><span class="sr-only">Acción</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.id) {
+            <tr>
+              <td class="orders-table__number">{{ order.orderNumber }}</td>
+              <td>{{ order.customerName }}</td>
+              <td class="orders-table__total">S/ {{ order.total.toFixed(2) }}</td>
+              <td>
+                <span class="tag {{ statusClass(order.status) }}">
+                  {{ statusLabel(order.status) }}
+                </span>
+              </td>
+              <td>
+                <button
+                  class="orders-table__btn"
+                  (click)="orderClick.emit(order.id)"
+                  [attr.aria-label]="'Ver pedido ' + order.orderNumber"
+                >→</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

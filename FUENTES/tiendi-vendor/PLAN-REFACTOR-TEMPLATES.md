@@ -76,7 +76,7 @@ Estos quedan a criterio. Si el template se siente difícil de leer o editar, ext
 - [x] `notification-settings-card.component.ts` — 77 líneas ✓
 - [x] `analytics-kpi-grid.component.ts` — 75 líneas ✓
 - [x] `product-toolbar.component.ts` — 74 líneas ✓
-- [ ] `staff-table.component.ts` — 69 líneas
+- [x] `staff-table.component.ts` — 69 líneas ✓
 - [ ] `order-filters.component.ts` — 63 líneas
 - [ ] `recent-orders-widget.component.ts` — 61 líneas
 - [ ] `current-plan-card.component.ts` — 61 líneas

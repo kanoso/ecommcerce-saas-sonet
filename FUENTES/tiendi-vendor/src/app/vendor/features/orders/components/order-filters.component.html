@@ -1,0 +1,61 @@
+<div class="filters" role="search" aria-label="Filtros de pedidos">
+  <select
+    class="filters__select"
+    [value]="filters().status"
+    (change)="onStatusChange($event)"
+    aria-label="Filtrar por estado"
+  >
+    <option value="">Todos los estados</option>
+    <option value="PENDING">Pendiente</option>
+    <option value="CONFIRMED">Confirmado</option>
+    <option value="DISPATCHED">En camino</option>
+    <option value="DELIVERED">Entregado</option>
+    <option value="REJECTED">Rechazado</option>
+  </select>
+
+  <select
+    class="filters__select"
+    [value]="filters().period"
+    (change)="onPeriodChange($event)"
+    aria-label="Filtrar por período"
+  >
+    <option value="">Todos los períodos</option>
+    <option value="today">Hoy</option>
+    <option value="yesterday">Ayer</option>
+    <option value="last7">Últimos 7 días</option>
+    <option value="thisMonth">Este mes</option>
+  </select>
+
+  <select
+    class="filters__select"
+    [value]="filters().paymentMethod"
+    (change)="onPaymentChange($event)"
+    aria-label="Filtrar por método de pago"
+  >
+    <option value="">Todos los pagos</option>
+    <option value="CASH">Efectivo</option>
+    <option value="YAPE">Yape</option>
+    <option value="PLIN">Plin</option>
+    <option value="TRANSFER">Transferencia</option>
+    <option value="CARD">Tarjeta</option>
+  </select>
+
+  <select
+    class="filters__select"
+    [value]="filters().deliveryType"
+    (change)="onDeliveryChange($event)"
+    aria-label="Filtrar por tipo de entrega"
+  >
+    <option value="">Todos los tipos</option>
+    <option value="DELIVERY">Delivery</option>
+    <option value="PICKUP">Recojo en tienda</option>
+  </select>
+
+  <button class="filters__btn filters__btn--clear" type="button" (click)="clearAll.emit()">
+    Limpiar
+  </button>
+
+  <button class="filters__btn filters__btn--export" type="button" (click)="onExport()">
+    Exportar CSV
+  </button>
+</div>

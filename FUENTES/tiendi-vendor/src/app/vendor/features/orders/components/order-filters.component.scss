@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filters__select {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--card);
+  cursor: pointer;
+  outline: none;
+  color: var(--text-primary);
+  transition: border-color 0.15s;
+
+  &:focus {
+    border-color: var(--primary);
+  }
+}
+
+.filters__btn {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s;
+}
+
+.filters__btn--clear {
+  background: var(--card);
+  color: var(--text-secondary);
+
+  &:hover {
+    background: var(--surface);
+  }
+}
+
+.filters__btn--export {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+
+  &:hover {
+    background: var(--primary-dark);
+  }
+}
