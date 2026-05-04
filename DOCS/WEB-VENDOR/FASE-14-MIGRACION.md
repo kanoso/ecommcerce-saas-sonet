@@ -5,8 +5,8 @@
 >
 > **Estados:** `[ ]` Pendiente · `[>]` En progreso · `[x]` Completado · `[!]` Bloqueado
 
-**Última actualización:** 2026-05-01
-**Estado global:** `[>]` En progreso
+**Última actualización:** 2026-05-04
+**Estado global:** `[>]` En progreso — build verificado, mock-api removido, badges notificaciones conectados
 
 ---
 
@@ -197,7 +197,7 @@
 - [x] `environment.ts` (dev) apunta a `http://localhost:4000/api/v1` — ya no usa 3001
 - [x] Remover carpeta `/mock-api` (conservar `db.json` como seed de dev para el backend)
 - [x] Actualizar README con instrucciones del backend real
-- [ ] `playwright.config.ts` → `baseURL` ya apunta a `http://localhost:4201` (correcto); confirmar webServer config contra staging
+- [x] `playwright.config.ts` — `baseURL` apunta a `http://localhost:4201`; comentario "json-server es stateful" removido (ya no existe); servicios requeridos: backend API + ng serve
 
 > **Nota:** ejecutar `npm install` en `tiendi-vendor/` para que `package-lock.json` refleje la remoción de dependencias.
 

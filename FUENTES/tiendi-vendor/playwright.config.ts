@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: false, // json-server es stateful
+  fullyParallel: false,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
   workers: 1,
@@ -16,5 +16,5 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  // NO webServer — levantá los servicios manualmente con: npm run dev
+  // Servicios necesarios: backend API (tiendi-api) + Angular dev server (ng serve)
 });
