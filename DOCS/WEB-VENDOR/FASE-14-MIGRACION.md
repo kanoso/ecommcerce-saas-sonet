@@ -15,7 +15,7 @@
 - [ ] Backend team valida contratos de API contra mocks de json-server (`mock-api/db.json` + `routes.json`)
 - [x] Definir variable de entorno `API_BASE_URL` por ambiente (`environment.ts` / `environment.prod.ts`) — `apiUrl: 'http://localhost:3001'` en dev, `http://localhost:4000/api/v1` en prod
 - [x] Reemplazar `'http://localhost:3001'` hardcodeado en todos los stores por `environment.apiUrl` — 11 stores migrados
-- [ ] Documentar diferencias conocidas entre mock y real (UUIDs vs autoincrement, shapes distintos, etc.)
+- [x] Documentar diferencias conocidas entre mock y real → `DOCS/WEB-VENDOR/DIFERENCIAS-MOCK-REAL.md` (Auth, roles, productos, pedidos, analytics, clientes, notificaciones, staff, suscripción, legal)
 - [ ] Acordar estrategia de manejo de errores reales (códigos HTTP, shapes de error)
 
 ---
