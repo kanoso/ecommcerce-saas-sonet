@@ -1,0 +1,67 @@
+<div class="card">
+  <div class="table-wrap">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Miembro</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (member of members(); track member.id) {
+          <tr [class.row--pending]="member.status === 'PENDING'">
+            <td>
+              <div class="member-cell">
+                <div
+                  class="avatar"
+                  [class.avatar--pending]="member.status === 'PENDING'"
+                >{{ member.initials }}</div>
+                <div>
+                  <div class="member-name">
+                    @if (member.status === 'PENDING') { {{ member.email }} }
+                    @else { {{ member.name }} }
+                  </div>
+                  <div class="member-sub">
+                    @if (member.status === 'PENDING') { (pendiente de aceptar) }
+                    @else { {{ member.email }} }
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="role-tag" [class]="'role-tag--' + member.role.toLowerCase()">
+                {{ roleLabel(member.role) }}
+              </span>
+            </td>
+            <td>
+              @if (member.status === 'ACTIVE') {
+                <span class="status-active">
+                  <span class="status-dot"></span>Activo
+                </span>
+              } @else {
+                <span class="status-pending">⏳ Invitación pendiente</span>
+              }
+            </td>
+            <td>
+              @if (member.role === 'STORE_OWNER') {
+                <span class="no-actions">Sin acciones</span>
+              } @else if (member.status === 'PENDING') {
+                <div class="actions-cell">
+                  <button class="btn btn--ghost btn--sm" (click)="resend.emit(member)">Reenviar</button>
+                  <button class="btn btn--ghost btn--sm btn--danger" (click)="remove.emit(member)">Cancelar</button>
+                </div>
+              } @else {
+                <div class="actions-cell">
+                  <button class="btn btn--ghost btn--sm" (click)="changeRole.emit(member)">Cambiar rol</button>
+                  <button class="btn btn--ghost btn--sm btn--danger" (click)="remove.emit(member)">Quitar</button>
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

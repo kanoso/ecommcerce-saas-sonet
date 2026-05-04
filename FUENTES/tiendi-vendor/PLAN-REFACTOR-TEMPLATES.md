@@ -73,9 +73,9 @@ Cada componente se extrae a:
 Estos quedan a criterio. Si el template se siente difícil de leer o editar, extraer. Si no, mantener inline.
 
 - [x] `plans-grid.component.ts` — 79 líneas ✓
-- [ ] `notification-settings-card.component.ts` — 77 líneas
-- [ ] `analytics-kpi-grid.component.ts` — 75 líneas
-- [ ] `product-toolbar.component.ts` — 74 líneas
+- [x] `notification-settings-card.component.ts` — 77 líneas ✓
+- [x] `analytics-kpi-grid.component.ts` — 75 líneas ✓
+- [x] `product-toolbar.component.ts` — 74 líneas ✓
 - [ ] `staff-table.component.ts` — 69 líneas
 - [ ] `order-filters.component.ts` — 63 líneas
 - [ ] `recent-orders-widget.component.ts` — 61 líneas
