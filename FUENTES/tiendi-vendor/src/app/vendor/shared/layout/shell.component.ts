@@ -14,6 +14,7 @@ import { SidebarComponent } from './sidebar.component';
 import { MobileShellComponent } from './mobile-shell.component';
 import { AuthStore } from '../../core/services/auth.store';
 import { StoreConfigStore } from '../../features/store-config/store-config.store';
+import { NotificationsStore } from '../../features/notifications/notifications.store';
 
 const ROLE_LABELS: Record<string, string> = {
   STORE_OWNER: 'Dueño',
@@ -35,7 +36,7 @@ const ROLE_LABELS: Record<string, string> = {
         <td-sidebar
           [userRole]="userRole()"
           [collapsed]="isTablet()"
-          [notificationCount]="0"
+          [notificationCount]="unreadCount()"
           (itemClick)="onNavItem($event)"
         />
 
@@ -45,7 +46,7 @@ const ROLE_LABELS: Record<string, string> = {
             [userName]="userName()"
             [userEmail]="userEmail()"
             [userRole]="userRoleLabel()"
-            [unreadNotifications]="0"
+            [unreadNotifications]="unreadCount()"
             (menuToggle)="onMenuToggle()"
             (notificationClick)="onNotifications()"
             (profileClick)="onProfile()"
@@ -90,6 +91,7 @@ export class ShellComponent implements OnInit {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly authStore = inject(AuthStore);
   private readonly storeConfigStore = inject(StoreConfigStore);
+  private readonly notificationsStore = inject(NotificationsStore);
   private readonly router = inject(Router);
 
   private readonly isMobile$ = this.breakpointObserver
@@ -108,10 +110,12 @@ export class ShellComponent implements OnInit {
   userName = computed(() => this.authStore.currentUser()?.name ?? '');
   userEmail = computed(() => this.authStore.currentUser()?.email ?? '');
   userRoleLabel = computed(() => ROLE_LABELS[this.userRole()] ?? this.userRole());
+  unreadCount = this.notificationsStore.unreadCount;
 
   ngOnInit(): void {
     this.authStore.loadFromStorage();
     this.storeConfigStore.loadStore();
+    this.notificationsStore.loadAll();
   }
 
   onMenuToggle(): void {

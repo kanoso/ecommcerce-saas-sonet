@@ -11,6 +11,7 @@ import { BottomNavComponent } from './bottom-nav.component';
 import { DrawerComponent } from '../ui/organisms/drawer.component';
 import { SidebarComponent } from './sidebar.component';
 import { AuthStore } from '../../core/services/auth.store';
+import { NotificationsStore } from '../../features/notifications/notifications.store';
 
 @Component({
   selector: 'td-mobile-shell',
@@ -19,10 +20,10 @@ import { AuthStore } from '../../core/services/auth.store';
   imports: [RouterOutlet, TopbarComponent, BottomNavComponent, DrawerComponent, SidebarComponent],
   template: `
     <div class="mobile-shell">
-      <td-topbar
-        [storeName]="storeName()"
-        [unreadNotifications]="0"
-        (menuToggle)="moreDrawerOpen.set(true)"
+        <td-topbar
+          [storeName]="storeName()"
+          [unreadNotifications]="unreadCount()"
+          (menuToggle)="moreDrawerOpen.set(true)"
         (notificationClick)="onNotifications()"
         (profileClick)="onProfile()"
         (logoutClick)="onLogout()"
@@ -35,7 +36,7 @@ import { AuthStore } from '../../core/services/auth.store';
       <td-bottom-nav
         [userRole]="userRole()"
         [pendingOrders]="0"
-        [unreadNotifications]="0"
+        [unreadNotifications]="unreadCount()"
         (moreClick)="moreDrawerOpen.set(true)"
       />
 
@@ -75,12 +76,14 @@ import { AuthStore } from '../../core/services/auth.store';
 })
 export class MobileShellComponent {
   private readonly authStore = inject(AuthStore);
+  private readonly notificationsStore = inject(NotificationsStore);
   private readonly router = inject(Router);
 
   moreDrawerOpen = signal(false);
 
   userRole = computed(() => this.authStore.currentUser()?.role ?? 'CASHIER');
   storeName = computed(() => this.authStore.currentUser()?.name ?? 'Mi Tienda');
+  unreadCount = this.notificationsStore.unreadCount;
 
   onDrawerNavItem(route: string): void {
     this.moreDrawerOpen.set(false);

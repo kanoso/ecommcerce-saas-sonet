@@ -91,9 +91,11 @@
 
 ## Parte 6 — Dashboard (`DashboardStore`)
 
-- [ ] `GET /stores/:storeId/dashboard` → KPIs (todaySales, pendingCount, lowStock, activeProducts) — si el backend expone un endpoint agregado
-- [ ] Si no hay endpoint agregado: mantener `forkJoin` de `/orders` + `/products` como está
-- [ ] Verificar que `recentOrders` y `lowStockProducts` se cargan correctamente
+- [x] `GET /vendor/orders?storeId=:id&limit=50` → carga últimos pedidos con `mapDashboardOrder()` (normaliza `customer.firstName+lastName → customerName`)
+- [x] `GET /stores/:storeId/products?limit=200` → carga productos con `mapLowStockProduct()` (normaliza `category.id → categoryId`)
+- [x] KPIs computados client-side: `pendingCount`, `activeProductCount`, `todaySales`, `lowStockProducts`
+- [x] `PATCH /products/:id` → `updateProductStock()` con optimistic update + filter local post-actualización
+- [x] `AuthStore.storeId()` inyectado para ID de tienda dinámico (sin hardcodeos)
 
 ---
 
@@ -130,7 +132,7 @@
 - [x] `POST /stores/:storeId/notifications/mark-all-read` → `updateMany` en lugar de loop
 - [x] `GET /stores/:storeId/notification-settings` → lee `notificationSettings Json` del Store
 - [x] `PUT /stores/:storeId/notification-settings` → guarda en `notificationSettings Json` del Store
-- [ ] Conectar badge de topbar al `unreadCount` real (polling o WebSocket) — pendiente
+- [x] Conectar badge de topbar al `unreadCount` real — `ShellComponent` y `MobileShellComponent` ahora inyectan `NotificationsStore`, reemplazado hardcoded `[unreadNotifications]="0"` por `unreadCount()` computado desde el store real
 - [ ] Integración real: BullMQ + SendGrid + Twilio (responsabilidad del backend)
 
 > **Schema Prisma:** nuevo modelo `Notification` + campo `notificationSettings Json?` en `Store` + relación `notifications Notification[]` en `Store`.
@@ -193,9 +195,9 @@
 - [x] Remover script `npm run mock` de `package.json`; `dev` apunta a `ng serve --configuration production`
 - [x] Remover dependencias `json-server` y `concurrently` de `package.json`
 - [x] `environment.ts` (dev) apunta a `http://localhost:4000/api/v1` — ya no usa 3001
-- [ ] Remover carpeta `/mock-api` (conservar `db.json` como seed de dev para el backend)
+- [x] Remover carpeta `/mock-api` (conservar `db.json` como seed de dev para el backend)
+- [x] Actualizar README con instrucciones del backend real
 - [ ] `playwright.config.ts` → `baseURL` ya apunta a `http://localhost:4201` (correcto); confirmar webServer config contra staging
-- [ ] Actualizar README con instrucciones del backend real
 
 > **Nota:** ejecutar `npm install` en `tiendi-vendor/` para que `package-lock.json` refleje la remoción de dependencias.
 
@@ -213,7 +215,7 @@
 - [ ] Configurar Sentry (sin PII)
 - [ ] Configurar PostHog con eventos clave
 - [x] `npm run lint` → 0 warnings (2026-05-01) — tiendi-vendor + tiendi-api
-- [ ] `npm run build` → bundle sin errores en producción
+- [x] `npm run build` → bundle sin errores en producción (2026-05-04) — advertencia de budget únicamente (529 kB, 29 kB arriba del warning de 500 kB, dentro del límite de error de 600 kB)
 
 ---
 
