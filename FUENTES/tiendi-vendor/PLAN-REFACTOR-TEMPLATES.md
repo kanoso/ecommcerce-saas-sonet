@@ -87,9 +87,9 @@ Estos quedan a criterio. Si el template se siente difícil de leer o editar, ext
 - [x] `pagination.component.ts` — 52 líneas ✓
 - [x] `notification-list.component.ts` — 51 líneas ✓
 - [x] `store-payments-tab.component.ts` — 49 líneas ✓
-- [ ] `kpi-card.component.ts` — 46 líneas
-- [ ] `period-selector.component.ts` — 46 líneas
-- [ ] `onboarding-nav.component.ts` — 44 líneas
+- [x] `kpi-card.component.ts` — 46 líneas ✓
+- [x] `period-selector.component.ts` — 46 líneas ✓
+- [x] `onboarding-nav.component.ts` — 44 líneas ✓
 - [ ] `staff-roles-info.component.ts` — 43 líneas
 - [ ] `sidebar.component.ts` — 42 líneas
 - [ ] `top-products-list.component.ts` — 42 líneas

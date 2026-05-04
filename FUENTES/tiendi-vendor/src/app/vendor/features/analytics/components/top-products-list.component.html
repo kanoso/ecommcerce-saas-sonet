@@ -1,0 +1,40 @@
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Productos más vendidos</h3>
+    <a routerLink="/vendor/products" class="link-all">Ver todos →</a>
+  </div>
+
+  @if (products().length === 0) {
+    <div class="empty-state">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+      <p>Sin datos para este período</p>
+    </div>
+  } @else {
+    <ul class="product-list">
+      @for (product of products(); track product.rank) {
+        <li class="product-row">
+          <span class="rank-badge" [class.rank-badge--top]="product.rank <= 3">
+            {{ product.rank }}
+          </span>
+          <div class="product-info">
+            <div class="product-name-row">
+              <span class="product-name">{{ product.name }}</span>
+              <span class="product-revenue">{{ formatMoney(product.revenue) }}</span>
+            </div>
+            <div class="progress-row">
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="(product.revenue / product.maxRevenue) * 100"
+                ></div>
+              </div>
+              <span class="product-units">{{ product.units }} uds.</span>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

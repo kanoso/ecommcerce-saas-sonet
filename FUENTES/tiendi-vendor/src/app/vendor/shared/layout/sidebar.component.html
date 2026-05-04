@@ -1,0 +1,40 @@
+<nav
+  class="sidebar"
+  [class.sidebar--collapsed]="collapsed()"
+  role="navigation"
+  aria-label="Menú principal"
+>
+  <ul class="sidebar__nav" role="list">
+    @for (item of visibleItems(); track item.route) {
+      <li role="listitem">
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="sidebar__link--active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/vendor/dashboard' }"
+          class="sidebar__link"
+          [class.sidebar__link--collapsed]="collapsed()"
+          [attr.aria-label]="collapsed() ? item.label : null"
+          [attr.title]="collapsed() ? item.label : null"
+          (click)="itemClick.emit(item.route)"
+        >
+          <span
+            class="material-icons-outlined sidebar__icon"
+            aria-hidden="true"
+          >{{ item.icon }}</span>
+
+          @if (!collapsed()) {
+            <span class="sidebar__label">{{ item.label }}</span>
+          }
+
+          @if (item.badge && item.badge > 0) {
+            <td-badge
+              [count]="item.badge"
+              variant="danger"
+              class="sidebar__badge"
+            />
+          }
+        </a>
+      </li>
+    }
+  </ul>
+</nav>

@@ -1,0 +1,41 @@
+<div class="card">
+  <div class="card__header"><h3>Descripción de roles</h3></div>
+  <div class="card__body">
+    <div class="roles-grid">
+      @for (role of roles; track role.title) {
+        <div class="role-card">
+          <div class="role-card__title">{{ role.emoji }} {{ role.title }}</div>
+          <div class="role-card__desc">{{ role.desc }}</div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <div class="card__header"><h3>Matriz de permisos</h3></div>
+  <div class="table-wrap">
+    <table class="perms-table">
+      <thead>
+        <tr>
+          <th>Módulo</th>
+          <th>STORE_OWNER</th>
+          <th>MANAGER</th>
+          <th>CASHIER</th>
+          <th>WAREHOUSE</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (perm of perms; track perm.module) {
+          <tr>
+            <td>{{ perm.module }}</td>
+            <td [class.perm--yes]="perm.owner"   [class.perm--no]="!perm.owner">   {{ perm.owner    ? '✓' : '✗' }}</td>
+            <td [class.perm--yes]="perm.manager"  [class.perm--no]="!perm.manager"> {{ perm.manager  ? '✓' : '✗' }}</td>
+            <td [class.perm--yes]="perm.cashier"  [class.perm--no]="!perm.cashier"> {{ perm.cashier  ? '✓' : '✗' }}</td>
+            <td [class.perm--yes]="perm.warehouse"[class.perm--no]="!perm.warehouse">{{ perm.warehouse? '✓' : '✗' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
