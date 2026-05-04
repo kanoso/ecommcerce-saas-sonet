@@ -1,0 +1,75 @@
+<div class="card">
+  <div class="card__header"><h3>⚙ Configuración de alertas por canal</h3></div>
+  <div class="card__body">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <!-- Nuevo pedido -->
+      <div class="alert-row">
+        <div class="alert-label">🛒 Nuevo pedido</div>
+        <div class="channels" formGroupName="newOrder">
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="inApp" aria-label="Nuevo pedido por In-app"><span class="slider"></span></label><span aria-hidden="true">In-app</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="email" aria-label="Nuevo pedido por Email"><span class="slider"></span></label><span aria-hidden="true">Email</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="whatsapp" aria-label="Nuevo pedido por WhatsApp"><span class="slider"></span></label><span aria-hidden="true">WhatsApp</span></div>
+        </div>
+      </div>
+
+      <!-- Stock bajo -->
+      <div class="alert-row">
+        <div>
+          <div class="alert-label">⚠️ Stock bajo</div>
+          <div class="alert-sub">
+            Umbral:
+            <input type="number" class="inline-input" formControlName="stockAlertThreshold" min="1" aria-label="Umbral de stock bajo en unidades">
+            unidades
+          </div>
+        </div>
+        <div class="channels" formGroupName="lowStock">
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="inApp" aria-label="Stock bajo por In-app"><span class="slider"></span></label><span aria-hidden="true">In-app</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="email" aria-label="Stock bajo por Email"><span class="slider"></span></label><span aria-hidden="true">Email</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="whatsapp" aria-label="Stock bajo por WhatsApp"><span class="slider"></span></label><span aria-hidden="true">WhatsApp</span></div>
+        </div>
+      </div>
+
+      <!-- Pedido sin atender -->
+      <div class="alert-row">
+        <div>
+          <div class="alert-label">⏰ Pedido sin atender</div>
+          <div class="alert-sub" formGroupName="unattended">
+            Recordatorio a los
+            <input type="number" class="inline-input" formControlName="thresholdMinutes" min="5" aria-label="Minutos para recordatorio de pedido sin atender">
+            min
+          </div>
+        </div>
+        <div class="channels" formGroupName="unattended">
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="inApp" aria-label="Pedido sin atender por In-app"><span class="slider"></span></label><span aria-hidden="true">In-app</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="email" aria-label="Pedido sin atender por Email"><span class="slider"></span></label><span aria-hidden="true">Email</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="whatsapp" aria-label="Pedido sin atender por WhatsApp"><span class="slider"></span></label><span aria-hidden="true">WhatsApp</span></div>
+        </div>
+      </div>
+
+      <!-- Plan por vencer -->
+      <div class="alert-row">
+        <div>
+          <div class="alert-label">💳 Plan por vencer</div>
+          <div class="alert-sub" formGroupName="planExpiring">
+            Avisar con
+            <input type="number" class="inline-input" formControlName="daysAhead" min="1" aria-label="Días de anticipación para alerta de plan por vencer">
+            días de anticipación
+          </div>
+        </div>
+        <div class="channels" formGroupName="planExpiring">
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="inApp" aria-label="Plan por vencer por In-app"><span class="slider"></span></label><span aria-hidden="true">In-app</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="email" aria-label="Plan por vencer por Email"><span class="slider"></span></label><span aria-hidden="true">Email</span></div>
+          <div class="channel"><label class="toggle"><input type="checkbox" formControlName="whatsapp" aria-label="Plan por vencer por WhatsApp"><span class="slider"></span></label><span aria-hidden="true">WhatsApp</span></div>
+        </div>
+      </div>
+
+      <div class="card__footer">
+        <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+          <span class="material-icons-outlined" style="font-size:16px">save</span>
+          @if (isSaving()) { Guardando... } @else { Guardar preferencias }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
