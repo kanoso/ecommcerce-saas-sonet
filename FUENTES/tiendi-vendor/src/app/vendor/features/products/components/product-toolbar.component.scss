@@ -1,0 +1,135 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.toolbar__search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.toolbar__search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.toolbar__input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+}
+
+.toolbar__select {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+}
+
+.toolbar__view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.toolbar__view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: var(--card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  .material-icons-outlined { font-size: 20px; }
+
+  &:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: -2px;
+  }
+
+  &--active {
+    background: var(--primary);
+    color: #fff;
+  }
+}
+
+.toolbar__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  .material-icons-outlined { font-size: 18px; }
+
+  &--primary {
+    background: var(--primary);
+    color: #fff;
+    &:hover { background: var(--primary-dark); }
+  }
+
+  &--secondary {
+    background: var(--card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    &:hover { background: var(--surface); }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 640px) {
+  .toolbar__actions { margin-left: 0; width: 100%; }
+  .toolbar__btn { flex: 1; justify-content: center; }
+}

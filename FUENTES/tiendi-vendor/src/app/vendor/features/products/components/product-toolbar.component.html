@@ -1,0 +1,72 @@
+<div class="toolbar">
+  <div class="toolbar__search">
+    <span class="material-icons-outlined toolbar__search-icon" aria-hidden="true">search</span>
+    <input
+      class="toolbar__input"
+      type="search"
+      placeholder="Buscar producto..."
+      [value]="filters().search"
+      (input)="filtersChange.emit({ search: $any($event.target).value })"
+      aria-label="Buscar producto"
+    />
+  </div>
+
+  <select
+    class="toolbar__select"
+    [value]="filters().categoryId"
+    (change)="filtersChange.emit({ categoryId: $any($event.target).value })"
+    aria-label="Filtrar por categoría"
+  >
+    <option value="">Todas las categorías</option>
+    <option value="cat1">Abarrotes</option>
+    <option value="cat2">Lácteos</option>
+    <option value="cat3">Bebidas</option>
+    <option value="cat4">Snacks</option>
+    <option value="cat5">Limpieza</option>
+    <option value="cat6">Panadería</option>
+  </select>
+
+  <select
+    class="toolbar__select"
+    [value]="filters().stockFilter"
+    (change)="filtersChange.emit({ stockFilter: $any($event.target).value })"
+    aria-label="Filtrar por stock"
+  >
+    <option value="all">Todo el stock</option>
+    <option value="low">Stock bajo</option>
+    <option value="out">Sin stock</option>
+    <option value="ok">Stock OK</option>
+  </select>
+
+  <div class="toolbar__view-toggle" role="group" aria-label="Modo de vista">
+    <button
+      class="toolbar__view-btn"
+      [class.toolbar__view-btn--active]="viewMode() === 'grid'"
+      (click)="viewModeChange.emit('grid')"
+      aria-label="Vista cuadrícula"
+      [attr.aria-pressed]="viewMode() === 'grid'"
+    >
+      <span class="material-icons-outlined">grid_view</span>
+    </button>
+    <button
+      class="toolbar__view-btn"
+      [class.toolbar__view-btn--active]="viewMode() === 'list'"
+      (click)="viewModeChange.emit('list')"
+      aria-label="Vista lista"
+      [attr.aria-pressed]="viewMode() === 'list'"
+    >
+      <span class="material-icons-outlined">view_list</span>
+    </button>
+  </div>
+
+  <div class="toolbar__actions">
+    <button class="toolbar__btn toolbar__btn--secondary" (click)="importCsv.emit()" type="button">
+      <span class="material-icons-outlined">upload_file</span>
+      Importar CSV
+    </button>
+    <button class="toolbar__btn toolbar__btn--primary" (click)="newProduct.emit()" type="button">
+      <span class="material-icons-outlined">add</span>
+      Nuevo producto
+    </button>
+  </div>
+</div>
