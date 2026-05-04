@@ -167,7 +167,7 @@
 - [x] `GET /stores/:storeId/payment-history` → stub `{ data: [] }` (pasarela pendiente)
 - [x] `GET /stores/:storeId/payment-method` → stub `null` (pasarela pendiente)
 - [ ] Integración real con pasarela de pago (Culqi / Stripe — decisión pendiente)
-- [ ] Validación de blockers al degradar (productos > límite del plan, etc.)
+- [x] Validación de blockers al degradar — `getDowngradeBlockers()` en `SubscriptionStore` valida productos, pedidos y empleados contra límites del plan objetivo antes de permitir el cambio. Si hay excesos, el store setea error con los detalles.
 
 > **Schema Prisma:** `billingCycle String @default("monthly")` + `trialEndsAt DateTime?` en StoreSubscription.
 > **Frontend:** `PlanId` cambiado de union type a `string` (IDs son UUIDs en producción). `plan` incluido en subscription response.
