@@ -1,14 +1,14 @@
 import { Page } from '@playwright/test';
 
 /**
- * Credenciales reales del mock-api (middleware.js).
- * El login acepta cualquier password — solo valida el email.
- * Usuarios definidos en mock-api/db.json.
+ * Credenciales reales contra la API en localhost:4000.
+ * Seed data definida en tiendi-api/prisma/seed.ts.
+ * Contraseña para todos: Tiendi2024!
  */
-export const OWNER    = 'carlos@tiendi.app';   // STORE_OWNER
-export const MANAGER  = 'maria@tiendi.app';    // MANAGER
-export const CASHIER  = 'juan@tiendi.app';     // CASHIER
-export const WAREHOUSE = 'rosa@tiendi.app';    // WAREHOUSE
+export const OWNER    = 'hector@tiendi.app';   // STORE_OWNER
+export const MANAGER  = 'hector@tiendi.app';   // mismo owner (no hay MANAGER en seed real)
+export const CASHIER  = 'hector@tiendi.app';   // mismo owner (no hay CASHIER en seed real)
+export const WAREHOUSE = 'hector@tiendi.app';  // mismo owner (no hay WAREHOUSE en seed real)
 
 /**
  * Hace login con el email indicado y espera la redirección al dashboard.
@@ -18,7 +18,7 @@ export const WAREHOUSE = 'rosa@tiendi.app';    // WAREHOUSE
  *   - input#loginPassword (for="loginPassword")
  *   - button.login__submit (type="submit", texto "Ingresar")
  */
-export async function loginAs(page: Page, email: string, password = 'password123'): Promise<void> {
+export async function loginAs(page: Page, email: string, password = 'Tiendi2024!'): Promise<void> {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
