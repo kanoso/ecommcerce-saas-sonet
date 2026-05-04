@@ -1,0 +1,57 @@
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1024px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-icon--sales { background: #D1FAE5; color: #047857; }
+.kpi-icon--orders { background: #DBEAFE; color: #1D4ED8; }
+.kpi-icon--ticket { background: #FEF3C7; color: #B45309; }
+.kpi-icon--customers { background: #EDE9FE; color: #6D28D9; }
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.kpi-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+.kpi-change {
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.kpi-change--up { color: #047857; }
+.kpi-change--down { color: #EF4444; }
