@@ -1,0 +1,103 @@
+<header class="topbar" role="banner">
+  <!-- Logo + Store Name -->
+  <div class="topbar__brand">
+    <a routerLink="/vendor/dashboard" class="topbar__logo" aria-label="Ir al dashboard">
+      <span class="topbar__logo-icon" aria-hidden="true">🛍️</span>
+      <span class="topbar__logo-text">Tiendi</span>
+    </a>
+    @if (storeName()) {
+      <span class="topbar__store-name" aria-label="Tienda: {{ storeName() }}">
+        {{ storeName() }}
+      </span>
+    }
+  </div>
+
+  <!-- Actions -->
+  <div class="topbar__actions">
+    <!-- Notifications -->
+    <button
+      type="button"
+      class="topbar__action-btn"
+      aria-label="Notificaciones{{ unreadNotifications() > 0 ? ', ' + unreadNotifications() + ' sin leer' : '' }}"
+      (click)="notificationClick.emit()"
+    >
+      <span class="material-icons-outlined" aria-hidden="true">notifications</span>
+      @if (unreadNotifications() > 0) {
+        <td-badge
+          [count]="unreadNotifications()"
+          variant="danger"
+          class="topbar__badge"
+        />
+      }
+    </button>
+
+    <!-- Menu toggle (mobile) -->
+    <button
+      type="button"
+      class="topbar__menu-btn topbar__menu-btn--mobile"
+      aria-label="Abrir menú"
+      aria-expanded="false"
+      (click)="menuToggle.emit()"
+    >
+      <span class="material-icons-outlined" aria-hidden="true">menu</span>
+    </button>
+
+    <!-- Profile dropdown -->
+    <div class="topbar__profile">
+      <button
+        type="button"
+        class="topbar__profile-btn"
+        [attr.aria-expanded]="dropdownOpen()"
+        aria-haspopup="menu"
+        aria-label="Menú de perfil"
+        (click)="toggleDropdown()"
+      >
+        <td-avatar
+          [name]="userName() || 'Usuario'"
+          size="sm"
+          [ariaLabel]="null"
+        />
+        <span class="material-icons-outlined topbar__chevron" aria-hidden="true">
+          {{ dropdownOpen() ? 'expand_less' : 'expand_more' }}
+        </span>
+      </button>
+
+      @if (dropdownOpen()) {
+        <div
+          class="topbar__dropdown"
+          role="menu"
+          aria-label="Opciones de perfil"
+          (mouseleave)="dropdownOpen.set(false)"
+        >
+          <div class="topbar__user-header">
+            <p class="topbar__user-name">{{ userName() }}</p>
+            <p class="topbar__user-email">{{ userEmail() }}</p>
+            @if (userRole()) {
+              <span class="topbar__user-role">{{ userRole() }}</span>
+            }
+          </div>
+          <hr class="topbar__divider" role="separator" />
+          <button
+            type="button"
+            role="menuitem"
+            class="topbar__dropdown-item"
+            (click)="profileClick.emit(); dropdownOpen.set(false)"
+          >
+            <span class="material-icons-outlined" aria-hidden="true">person</span>
+            Mi perfil
+          </button>
+          <hr class="topbar__divider" role="separator" />
+          <button
+            type="button"
+            role="menuitem"
+            class="topbar__dropdown-item topbar__dropdown-item--danger"
+            (click)="logoutClick.emit(); dropdownOpen.set(false)"
+          >
+            <span class="material-icons-outlined" aria-hidden="true">logout</span>
+            Cerrar sesión
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>

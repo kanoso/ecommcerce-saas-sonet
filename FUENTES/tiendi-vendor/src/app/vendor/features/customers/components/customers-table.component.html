@@ -1,0 +1,88 @@
+<!-- Desktop table -->
+<div class="table-wrapper" role="region" aria-label="Lista de clientes">
+  @if (customers().length === 0) {
+    <div class="empty-state" role="status">
+      <svg width="48" height="48" fill="none" stroke="#9CA3AF" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <p>No hay clientes que coincidan con el filtro.</p>
+    </div>
+  } @else {
+    <table class="customers-table">
+      <thead>
+        <tr>
+          <th scope="col">Cliente</th>
+          <th scope="col" class="text-right">Pedidos</th>
+          <th scope="col" class="text-right">Total comprado</th>
+          <th scope="col">Último pedido</th>
+          <th scope="col">Tipo</th>
+          <th scope="col" class="sr-only">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (customer of customers(); track customer.id) {
+          <tr class="customer-row">
+            <!-- Avatar + info -->
+            <td class="customer-cell">
+              <div class="customer-info">
+                <div
+                  class="avatar"
+                  [style.background-color]="customer.avatarColor"
+                  aria-hidden="true"
+                >
+                  {{ getInitials(customer.name) }}
+                </div>
+                <div class="customer-text">
+                  <span class="customer-name">{{ customer.name }}</span>
+                  <span class="customer-contact">{{ customer.phone }}</span>
+                  <span class="customer-contact">{{ customer.email }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Pedidos -->
+            <td class="text-right">
+              <span class="orders-count">{{ customer.totalOrders }}</span>
+            </td>
+
+            <!-- Total -->
+            <td class="text-right">
+              <span class="total-spent">S/ {{ customer.totalSpent | number:'1.2-2' }}</span>
+            </td>
+
+            <!-- Último pedido -->
+            <td>
+              @if (customer.lastOrderDate) {
+                <span class="last-order">{{ customer.lastOrderDate | date:'dd/MM/yyyy' }}</span>
+              } @else {
+                <span class="text-muted">Sin pedidos</span>
+              }
+            </td>
+
+            <!-- Tag tipo -->
+            <td>
+              <span class="tag" [class]="getTagClass(customer.type)">
+                {{ getTypeLabel(customer.type) }}
+              </span>
+            </td>
+
+            <!-- Acción -->
+            <td>
+              <button
+                class="btn-detail"
+                (click)="viewDetail.emit(customer.id)"
+                [attr.aria-label]="'Ver detalle de ' + customer.name"
+                type="button"
+              >
+                Ver detalle
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

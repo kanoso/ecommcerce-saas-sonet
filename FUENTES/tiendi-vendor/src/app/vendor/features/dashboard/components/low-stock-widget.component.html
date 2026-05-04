@@ -1,0 +1,88 @@
+<div class="widget" role="region" aria-label="Productos con stock bajo">
+  <div class="widget__header">
+    <h2 class="widget__title">⚠️ Productos con stock bajo</h2>
+    <a routerLink="/vendor/products" class="widget__link">Ver todos →</a>
+  </div>
+
+  <div class="widget__body">
+    @if (isLoading()) {
+      <table class="stock-table" aria-busy="true">
+        <tbody>
+          @for (row of skeletonRows; track $index) {
+            <tr>
+              <td><td-skeleton variant="line" width="140px" /></td>
+              <td><td-skeleton variant="line" width="80px" /></td>
+              <td><td-skeleton variant="line" width="60px" /></td>
+              <td><td-skeleton variant="line" width="60px" /></td>
+              <td><td-skeleton variant="line" width="100px" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (products().length === 0) {
+      <td-empty-state
+        title="Sin productos con stock bajo 🎉"
+        message="Todos tus productos tienen stock suficiente."
+        icon="check_circle"
+      />
+    } @else {
+      <table class="stock-table">
+        <thead>
+          <tr>
+            <th scope="col">Producto</th>
+            <th scope="col">Categoría</th>
+            <th scope="col">Precio</th>
+            <th scope="col">Stock</th>
+            <th scope="col"><span class="sr-only">Acción</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of products(); track product.id) {
+            <tr>
+              <td class="stock-table__name">{{ product.name }}</td>
+              <td class="stock-table__category">{{ product.categoryId }}</td>
+              <td>S/ {{ product.price.toFixed(2) }}</td>
+              <td>
+                @if (product.stock === 0) {
+                  <span class="stock-zero">0 unidades 🔴</span>
+                } @else {
+                  <span class="stock-low">{{ product.stock }} unidades ⚠️</span>
+                }
+              </td>
+              <td>
+                @if (editingId() === product.id) {
+                  <div class="stock-edit" role="group" [attr.aria-label]="'Editar stock de ' + product.name">
+                    <input
+                      class="stock-edit__input"
+                      type="number"
+                      [ngModel]="editValue()"
+                      (ngModelChange)="editValue.set($event)"
+                      min="0"
+                      [attr.aria-label]="'Nuevo stock para ' + product.name"
+                    />
+                    <button
+                      class="stock-edit__btn stock-edit__btn--confirm"
+                      (click)="confirmEdit()"
+                      aria-label="Confirmar stock"
+                    >✓</button>
+                    <button
+                      class="stock-edit__btn stock-edit__btn--cancel"
+                      (click)="cancelEdit()"
+                      aria-label="Cancelar edición"
+                    >✗</button>
+                  </div>
+                } @else {
+                  <button
+                    class="stock-table__btn"
+                    (click)="startEdit(product)"
+                    [attr.aria-label]="'Agregar stock a ' + product.name"
+                  >Agregar stock</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

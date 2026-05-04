@@ -1,0 +1,119 @@
+@if (isLoading()) {
+  <div class="product-grid" aria-label="Cargando productos" aria-busy="true">
+    @for (n of skeletons; track n) {
+      <div class="product-card">
+        <td-skeleton variant="rect" height="120px" />
+        <div class="product-card__body" style="display:flex;flex-direction:column;gap:8px;">
+          <td-skeleton variant="line" width="60%" height="11px" />
+          <td-skeleton variant="line" width="80%" height="14px" />
+          <td-skeleton variant="line" width="40%" height="14px" />
+          <td-skeleton variant="line" width="50%" height="12px" />
+        </div>
+      </div>
+    }
+  </div>
+} @else if (products().length === 0) {
+  <td-empty-state
+    title="Sin productos aún"
+    message="Agregá tu primer producto para empezar a vender"
+    icon="inventory_2"
+    actionLabel="Agregar producto"
+    (action)="edit.emit('new')"
+  />
+} @else {
+  <div class="product-grid" role="list" [attr.aria-label]="products().length + ' productos'">
+    @for (product of products(); track product.id) {
+      <article class="product-card" role="listitem" [attr.aria-label]="product.name">
+        <div class="product-card__img">
+          @if (product.imageUrls.length > 0) {
+            <img
+              [src]="product.imageUrls[0]"
+              [alt]="product.name"
+              class="product-card__image"
+            />
+          } @else {
+            <span class="material-icons-outlined product-card__placeholder" aria-hidden="true">
+              inventory_2
+            </span>
+          }
+
+          @if (product.stock === 0) {
+            <span class="product-card__badge product-card__badge--out" aria-label="Sin stock">
+              Sin stock
+            </span>
+          } @else if (product.stock <= product.stockAlert) {
+            <span class="product-card__badge product-card__badge--low" aria-label="Stock bajo">
+              Stock bajo
+            </span>
+          }
+        </div>
+
+        <div class="product-card__body">
+          <span class="product-card__category">{{ getCategoryName(product.categoryId) }}</span>
+          <h3 class="product-card__name">{{ product.name }}</h3>
+
+          <div class="product-card__price">
+            @if (product.discountPrice) {
+              <span class="product-card__price-offer">S/ {{ product.discountPrice | number:'1.2-2' }}</span>
+              <span class="product-card__price-original">S/ {{ product.price | number:'1.2-2' }}</span>
+            } @else {
+              <span class="product-card__price-current">S/ {{ product.price | number:'1.2-2' }}</span>
+            }
+          </div>
+
+          <div class="product-card__stock" [class.product-card__stock--out]="product.stock === 0" [class.product-card__stock--low]="product.stock > 0 && product.stock <= product.stockAlert">
+            @if (product.stock === 0) {
+              <span class="material-icons-outlined" aria-hidden="true" style="font-size:14px">cancel</span>
+              0 uds
+            } @else if (product.stock <= product.stockAlert) {
+              <span class="material-icons-outlined" aria-hidden="true" style="font-size:14px">warning</span>
+              {{ product.stock }} uds
+            } @else {
+              <span class="material-icons-outlined" aria-hidden="true" style="font-size:14px">check_circle</span>
+              {{ product.stock }} uds
+            }
+          </div>
+
+          @if (deletingId() === product.id) {
+            <div class="product-card__confirm" role="alertdialog" aria-label="Confirmar eliminación">
+              <p class="product-card__confirm-msg">¿Eliminar este producto?</p>
+              <div class="product-card__confirm-actions">
+                <button
+                  class="product-card__btn product-card__btn--danger"
+                  (click)="confirmDelete(product.id)"
+                  type="button"
+                  aria-label="Confirmar eliminación de producto"
+                >Eliminar</button>
+                <button
+                  class="product-card__btn product-card__btn--cancel"
+                  (click)="cancelDelete()"
+                  type="button"
+                >Cancelar</button>
+              </div>
+            </div>
+          } @else {
+            <div class="product-card__actions">
+              <button
+                class="product-card__btn product-card__btn--edit"
+                (click)="edit.emit(product.id)"
+                type="button"
+                [attr.aria-label]="'Editar ' + product.name"
+              >
+                <span class="material-icons-outlined" aria-hidden="true">edit</span>
+                Editar
+              </button>
+              <button
+                class="product-card__btn product-card__btn--delete"
+                (click)="requestDelete(product.id)"
+                type="button"
+                [attr.aria-label]="'Eliminar ' + product.name"
+              >
+                <span class="material-icons-outlined" aria-hidden="true">delete</span>
+              </button>
+            </div>
+          }
+        </div>
+      </article>
+    }
+  </div>
+}

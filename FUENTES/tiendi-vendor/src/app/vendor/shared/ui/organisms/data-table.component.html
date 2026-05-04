@@ -1,0 +1,94 @@
+<div class="table-wrapper" role="region" [attr.aria-label]="caption()">
+  <table class="data-table">
+    <caption class="sr-only">{{ caption() }}</caption>
+
+    <thead>
+      <tr>
+        @if (selectable()) {
+          <th scope="col" class="col-check">
+            <input
+              type="checkbox"
+              [checked]="allSelected()"
+              [indeterminate]="someSelected()"
+              (change)="onSelectAll($event)"
+              aria-label="Seleccionar todos"
+            />
+          </th>
+        }
+        @for (col of columns(); track col.key) {
+          <th
+            scope="col"
+            [style.width]="col.width ?? 'auto'"
+            [class.sortable]="col.sortable"
+            (click)="col.sortable && onSort(col)"
+            [attr.aria-sort]="col.sortable ? 'none' : null"
+          >
+            {{ col.header }}
+            @if (col.sortable) {
+              <span class="material-icons-outlined sort-icon" aria-hidden="true">unfold_more</span>
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody>
+      @if (loading()) {
+        @for (row of skeletonRows(); track row) {
+          <tr class="skeleton-row" aria-hidden="true">
+            @if (selectable()) {
+              <td><td-skeleton variant="line" width="20px" height="20px" /></td>
+            }
+            @for (col of columns(); track col.key) {
+              <td><td-skeleton variant="line" /></td>
+            }
+          </tr>
+        }
+      } @else if (data().length === 0) {
+        <tr>
+          <td [attr.colspan]="colSpan()" class="empty-cell">
+            <td-empty-state
+              [title]="emptyMessage()"
+              message="Intentá ajustar los filtros o revisá más tarde."
+              icon="inbox"
+            />
+          </td>
+        </tr>
+      } @else {
+        @for (row of data(); track trackRow($index, row)) {
+          <tr
+            [ngClass]="{ 'row-selected': isSelected(row), 'row-clickable': true }"
+            (click)="onRowClick(row)"
+            (keydown.enter)="onRowClick(row)"
+            [attr.tabindex]="0"
+            [attr.aria-selected]="selectable() ? isSelected(row) : null"
+          >
+            @if (selectable()) {
+              <td class="col-check" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(row)"
+                  (change)="onToggleRow(row)"
+                  [attr.aria-label]="'Seleccionar fila ' + ($index + 1)"
+                />
+              </td>
+            }
+
+            @for (col of columns(); track col.key) {
+              <td [style.width]="col.width ?? 'auto'">
+                @if (col.cellTemplate) {
+                  <ng-container
+                    [ngTemplateOutlet]="col.cellTemplate"
+                    [ngTemplateOutletContext]="{ $implicit: row }"
+                  />
+                } @else {
+                  {{ getCellValue(row, col.key) }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

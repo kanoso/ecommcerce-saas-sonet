@@ -1,0 +1,89 @@
+<form [formGroup]="form" (ngSubmit)="onNext()" class="step">
+  <div class="step__logo-wrap">
+    <div
+      class="step__logo"
+      [class.step__logo--has-image]="logoPreview"
+      (click)="fileInput.click()"
+      role="button"
+      tabindex="0"
+      aria-label="Subir logo de la tienda"
+      (keydown.enter)="fileInput.click()">
+      @if (logoPreview) {
+        <img [src]="logoPreview" alt="Logo de la tienda" class="step__logo-img" />
+      } @else {
+        <span class="step__logo-initials">{{ initials }}</span>
+      }
+      <div class="step__logo-overlay">
+        <span class="material-icons-outlined">add_a_photo</span>
+      </div>
+    </div>
+    <input
+      #fileInput
+      type="file"
+      accept="image/*"
+      style="display:none"
+      (change)="onLogoChange($event)" />
+    <p class="step__logo-hint">Foto de perfil de la tienda</p>
+  </div>
+
+  <div class="step__field">
+    <label class="step__label" for="storeName">
+      Nombre de la tienda <span class="step__required">*</span>
+    </label>
+    <input
+      id="storeName"
+      type="text"
+      formControlName="name"
+      class="step__input"
+      [class.step__input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+      placeholder="Ej: Bodega Don Carlos"
+      maxlength="60" />
+    @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+      <p class="step__error">El nombre es obligatorio</p>
+    }
+    @if (form.get('name')?.hasError('maxlength')) {
+      <p class="step__error">Máximo 60 caracteres</p>
+    }
+  </div>
+
+  <div class="step__field">
+    <label class="step__label" for="storeDesc">Descripción corta</label>
+    <textarea
+      id="storeDesc"
+      formControlName="description"
+      class="step__input step__textarea"
+      [class.step__input--error]="form.get('description')?.hasError('maxlength')"
+      placeholder="Ej: Verduras frescas, abarrotes y más. Delivery en 30 min."
+      rows="2"
+      maxlength="200">
+    </textarea>
+    @if (form.get('description')?.hasError('maxlength')) {
+      <p class="step__error">Máximo 200 caracteres</p>
+    }
+  </div>
+
+  <div class="step__field">
+    <label class="step__label" for="storeAddress">Dirección</label>
+    <input
+      id="storeAddress"
+      type="text"
+      formControlName="address"
+      class="step__input"
+      placeholder="Ej: Jr. Lima 123, Miraflores" />
+  </div>
+
+  <div class="step__field">
+    <label class="step__label" for="storeWhatsapp">WhatsApp</label>
+    <input
+      id="storeWhatsapp"
+      type="tel"
+      formControlName="whatsapp"
+      class="step__input"
+      placeholder="+51 987 654 321" />
+  </div>
+
+  <app-onboarding-nav
+    [step]="1"
+    (next)="onNext()"
+    (skip)="skip.emit()" />
+</form>

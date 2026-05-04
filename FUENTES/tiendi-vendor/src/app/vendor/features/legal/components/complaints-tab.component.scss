@@ -1,0 +1,106 @@
+.complaints-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+}
+.complaints-header__counts { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.pending-dot {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 13px; color: #92400E; background: #FEF3C7;
+  padding: 2px 10px; border-radius: 99px;
+}
+.indecopi-note {
+  font-size: 12px; color: var(--text-muted); background: var(--surface);
+  padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+}
+
+.table-wrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th {
+  text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--text-muted); padding: 10px 14px;
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+}
+.table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+
+.complaint-row:hover td { background: var(--surface); }
+.complaint-row--expanded td { background: #FAFAFA; }
+
+.expand-cell { width: 40px; text-align: center; }
+.expand-icon { font-size: 18px; color: var(--text-muted); transition: transform .2s; }
+.expand-icon.expanded { transform: rotate(90deg); }
+
+.mono { font-family: monospace; font-size: 12px; }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; padding: 3px 10px;
+  border-radius: 99px; font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.badge--sm { padding: 2px 7px; font-size: 11px; }
+.badge--yellow     { background: #FEF3C7; color: #92400E; }
+.badge--blue       { background: #DBEAFE; color: #1E40AF; }
+.badge--green      { background: #D1FAE5; color: #065F46; }
+.badge--gray       { background: #F3F4F6; color: #6B7280; }
+.badge--red        { background: #FEE2E2; color: #B91C1C; }
+.badge--red-light  { background: #FEE2E2; color: #991B1B; }
+.badge--orange-light { background: #FEF3C7; color: #92400E; }
+
+.deadline-cell { display: flex; align-items: center; gap: 6px; }
+.deadline--urgent { color: var(--danger); font-weight: 600; }
+
+/* Expand content */
+.expand-row { background: #FAFAFA; }
+.expand-content {
+  padding: 16px 20px; border-top: 1px solid var(--border);
+}
+.expand-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+.expand-col__title {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--text-muted); margin: 0 0 10px;
+}
+.complaint-description {
+  font-size: 13px; color: var(--text); line-height: 1.6;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px; min-height: 80px;
+}
+.responded-badge {
+  display: flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 12px; color: #065F46;
+}
+
+.response-textarea {
+  width: 100%; box-sizing: border-box; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; font-family: inherit; resize: vertical; line-height: 1.6;
+}
+.response-textarea:focus { outline: none; border-color: var(--primary); }
+
+.expand-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;
+  border-radius: var(--radius); font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; transition: background .15s;
+}
+.btn--sm { padding: 7px 14px; font-size: 13px; }
+.btn--primary { background: var(--primary); color: #fff; }
+.btn--primary:hover:not(:disabled) { background: var(--primary-dark); }
+.btn--primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn--ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn--ghost:hover { background: var(--surface); }
+
+.empty-state {
+  text-align: center; padding: 64px 24px;
+  border: 2px dashed var(--border); border-radius: var(--radius-lg);
+}
+.empty-state__icon { font-size: 48px; color: #D1D5DB; display: block; margin-bottom: 12px; }
+.empty-state__title { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+.empty-state__sub { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+@media (max-width: 768px) {
+  .expand-grid { grid-template-columns: 1fr; }
+}

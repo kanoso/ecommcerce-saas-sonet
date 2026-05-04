@@ -1,0 +1,129 @@
+<!-- Header -->
+<div class="complaints-header">
+  <div class="complaints-header__counts">
+    <strong>{{ complaints().length }} reclamacion{{ complaints().length !== 1 ? 'es' : '' }}</strong>
+    @if (pendingCount() > 0) {
+      <span class="pending-dot">{{ pendingCount() }} pendiente{{ pendingCount() !== 1 ? 's' : '' }} de respuesta</span>
+    }
+  </div>
+  <div class="indecopi-note">
+    <span class="material-icons-outlined" style="font-size:15px;vertical-align:middle">info</span>
+    Plazo legal INDECOPI: <strong>30 días hábiles</strong> para responder desde la recepción.
+  </div>
+</div>
+
+<!-- Tabla -->
+@if (complaints().length === 0) {
+  <div class="empty-state">
+    <span class="material-icons-outlined empty-state__icon">inbox</span>
+    <p class="empty-state__title">Sin reclamaciones</p>
+    <p class="empty-state__sub">No hay reclamaciones registradas en el libro.</p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:40px"></th>
+          <th>N°</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Vence</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of complaints(); track c.id) {
+          <tr class="complaint-row" [class.complaint-row--expanded]="expandedId() === c.id"
+            (click)="toggleExpand(c.id)" style="cursor:pointer">
+            <td class="expand-cell">
+              <span class="material-icons-outlined expand-icon"
+                [class.expanded]="expandedId() === c.id">
+                chevron_right
+              </span>
+            </td>
+            <td class="mono">{{ c.code }}</td>
+            <td>{{ c.createdAt | date:'dd/MM/yyyy' }}</td>
+            <td>{{ c.customerName }}</td>
+            <td>
+              @switch (c.type) {
+                @case ('reclamo') { <span class="badge badge--red-light">Reclamo</span> }
+                @case ('queja')   { <span class="badge badge--orange-light">Queja</span> }
+              }
+            </td>
+            <td>
+              @switch (c.status) {
+                @case ('PENDING')    { <span class="badge badge--yellow">Pendiente</span> }
+                @case ('IN_REVIEW')  { <span class="badge badge--blue">En revisión</span> }
+                @case ('RESPONDED')  { <span class="badge badge--green">Respondido</span> }
+                @case ('CLOSED')     { <span class="badge badge--gray">Cerrado</span> }
+              }
+            </td>
+            <td>
+              <div class="deadline-cell">
+                <span [class.deadline--urgent]="getDays(c) <= 5 && c.status !== 'CLOSED' && c.status !== 'RESPONDED'">
+                  {{ c.deadlineAt | date:'dd/MM' }}
+                </span>
+                @if (getDays(c) <= 5 && c.status !== 'CLOSED' && c.status !== 'RESPONDED') {
+                  <span class="badge badge--red badge--sm">{{ getDays(c) }}d</span>
+                }
+              </div>
+            </td>
+          </tr>
+
+          <!-- Fila expandida -->
+          @if (expandedId() === c.id) {
+            <tr class="expand-row">
+              <td colspan="7" style="padding:0">
+                <div class="expand-content" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()" role="presentation">
+                  <div class="expand-grid">
+                    <!-- Descripción del cliente -->
+                    <div class="expand-col">
+                      <h4 class="expand-col__title">Descripción del cliente</h4>
+                      <div class="complaint-description">{{ c.description }}</div>
+                      @if (c.vendorResponse) {
+                        <div class="responded-badge">
+                          <span class="material-icons-outlined" style="font-size:16px">check_circle</span>
+                          Respuesta enviada el {{ c.createdAt | date:'dd/MM/yyyy' }}
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Textarea respuesta -->
+                    <div class="expand-col">
+                      <h4 class="expand-col__title">Tu respuesta</h4>
+                      @if (c.status === 'RESPONDED' || c.status === 'CLOSED') {
+                        <div class="complaint-description">
+                          {{ c.vendorResponse ?? 'Sin respuesta registrada' }}
+                        </div>
+                      } @else {
+                        <textarea class="response-textarea"
+                          rows="5"
+                          placeholder="Escribí tu respuesta al cliente..."
+                          [ngModel]="getDraft(c)"
+                          (ngModelChange)="setDraft(c.id, $event)"
+                        ></textarea>
+                        <div class="expand-actions">
+                          <button class="btn btn--ghost btn--sm"
+                            (click)="onSaveDraft(c)">
+                            Guardar borrador
+                          </button>
+                          <button class="btn btn--primary btn--sm"
+                            [disabled]="!getDraft(c)"
+                            (click)="onRespond(c)">
+                            Enviar respuesta
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+}

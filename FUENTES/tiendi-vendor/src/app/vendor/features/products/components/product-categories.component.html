@@ -1,0 +1,108 @@
+<div class="categories">
+
+  <div class="callout" role="note">
+    <span class="material-icons-outlined callout__icon" aria-hidden="true">info</span>
+    <p class="callout__text">
+      Las <strong>categorías globales</strong> son definidas por Tiendi para mantener
+      coherencia en el catálogo. Podés agregar subcategorías propias dentro de cada una
+      para organizar mejor tus productos.
+    </p>
+  </div>
+
+  <div class="categories__grid">
+    <!-- Árbol de categorías -->
+    <div class="categories__tree" aria-label="Categorías globales">
+      @for (cat of globalCats; track cat.id) {
+        <div class="cat-card" [class.cat-card--expanded]="expandedId() === cat.id">
+          <div class="cat-card__header">
+            <div class="cat-card__info">
+              <span class="material-icons-outlined cat-card__icon" aria-hidden="true">{{ cat.icon }}</span>
+              <div>
+                <span class="cat-card__name">{{ cat.name }}</span>
+                <span class="cat-card__badge">Global 🌐</span>
+              </div>
+            </div>
+            <div class="cat-card__actions">
+              <button
+                class="cat-card__btn cat-card__btn--add"
+                (click)="selectedCat.set(cat)"
+                type="button"
+                [attr.aria-label]="'Agregar subcategoría a ' + cat.name"
+              >
+                + Subcategoría
+              </button>
+              <button
+                class="cat-card__btn cat-card__btn--toggle"
+                (click)="toggleExpand(cat.id)"
+                type="button"
+                [attr.aria-label]="(expandedId() === cat.id ? 'Colapsar' : 'Expandir') + ' ' + cat.name"
+                [attr.aria-expanded]="expandedId() === cat.id"
+              >
+                <span class="material-icons-outlined" aria-hidden="true">
+                  {{ expandedId() === cat.id ? 'expand_less' : 'expand_more' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          @if (expandedId() === cat.id) {
+            <div class="cat-card__subs" role="list" [attr.aria-label]="'Subcategorías de ' + cat.name">
+              @for (sub of cat.subcategories; track sub) {
+                <div class="cat-card__sub" role="listitem">
+                  <span class="material-icons-outlined cat-card__sub-icon" aria-hidden="true">subdirectory_arrow_right</span>
+                  <span class="cat-card__sub-name">{{ sub }}</span>
+                  <span class="cat-card__sub-badge">Global</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Panel derecho -->
+    <div class="categories__panel">
+      <div class="card">
+        <h3 class="card__title">
+          <span class="material-icons-outlined" aria-hidden="true">bar_chart</span>
+          Resumen
+        </h3>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat__value">{{ globalCats.length }}</span>
+            <span class="stat__label">Categorías globales</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value">{{ totalSubcategories }}</span>
+            <span class="stat__label">Subcategorías disponibles</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value">{{ categories().length }}</span>
+            <span class="stat__label">Categorías en uso</span>
+          </div>
+        </div>
+      </div>
+
+      @if (selectedCat()) {
+        <div class="card">
+          <h3 class="card__title">Nueva subcategoría en <em>{{ selectedCat()!.name }}</em></h3>
+          <p class="card__hint">Esta funcionalidad estará disponible próximamente.</p>
+          <button class="btn-cancel" (click)="selectedCat.set(null)" type="button">Cancelar</button>
+        </div>
+      }
+
+      <div class="card card--info">
+        <h3 class="card__title">
+          <span class="material-icons-outlined" aria-hidden="true">help_outline</span>
+          ¿Cómo funcionan las categorías?
+        </h3>
+        <ul class="info-list">
+          <li>Las categorías globales <strong>no pueden modificarse</strong> — son estándares de Tiendi.</li>
+          <li>Podés crear <strong>subcategorías propias</strong> dentro de cada categoría global.</li>
+          <li>Asignás la categoría a cada producto desde el <strong>formulario de producto</strong>.</li>
+          <li>Los compradores filtran tu catálogo por estas categorías.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

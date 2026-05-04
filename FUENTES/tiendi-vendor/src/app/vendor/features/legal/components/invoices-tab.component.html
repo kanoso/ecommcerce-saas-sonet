@@ -1,0 +1,80 @@
+<!-- Filtros -->
+<div class="filters">
+  <select class="form-input" [ngModel]="filters().type"
+    (ngModelChange)="onFilterChange('type', $event)">
+    <option value="">Todos los tipos</option>
+    <option value="boleta">Boleta</option>
+    <option value="factura">Factura</option>
+  </select>
+
+  <div class="date-range">
+    <input type="date" class="form-input" placeholder="Desde"
+      [ngModel]="filters().dateFrom"
+      (ngModelChange)="onFilterChange('dateFrom', $event)">
+    <span class="date-sep">—</span>
+    <input type="date" class="form-input" placeholder="Hasta"
+      [ngModel]="filters().dateTo"
+      (ngModelChange)="onFilterChange('dateTo', $event)">
+  </div>
+
+  <button class="btn btn--outline" (click)="export.emit()">
+    <span class="material-icons-outlined" style="font-size:16px">download</span>
+    Exportar
+  </button>
+</div>
+
+<!-- Tabla -->
+@if (invoices().length === 0) {
+  <div class="empty-state">
+    <span class="material-icons-outlined empty-state__icon">receipt_long</span>
+    <p class="empty-state__title">Sin comprobantes</p>
+    <p class="empty-state__sub">No hay comprobantes que coincidan con los filtros seleccionados.</p>
+  </div>
+} @else {
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>N° Serie</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th class="text-right">Total</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (inv of invoices(); track inv.id) {
+          <tr>
+            <td class="mono">{{ inv.series }}</td>
+            <td>{{ inv.date | date:'dd/MM/yyyy' }}</td>
+            <td>{{ inv.customerName }}</td>
+            <td>
+              @switch (inv.type) {
+                @case ('boleta') {
+                  <span class="badge badge--green">Boleta</span>
+                }
+                @case ('factura') {
+                  <span class="badge badge--blue">Factura</span>
+                }
+              }
+            </td>
+            <td class="text-right font-medium">S/ {{ inv.total | number:'1.2-2' }}</td>
+            <td class="text-center">
+              <div class="actions">
+                <button class="icon-btn" title="Descargar PDF"
+                  (click)="onDownload(inv)">
+                  <span class="material-icons-outlined">download</span>
+                </button>
+                <button class="icon-btn" title="Ver comprobante"
+                  (click)="onView(inv)">
+                  <span class="material-icons-outlined">visibility</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

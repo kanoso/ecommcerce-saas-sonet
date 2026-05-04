@@ -1,0 +1,123 @@
+:host { display: block; }
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step__logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.step__logo {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  border: 2px dashed var(--primary);
+  transition: border-color 0.2s;
+}
+
+.step__logo--has-image {
+  border-style: solid;
+}
+
+.step__logo:hover .step__logo-overlay {
+  opacity: 1;
+}
+
+.step__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.step__logo-initials {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+}
+
+.step__logo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 50%;
+}
+
+.step__logo-overlay .material-icons-outlined {
+  color: #fff;
+  font-size: 24px;
+}
+
+.step__logo-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.step__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.step__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.step__required {
+  color: var(--danger);
+}
+
+.step__input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--card);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.step__input:focus {
+  border-color: var(--primary);
+}
+
+.step__input--error {
+  border-color: var(--danger);
+}
+
+.step__textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.step__error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 0;
+}

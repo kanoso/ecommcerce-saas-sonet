@@ -1,0 +1,86 @@
+<form [formGroup]="form" (ngSubmit)="onNext()" class="step">
+  <div class="step__field">
+    <span class="step__label" id="product-image-label">Imagen del producto</span>
+    <div
+      class="step__dropzone"
+      [class.step__dropzone--has-image]="imagePreview"
+      (click)="fileInput.click()"
+      (dragover)="onDragOver($event)"
+      (drop)="onDrop($event)"
+      role="button"
+      tabindex="0"
+      aria-labelledby="product-image-label"
+      (keydown.enter)="fileInput.click()">
+      @if (imagePreview) {
+        <img [src]="imagePreview" alt="Imagen del producto" class="step__dropzone-img" />
+      } @else {
+        <span class="material-icons-outlined step__dropzone-icon">image</span>
+        <span class="step__dropzone-text">Arrastrá o hacé click para subir</span>
+      }
+    </div>
+    <input
+      #fileInput
+      type="file"
+      accept="image/*"
+      style="display:none"
+      (change)="onFileChange($event)" />
+  </div>
+
+  <div class="step__field">
+    <label class="step__label" for="productName">
+      Nombre del producto <span class="step__required">*</span>
+    </label>
+    <input
+      id="productName"
+      type="text"
+      formControlName="name"
+      class="step__input"
+      [class.step__input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+      placeholder="Ej: Arroz Costeño 5kg" />
+    @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+      <p class="step__error">El nombre es obligatorio</p>
+    }
+  </div>
+
+  <div class="step__grid">
+    <div class="step__field">
+      <label class="step__label" for="productPrice">Precio (S/)</label>
+      <div class="step__input-wrap">
+        <span class="step__prefix">S/</span>
+        <input
+          id="productPrice"
+          type="number"
+          formControlName="price"
+          class="step__input step__input--prefixed"
+          [class.step__input--error]="form.get('price')?.invalid && form.get('price')?.touched"
+          placeholder="0.00"
+          min="0"
+          step="0.10" />
+      </div>
+      @if (form.get('price')?.hasError('min')) {
+        <p class="step__error">El precio no puede ser negativo</p>
+      }
+    </div>
+
+    <div class="step__field">
+      <label class="step__label" for="productStock">Stock inicial</label>
+      <input
+        id="productStock"
+        type="number"
+        formControlName="stock"
+        class="step__input"
+        [class.step__input--error]="form.get('stock')?.invalid && form.get('stock')?.touched"
+        placeholder="0"
+        min="0" />
+      @if (form.get('stock')?.hasError('min')) {
+        <p class="step__error">El stock no puede ser negativo</p>
+      }
+    </div>
+  </div>
+
+  <app-onboarding-nav
+    [step]="2"
+    (next)="onNext()"
+    (prev)="prev.emit()"
+    (skip)="skip.emit()" />
+</form>

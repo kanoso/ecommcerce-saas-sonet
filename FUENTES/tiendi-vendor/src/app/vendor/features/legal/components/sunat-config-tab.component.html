@@ -1,0 +1,113 @@
+<!-- Header con badge Plan Pro -->
+<div class="tab-header">
+  <div>
+    <h3 class="tab-header__title">Facturación Electrónica SUNAT</h3>
+    <p class="tab-header__sub">Configurá tu operador de servicios electrónicos (OSE) para emitir comprobantes.</p>
+  </div>
+  <span class="badge-plan">
+    <span class="material-icons-outlined" style="font-size:14px">workspace_premium</span>
+    Plan Pro
+  </span>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="sunat-form">
+
+  <!-- Datos empresa -->
+  <fieldset class="form-section">
+    <legend class="section-title">Datos de la empresa</legend>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="sunat-ruc">RUC <span class="req">*</span></label>
+        <input id="sunat-ruc" class="form-input" type="text" formControlName="ruc"
+          placeholder="20123456789" maxlength="11">
+        @if (form.get('ruc')?.invalid && form.get('ruc')?.touched) {
+          <span class="form-error">RUC de 11 dígitos requerido</span>
+        }
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sunat-razonSocial">Razón Social <span class="req">*</span></label>
+        <input id="sunat-razonSocial" class="form-input" type="text" formControlName="razonSocial"
+          placeholder="Mi Empresa S.A.C.">
+      </div>
+      <div class="form-group form-group--full">
+        <label class="form-label" for="sunat-direccion">Dirección Fiscal</label>
+        <input id="sunat-direccion" class="form-input" type="text" formControlName="direccionFiscal"
+          placeholder="Av. Principal 123, Lima">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sunat-regimen">Régimen Tributario</label>
+        <select id="sunat-regimen" class="form-input" formControlName="regimen">
+          <option value="RUS">Nuevo RUS</option>
+          <option value="RER">Régimen Especial</option>
+          <option value="RMT">Régimen MYPE Tributario</option>
+          <option value="RG">Régimen General</option>
+        </select>
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- Series de comprobantes -->
+  <fieldset class="form-section">
+    <legend class="section-title">Series de comprobantes</legend>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="sunat-seriesBoleta">Serie Boleta</label>
+        <input id="sunat-seriesBoleta" class="form-input" type="text" formControlName="seriesBoleta"
+          placeholder="B001">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sunat-seriesFactura">Serie Factura</label>
+        <input id="sunat-seriesFactura" class="form-input" type="text" formControlName="seriesFactura"
+          placeholder="F001">
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- OSE Token -->
+  <fieldset class="form-section">
+    <legend class="section-title">Operador de Servicios Electrónicos (OSE)</legend>
+
+    <div class="form-group">
+      <label class="form-label" for="sunat-oseToken">Token OSE <span class="req">*</span></label>
+      <div class="input-password">
+        <input id="sunat-oseToken" class="form-input" [type]="showToken() ? 'text' : 'password'"
+          formControlName="oseToken" placeholder="Token de acceso al OSE">
+        <button type="button" class="toggle-pwd" (click)="showToken.set(!showToken())"
+          [attr.aria-label]="showToken() ? 'Ocultar token' : 'Mostrar token'">
+          <span class="material-icons-outlined">{{ showToken() ? 'visibility_off' : 'visibility' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <span class="material-icons-outlined info-box__icon">lock</span>
+      <span>Token encriptado con AES-256. Nunca se muestra en texto plano luego de guardado.</span>
+    </div>
+  </fieldset>
+
+  <!-- Auto-emisión -->
+  <fieldset class="form-section">
+    <legend class="section-title">Automatización</legend>
+    <div class="toggle-row">
+      <div class="toggle-row__text">
+        <span id="sunat-autoEmit-label" class="toggle-row__label">Emitir automáticamente al DELIVERED</span>
+        <span class="toggle-row__hint">Genera boleta/factura cuando el pedido es marcado como entregado.</span>
+      </div>
+      <button type="button" class="toggle" [class.toggle--on]="form.get('autoEmit')?.value"
+        (click)="toggleAutoEmit()"
+        role="switch"
+        [attr.aria-checked]="form.get('autoEmit')?.value"
+        aria-labelledby="sunat-autoEmit-label">
+        <div class="toggle__thumb"></div>
+      </button>
+    </div>
+  </fieldset>
+
+  <!-- Acciones -->
+  <div class="form-actions">
+    <button type="button" class="btn btn--ghost" (click)="onCancel()">Cancelar</button>
+    <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+      @if (isSaving()) { Guardando... } @else { Guardar configuración }
+    </button>
+  </div>
+</form>
