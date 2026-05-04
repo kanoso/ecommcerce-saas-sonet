@@ -1,0 +1,44 @@
+<article
+  class="kpi-card"
+  [class.kpi-card--clickable]="true"
+  (click)="clicked.emit()"
+  (keydown.enter)="clicked.emit()"
+  tabindex="0"
+  [attr.aria-label]="title() + ': ' + value()"
+  role="button"
+>
+  @if (loading()) {
+    <div class="kpi-skeleton">
+      <td-skeleton variant="line" width="60%" height="14px" />
+      <td-skeleton variant="line" width="40%" height="32px" />
+      <td-skeleton variant="line" width="80%" height="12px" />
+    </div>
+  } @else {
+    <div class="kpi-header">
+      <span class="kpi-title">{{ title() }}</span>
+      @if (icon()) {
+        <span class="kpi-icon-wrap" aria-hidden="true">
+          <td-icon [name]="icon()" size="lg" />
+        </span>
+      }
+    </div>
+
+    <div class="kpi-value" aria-live="polite">{{ value() }}</div>
+
+    @if (change() !== null) {
+      <div
+        class="kpi-change"
+        [ngClass]="changeClass()"
+        [attr.aria-label]="changeAriaLabel()"
+      >
+        <span class="material-icons-outlined kpi-arrow" aria-hidden="true">
+          {{ change()! > 0 ? 'arrow_upward' : 'arrow_downward' }}
+        </span>
+        <span>{{ changeAbs() }}%</span>
+        @if (changeLabel()) {
+          <span class="kpi-change-label">{{ changeLabel() }}</span>
+        }
+      </div>
+    }
+  }
+</article>

@@ -84,9 +84,9 @@ Estos quedan a criterio. Si el template se siente difícil de leer o editar, ext
 - [x] `product-image-upload.component.ts` — 54 líneas ✓
 - [x] `payment-history-table.component.ts` — 54 líneas ✓
 - [ ] `order-items-list.component.ts` — 52 líneas
-- [ ] `pagination.component.ts` — 52 líneas
-- [ ] `notification-list.component.ts` — 51 líneas
-- [ ] `store-payments-tab.component.ts` — 49 líneas
+- [x] `pagination.component.ts` — 52 líneas ✓
+- [x] `notification-list.component.ts` — 51 líneas ✓
+- [x] `store-payments-tab.component.ts` — 49 líneas ✓
 - [ ] `kpi-card.component.ts` — 46 líneas
 - [ ] `period-selector.component.ts` — 46 líneas
 - [ ] `onboarding-nav.component.ts` — 44 líneas

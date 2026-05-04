@@ -1,0 +1,44 @@
+<div class="period-selector">
+  <div class="period-btns">
+    @for (btn of buttons; track btn.value) {
+      <button
+        class="btn-period"
+        [class.btn--active]="period() === btn.value"
+        (click)="select(btn.value)"
+      >
+        {{ btn.label }}
+      </button>
+    }
+    <button
+      class="btn-period"
+      [class.btn--active]="period() === 'custom'"
+      (click)="toggleCustom()"
+    >
+      Rango personalizado
+    </button>
+  </div>
+
+  @if (showCustom()) {
+    <div class="custom-range">
+      <label class="range-label">
+        Desde
+        <input
+          type="date"
+          class="date-input"
+          [value]="customRange()?.from ?? ''"
+          (change)="onFromChange($event)"
+        />
+      </label>
+      <label class="range-label">
+        Hasta
+        <input
+          type="date"
+          class="date-input"
+          [value]="customRange()?.to ?? ''"
+          (change)="onToChange($event)"
+        />
+      </label>
+      <button class="btn-apply" (click)="applyCustom()">Aplicar</button>
+    </div>
+  }
+</div>
