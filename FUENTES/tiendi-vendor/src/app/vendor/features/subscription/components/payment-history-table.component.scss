@@ -1,0 +1,153 @@
+.payment-history {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: var(--radius-lg, 12px);
+  padding: 24px;
+}
+
+.payment-history__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px;
+}
+
+.payment-history__empty {
+  color: var(--text-muted, #6B7280);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.payment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.payment-table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #6B7280);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border, #E5E7EB);
+}
+
+.payment-table tbody tr {
+  border-bottom: 1px solid var(--surface, #F3F4F6);
+  transition: background 0.1s;
+}
+
+.payment-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.payment-table tbody tr:hover {
+  background: var(--surface, #F3F4F6);
+}
+
+.payment-table td {
+  padding: 12px 12px;
+  color: #374151;
+}
+
+.payment-table__date {
+  white-space: nowrap;
+  color: var(--text-muted, #6B7280);
+}
+
+.payment-table__desc {
+  max-width: 280px;
+}
+
+.payment-table__amount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.payment-table__actions {
+  text-align: right;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-tag--paid {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status-tag--pending {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.status-tag--failed {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.btn-invoice {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: var(--radius, 8px);
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.1s;
+
+  &:hover {
+    background: var(--surface, #F3F4F6);
+  }
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1F2937;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius, 8px);
+  font-size: 14px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

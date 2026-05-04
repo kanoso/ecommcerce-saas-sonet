@@ -1,0 +1,52 @@
+<section class="payment-history" aria-labelledby="history-heading">
+  <h2 class="payment-history__title" id="history-heading">Historial de pagos</h2>
+
+  @if (records().length === 0) {
+    <p class="payment-history__empty">No hay registros de pago aún.</p>
+  } @else {
+    <div class="table-wrapper" role="region" aria-label="Historial de pagos" tabindex="0">
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Descripción</th>
+            <th scope="col">Monto</th>
+            <th scope="col">Estado</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (record of records(); track record.id) {
+            <tr>
+              <td class="payment-table__date">{{ formatDate(record.date) }}</td>
+              <td class="payment-table__desc">{{ record.description }}</td>
+              <td class="payment-table__amount">S/ {{ formatAmount(record.amount) }}</td>
+              <td>
+                <span class="status-tag"
+                      [class]="'status-tag--' + record.status"
+                      [attr.aria-label]="statusLabel(record.status)">
+                  {{ statusLabel(record.status) }}
+                </span>
+              </td>
+              <td class="payment-table__actions">
+                <button
+                  class="btn-invoice"
+                  type="button"
+                  (click)="onDownloadInvoice(record)"
+                  [attr.aria-label]="'Descargar factura de ' + record.description">
+                  Factura
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (invoiceToast()) {
+    <div class="toast" role="status" aria-live="polite">
+      {{ invoiceToast() }}
+    </div>
+  }
+</section>

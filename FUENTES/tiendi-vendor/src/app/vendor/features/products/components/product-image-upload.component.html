@@ -1,0 +1,52 @@
+<div class="upload">
+  <h3 class="upload__title">Imágenes del producto</h3>
+
+  <div
+    class="upload__zone"
+    [class.upload__zone--drag]="isDragging()"
+    (click)="fileInput.click()"
+    (dragover)="$event.preventDefault(); isDragging.set(true)"
+    (dragleave)="isDragging.set(false)"
+    (drop)="onDrop($event)"
+    role="button"
+    tabindex="0"
+    aria-label="Zona de carga de imágenes. Click o arrastrá imágenes aquí"
+    (keydown.enter)="fileInput.click()"
+    (keydown.space)="$event.preventDefault(); fileInput.click()"
+  >
+    <span class="material-icons-outlined upload__zone-icon" aria-hidden="true">cloud_upload</span>
+    <p class="upload__zone-text">
+      <strong>Click para seleccionar</strong> o arrastrá imágenes aquí
+    </p>
+    <p class="upload__zone-hint">PNG, JPG hasta 5MB cada una</p>
+  </div>
+
+  <input
+    #fileInput
+    type="file"
+    accept="image/*"
+    multiple
+    class="upload__input"
+    aria-hidden="true"
+    tabindex="-1"
+    (change)="onFileChange($event)"
+  />
+
+  @if (imageUrls().length > 0) {
+    <div class="upload__preview" aria-label="Imágenes cargadas">
+      @for (url of imageUrls(); track url; let i = $index) {
+        <div class="upload__thumb" [attr.aria-label]="'Imagen ' + (i + 1)">
+          <img [src]="url" [alt]="'Imagen ' + (i + 1)" class="upload__thumb-img" />
+          <button
+            class="upload__thumb-remove"
+            (click)="removeImage(i)"
+            type="button"
+            [attr.aria-label]="'Quitar imagen ' + (i + 1)"
+          >
+            <span class="material-icons-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
