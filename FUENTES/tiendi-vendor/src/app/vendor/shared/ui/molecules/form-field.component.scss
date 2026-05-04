@@ -1,0 +1,71 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-field__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.form-field__required {
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.form-field__control {
+  ::ng-deep input,
+  ::ng-deep select,
+  ::ng-deep textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--card);
+    transition: border-color 0.15s;
+    min-height: 44px;
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1);
+    }
+  }
+}
+
+.form-field--error .form-field__control {
+  ::ng-deep input,
+  ::ng-deep select,
+  ::ng-deep textarea {
+    border-color: var(--danger);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+}
+
+.form-field__hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.form-field__error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--danger);
+
+  span.material-icons-outlined {
+    font-size: 14px;
+  }
+}

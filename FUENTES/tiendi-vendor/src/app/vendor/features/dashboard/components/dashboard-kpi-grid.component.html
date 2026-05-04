@@ -1,0 +1,38 @@
+<div class="kpi-grid" role="region" aria-label="Indicadores clave">
+  <td-kpi-card
+    title="Ventas hoy"
+    [value]="salesValue()"
+    [change]="12"
+    changeLabel="vs ayer"
+    icon="attach_money"
+    [loading]="isLoading()"
+    (clicked)="kpiClick.emit('sales')"
+  />
+
+  <td-kpi-card
+    title="Pedidos pendientes"
+    [value]="pendingCount()"
+    icon="pending_actions"
+    [loading]="isLoading()"
+    (clicked)="kpiClick.emit('orders')"
+  />
+
+  <div [class.kpi-grid__danger]="lowStockCount() > 0">
+    <td-kpi-card
+      title="Stock bajo"
+      [value]="lowStockCount()"
+      icon="warning"
+      [loading]="isLoading()"
+      (clicked)="kpiClick.emit('stock')"
+    />
+  </div>
+
+  <td-kpi-card
+    title="Productos activos"
+    [value]="activeProductCount()"
+    changeLabel="de 200 del plan Pro"
+    icon="inventory"
+    [loading]="isLoading()"
+    (clicked)="kpiClick.emit('products')"
+  />
+</div>

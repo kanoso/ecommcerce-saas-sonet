@@ -1,0 +1,40 @@
+<div class="form-field" [class.form-field--error]="!!error()">
+  <label
+    [for]="fieldId()"
+    class="form-field__label"
+    [class.form-field__label--required]="required()"
+  >
+    {{ label() }}
+    @if (required()) {
+      <span class="form-field__required" aria-hidden="true">*</span>
+    }
+  </label>
+
+  <div
+    class="form-field__control"
+    [attr.id]="fieldId()"
+  >
+    <ng-content />
+  </div>
+
+  @if (hint() && !error()) {
+    <span
+      [id]="hintId()"
+      class="form-field__hint"
+    >
+      {{ hint() }}
+    </span>
+  }
+
+  @if (error()) {
+    <span
+      [id]="errorId()"
+      class="form-field__error"
+      role="alert"
+      aria-live="polite"
+    >
+      <span class="material-icons-outlined" aria-hidden="true">error_outline</span>
+      {{ error() }}
+    </span>
+  }
+</div>

@@ -1,0 +1,38 @@
+<section class="pm-card" aria-labelledby="pm-heading">
+  <h2 class="pm-card__title" id="pm-heading">Método de pago</h2>
+
+  @if (method(); as pm) {
+    <div class="pm-card__content">
+      <div class="pm-card__details">
+        <div class="pm-card__brand" [class]="'pm-card__brand--' + pm.brand.toLowerCase()">
+          {{ pm.brand }}
+        </div>
+        <div class="pm-card__number" aria-label="Número de tarjeta terminado en {{ pm.last4 }}">
+          <span class="pm-card__dots" aria-hidden="true">•••• •••• ••••</span>
+          <span class="pm-card__last4">{{ pm.last4 }}</span>
+        </div>
+        <div class="pm-card__expiry" [attr.aria-label]="'Vence ' + padMonth(pm.expMonth) + '/' + pm.expYear">
+          Vence {{ padMonth(pm.expMonth) }}/{{ pm.expYear }}
+        </div>
+      </div>
+      <button
+        class="btn-change"
+        type="button"
+        (click)="onChangePM()"
+        aria-label="Cambiar método de pago">
+        Cambiar
+      </button>
+    </div>
+  } @else {
+    <div class="pm-card__empty">
+      <p>No hay método de pago registrado.</p>
+      <button class="btn-add" type="button" (click)="onChangePM()" aria-label="Agregar método de pago">
+        Agregar método de pago
+      </button>
+    </div>
+  }
+
+  @if (toast()) {
+    <div class="toast" role="status" aria-live="polite">{{ toast() }}</div>
+  }
+</section>
