@@ -92,20 +92,20 @@ function mapOrder(raw: Record<string, unknown>): Order {
   const deliveryAddr = raw['deliveryAddress'];
 
   return {
-    id:              raw['id'],
-    orderNumber:     raw['orderNumber'] ?? '',
-    storeId:         raw['storeId']     ?? '',
+    id:              (raw['id'] as string) ?? '',
+    orderNumber:     (raw['orderNumber'] as string) ?? '',
+    storeId:         (raw['storeId'] as string) ?? '',
     customerName:    customer
       ? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim()
-      : (raw['customerName'] ?? ''),
-    customerEmail:   customer?.email   ?? raw['customerEmail'] ?? '',
-    customerPhone:   customer?.phone   ?? raw['customerPhone'] ?? '',
+      : ((raw['customerName'] as string) ?? ''),
+    customerEmail:   customer?.email   ?? (raw['customerEmail'] as string) ?? '',
+    customerPhone:   customer?.phone   ?? (raw['customerPhone'] as string) ?? '',
     status:          raw['status']     as OrderStatus,
     deliveryType:    raw['deliveryType'] as 'DELIVERY' | 'PICKUP',
     deliveryAddress: typeof deliveryAddr === 'string'
       ? deliveryAddr
       : deliveryAddr ? JSON.stringify(deliveryAddr) : '',
-    paymentMethod:   raw['paymentMethod'] ?? '',
+    paymentMethod:   (raw['paymentMethod'] as string) ?? '',
     subtotal:        Number(raw['subtotal'])    || 0,
     deliveryFee:     Number(raw['deliveryFee']) || 0,
     total:           Number(raw['total'])       || 0,
