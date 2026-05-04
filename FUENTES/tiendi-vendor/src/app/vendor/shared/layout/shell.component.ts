@@ -114,6 +114,7 @@ export class ShellComponent implements OnInit {
 
   ngOnInit(): void {
     this.authStore.loadFromStorage();
+    this.authStore.fetchMe();
     this.storeConfigStore.loadStore();
     this.notificationsStore.loadAll();
   }

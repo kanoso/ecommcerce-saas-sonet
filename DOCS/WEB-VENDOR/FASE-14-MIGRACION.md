@@ -25,7 +25,7 @@
 - [x] `POST /auth/login` → backend modificado para incluir `name`, `storeId` (para STORE_OWNER) en respuesta. Frontend adapta `accessToken → token`, `firstName+lastName → name`
 - [x] `POST /auth/refresh` → frontend adaptado: refresh response no incluye `user`, se mantiene el user actual del estado
 - [x] `POST /auth/logout` → frontend llama al endpoint real (fire-and-forget) + limpia sesión local; backend blacklistea el access token en Redis
-- [ ] `GET /auth/me` → implementar llamada al cargar la app para refrescar datos del usuario (pendiente)
+- [x] `GET /auth/me` → `AuthStore.fetchMe()` implementado — refresca datos del usuario desde el backend al cargar la app (llamado en `ShellComponent.ngOnInit` tras `loadFromStorage()`). Fallo silencioso si está offline.
 - [ ] Correr flujo 1 E2E (`flujo1-login.spec.ts`) contra API real (pendiente — requiere `ng serve --configuration production`)
 
 > **Notas de contrato API real vs mock:**
