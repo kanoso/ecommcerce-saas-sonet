@@ -1,0 +1,132 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  animation: fade-in 0.15s ease;
+}
+
+.dialog-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: dialog-in 0.15s ease;
+  overflow: hidden;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.dialog-panel--sm {
+  width: min(400px, calc(100vw - 32px));
+}
+
+.dialog-panel--md {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.dialog-panel--lg {
+  width: min(800px, calc(100vw - 32px));
+}
+
+.dialog-panel--full {
+  width: calc(100vw - 32px);
+  height: calc(100vh - 32px);
+}
+
+.dialog-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.dialog-panel__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dialog-panel__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0;
+
+  &:hover {
+    background: var(--surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: 2px;
+  }
+
+  span {
+    font-size: 20px;
+  }
+}
+
+.dialog-panel__body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-panel__footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+
+  &:empty {
+    display: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -52%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-panel, .dialog-backdrop {
+    animation: none;
+  }
+}
