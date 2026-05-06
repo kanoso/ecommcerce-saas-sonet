@@ -1,0 +1,16 @@
+<div class="header">
+  <div class="header__nav">
+    <button class="header__back" type="button" (click)="back.emit()" aria-label="Volver a pedidos">
+      &#8592; Pedidos
+    </button>
+  </div>
+  <div class="header__main">
+    <div class="header__title-row">
+      <h1 class="header__title">Pedido #{{ order().orderNumber }}</h1>
+      <span [className]="getStatusClass(order().status)">
+        {{ getStatusLabel(order().status) }}
+      </span>
+    </div>
+    <span class="header__date">{{ formatFull(order().createdAt) }}</span>
+  </div>
+</div>

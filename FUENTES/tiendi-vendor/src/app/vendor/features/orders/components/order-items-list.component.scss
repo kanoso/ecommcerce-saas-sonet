@@ -1,0 +1,116 @@
+:host { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+.card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+
+  th {
+    text-align: left;
+    padding: 8px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text-primary);
+  }
+
+  tr:last-child td { border-bottom: none; }
+}
+
+.text-right { text-align: right; }
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.product-cell__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  span {
+    font-size: 18px;
+    color: var(--text-secondary);
+  }
+}
+
+.product-cell__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.product-cell__name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.product-cell__category {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.summary__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.summary__divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+
+.summary__row--total {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.summary__total-amount {
+  color: var(--primary);
+  font-size: 16px;
+}

@@ -1,0 +1,9 @@
+@if (count() > 0) {
+  <span
+    [ngClass]="['badge', 'badge-' + variant()]"
+    [attr.aria-label]="ariaLabel()"
+    role="status"
+  >
+    {{ displayCount() }}
+  </span>
+}

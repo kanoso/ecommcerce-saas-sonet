@@ -1,0 +1,26 @@
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--warning);
+  color: var(--text-on-warning);
+  font-size: 13px;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  animation: slide-down 0.2s ease;
+
+  span.material-icons-outlined { font-size: 18px; }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offline-banner { animation: none; }
+}

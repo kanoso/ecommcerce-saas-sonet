@@ -1,0 +1,49 @@
+<div class="invite-page">
+  <div class="invite-card">
+    <div class="invite-card__header">
+      <button type="button" class="back-btn" (click)="goBack()">
+        <span class="material-icons-outlined" style="font-size:18px">arrow_back</span>
+        Volver al equipo
+      </button>
+      <h1 class="invite-card__title">Invitar colaborador</h1>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="invite-card__body">
+      <div class="form-group">
+        <label class="form-label" for="invite-email">Email del colaborador <span class="req">*</span></label>
+        <input id="invite-email" type="email" class="form-input" placeholder="colaborador@ejemplo.com" formControlName="email">
+        @if (form.get('email')?.invalid && form.get('email')?.touched) {
+          <div class="form-error">Ingresá un email válido</div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="invite-role">Rol <span class="req">*</span></label>
+        <select id="invite-role" class="form-input" formControlName="role">
+          <option value="">Seleccionar rol...</option>
+          <option value="MANAGER">Gerente</option>
+          <option value="CASHIER">Cajero/a</option>
+          <option value="WAREHOUSE">Depósito</option>
+        </select>
+        @if (form.get('role')?.invalid && form.get('role')?.touched) {
+          <div class="form-error">Seleccioná un rol</div>
+        }
+        @if (roleDesc()) {
+          <div class="form-hint">{{ roleDesc() }}</div>
+        }
+      </div>
+
+      <div class="info-note">
+        <span class="material-icons-outlined" style="font-size:14px;vertical-align:middle">info</span>
+        El colaborador recibirá un email para aceptar la invitación y crear su contraseña.
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn--ghost" (click)="goBack()">Cancelar</button>
+        <button type="submit" class="btn btn--primary" [disabled]="store.isSaving()">
+          @if (store.isSaving()) { Enviando... } @else { Enviar invitación }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

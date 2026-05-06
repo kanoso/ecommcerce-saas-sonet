@@ -1,0 +1,111 @@
+<div class="page">
+
+  <!-- Header con tabs -->
+  <div class="page__header">
+    <div class="page__tabs" role="tablist" aria-label="Secciones de productos">
+      <button
+        class="page__tab"
+        [class.page__tab--active]="activeTab() === 'products'"
+        (click)="activeTab.set('products')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'products'"
+        id="tab-products"
+        aria-controls="panel-products"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">inventory_2</span>
+        Productos
+        @if (store.activeCount() > 0) {
+          <span class="page__tab-badge" aria-label="{{ store.activeCount() }} productos activos">
+            {{ store.activeCount() }}
+          </span>
+        }
+      </button>
+      <button
+        class="page__tab"
+        [class.page__tab--active]="activeTab() === 'categories'"
+        (click)="activeTab.set('categories')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'categories'"
+        id="tab-categories"
+        aria-controls="panel-categories"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">category</span>
+        Categorías
+      </button>
+    </div>
+
+    @if (activeTab() === 'products') {
+      <button
+        class="page__new-btn"
+        (click)="goNew()"
+        type="button"
+        aria-label="Agregar nuevo producto"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">add</span>
+        Nuevo producto
+      </button>
+    }
+  </div>
+
+  <!-- Panel: Productos -->
+  @if (activeTab() === 'products') {
+    <div id="panel-products" role="tabpanel" aria-labelledby="tab-products">
+
+      <td-product-toolbar
+        [filters]="store.filters()"
+        [viewMode]="viewMode()"
+        (filtersChange)="store.setFilters($event)"
+        (viewModeChange)="onViewModeChange($event)"
+        (newProduct)="goNew()"
+        (importCsv)="goImport()"
+      />
+
+      <td-plan-usage-bar
+        [used]="store.activeCount()"
+        [max]="50"
+      />
+
+      @if (store.lowStockCount() > 0) {
+        <div class="page__alert" role="status" aria-live="polite">
+          <span class="material-icons-outlined" aria-hidden="true">warning</span>
+          {{ store.lowStockCount() }} producto{{ store.lowStockCount() > 1 ? 's' : '' }} con stock bajo
+        </div>
+      }
+
+      @if (store.error()) {
+        <div class="page__error" role="alert">
+          <span class="material-icons-outlined" aria-hidden="true">error_outline</span>
+          {{ store.error() }}
+        </div>
+      }
+
+      <div class="page__content">
+        @if (viewMode() === 'grid') {
+          <td-product-grid
+            [products]="store.filteredProducts()"
+            [isLoading]="store.isLoading()"
+            (edit)="onEdit($event)"
+            (delete)="onDelete($event)"
+            (toggleActive)="onToggleActive($event)"
+          />
+        } @else {
+          <td-product-list-table
+            [products]="store.filteredProducts()"
+            [isLoading]="store.isLoading()"
+            (edit)="onEdit($event)"
+            (delete)="onDelete($event)"
+            (toggleActive)="onToggleActive($event)"
+          />
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Panel: Categorías -->
+  @if (activeTab() === 'categories') {
+    <div id="panel-categories" role="tabpanel" aria-labelledby="tab-categories">
+      <td-product-categories [categories]="store.categories()" />
+    </div>
+  }
+
+</div>

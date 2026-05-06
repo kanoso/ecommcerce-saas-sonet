@@ -1,0 +1,13 @@
+<div
+  class="progress-bar"
+  role="progressbar"
+  [attr.aria-valuenow]="clampedValue()"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  [attr.aria-label]="'Progreso: ' + clampedValue() + '%'"
+>
+  <div
+    class="progress-bar__fill"
+    [style.width.%]="clampedValue()"
+  ></div>
+</div>

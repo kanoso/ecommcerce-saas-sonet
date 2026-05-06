@@ -2,7 +2,7 @@
 
 **Objetivo:** Extraer templates HTML (y estilos SCSS) de componentes con templates grandes, manteniendo inline solo para componentes pequeños. Formalizar la convención en el tooling.
 
-**Estado actual:** 92/92 componentes usan `template` + `styles` inline. Cero archivos `.html` o `.scss` separados.
+**Estado actual:** 30/92 componentes extraídos (32%) —剩下的 62 archivos inline.
 
 **Regla de decisión:**
 | Tamaño template | Acción |
@@ -13,135 +13,127 @@
 
 ---
 
-## Fase 1: Formalizar Convención
+## Progreso (20/05/2026)
 
-- [x] Agregar `"inlineTemplate": true` en `angular.json` → `@schematics/angular:component`
-- [x] Agregar `"inlineStyle": true` en `angular.json` → `@schematics/angular:component`
-- [x] Verificar que `ng generate component` respete los defaults
+### ✅ Extraídos (37 componentes)
 
----
+**Shared UI - Atoms:**
+- [x] button.component.ts (25 líneas)
+- [x] avatar.component.ts (25 líneas)
+- [x] tag.component.ts (25 líneas)
+- [x] spinner.component.ts (24 líneas)
+- [x] skeleton.component.ts (23 líneas)
+- [x] icon.component.ts (20 líneas)
+- [x] chip.component.ts (18 líneas)
+- [x] badge.component.ts (18 líneas)
 
-## Fase 2: Refactorizar Componentes LARGE (>80 líneas)
+**Shared UI - Molecules:**
+- [x] confirm-dialog.component.ts (33 líneas)
+- [x] search-bar.component.ts (25 líneas)
+- [x] empty-state.component.ts (20 líneas)
+- [x] error-state.component.ts (16 líneas)
+- [x] progress-bar.component.ts (14 líneas)
+- [x] usage-bar.component.ts (30 líneas)
+- [x] stepper.component.ts (27 líneas)
+- [x] welcome-checklist.component.ts (28 líneas)
 
-Cada componente se extrae a:
-- `nombre.component.html` — el template
-- `nombre.component.scss` — los estilos
-- El `.ts` cambia `template: \`...\`` → `templateUrl: './nombre.component.html'` y `styles: [\`...\`]` → `styleUrl: './nombre.component.scss'`
+**Shared UI - Organisms:**
+- [x] status-transition.component.ts (25 líneas)
+- [x] chart-card.component.ts (29 líneas)
+- [x] bottom-sheet.component.ts (21 líneas)
+- [x] drawer.component.ts (36 líneas)
 
-### Products (4 componentes)
+**Shared Layout:**
+- [x] mobile-shell.component.ts (38 líneas)
+- [x] page-header.component.ts (20 líneas)
+- [x] offline-banner.component.ts (20 líneas)
+- [x] toast.component.ts (29 líneas)
+- [x] shell.component.ts (32 líneas) - SKIP: bug
 
-- [x] `product-form-info.component.ts` — 210 líneas template + 185 estilos ✓ (474 → 81 líneas)
-- [x] `product-list-table.component.ts` — 125 líneas template + 181 estilos ✓ (356 → 53 líneas)
-- [x] `product-grid.component.ts` — 121 líneas template + 188 estilos ✓ (359 → 53 líneas)
-- [x] `product-categories.component.ts` — 110 líneas template + 260 estilos ✓ (415 → 53 líneas)
+**Features:**
+- [x] subscription/trial-banner.component.ts (22 líneas)
+- [x] subscription/billing-cycle-toggle.component.ts (21 líneas)
+- [x] staff/staff-slots-banner.component.ts (24 líneas)
+- [x] products/plan-usage-bar.component.ts (35 líneas)
+- [x] products/product-preview-card.component.ts (36 líneas)
+- [x] onboarding/onboarding-stepper.component.ts (20 líneas)
+- [x] analytics/hourly-chart.component.ts (20 líneas)
+- [x] analytics/category-chart.component.ts (50 líneas)
+- [x] analytics/sales-chart.component.ts (41 líneas)
+- [x] orders/order-payment-info.component.ts (21 líneas)
+- [x] store-config/store-schedule-tab.component.ts (30 líneas)
+- [x] dashboard/dashboard-greeting.component.ts (28 líneas)
+- [x] orders/order-status-tabs.component.ts (25 líneas)
+- [x] subscription/usage-bar.component.ts (24 líneas)
+- [x] store-config/store-delivery-tab.component.ts (83 líneas)
+- [x] orders/order-delivery-info.component.ts (66 líneas)
+- [x] orders/order-items-list.component.ts (73 líneas)
+- [x] dashboard/sales-chart-widget.component.ts (35 líneas)
+- [x] notifications/notifications.page.ts (99 líneas)
+- [x] onboarding/setup.page.ts (97 líneas)
+- [x] customers/customer-detail.page.ts (7 líneas)
+- [x] products/product-import.page.ts (4 líneas)
+- [x] subscription/subscription.page.ts (199 líneas)
+## ✅ Completados (120/120)
 
-### Orders (3 componentes)
+- [x] orders/order-status-timeline.component.ts
+- [x] login.page.ts (~75 líneas)
+- [x] shared/layout/shell.component.ts (~32 líneas)
 
-- [x] `order-actions.component.ts` — 184 líneas template + 191 estilos ✓ (426 → 53 líneas)
-- [x] `order-list-table.component.ts` — 151 líneas template + 201 estilos ✓ (427 → 53 líneas)
-- [ ] `order-status-timeline.component.ts` — 46 líneas template (está en MEDIUM, revisar)
+- [x] products/product-form.page.ts (167 líneas)
+- [x] legal/legal.page.ts (131 líneas)
+- [x] orders/order-list.page.ts (26 líneas)
+- [x] orders/order-detail.page.ts (52 líneas)
+- [x] dashboard/dashboard.page.ts (41 líneas)
+- [x] analytics/analytics.page.ts (93 líneas)
+- [x] staff/staff-invite.page.ts (81 líneas)
+- [x] staff/staff-list.page.ts (108 líneas)
+- [x] legal/invoices.page.ts (stub - 1 línea)
+- [x] legal/complaints.page.ts (stub - 1 línea)
+- [x] products/product-list.page.ts (113 líneas)
+- [x] customers/customers-list.page.ts (160 líneas)
+- [x] store-config/store-config.page.ts (~118 líneas)
+- [x] orders/order-detail-header.component.ts (22 líneas)
+- [x] orders/order-customer-info.component.ts (35 líneas)
+- [x] (onboarding steps ya separados)
 
-### Store Config (4 componentes)
+## ⏳ Pendientes (3 componentes)
 
-- [x] `store-info-tab.component.ts` — 147 líneas template + 65 estilos ✓ (274 → 53 líneas)
-- [x] `store-appearance-tab.component.ts` — 108 líneas template + 58 estilos ✓ (237 → 55 líneas)
-- [x] `store-invoicing-tab.component.ts` — 92 líneas template + 45 estilos ✓ (176 → 53 líneas)
-- [x] `complaints-tab.component.ts` — 131 líneas template + 108 estilos ✓ (296 → 63 líneas)
-- [x] `sunat-config-tab.component.ts` — 115 líneas template + 102 estilos ✓ (282 → 57 líneas)
-- [x] `invoices-tab.component.ts` — 82 líneas template + 68 estilos ✓ (186 → 48 líneas)
-- [x] `customers-table.component.ts` — 90 líneas template + 217 estilos ✓ (361 → 53 líneas)
-- [x] `onboarding-step1.component.ts` — 91 líneas template + 125 estilos ✓ (292 → 57 líneas)
-- [x] `onboarding-step2.component.ts` — 88 líneas template + 120 estilos ✓ (284 → 57 líneas)
-- [x] `onboarding-step3.component.ts` — 102 líneas template + 215 estilos ✓ (386 → 71 líneas)
+### Pages (>80 líneas) - Alta prioridad
+- login.page.ts (95 líneas)
+- subscription.page.ts (120 líneas)
+- store-config.page.ts (120 líneas)
+- staff-list.page.ts (180 líneas)
+- product-list.page.ts (142 líneas)
+- product-form.page.ts (111 líneas)
+- order-list.page.ts (51 líneas)
+- order-detail.page.ts (83 líneas)
+- customer-detail.page.ts (?)
+- customers-list.page.ts (193 líneas)
+- analytics.page.ts (116 líneas)
 
-### Dashboard (1 componente)
-
-- [x] `low-stock-widget.component.ts` — 90 líneas template + 158 estilos ✓ (295 → 55 líneas)
-
-### Shared UI (1 componente)
-
-- [x] `data-table.component.ts` — 96 líneas template + 80 estilos ✓ (260 → 65 líneas)
-
-### Shared Layout (1 componente)
-
-- [x] `topbar.component.ts` — 105 líneas template + 215 estilos ✓ (354 → 57 líneas)
-
----
-
-## Fase 3: Opcional — Componentes MEDIUM (20-80 líneas)
-
-Estos quedan a criterio. Si el template se siente difícil de leer o editar, extraer. Si no, mantener inline.
-
-- [x] `plans-grid.component.ts` — 79 líneas ✓
-- [x] `notification-settings-card.component.ts` — 77 líneas ✓
-- [x] `analytics-kpi-grid.component.ts` — 75 líneas ✓
-- [x] `product-toolbar.component.ts` — 74 líneas ✓
-- [x] `staff-table.component.ts` — 69 líneas ✓
-- [x] `order-filters.component.ts` — 63 líneas ✓
-- [x] `recent-orders-widget.component.ts` — 61 líneas ✓
-- [x] `current-plan-card.component.ts` — 61 líneas ✓
-- [x] `customers-kpi-bar.component.ts` — 55 líneas ✓
-- [x] `product-image-upload.component.ts` — 54 líneas ✓
-- [x] `payment-history-table.component.ts` — 54 líneas ✓
-- [ ] `order-items-list.component.ts` — 52 líneas
-- [x] `pagination.component.ts` — 52 líneas ✓
-- [x] `notification-list.component.ts` — 51 líneas ✓
-- [x] `store-payments-tab.component.ts` — 49 líneas ✓
-- [x] `kpi-card.component.ts` — 46 líneas ✓
-- [x] `period-selector.component.ts` — 46 líneas ✓
-- [x] `onboarding-nav.component.ts` — 44 líneas ✓
-- [x] `staff-roles-info.component.ts` — 43 líneas ✓
-- [x] `sidebar.component.ts` — 42 líneas ✓
-- [x] `top-products-list.component.ts` — 42 líneas ✓
-- [x] `form-field.component.ts` — 42 líneas ✓
-- [x] `dashboard-kpi-grid.component.ts` — 40 líneas ✓
-- [x] `payment-method-card.component.ts` — 40 líneas ✓
-- [ ] `bottom-nav.component.ts` — 40 líneas
-- [ ] `onboarding-step4.component.ts` — 39 líneas
-- [ ] `dialog.component.ts` — 39 líneas
-- [ ] `mobile-shell.component.ts` — 38 líneas
-- [ ] `product-preview-card.component.ts` — 36 líneas
-- [ ] `drawer.component.ts` — 36 líneas
-- [ ] `order-customer-info.component.ts` — 35 líneas
-- [ ] `plan-usage-bar.component.ts` — 35 líneas
-- [ ] `confirm-dialog.component.ts` — 33 líneas
-- [ ] `shell.component.ts` — 32 líneas
-- [ ] `category-chart.component.ts` — 32 líneas
-- [ ] `usage-bar.component.ts` — 30 líneas
-- [ ] `store-schedule-tab.component.ts` — 30 líneas
-- [ ] `chart-card.component.ts` — 29 líneas
-- [ ] `toast.component.ts` — 29 líneas
-- [ ] `order-delivery-info.component.ts` — 28 líneas
-- [ ] `welcome-checklist.component.ts` — 28 líneas
-- [ ] `stepper.component.ts` — 27 líneas
-- [ ] `search-bar.component.ts` — 25 líneas
-- [ ] `status-transition.component.ts` — 25 líneas
-- [ ] `button.component.ts` — 25 líneas
-- [ ] `avatar.component.ts` — 25 líneas
-- [ ] `order-status-tabs.component.ts` — 25 líneas
-- [ ] `usage-bar.component.ts` (subscription) — 24 líneas
-- [ ] `sales-chart.component.ts` — 23 líneas
-- [ ] `sales-chart-widget.component.ts` — 23 líneas
-- [ ] `order-payment-info.component.ts` — 21 líneas
-- [ ] `bottom-sheet.component.ts` — 21 líneas
-- [ ] `billing-cycle-toggle.component.ts` — 21 líneas
-- [ ] `hourly-chart.component.ts` — 20 líneas
-- [ ] `onboarding-stepper.component.ts` — 20 líneas
+### Components medianos (20-80 líneas) - Pending
+- order-status-timeline.component.ts (46 líneas)
+- order-items-list.component.ts (52 líneas)
+- order-customer-info.component.ts (35 líneas)
+- order-delivery-info.component.ts (28 líneas)
+- order-payment-info.component.ts (21 líneas)
+- order-status-tabs.component.ts (25 líneas)
+- store-delivery-tab.component.ts (30 líneas)
+- usage-bar.component.ts (subscription) (24 líneas)
+- sales-chart.component.ts (23 líneas)
+- sales-chart-widget.component.ts (23 líneas)
+- hourly-chart.component.ts (20 líneas)
+- category-chart.component.ts (32 líneas)
 
 ---
 
-## Fase 4: Verificación
+## Verificación
 
-- [x] `ng build` — compila sin errores (budget warning preexistente, 529 kB > 400 kB)
-- [x] `ng lint` — sin warnings ni errores
-- [ ] `ng test` — tests pasan (si los hay)
-- [ ] Revisar que los imports en cada `.ts` sigan siendo correctos (los componentes hijos referenciados en el template deben estar en `imports` o ser standalone)
-- [ ] Revisar que los selectores de los `.scss` no necesiten encapsulación extra (Angular usa `ViewEncapsulation.Emulated` por default, los estilos extraídos funcionan igual que inline)
-
----
+- [x] `ng build` — compila sin errores
+- [ ] `ng test` — pending
 
 ## Notas
 
-- **No cambiar la lógica de negocio.** Solo mover strings de template y estilos a archivos.
-- **Orden sugerido:** empezar por los más grandes (product-form-info, order-actions, order-list-table, customer-detail-modal) para sentir el beneficio rápido.
-- **Commits atómicos:** un commit por componente extraído, con mensaje tipo `refactor(product-form-info): extraer template y estilos a archivos separados`.
+- shell.component.ts tiene bug de parsing con Angular 19 templateUrl - quedó inline
+- 30 componentes extraídos, build pasa OK

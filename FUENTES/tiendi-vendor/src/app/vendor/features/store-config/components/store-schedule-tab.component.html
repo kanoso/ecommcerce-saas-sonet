@@ -1,0 +1,28 @@
+<div class="schedule-wrap">
+  <div class="card">
+    <div class="card__header"><h3>Horario de atención</h3></div>
+    <div class="card__body">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div formArrayName="days">
+          @for (day of daysArray.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="schedule-row" [class.schedule-row--disabled]="!day.get('enabled')?.value">
+              <label class="toggle">
+                <input type="checkbox" formControlName="enabled">
+                <span class="slider"></span>
+              </label>
+              <span class="day-name">{{ schedule()[$index].day }}</span>
+              <input type="time" class="time-input" formControlName="from">
+              <span class="sep">—</span>
+              <input type="time" class="time-input" formControlName="to">
+            </div>
+          }
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+            @if (isSaving()) { Guardando... } @else { Guardar horarios }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

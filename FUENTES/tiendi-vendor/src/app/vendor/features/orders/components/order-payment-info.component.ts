@@ -25,81 +25,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   selector: 'td-order-payment-info',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="card" role="region" aria-label="Método de pago">
-      <h2 class="card__title">Método de pago</h2>
-
-      <div class="payment">
-        <div class="payment__icon" aria-hidden="true">
-          <span class="material-symbols-rounded">{{ getIcon(order().paymentMethod) }}</span>
-        </div>
-        <div class="payment__info">
-          <span class="payment__label">{{ getLabel(order().paymentMethod) }}</span>
-          <span
-            class="tag"
-            [class.tag-pending]="order().status !== 'DELIVERED'"
-            [class.tag-delivered]="order().status === 'DELIVERED'"
-          >
-            {{ order().status === 'DELIVERED' ? 'Pagado' : 'Pendiente' }}
-          </span>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    :host { display: block; }
-
-    .card {
-      background: var(--card);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      padding: 20px;
-    }
-
-    .card__title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 16px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .payment {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .payment__icon {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius);
-      background: var(--primary-light);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      span {
-        font-size: 20px;
-        color: var(--primary);
-      }
-    }
-
-    .payment__info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .payment__label {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-  `],
+  templateUrl: './order-payment-info.component.html',
+  styleUrl: './order-payment-info.component.scss',
 })
 export class OrderPaymentInfoComponent {
   order = input.required<Order>();

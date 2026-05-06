@@ -1,0 +1,23 @@
+<button
+  [type]="'button'"
+  [disabled]="disabled() || loading()"
+  [attr.aria-busy]="loading() || null"
+  [attr.aria-disabled]="disabled() || null"
+  [ngClass]="[hostClass(), sizeClass()]"
+  (click)="!disabled() && !loading() && clicked.emit()"
+>
+  @if (loading()) {
+    <span class="btn-spinner" aria-hidden="true"></span>
+    <span class="sr-only">Cargando...</span>
+  } @else {
+    @if (icon() && iconPosition() === 'left') {
+      <span class="material-icons-outlined btn-icon" aria-hidden="true">{{ icon() }}</span>
+    }
+    @if (label()) {
+      <span>{{ label() }}</span>
+    }
+    @if (icon() && iconPosition() === 'right') {
+      <span class="material-icons-outlined btn-icon" aria-hidden="true">{{ icon() }}</span>
+    }
+  }
+</button>

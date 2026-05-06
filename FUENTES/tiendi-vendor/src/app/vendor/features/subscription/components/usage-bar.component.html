@@ -1,0 +1,22 @@
+<div class="usage-bar">
+  <div class="usage-bar__header">
+    <span class="usage-bar__label">{{ label() }}</span>
+    <span class="usage-bar__value">
+      @if (max() === null) {
+        {{ used() }} / ilimitado
+      } @else {
+        {{ used() }} / {{ max() }}
+      }
+    </span>
+  </div>
+  <div class="usage-bar__track" role="progressbar"
+       [attr.aria-valuenow]="used()"
+       [attr.aria-valuemin]="0"
+       [attr.aria-valuemax]="max() ?? used()"
+       [attr.aria-label]="label() + ': ' + used() + ' de ' + (max() ?? 'ilimitado')">
+    <div class="usage-bar__fill"
+         [style.width.%]="fillPercent()"
+         [class.usage-bar__fill--danger]="isAtLimit()">
+    </div>
+  </div>
+</div>

@@ -1,0 +1,40 @@
+.widget {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.widget__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.widget__link {
+  font-size: 13px;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover { text-decoration: underline; }
+}
+
+.widget__body {
+  padding: 16px 20px;
+}
+
+.chart-wrap {
+  position: relative;
+  height: 220px;
+}

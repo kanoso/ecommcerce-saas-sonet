@@ -1,0 +1,27 @@
+<div class="toast-container" aria-label="Notificaciones" aria-live="polite">
+  @for (toast of uiStore.toasts(); track toast.id) {
+    <div
+      class="toast"
+      [ngClass]="'toast--' + toast.type"
+      [attr.role]="toast.type === 'error' || toast.type === 'warning' ? 'alert' : 'status'"
+      [attr.aria-live]="toast.type === 'error' ? 'assertive' : 'polite'"
+      aria-atomic="true"
+    >
+      <span
+        class="material-icons-outlined toast__icon"
+        aria-hidden="true"
+      >{{ toastIcon(toast) }}</span>
+
+      <span class="toast__message">{{ toast.message }}</span>
+
+      <button
+        type="button"
+        class="toast__close"
+        aria-label="Cerrar notificación"
+        (click)="uiStore.removeToast(toast.id)"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+  }
+</div>

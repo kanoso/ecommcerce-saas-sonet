@@ -1,0 +1,23 @@
+<span
+  [ngClass]="['avatar', 'avatar-' + size()]"
+  [attr.aria-hidden]="!ariaLabel() || null"
+  [attr.aria-label]="ariaLabel() || null"
+  role="img"
+>
+  @if (imageUrl()) {
+    <img
+      [src]="imageUrl()"
+      [alt]="name()"
+      class="avatar-img"
+      loading="lazy"
+    />
+  } @else {
+    <span
+      class="avatar-initials"
+      [style.background]="initialsColor()"
+      aria-hidden="true"
+    >
+      {{ initials() }}
+    </span>
+  }
+</span>

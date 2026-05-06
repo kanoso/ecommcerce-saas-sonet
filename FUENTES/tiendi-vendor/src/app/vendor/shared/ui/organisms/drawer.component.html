@@ -1,0 +1,34 @@
+@if (visible()) {
+  <div
+    class="drawer-backdrop"
+    (click)="closed.emit()"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    #drawerPanel
+    class="drawer-panel"
+    [ngClass]="'drawer-panel--' + position()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="title()"
+    (keydown.escape)="closed.emit()"
+    (keydown)="onKeydown($event)"
+  >
+    <div class="drawer-panel__header">
+      <h2 class="drawer-panel__title">{{ title() }}</h2>
+      <button
+        type="button"
+        class="drawer-panel__close"
+        aria-label="Cerrar"
+        (click)="closed.emit()"
+      >
+        <span class="material-icons-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+
+    <div class="drawer-panel__body">
+      <ng-content />
+    </div>
+  </div>
+}

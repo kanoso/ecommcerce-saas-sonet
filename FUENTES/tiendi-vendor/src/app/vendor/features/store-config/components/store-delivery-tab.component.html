@@ -1,0 +1,69 @@
+<div class="delivery-wrap">
+  <div class="card">
+    <div class="card__header"><h3>Configuración de delivery</h3></div>
+    <div class="card__body">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Delivery activo</div>
+            <div class="toggle-hint">Permitir pedidos con entrega a domicilio</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" formControlName="active">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <hr class="divider">
+
+        <div class="form-group">
+          <label class="form-label" for="delivery-cost">Costo de delivery</label>
+          <div class="prefix-input">
+            <span class="prefix">S/</span>
+            <input id="delivery-cost" type="number" class="form-input" formControlName="cost" min="0" step="0.50">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="delivery-free-min">Mínimo para delivery gratis</label>
+          <div class="prefix-input">
+            <span class="prefix">S/</span>
+            <input id="delivery-free-min" type="number" class="form-input" formControlName="freeMinimum" min="0" step="5">
+          </div>
+          <div class="form-hint">Dejar en 0 para nunca ofrecer delivery gratis</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="delivery-radius">Radio de entrega (km)</label>
+          <input
+            id="delivery-radius"
+            type="range"
+            class="range-input"
+            formControlName="radius"
+            min="1"
+            max="20"
+            (input)="radiusDisplay.set(+$any($event.target).value)"
+          >
+          <div class="range-value">{{ radiusDisplay() }} km</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="delivery-time">Tiempo estimado de entrega</label>
+          <select id="delivery-time" class="form-input" formControlName="estimatedTime">
+            <option>15-30 minutos</option>
+            <option>30-45 minutos</option>
+            <option>45-60 minutos</option>
+            <option>1-2 horas</option>
+          </select>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+            @if (isSaving()) { Guardando... } @else { Guardar configuración }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

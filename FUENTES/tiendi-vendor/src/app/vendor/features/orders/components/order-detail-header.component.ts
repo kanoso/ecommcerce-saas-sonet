@@ -39,67 +39,8 @@ function formatFull(isoDate: string): string {
   selector: 'td-order-detail-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="header">
-      <div class="header__nav">
-        <button class="header__back" type="button" (click)="back.emit()" aria-label="Volver a pedidos">
-          &#8592; Pedidos
-        </button>
-      </div>
-      <div class="header__main">
-        <div class="header__title-row">
-          <h1 class="header__title">Pedido #{{ order().orderNumber }}</h1>
-          <span [className]="getStatusClass(order().status)">
-            {{ getStatusLabel(order().status) }}
-          </span>
-        </div>
-        <span class="header__date">{{ formatFull(order().createdAt) }}</span>
-      </div>
-    </div>
-  `,
-  styles: [`
-    :host { display: block; }
-
-    .header {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .header__back {
-      background: none;
-      border: none;
-      font-size: 13px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: color 0.15s;
-
-      &:hover { color: var(--text-primary); }
-    }
-
-    .header__title-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .header__title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0;
-    }
-
-    .header__date {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-  `],
+  templateUrl: './order-detail-header.component.html',
+  styleUrl: './order-detail-header.component.scss',
 })
 export class OrderDetailHeaderComponent {
   order = input.required<Order>();

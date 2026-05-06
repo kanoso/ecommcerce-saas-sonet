@@ -1,0 +1,52 @@
+:host { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+.card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.payment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.payment__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  span {
+    font-size: 20px;
+    color: var(--primary);
+  }
+}
+
+.payment__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.payment__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}

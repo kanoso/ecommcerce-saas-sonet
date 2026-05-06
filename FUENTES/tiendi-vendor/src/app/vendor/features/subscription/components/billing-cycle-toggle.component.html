@@ -1,0 +1,19 @@
+<div class="cycle-toggle" role="group" aria-label="Ciclo de facturación">
+  <button
+    class="cycle-toggle__btn"
+    [class.cycle-toggle__btn--active]="cycle() === 'monthly'"
+    type="button"
+    (click)="cycleChange.emit('monthly')"
+    [attr.aria-pressed]="cycle() === 'monthly'">
+    Mensual
+  </button>
+  <button
+    class="cycle-toggle__btn"
+    [class.cycle-toggle__btn--active]="cycle() === 'annual'"
+    type="button"
+    (click)="cycleChange.emit('annual')"
+    [attr.aria-pressed]="cycle() === 'annual'">
+    Anual
+    <span class="cycle-toggle__badge" aria-label="Ahorrá 20%">Ahorrá 20%</span>
+  </button>
+</div>

@@ -16,74 +16,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabi
   selector: 'td-bottom-sheet',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (visible()) {
-      <div
-        class="sheet-backdrop"
-        (click)="closed.emit()"
-        aria-hidden="true"
-      ></div>
-
-      <div
-        #sheetPanel
-        class="sheet-panel"
-        role="dialog"
-        aria-modal="true"
-        (keydown.escape)="closed.emit()"
-        (keydown)="onKeydown($event)"
-      >
-        <div class="sheet-handle" aria-hidden="true"></div>
-        <ng-content />
-      </div>
-    }
-  `,
-  styles: [`
-    .sheet-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 900;
-      animation: fade-in 0.2s ease;
-    }
-
-    .sheet-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 901;
-      background: var(--card);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: 8px 0 env(safe-area-inset-bottom, 16px);
-      max-height: 85vh;
-      overflow-y: auto;
-      animation: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-
-      &:focus { outline: none; }
-    }
-
-    .sheet-handle {
-      width: 40px;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin: 0 auto 12px;
-    }
-
-    @keyframes fade-in {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-
-    @keyframes slide-up {
-      from { transform: translateY(100%); }
-      to   { transform: translateY(0); }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .sheet-panel, .sheet-backdrop { animation: none; }
-    }
-  `],
+  templateUrl: './bottom-sheet.component.html',
+  styleUrl: './bottom-sheet.component.scss',
 })
 export class BottomSheetComponent implements AfterViewInit, OnChanges {
   visible = input<boolean>(false);

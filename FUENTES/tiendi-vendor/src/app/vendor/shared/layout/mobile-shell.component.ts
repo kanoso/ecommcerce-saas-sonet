@@ -17,61 +17,8 @@ import { AuthStore } from '../../core/services/auth.store';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, TopbarComponent, BottomNavComponent, DrawerComponent, SidebarComponent],
-  template: `
-    <div class="mobile-shell">
-      <td-topbar
-        [storeName]="storeName()"
-        [unreadNotifications]="0"
-        (menuToggle)="moreDrawerOpen.set(true)"
-        (notificationClick)="onNotifications()"
-        (profileClick)="onProfile()"
-        (logoutClick)="onLogout()"
-      />
-
-      <main class="mobile-shell__content" id="main-content" tabindex="-1">
-        <router-outlet />
-      </main>
-
-      <td-bottom-nav
-        [userRole]="userRole()"
-        [pendingOrders]="0"
-        [unreadNotifications]="0"
-        (moreClick)="moreDrawerOpen.set(true)"
-      />
-
-      <!-- More Drawer -->
-      <td-drawer
-        title="Menú"
-        position="left"
-        [visible]="moreDrawerOpen()"
-        (closed)="moreDrawerOpen.set(false)"
-      >
-        <td-sidebar
-          [userRole]="userRole()"
-          [collapsed]="false"
-          (itemClick)="onDrawerNavItem($event)"
-          style="height: 100%; width: 100%"
-        />
-      </td-drawer>
-    </div>
-  `,
-  styles: [`
-    .mobile-shell {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .mobile-shell__content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      background: var(--surface);
-
-      &:focus { outline: none; }
-    }
-  `],
+  templateUrl: './mobile-shell.component.html',
+  styleUrl: './mobile-shell.component.scss',
 })
 export class MobileShellComponent {
   private readonly authStore = inject(AuthStore);

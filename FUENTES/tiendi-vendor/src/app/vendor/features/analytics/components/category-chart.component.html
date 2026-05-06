@@ -1,0 +1,30 @@
+<div class="chart-card">
+  <div class="chart-header">
+    <h3 class="chart-title">Ventas por categoría</h3>
+  </div>
+
+  @if (data().length > 0) {
+    <div class="chart-body">
+      <div class="canvas-wrap">
+        <canvas #canvas></canvas>
+      </div>
+      <ul class="legend-list">
+        @for (item of data(); track item.label) {
+          <li class="legend-item">
+            <span class="legend-dot" [style.background]="item.color"></span>
+            <span class="legend-label">{{ item.label }}</span>
+            <span class="legend-pct">{{ item.value }}%</span>
+          </li>
+        }
+      </ul>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+      </svg>
+      <p>Sin datos para este período</p>
+    </div>
+  }
+</div>

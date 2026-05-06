@@ -17,25 +17,8 @@ const SIZE_MAP: Record<IconSize, string> = {
   selector: 'td-icon',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <span
-      class="material-icons-outlined"
-      [style.font-size]="iconSize()"
-      [attr.aria-hidden]="!ariaLabel() ? 'true' : null"
-      [attr.aria-label]="ariaLabel() || null"
-      [attr.role]="ariaLabel() ? 'img' : null"
-    >{{ name() }}</span>
-  `,
-  styles: [`
-    span {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      vertical-align: middle;
-      user-select: none;
-    }
-  `],
+  templateUrl: './icon.component.html',
+  styleUrl: './icon.component.scss',
 })
 export class IconComponent {
   name = input.required<string>();

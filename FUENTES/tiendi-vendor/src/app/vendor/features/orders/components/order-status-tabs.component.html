@@ -1,0 +1,23 @@
+<div class="card" role="tablist" aria-label="Filtrar pedidos por estado">
+  <div class="tabs">
+    @for (tab of tabs; track tab.key) {
+      <button
+        class="tab"
+        [class.tab--active]="activeTab() === tab.key"
+        role="tab"
+        [attr.aria-selected]="activeTab() === tab.key"
+        [attr.aria-label]="tab.label + ': ' + countByStatus()[tab.key] + ' pedidos'"
+        type="button"
+        (click)="tabChange.emit(tab.key)"
+      >
+        {{ tab.label }}
+        <span
+          class="tab__count"
+          [class.tab__count--warning]="tab.key === 'PENDING' && countByStatus()['PENDING'] > 0"
+        >
+          {{ countByStatus()[tab.key] }}
+        </span>
+      </button>
+    }
+  </div>
+</div>

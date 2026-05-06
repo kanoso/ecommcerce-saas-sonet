@@ -1,0 +1,126 @@
+<div class="legal-page">
+
+  <!-- Warning Banner SUNAT -->
+  @if (!store.sunatConfigured()) {
+    <div class="warning-banner" role="alert">
+      <span class="material-icons-outlined warning-banner__icon">warning_amber</span>
+      <span class="warning-banner__text">
+        <strong>Configuración SUNAT pendiente</strong> — No podés emitir comprobantes electrónicos hasta completar la configuración.
+      </span>
+      <button class="warning-banner__link" (click)="store.setTab('sunat')">
+        Configurar ahora →
+      </button>
+    </div>
+  }
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-header__title">Facturación y Legal</h1>
+    <p class="page-header__sub">Gestioná tus comprobantes, configuración SUNAT y libro de reclamaciones.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button
+      class="tab-btn"
+      [class.tab-btn--active]="store.activeTab() === 'invoices'"
+      role="tab"
+      [attr.aria-selected]="store.activeTab() === 'invoices'"
+      (click)="store.setTab('invoices')"
+    >
+      <span class="material-icons-outlined tab-btn__icon">receipt_long</span>
+      Comprobantes
+      @if (store.invoices().length > 0) {
+        <span class="tab-badge">{{ store.invoices().length }}</span>
+      }
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.tab-btn--active]="store.activeTab() === 'sunat'"
+      role="tab"
+      [attr.aria-selected]="store.activeTab() === 'sunat'"
+      (click)="store.setTab('sunat')"
+    >
+      <span class="material-icons-outlined tab-btn__icon">settings</span>
+      Configuración SUNAT
+      @if (!store.sunatConfigured()) {
+        <span class="tab-badge tab-badge--warn">!</span>
+      }
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.tab-btn--active]="store.activeTab() === 'complaints'"
+      role="tab"
+      [attr.aria-selected]="store.activeTab() === 'complaints'"
+      (click)="store.setTab('complaints')"
+    >
+      <span class="material-icons-outlined tab-btn__icon">assignment</span>
+      Libro de Reclamaciones
+      @if (store.pendingComplaints().length > 0) {
+        <span class="tab-badge tab-badge--warn">{{ store.pendingComplaints().length }}</span>
+      }
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content" role="tabpanel">
+
+    @if (store.isLoading()) {
+      <div class="loading">
+        <span class="material-icons-outlined loading__icon">hourglass_empty</span>
+        Cargando...
+      </div>
+    } @else {
+
+      @switch (store.activeTab()) {
+
+        @case ('invoices') {
+          <app-invoices-tab
+            [invoices]="store.filteredInvoices()"
+            [filters]="store.invoiceFilters()"
+            (filtersChange)="store.setInvoiceFilters($event)"
+            (export)="onExport()"
+          />
+        }
+
+        @case ('sunat') {
+          <app-sunat-config-tab
+            [isSaving]="store.isSaving()"
+            [initialConfig]="sunatInitialConfig()"
+            (save)="onSaveSunat($event)"
+            (cancelled)="store.setTab('invoices')"
+          />
+        }
+
+        @case ('complaints') {
+          <app-complaints-tab
+            [complaints]="store.complaints()"
+            (respond)="store.respondComplaint($event.id, $event.response)"
+            (saveDraft)="store.saveDraft($event.id, $event.draft)"
+          />
+        }
+
+      }
+    }
+
+  </div>
+
+  <!-- Error banner -->
+  @if (store.error()) {
+    <div class="error-banner" role="alert">
+      <span class="material-icons-outlined" style="font-size:16px">error_outline</span>
+      {{ store.error() }}
+    </div>
+  }
+
+</div>
+
+<!-- Toast -->
+@if (store.successMessage()) {
+  <div class="toast" role="status" aria-live="polite">
+    <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+    {{ store.successMessage() }}
+  </div>
+}

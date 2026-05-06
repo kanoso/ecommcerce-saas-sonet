@@ -9,7 +9,7 @@ import { LegalStore } from '../legal.store';
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: ``,
+  templateUrl: './invoices.page.html',
 })
 export class InvoicesPage implements OnInit {
   private readonly store  = inject(LegalStore);

@@ -1,0 +1,33 @@
+<div class="usage" [class.usage--warning]="isWarning()">
+  <span class="material-icons-outlined usage__icon" aria-hidden="true">inventory</span>
+
+  <div class="usage__content">
+    <div class="usage__header">
+      <span class="usage__label">Uso del plan</span>
+      <span class="usage__count" aria-live="polite">
+        {{ used() }} / {{ max() }} productos
+      </span>
+    </div>
+    <div
+      class="usage__track"
+      role="progressbar"
+      [attr.aria-valuenow]="percentage()"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-label]="'Uso del plan: ' + percentage() + '%'"
+    >
+      <div
+        class="usage__fill"
+        [class.usage__fill--warning]="isWarning()"
+        [style.width.%]="percentage()"
+      ></div>
+    </div>
+    @if (isWarning()) {
+      <p class="usage__alert">Estás cerca del límite del plan. Considerá ampliarlo.</p>
+    }
+  </div>
+
+  <a class="usage__link" routerLink="/vendor/subscription" aria-label="Ampliar plan de productos">
+    Ampliar plan →
+  </a>
+</div>

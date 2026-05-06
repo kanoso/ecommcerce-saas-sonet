@@ -1,0 +1,19 @@
+@if (visible()) {
+  <div
+    class="sheet-backdrop"
+    (click)="closed.emit()"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    #sheetPanel
+    class="sheet-panel"
+    role="dialog"
+    aria-modal="true"
+    (keydown.escape)="closed.emit()"
+    (keydown)="onKeydown($event)"
+  >
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <ng-content />
+  </div>
+}

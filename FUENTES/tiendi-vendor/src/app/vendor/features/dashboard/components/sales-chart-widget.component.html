@@ -1,0 +1,21 @@
+<div class="widget" role="region" aria-label="Gráfico de ventas">
+  <div class="widget__header">
+    <h2 class="widget__title">Ventas últimos 7 días</h2>
+    <a routerLink="/vendor/analytics" class="widget__link">Ver analytics →</a>
+  </div>
+
+  <div class="widget__body">
+    @if (isLoading()) {
+      <td-skeleton variant="rect" height="220px" />
+    } @else {
+      <div class="chart-wrap" aria-hidden="true">
+        <canvas
+          baseChart
+          [data]="chartData"
+          [options]="chartOptions"
+          type="line"
+        ></canvas>
+      </div>
+    }
+  </div>
+</div>

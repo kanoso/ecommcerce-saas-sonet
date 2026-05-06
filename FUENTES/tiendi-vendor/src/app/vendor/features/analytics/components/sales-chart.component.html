@@ -1,0 +1,21 @@
+<div class="chart-card">
+  <div class="chart-header">
+    <h3 class="chart-title">Evolución de ventas</h3>
+    <div class="chart-legend">
+      <span class="legend-dot legend-dot--current"></span><span class="legend-label">Este período</span>
+      <span class="legend-dot legend-dot--previous"></span><span class="legend-label">Período anterior</span>
+    </div>
+  </div>
+  @if (data()) {
+    <div class="canvas-wrap">
+      <canvas #canvas></canvas>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+      </svg>
+      <p>Sin datos para este período</p>
+    </div>
+  }
+</div>

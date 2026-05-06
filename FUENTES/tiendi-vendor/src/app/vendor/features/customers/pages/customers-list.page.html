@@ -1,0 +1,159 @@
+<div class="page-wrapper">
+
+  <!-- Page header -->
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Clientes</h1>
+      <p class="page-subtitle">Gestión y seguimiento de tu base de clientes</p>
+    </div>
+    <button
+      class="btn-export"
+      type="button"
+      aria-label="Exportar lista de clientes"
+      (click)="onExport()"
+    >
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Exportar
+    </button>
+  </header>
+
+  <!-- KPI Bar -->
+  <app-customers-kpi-bar [summary]="store.summary()" />
+
+  <!-- Toolbar: search + type filter -->
+  <div class="toolbar" role="search">
+    <div class="search-wrapper">
+      <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        class="search-input"
+        type="search"
+        placeholder="Buscar por nombre, teléfono o email…"
+        aria-label="Buscar clientes"
+        [value]="store.search()"
+        (input)="onSearchInput($event)"
+      />
+    </div>
+
+    <select
+      class="filter-select"
+      aria-label="Filtrar por tipo de cliente"
+      [value]="store.typeFilter()"
+      (change)="onTypeChange($event)"
+    >
+      <option value="">Todos</option>
+      <option value="vip">⭐ VIP</option>
+      <option value="regular">Regular</option>
+      <option value="new">Nuevo</option>
+      <option value="inactive">Inactivo</option>
+    </select>
+  </div>
+
+  <!-- Loading skeleton -->
+  @if (store.isLoading()) {
+    <div class="skeleton-wrapper" role="status" aria-label="Cargando clientes">
+      @for (n of skeletonRows; track n) {
+        <div class="skeleton-row">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line skeleton-line-lg"></div>
+            <div class="skeleton-line skeleton-line-sm"></div>
+          </div>
+          <div class="skeleton-pill"></div>
+          <div class="skeleton-pill"></div>
+          <div class="skeleton-btn"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Customers table -->
+    <app-customers-table
+      [customers]="store.customers()"
+      (viewDetail)="store.selectCustomer($event)"
+    />
+
+    <!-- Pagination -->
+    @if (store.totalPages() > 1) {
+      <nav class="pagination" aria-label="Paginación de clientes">
+        <button
+          class="page-btn"
+          [disabled]="store.page() === 1"
+          [attr.aria-disabled]="store.page() === 1"
+          (click)="onPageChange(store.page() - 1)"
+          aria-label="Página anterior"
+          type="button"
+        >
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        @for (p of getPageRange(); track p) {
+          <button
+            class="page-btn"
+            [class.active]="p === store.page()"
+            [attr.aria-current]="p === store.page() ? 'page' : null"
+            (click)="onPageChange(p)"
+            type="button"
+          >
+            {{ p }}
+          </button>
+        }
+
+        <button
+          class="page-btn"
+          [disabled]="store.page() === store.totalPages()"
+          [attr.aria-disabled]="store.page() === store.totalPages()"
+          (click)="onPageChange(store.page() + 1)"
+          aria-label="Página siguiente"
+          type="button"
+        >
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </nav>
+    }
+  }
+
+  <!-- Error state -->
+  @if (store.error()) {
+    <div class="error-banner" role="alert">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      {{ store.error() }}
+    </div>
+  }
+
+  <!-- LGPD / Privacy Banner (Ley 29733 - Perú) -->
+  <aside class="lgpd-banner" role="complementary" aria-label="Aviso de privacidad">
+    <div class="lgpd-icon" aria-hidden="true">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <p class="lgpd-text">
+      <strong>Aviso de privacidad:</strong>
+      Los datos personales de tus clientes están protegidos conforme a la
+      <strong>Ley N.° 29733</strong> – Ley de Protección de Datos Personales del Perú.
+      Solo el titular de la tienda y usuarios autorizados pueden acceder a esta información.
+    </p>
+  </aside>
+
+</div>
+
+<!-- Detail Modal (rendered outside page flow via overlay) -->
+<app-customer-detail-modal
+  [customer]="store.selected()"
+  (closed)="store.clearSelected()"
+/>

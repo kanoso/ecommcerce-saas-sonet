@@ -1,0 +1,17 @@
+.mobile-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.mobile-shell__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--surface);
+
+  &:focus {
+    outline: none;
+  }
+}

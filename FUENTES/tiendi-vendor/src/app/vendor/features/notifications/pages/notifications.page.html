@@ -1,0 +1,66 @@
+<div class="notif-page">
+
+  <!-- Header -->
+  <div class="notif-page__header">
+    <div>
+      <h1 class="notif-page__title">Notificaciones</h1>
+      @if (store.unreadCount() > 0) {
+        <p class="notif-page__sub">{{ store.unreadCount() }} sin leer</p>
+      } @else {
+        <p class="notif-page__sub">Todo leído</p>
+      }
+    </div>
+    <button class="btn btn--ghost btn--sm" (click)="store.markAllRead()">
+      <span class="material-icons-outlined" style="font-size:16px">done_all</span>
+      Marcar todo ✓
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="notif-page__tabs">
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="tab"
+        [class.tab--active]="store.activeTab() === tab.id"
+        (click)="store.setTab(tab.id)"
+      >
+        {{ tab.label }}
+        @if (tab.id === 'unread' && store.unreadCount() > 0) {
+          <span class="tab__badge">{{ store.unreadCount() }}</span>
+        }
+        @if (tab.id === 'all') {
+          <span class="tab__count">{{ store.notifications().length }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- List -->
+  @if (store.isLoading()) {
+    <div class="loading">Cargando notificaciones...</div>
+  } @else {
+    <app-notification-list
+      [groups]="store.grouped()"
+      (read)="store.markRead($event)"
+    />
+  }
+
+  @if (store.error()) {
+    <div class="error-banner" role="alert">{{ store.error() }}</div>
+  }
+
+  <!-- Settings -->
+  <app-notification-settings-card
+    [settings]="store.settings()"
+    [isSaving]="store.isSavingSettings()"
+    (save)="onSaveSettings($event)"
+    style="margin-top:24px;display:block"
+  />
+</div>
+
+@if (store.successMessage()) {
+  <div class="toast" role="status">
+    <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+    {{ store.successMessage() }}
+  </div>
+}

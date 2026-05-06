@@ -1,0 +1,36 @@
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.page-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-header__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+
+  @media (max-width: 767px) { font-size: 20px; }
+}
+
+.page-header__subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}

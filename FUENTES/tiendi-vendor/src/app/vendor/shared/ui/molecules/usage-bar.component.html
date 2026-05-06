@@ -1,0 +1,28 @@
+<div class="usage-bar">
+  <div class="usage-bar__header">
+    <span class="usage-bar__label">{{ label() }}</span>
+    <span class="usage-bar__value" aria-live="polite">
+      {{ current() }}
+      @if (max() !== null) {
+        <span class="usage-bar__max"> / {{ max() }}</span>
+      } @else {
+        <span class="usage-bar__unlimited"> / ilimitado</span>
+      }
+    </span>
+  </div>
+
+  <div
+    class="usage-bar__track"
+    role="progressbar"
+    [attr.aria-valuenow]="percentage()"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    [attr.aria-label]="label() + ': ' + percentage() + '%'"
+  >
+    <div
+      class="usage-bar__fill"
+      [ngClass]="fillClass()"
+      [style.width.%]="percentage()"
+    ></div>
+  </div>
+</div>

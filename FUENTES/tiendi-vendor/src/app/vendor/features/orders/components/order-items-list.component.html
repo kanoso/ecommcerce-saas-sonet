@@ -1,0 +1,50 @@
+<div class="card" role="region" aria-label="Productos del pedido">
+  <h2 class="card__title">Productos</h2>
+
+  <table class="items-table" aria-label="Detalle de productos">
+    <thead>
+      <tr>
+        <th scope="col">Producto</th>
+        <th scope="col" class="text-right">Cant.</th>
+        <th scope="col" class="text-right">Precio unit.</th>
+        <th scope="col" class="text-right">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of order().items; track item.productId) {
+        <tr>
+          <td>
+            <div class="product-cell">
+              <div class="product-cell__icon" aria-hidden="true">
+                <span class="material-symbols-rounded">inventory_2</span>
+              </div>
+              <div class="product-cell__info">
+                <span class="product-cell__name">{{ item.name }}</span>
+                <span class="product-cell__category">Producto</span>
+              </div>
+            </div>
+          </td>
+          <td class="text-right">{{ item.qty }}</td>
+          <td class="text-right">S/ {{ item.unitPrice.toFixed(2) }}</td>
+          <td class="text-right">S/ {{ (item.qty * item.unitPrice).toFixed(2) }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="summary">
+    <div class="summary__row">
+      <span>Subtotal</span>
+      <span>S/ {{ order().subtotal.toFixed(2) }}</span>
+    </div>
+    <div class="summary__row">
+      <span>Envío</span>
+      <span>S/ {{ order().deliveryFee.toFixed(2) }}</span>
+    </div>
+    <hr class="summary__divider" />
+    <div class="summary__row summary__row--total">
+      <span>Total</span>
+      <span class="summary__total-amount">S/ {{ order().total.toFixed(2) }}</span>
+    </div>
+  </div>
+</div>

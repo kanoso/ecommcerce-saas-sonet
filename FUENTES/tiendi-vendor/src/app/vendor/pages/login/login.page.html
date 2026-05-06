@@ -1,0 +1,73 @@
+<div class="login">
+  <div class="login__card">
+    <div class="login__logo">
+      <span class="login__logo-icon">🛍️</span>
+      <span class="login__logo-text">Tiendi Vendor</span>
+    </div>
+
+    <h1 class="login__title">Bienvenido de vuelta</h1>
+    <p class="login__subtitle">Ingresá a tu panel de vendedor</p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login__form" novalidate>
+      <div class="login__field">
+        <label class="login__label" for="loginEmail">Email</label>
+        <input
+          id="loginEmail"
+          type="email"
+          formControlName="email"
+          class="login__input"
+          [class.login__input--error]="form.get('email')?.invalid && form.get('email')?.touched"
+          placeholder="tu@email.com"
+          autocomplete="email" />
+        @if (form.get('email')?.hasError('required') && form.get('email')?.touched) {
+          <p class="login__field-error">El email es obligatorio</p>
+        }
+        @if (form.get('email')?.hasError('email') && form.get('email')?.touched) {
+          <p class="login__field-error">Ingresá un email válido</p>
+        }
+      </div>
+
+      <div class="login__field">
+        <label class="login__label" for="loginPassword">Contraseña</label>
+        <input
+          id="loginPassword"
+          type="password"
+          formControlName="password"
+          class="login__input"
+          [class.login__input--error]="form.get('password')?.invalid && form.get('password')?.touched"
+          placeholder="••••••••"
+          autocomplete="current-password" />
+        @if (form.get('password')?.hasError('required') && form.get('password')?.touched) {
+          <p class="login__field-error">La contraseña es obligatoria</p>
+        }
+      </div>
+
+      @if (loginError) {
+        <p class="login__error" role="alert">{{ loginError }}</p>
+      }
+
+      <button
+        type="submit"
+        class="login__submit"
+        [disabled]="authStore.isLoading()">
+        @if (authStore.isLoading()) {
+          <span class="material-icons-outlined login__spinner">sync</span>
+          Ingresando...
+        } @else {
+          Ingresar
+        }
+      </button>
+    </form>
+
+    <div class="login__hint">
+      <p class="login__hint-title">🧪 Usuarios de prueba:</p>
+      <ul class="login__hint-list">
+        <li><code>carlos&#64;tiendi.app</code> — STORE_OWNER</li>
+        <li><code>maria&#64;tiendi.app</code> — MANAGER</li>
+        <li><code>juan&#64;tiendi.app</code> — CASHIER</li>
+        <li><code>rosa&#64;tiendi.app</code> — WAREHOUSE</li>
+      </ul>
+      <p class="login__hint-pwd">Password: cualquiera</p>
+    </div>
+  </div>
+</div>

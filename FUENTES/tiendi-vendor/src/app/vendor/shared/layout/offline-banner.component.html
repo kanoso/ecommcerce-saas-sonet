@@ -1,0 +1,11 @@
+@if (uiStore.isOffline()) {
+  <div
+    class="offline-banner"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    <span class="material-icons-outlined" aria-hidden="true">wifi_off</span>
+    <span>Sin conexión a internet. Verificá tu red para continuar operando.</span>
+  </div>
+}

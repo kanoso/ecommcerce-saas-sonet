@@ -1,0 +1,43 @@
+<div class="dashboard">
+  <app-dashboard-greeting
+    [userName]="userName()"
+    [storeName]="storeName()"
+    [date]="today"
+  />
+
+  <app-welcome-checklist [items]="checklistItems()" />
+
+  <app-dashboard-kpi-grid
+    [todaySales]="store.todaySales()"
+    [pendingCount]="store.pendingCount()"
+    [lowStockCount]="store.lowStockProducts().length"
+    [activeProductCount]="store.activeProductCount()"
+    [isLoading]="store.isLoading()"
+    (kpiClick)="onKpiClick($event)"
+  />
+
+  <div class="dashboard__grid">
+    <app-recent-orders-widget
+      [orders]="store.recentOrders()"
+      [isLoading]="store.isLoading()"
+      (orderClick)="onOrderClick($event)"
+    />
+
+    <app-sales-chart-widget
+      [orders]="store.recentOrders()"
+      [isLoading]="store.isLoading()"
+    />
+  </div>
+
+  <app-low-stock-widget
+    [products]="store.lowStockProducts()"
+    [isLoading]="store.isLoading()"
+    (stockUpdate)="onStockUpdate($event)"
+  />
+
+  @if (store.error()) {
+    <div class="dashboard__error" role="alert">
+      {{ store.error() }}
+    </div>
+  }
+</div>

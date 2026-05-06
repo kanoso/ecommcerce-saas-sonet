@@ -1,0 +1,34 @@
+<div class="preview">
+  <p class="preview__caption">Vista previa del producto</p>
+
+  <div class="preview__card" aria-label="Vista previa del producto">
+    <div class="preview__img">
+      @if (imageUrl()) {
+        <img [src]="imageUrl()!" [alt]="name() || 'Producto'" class="preview__image" />
+      } @else {
+        <span class="material-icons-outlined preview__placeholder" aria-hidden="true">
+          inventory_2
+        </span>
+      }
+    </div>
+
+    <div class="preview__body">
+      <p class="preview__name">{{ name() || 'Nombre del producto' }}</p>
+
+      @if (price()) {
+        <div class="preview__pricing">
+          @if (discountPrice()) {
+            <span class="preview__price-offer">S/ {{ discountPrice() | number:'1.2-2' }}</span>
+            <span class="preview__price-orig">S/ {{ price() | number:'1.2-2' }}</span>
+          } @else {
+            <span class="preview__price">S/ {{ price() | number:'1.2-2' }}</span>
+          }
+        </div>
+      } @else {
+        <p class="preview__price-empty">S/ 0.00</p>
+      }
+    </div>
+  </div>
+
+  <p class="preview__hint">Así verán el producto tus clientes</p>
+</div>

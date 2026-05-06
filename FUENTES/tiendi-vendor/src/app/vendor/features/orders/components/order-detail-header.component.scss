@@ -1,0 +1,41 @@
+:host { display: block; }
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header__back {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+
+  &:hover { color: var(--text-primary); }
+}
+
+.header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.header__date {
+  font-size: 13px;
+  color: var(--text-secondary);
+}

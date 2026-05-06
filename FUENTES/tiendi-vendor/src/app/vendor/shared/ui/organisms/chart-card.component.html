@@ -1,0 +1,27 @@
+<div class="chart-card">
+  <div class="chart-card__header">
+    <h3 class="chart-card__title">{{ title() }}</h3>
+  </div>
+
+  <div class="chart-card__body">
+    @if (loading()) {
+      <div class="chart-card__loading">
+        <td-spinner size="lg" />
+      </div>
+    } @else if (!hasData()) {
+      <div class="chart-card__empty" role="status">
+        <span class="material-icons-outlined" aria-hidden="true">bar_chart</span>
+        <p>Sin datos disponibles</p>
+      </div>
+    } @else {
+      <canvas
+        baseChart
+        [data]="data()"
+        [type]="type()"
+        [options]="mergedOptions()"
+        role="img"
+        [attr.aria-label]="title()"
+      ></canvas>
+    }
+  </div>
+</div>

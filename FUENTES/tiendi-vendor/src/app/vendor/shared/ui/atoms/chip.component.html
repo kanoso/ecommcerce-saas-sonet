@@ -1,0 +1,10 @@
+<button
+  type="button"
+  [ngClass]="['chip', selected() ? 'chip-selected' : '', disabled() ? 'chip-disabled' : '']"
+  [disabled]="disabled()"
+  [attr.aria-pressed]="selected()"
+  [attr.aria-disabled]="disabled() || null"
+  (click)="!disabled() && toggled.emit(!selected())"
+>
+  {{ label() }}
+</button>

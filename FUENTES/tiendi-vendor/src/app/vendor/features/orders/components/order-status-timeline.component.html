@@ -1,0 +1,44 @@
+<div class="card" role="region" aria-label="Historial de estados">
+  <h2 class="card__title">Historial de estados</h2>
+
+  <div class="timeline">
+    @for (step of steps; track step.status) {
+      <div
+        class="timeline__item"
+        [class.timeline__item--done]="isDone(step.status)"
+        [attr.aria-label]="step.label + (isDone(step.status) ? ' — completado' : ' — pendiente')"
+      >
+        <div class="timeline__dot">
+          @if (isDone(step.status)) {
+            <span class="material-symbols-rounded timeline__check" aria-hidden="true">check</span>
+          }
+        </div>
+        <div class="timeline__content">
+          <span class="timeline__label">{{ step.label }}</span>
+          @if (getEntry(step.status); as entry) {
+            <span class="timeline__date">{{ formatAt(entry.at) }}</span>
+          } @else {
+            <span class="timeline__date timeline__date--empty">Pendiente</span>
+          }
+        </div>
+      </div>
+    }
+
+    @if (order().status === 'REJECTED') {
+      <div class="timeline__item timeline__item--rejected" aria-label="Pedido rechazado">
+        <div class="timeline__dot timeline__dot--rejected">
+          <span class="material-symbols-rounded timeline__check" aria-hidden="true">close</span>
+        </div>
+        <div class="timeline__content">
+          <span class="timeline__label timeline__label--rejected">Rechazado</span>
+          @if (getEntry('REJECTED'); as entry) {
+            <span class="timeline__date">{{ formatAt(entry.at) }}</span>
+          }
+          @if (order().rejectionReason) {
+            <span class="timeline__reason">{{ order().rejectionReason }}</span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

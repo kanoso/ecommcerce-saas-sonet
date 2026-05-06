@@ -1,0 +1,33 @@
+<div class="card" role="region" aria-label="Información del cliente">
+  <h2 class="card__title">Información del cliente</h2>
+
+  <div class="customer">
+    <div class="customer__avatar" [attr.aria-label]="'Avatar de ' + order().customerName">
+      {{ getInitials(order().customerName) }}
+    </div>
+    <span class="customer__name">{{ order().customerName }}</span>
+  </div>
+
+  <div class="customer__contacts">
+    <div class="contact-row">
+      <span class="material-symbols-rounded contact-row__icon" aria-hidden="true">phone</span>
+      <span>{{ order().customerPhone }}</span>
+    </div>
+    <div class="contact-row">
+      <span class="material-symbols-rounded contact-row__icon" aria-hidden="true">email</span>
+      <a [href]="'mailto:' + order().customerEmail" class="contact-row__link">
+        {{ order().customerEmail }}
+      </a>
+    </div>
+    @if (order().deliveryAddress) {
+      <div class="contact-row">
+        <span class="material-symbols-rounded contact-row__icon" aria-hidden="true">place</span>
+        <span>{{ order().deliveryAddress }}</span>
+      </div>
+    }
+  </div>
+
+  <hr class="divider" />
+
+  <span class="order-count">8 pedidos realizados</span>
+</div>

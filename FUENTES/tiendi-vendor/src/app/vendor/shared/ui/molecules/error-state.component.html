@@ -1,0 +1,10 @@
+<div class="error-state" role="alert">
+  <span class="material-icons-outlined error-state__icon" aria-hidden="true">error_outline</span>
+  <p class="error-state__message">{{ message() }}</p>
+  <td-button
+    label="Reintentar"
+    variant="ghost"
+    icon="refresh"
+    (clicked)="retry.emit()"
+  />
+</div>

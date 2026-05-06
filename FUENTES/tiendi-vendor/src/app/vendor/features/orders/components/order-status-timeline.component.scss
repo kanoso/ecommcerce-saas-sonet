@@ -1,0 +1,118 @@
+:host { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+.card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline__item {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 20px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 20px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+
+    &::before { display: none; }
+  }
+}
+
+.timeline__item--done {
+  &::before { background: var(--primary); }
+}
+
+.timeline__item--rejected {
+  &::before { background: var(--danger); }
+}
+
+.timeline__dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.timeline__item--done .timeline__dot {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.timeline__dot--rejected {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.timeline__check {
+  font-size: 13px;
+  color: #fff;
+}
+
+.timeline__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 1px;
+}
+
+.timeline__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timeline__label--rejected {
+  color: var(--danger);
+}
+
+.timeline__date {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.timeline__date--empty {
+  font-style: italic;
+}
+
+.timeline__reason {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: rgba(239,68,68,.06);
+  border-radius: var(--radius);
+  border-left: 2px solid var(--danger);
+}

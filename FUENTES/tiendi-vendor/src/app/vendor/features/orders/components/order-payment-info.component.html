@@ -1,0 +1,19 @@
+<div class="card" role="region" aria-label="Método de pago">
+  <h2 class="card__title">Método de pago</h2>
+
+  <div class="payment">
+    <div class="payment__icon" aria-hidden="true">
+      <span class="material-symbols-rounded">{{ getIcon(order().paymentMethod) }}</span>
+    </div>
+    <div class="payment__info">
+      <span class="payment__label">{{ getLabel(order().paymentMethod) }}</span>
+      <span
+        class="tag"
+        [class.tag-pending]="order().status !== 'DELIVERED'"
+        [class.tag-delivered]="order().status === 'DELIVERED'"
+      >
+        {{ order().status === 'DELIVERED' ? 'Pagado' : 'Pendiente' }}
+      </span>
+    </div>
+  </div>
+</div>

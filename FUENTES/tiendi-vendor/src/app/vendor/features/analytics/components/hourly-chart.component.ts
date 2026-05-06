@@ -15,57 +15,8 @@ import { HourlyData } from '../analytics.store';
   selector: 'app-hourly-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="chart-card">
-      <div class="chart-header">
-        <h3 class="chart-title">Pedidos por hora del día</h3>
-      </div>
-
-      @if (data().length > 0) {
-        <div class="canvas-wrap">
-          <canvas #canvas></canvas>
-        </div>
-      } @else {
-        <div class="empty-state">
-          <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p>Sin datos para este período</p>
-        </div>
-      }
-    </div>
-  `,
-  styles: [`
-    .chart-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-    }
-    .chart-header {
-      margin-bottom: 16px;
-    }
-    .chart-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111827;
-      margin: 0;
-    }
-    .canvas-wrap {
-      position: relative;
-      height: 240px;
-    }
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      height: 160px;
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-  `],
+  templateUrl: './hourly-chart.component.html',
+  styleUrl: './hourly-chart.component.scss',
 })
 export class HourlyChartComponent implements AfterViewInit, OnDestroy {
   data = input.required<HourlyData[]>();

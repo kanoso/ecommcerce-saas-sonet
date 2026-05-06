@@ -1,0 +1,27 @@
+<div class="page">
+  <header class="page__header">
+    <div class="page__header-text">
+      <h1 class="page__title">Pedidos</h1>
+      <p class="page__subtitle">Gestioná y hacé seguimiento de todos tus pedidos</p>
+    </div>
+  </header>
+
+  <td-order-filters
+    [filters]="store.filters()"
+    (filtersChange)="store.setFilters($event)"
+    (clearAll)="store.clearFilters()"
+  />
+
+  <td-order-status-tabs
+    [activeTab]="store.activeTab()"
+    [countByStatus]="store.countByStatus()"
+    (tabChange)="store.setActiveTab($any($event))"
+  />
+
+  <td-order-list-table
+    [orders]="store.filteredOrders()"
+    [isLoading]="store.isLoading()"
+    (orderClick)="navigateToDetail($event)"
+    (quickAction)="handleQuickAction($event)"
+  />
+</div>

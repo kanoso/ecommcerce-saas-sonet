@@ -1,0 +1,26 @@
+<div class="checklist">
+  @if (allDone()) {
+    <p class="checklist__complete">🎉 ¡Perfil completo!</p>
+  } @else {
+    <p class="checklist__title">¡Completá tu perfil!</p>
+
+    <div class="checklist__bar-wrap" role="progressbar"
+      [attr.aria-valuenow]="doneCount()"
+      [attr.aria-valuemax]="items().length"
+      aria-label="Progreso del perfil">
+      <div class="checklist__bar">
+        <div class="checklist__bar-fill" [style.width.%]="progressPct()"></div>
+      </div>
+      <span class="checklist__bar-label">{{ doneCount() }}/{{ items().length }}</span>
+    </div>
+
+    <ul class="checklist__list">
+      @for (item of items(); track item.label) {
+        <li class="checklist__item">
+          <span>{{ item.done ? '✅' : '⬜' }}</span>
+          <span [class.checklist__item--done]="item.done">{{ item.label }}</span>
+        </li>
+      }
+    </ul>
+  }
+</div>

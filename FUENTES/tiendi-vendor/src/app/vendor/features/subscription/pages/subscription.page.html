@@ -1,0 +1,91 @@
+<div class="sub-page">
+  <header class="sub-page__header">
+    <h1 class="sub-page__title">Suscripción y Plan</h1>
+    <p class="sub-page__subtitle">Administrá tu plan, facturación y método de pago.</p>
+  </header>
+
+  <!-- Loading state -->
+  @if (store.isLoading()) {
+    <div class="sub-page__loading" role="status" aria-label="Cargando suscripción">
+      <div class="spinner" aria-hidden="true"></div>
+      <span>Cargando información de tu plan...</span>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (store.error()) {
+    <div class="sub-page__error" role="alert">
+      <span>{{ store.error() }}</span>
+      <button type="button" (click)="store.loadAll()">Reintentar</button>
+    </div>
+  }
+
+  <!-- Success toast -->
+  @if (store.successMessage()) {
+    <div class="toast toast--success" role="status" aria-live="polite">
+      {{ store.successMessage() }}
+    </div>
+  }
+
+  <!-- Trial banner -->
+  @if (store.isInTrial()) {
+    <app-trial-banner
+      [daysLeft]="store.trialDaysLeft()"
+      (upgrade)="scrollToPlans()" />
+  }
+
+  <!-- Current plan card -->
+  <app-current-plan-card
+    [subscription]="store.subscription()"
+    [plan]="store.currentPlan()"
+    (cancelPlan)="onCancel()"
+    (changePlan)="scrollToPlans()" />
+
+  <!-- Billing toggle -->
+  <app-billing-cycle-toggle
+    [cycle]="store.billingCycle()"
+    (cycleChange)="store.setBillingCycle($event)" />
+
+  <!-- Plans grid -->
+  <div #plansRef>
+    <app-plans-grid
+      [plans]="store.plans()"
+      [currentPlanId]="store.subscription()?.planId"
+      [cycle]="store.billingCycle()"
+      (selectPlan)="onSelectPlan($event)" />
+  </div>
+
+  <!-- Payment history -->
+  <app-payment-history-table [records]="store.paymentHistory()" />
+
+  <!-- Payment method -->
+  <app-payment-method-card [method]="store.paymentMethod()" />
+
+  <!-- Cancel confirmation modal -->
+  @if (cancelOpen()) {
+    <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
+      <div class="modal">
+        <h2 class="modal__title" id="cancel-modal-title">Cancelar suscripción</h2>
+        <p class="modal__body">
+          ¿Estás seguro que querés cancelar tu suscripción?
+          Seguirás teniendo acceso hasta el <strong>{{ store.subscription()?.currentPeriodEnd }}</strong>.
+        </p>
+        <div class="modal__actions">
+          <button
+            class="btn btn--ghost"
+            type="button"
+            (click)="cancelOpen.set(false)">
+            Volver
+          </button>
+          <button
+            class="btn btn--danger"
+            type="button"
+            [disabled]="store.isSaving()"
+            (click)="confirmCancel()">
+            {{ store.isSaving() ? 'Cancelando...' : 'Sí, cancelar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

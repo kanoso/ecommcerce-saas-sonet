@@ -1,0 +1,23 @@
+<ol class="timeline" aria-label="Historial de estados">
+  @for (item of history(); track item.at; let first = $first) {
+    <li class="timeline__item" [class.timeline__item--current]="first">
+      <div class="timeline__dot" [class.timeline__dot--current]="first" aria-hidden="true">
+        @if (first) {
+          <span class="material-icons-outlined" aria-hidden="true">radio_button_checked</span>
+        } @else {
+          <span class="material-icons-outlined" aria-hidden="true">check_circle</span>
+        }
+      </div>
+
+      <div class="timeline__content">
+        <span class="timeline__status">{{ item.status }}</span>
+        <time class="timeline__time" [dateTime]="item.at">
+          {{ formatDate(item.at) }}
+        </time>
+        @if (item.description) {
+          <p class="timeline__desc">{{ item.description }}</p>
+        }
+      </div>
+    </li>
+  }
+</ol>

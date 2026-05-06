@@ -1,0 +1,18 @@
+<div class="stepper">
+  @for (step of steps; track step) {
+    <div class="stepper__dot"
+      [class.stepper__dot--active]="currentStep() === step"
+      [class.stepper__dot--done]="currentStep() > step">
+      @if (currentStep() > step) {
+        <span class="material-icons-outlined">check</span>
+      } @else {
+        {{ step }}
+      }
+    </div>
+    @if (step < steps.length) {
+      <div class="stepper__line"
+        [class.stepper__line--done]="currentStep() > step">
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,14 @@
+<div class="greeting">
+  <div class="greeting__top">
+    <div>
+      <h1 class="greeting__title">{{ greetingText() }}, {{ userName() }} 👋</h1>
+      <p class="greeting__date">{{ formattedDate() }}</p>
+    </div>
+    @if (storeName()) {
+      <div class="greeting__store" aria-label="Tienda activa">
+        <span class="material-icons-outlined greeting__store-icon" aria-hidden="true">storefront</span>
+        <span class="greeting__store-name">{{ storeName() }}</span>
+      </div>
+    }
+  </div>
+</div>

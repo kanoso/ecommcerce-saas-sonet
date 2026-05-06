@@ -1,0 +1,64 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: backdrop-in 0.15s ease;
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: min(480px, calc(100vw - 32px));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: dialog-in 0.15s ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: 2px;
+  }
+}
+
+.dialog__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.dialog--destructive .dialog__title {
+  color: var(--danger-dark);
+}
+
+.dialog__message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translate(-50%, -52%) scale(0.97); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog, .dialog-backdrop { animation: none; }
+}

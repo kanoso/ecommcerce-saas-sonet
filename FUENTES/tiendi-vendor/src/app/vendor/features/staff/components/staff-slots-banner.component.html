@@ -1,0 +1,14 @@
+<div class="slots-banner">
+  <div class="slots-banner__info">
+    <span class="material-icons-outlined" style="color:#2563EB;font-size:22px">group</span>
+    <div>
+      <div class="slots-banner__title">Usando {{ used() }} de {{ max() }} slots — Plan Pro</div>
+      @if (used() >= max()) {
+        <div class="slots-banner__sub slots-banner__sub--warn">Límite alcanzado. Pasá al plan Business para agregar más.</div>
+      } @else {
+        <div class="slots-banner__sub">¿Necesitás más colaboradores? Pasá al plan Business</div>
+      }
+    </div>
+  </div>
+  <a routerLink="/vendor/subscription" class="slots-banner__link">Ver planes →</a>
+</div>

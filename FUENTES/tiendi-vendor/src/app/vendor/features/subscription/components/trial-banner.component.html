@@ -1,0 +1,12 @@
+<div class="trial-banner" role="alert" aria-live="polite">
+  <div class="trial-banner__content">
+    <span class="trial-banner__icon" aria-hidden="true">⏳</span>
+    <div class="trial-banner__text">
+      <strong>Tu período de prueba vence en {{ daysLeft() }} {{ daysLeft() === 1 ? 'día' : 'días' }}</strong>
+      <span>Activá tu plan para no perder el acceso a tus productos y pedidos.</span>
+    </div>
+  </div>
+  <button class="btn-upgrade" type="button" (click)="upgrade.emit()">
+    Actualizar a Pro ahora
+  </button>
+</div>

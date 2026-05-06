@@ -1,0 +1,25 @@
+<div class="stepper" role="list" aria-label="Progreso">
+  @for (step of stepsArray(); track step.index) {
+    <div class="stepper__step" role="listitem">
+      <div
+        class="stepper__dot"
+        [ngClass]="{
+          'stepper__dot--active': step.index === current(),
+          'stepper__dot--completed': step.index < current()
+        }"
+        [attr.aria-label]="stepAriaLabel(step.index)"
+      >
+        @if (step.index < current()) {
+          <span class="material-icons-outlined" aria-hidden="true" style="font-size:12px">check</span>
+        }
+      </div>
+
+      @if (step.index < steps() - 1) {
+        <div
+          class="stepper__line"
+          [class.stepper__line--completed]="step.index < current()"
+        ></div>
+      }
+    </div>
+  }
+</div>

@@ -7,72 +7,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   selector: 'app-usage-bar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="usage-bar">
-      <div class="usage-bar__header">
-        <span class="usage-bar__label">{{ label() }}</span>
-        <span class="usage-bar__value">
-          @if (max() === null) {
-            {{ used() }} / ilimitado
-          } @else {
-            {{ used() }} / {{ max() }}
-          }
-        </span>
-      </div>
-      <div class="usage-bar__track" role="progressbar"
-           [attr.aria-valuenow]="used()"
-           [attr.aria-valuemin]="0"
-           [attr.aria-valuemax]="max() ?? used()"
-           [attr.aria-label]="label() + ': ' + used() + ' de ' + (max() ?? 'ilimitado')">
-        <div class="usage-bar__fill"
-             [style.width.%]="fillPercent()"
-             [class.usage-bar__fill--danger]="isAtLimit()">
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .usage-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .usage-bar__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .usage-bar__label {
-      font-size: 13px;
-      color: var(--text-muted, #6B7280);
-      font-weight: 500;
-    }
-
-    .usage-bar__value {
-      font-size: 12px;
-      color: var(--text-muted, #6B7280);
-    }
-
-    .usage-bar__track {
-      height: 8px;
-      background: var(--surface, #F3F4F6);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .usage-bar__fill {
-      height: 100%;
-      background: var(--primary, #047857);
-      border-radius: 999px;
-      transition: width 0.4s ease;
-    }
-
-    .usage-bar__fill--danger {
-      background: var(--danger, #EF4444);
-    }
-  `],
+  templateUrl: './usage-bar.component.html',
+  styleUrl: './usage-bar.component.scss',
 })
 export class UsageBarComponent {
   readonly label = input.required<string>();

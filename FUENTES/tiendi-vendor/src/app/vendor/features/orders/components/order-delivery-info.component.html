@@ -1,0 +1,26 @@
+<div class="card" role="region" aria-label="Información de entrega">
+  <h2 class="card__title">Entrega</h2>
+
+  @if (order().deliveryType === 'DELIVERY') {
+    <div class="delivery">
+      <div class="delivery__address-row">
+        <span class="material-symbols-rounded delivery__icon" aria-hidden="true">place</span>
+        <span class="delivery__address">{{ order().deliveryAddress }}</span>
+      </div>
+      <div class="map-placeholder" role="img" aria-label="Mapa de la dirección de entrega">
+        <span class="material-symbols-rounded map-placeholder__icon" aria-hidden="true">map</span>
+        <button class="map-placeholder__btn" type="button" aria-label="Ver dirección en mapa">
+          Ver en mapa
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="pickup">
+      <span class="material-symbols-rounded pickup__icon" aria-hidden="true">store</span>
+      <div class="pickup__info">
+        <span class="pickup__label">Recojo en tienda</span>
+        <span class="pickup__sub">El cliente retira en tienda</span>
+      </div>
+    </div>
+  }
+</div>

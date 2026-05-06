@@ -1,0 +1,30 @@
+@if (isMobile()) {
+  <td-mobile-shell />
+} @else {
+  <div class="shell">
+    <td-sidebar
+      [userRole]="userRole()"
+      [collapsed]="isTablet()"
+      [notificationCount]="0"
+      (itemClick)="onNavItem($event)"
+    />
+
+    <div class="shell__main">
+      <td-topbar
+        [storeName]="storeName()"
+        [userName]="userName()"
+        [userEmail]="userEmail()"
+        [userRole]="userRoleLabel()"
+        [unreadNotifications]="0"
+        (menuToggle)="onMenuToggle()"
+        (notificationClick)="onNotifications()"
+        (profileClick)="onProfile()"
+        (logoutClick)="onLogout()"
+      />
+
+      <main class="shell__content" id="main-content" tabindex="-1">
+        <router-outlet />
+      </main>
+    </div>
+  </div>
+}

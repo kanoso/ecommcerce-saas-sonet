@@ -19,57 +19,8 @@ import { OrderListTableComponent } from '../components/order-list-table.componen
     OrderStatusTabsComponent,
     OrderListTableComponent,
   ],
-  template: `
-    <div class="page">
-      <header class="page__header">
-        <div class="page__header-text">
-          <h1 class="page__title">Pedidos</h1>
-          <p class="page__subtitle">Gestioná y hacé seguimiento de todos tus pedidos</p>
-        </div>
-      </header>
-
-      <td-order-filters
-        [filters]="store.filters()"
-        (filtersChange)="store.setFilters($event)"
-        (clearAll)="store.clearFilters()"
-      />
-
-      <td-order-status-tabs
-        [activeTab]="store.activeTab()"
-        [countByStatus]="store.countByStatus()"
-        (tabChange)="store.setActiveTab($any($event))"
-      />
-
-      <td-order-list-table
-        [orders]="store.filteredOrders()"
-        [isLoading]="store.isLoading()"
-        (orderClick)="navigateToDetail($event)"
-        (quickAction)="handleQuickAction($event)"
-      />
-    </div>
-  `,
-  styles: [`
-    :host { display: block; }
-
-    .page { padding: 24px; }
-
-    .page__header {
-      margin-bottom: 24px;
-    }
-
-    .page__title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 4px;
-    }
-
-    .page__subtitle {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin: 0;
-    }
-  `],
+  templateUrl: './order-list.page.html',
+  styleUrl: './order-list.page.scss',
 })
 export class OrderListPage implements OnInit {
   protected readonly store = inject(OrdersStore);

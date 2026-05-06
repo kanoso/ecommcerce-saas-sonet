@@ -1,0 +1,7 @@
+<span
+  class="material-icons-outlined"
+  [style.font-size]="iconSize()"
+  [attr.aria-hidden]="!ariaLabel() ? 'true' : null"
+  [attr.aria-label]="ariaLabel() || null"
+  [attr.role]="ariaLabel() ? 'img' : null"
+>{{ name() }}</span>

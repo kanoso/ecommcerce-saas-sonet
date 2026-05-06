@@ -8,10 +8,6 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div style="padding:40px;text-align:center;color:#6B7280;">
-      <p>Vista de detalle de cliente — disponible en la próxima iteración.</p>
-    </div>
-  `,
+  templateUrl: './customer-detail.page.html',
 })
 export class CustomerDetailPage {}

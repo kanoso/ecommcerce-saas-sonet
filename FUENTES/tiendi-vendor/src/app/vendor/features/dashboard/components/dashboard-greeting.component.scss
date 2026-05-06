@@ -1,0 +1,44 @@
+.greeting { margin-bottom: 20px; }
+
+.greeting__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.greeting__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.greeting__date {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.greeting__store {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--primary-light);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.greeting__store-icon {
+  font-size: 16px;
+  color: var(--primary);
+}
+
+.greeting__store-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}

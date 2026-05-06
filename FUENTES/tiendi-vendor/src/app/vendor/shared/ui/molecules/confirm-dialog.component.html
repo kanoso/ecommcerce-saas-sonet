@@ -1,0 +1,31 @@
+@if (visible()) {
+  <div class="dialog-backdrop" (click)="onBackdropClick()" aria-hidden="true"></div>
+
+  <div
+    #dialogEl
+    class="dialog"
+    [class.dialog--destructive]="variant() === 'destructive'"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="dialogTitleId"
+    [attr.aria-describedby]="dialogDescId"
+    (keydown.escape)="onCancel()"
+  >
+    <h2 [id]="dialogTitleId" class="dialog__title">{{ title() }}</h2>
+    <p [id]="dialogDescId" class="dialog__message">{{ message() }}</p>
+
+    <div class="dialog__actions">
+      <td-button
+        #cancelBtn
+        [label]="cancelLabel()"
+        variant="ghost"
+        (clicked)="onCancel()"
+      />
+      <td-button
+        [label]="confirmLabel()"
+        [variant]="variant() === 'destructive' ? 'danger' : 'primary'"
+        (clicked)="onConfirm()"
+      />
+    </div>
+  </div>
+}

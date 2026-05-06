@@ -1,0 +1,23 @@
+<div class="search-bar">
+  <span class="material-icons-outlined search-bar__icon" aria-hidden="true">search</span>
+  <input
+    type="search"
+    class="search-bar__input"
+    [placeholder]="placeholder()"
+    [value]="value()"
+    (input)="onInput($event)"
+    aria-label="Buscar"
+    [attr.aria-label]="placeholder()"
+    autocomplete="off"
+  />
+  @if (value()) {
+    <button
+      type="button"
+      class="search-bar__clear"
+      aria-label="Limpiar búsqueda"
+      (click)="onClear()"
+    >
+      <span class="material-icons-outlined" aria-hidden="true">close</span>
+    </button>
+  }
+</div>
