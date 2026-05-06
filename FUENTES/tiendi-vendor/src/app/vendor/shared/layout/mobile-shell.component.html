@@ -1,7 +1,7 @@
 <div class="mobile-shell">
   <td-topbar
     [storeName]="storeName()"
-    [unreadNotifications]="0"
+    [unreadNotifications]="unreadCount()"
     (menuToggle)="moreDrawerOpen.set(true)"
     (notificationClick)="onNotifications()"
     (profileClick)="onProfile()"
@@ -15,7 +15,7 @@
   <td-bottom-nav
     [userRole]="userRole()"
     [pendingOrders]="0"
-    [unreadNotifications]="0"
+    [unreadNotifications]="unreadCount()"
     (moreClick)="moreDrawerOpen.set(true)"
   />
 

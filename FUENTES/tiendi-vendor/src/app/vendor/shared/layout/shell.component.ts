@@ -28,64 +28,8 @@ const ROLE_LABELS: Record<string, string> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, TopbarComponent, SidebarComponent, MobileShellComponent],
-  template: `
-    @if (isMobile()) {
-      <td-mobile-shell />
-    } @else {
-      <div class="shell">
-        <td-sidebar
-          [userRole]="userRole()"
-          [collapsed]="isTablet()"
-          [notificationCount]="unreadCount()"
-          (itemClick)="onNavItem($event)"
-        />
-
-        <div class="shell__main">
-          <td-topbar
-            [storeName]="storeName()"
-            [userName]="userName()"
-            [userEmail]="userEmail()"
-            [userRole]="userRoleLabel()"
-            [unreadNotifications]="unreadCount()"
-            (menuToggle)="onMenuToggle()"
-            (notificationClick)="onNotifications()"
-            (profileClick)="onProfile()"
-            (logoutClick)="onLogout()"
-          />
-
-          <main class="shell__content" id="main-content" tabindex="-1">
-            <router-outlet />
-          </main>
-        </div>
-      </div>
-    }
-  `,
-  styles: [`
-    .shell {
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .shell__main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-width: 0;
-    }
-
-    .shell__content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      background: var(--surface);
-
-      &:focus { outline: none; }
-
-      @media (max-width: 1023px) { padding: 16px; }
-    }
-  `],
+  templateUrl: './shell.component.html',
+  styleUrl: './shell.component.scss',
 })
 export class ShellComponent implements OnInit {
   private readonly breakpointObserver = inject(BreakpointObserver);

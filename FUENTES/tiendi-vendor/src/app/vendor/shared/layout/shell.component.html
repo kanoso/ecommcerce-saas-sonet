@@ -5,7 +5,7 @@
     <td-sidebar
       [userRole]="userRole()"
       [collapsed]="isTablet()"
-      [notificationCount]="0"
+      [notificationCount]="unreadCount()"
       (itemClick)="onNavItem($event)"
     />
 
@@ -15,7 +15,7 @@
         [userName]="userName()"
         [userEmail]="userEmail()"
         [userRole]="userRoleLabel()"
-        [unreadNotifications]="0"
+        [unreadNotifications]="unreadCount()"
         (menuToggle)="onMenuToggle()"
         (notificationClick)="onNotifications()"
         (profileClick)="onProfile()"
