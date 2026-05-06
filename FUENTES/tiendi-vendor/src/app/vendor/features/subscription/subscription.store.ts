@@ -69,6 +69,43 @@ interface SubscriptionState {
   successMessage: string | null;
 }
 
+/**
+ * Retorna mensajes de bloqueo si la tienda excede los límites del plan objetivo.
+ * Se usa antes de permitir un downgrade.
+ */
+function getDowngradeBlockers(
+  state: { subscription: () => Subscription | null; plans: () => Plan[] },
+  targetPlanId: string,
+): string[] {
+  const targetPlan = state.plans().find((p) => p.id === targetPlanId);
+  const usage = state.subscription();
+  if (!targetPlan || !usage) return [];
+
+  const blockers: string[] = [];
+
+  if (targetPlan.maxProducts !== null && usage.usageProducts > targetPlan.maxProducts) {
+    blockers.push(
+      `Productos: ${usage.usageProducts} en uso (límite: ${targetPlan.maxProducts})`,
+    );
+  }
+  if (targetPlan.maxOrders !== null && usage.usageOrders > targetPlan.maxOrders) {
+    blockers.push(
+      `Pedidos activos: ${usage.usageOrders} (límite: ${targetPlan.maxOrders})`,
+    );
+  }
+  if (targetPlan.maxStaff !== null && usage.usageStaff > targetPlan.maxStaff) {
+    blockers.push(
+      `Empleados: ${usage.usageStaff} (límite: ${targetPlan.maxStaff})`,
+    );
+  }
+
+  if (blockers.length > 0) {
+    blockers.unshift('No se puede degradar — excede los límites del plan:');
+  }
+
+  return blockers;
+}
+
 export const SubscriptionStore = signalStore(
   { providedIn: 'root' },
   withState<SubscriptionState>({
@@ -146,6 +183,13 @@ export const SubscriptionStore = signalStore(
       async changePlan(planId: string): Promise<void> {
         const sid = storeId();
         if (!sid) return;
+
+        const blockers = getDowngradeBlockers(store, planId);
+        if (blockers.length > 0) {
+          patchState(store, { error: blockers.join(' | ') });
+          return;
+        }
+
         patchState(store, { isSaving: true });
         try {
           const updated = await firstValueFrom(

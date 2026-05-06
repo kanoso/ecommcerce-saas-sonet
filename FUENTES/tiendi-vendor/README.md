@@ -1,59 +1,72 @@
-# TiendiVendor
+# Panel del Vendedor — Tiendi Vendor
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+Aplicación Angular standalone para la gestión de tiendas en Tiendi.
 
-## Development server
+## Stack
 
-To start a local development server, run:
+- **Angular 21** — standalone components, OnPush, Signal Store
+- **SCSS + Tailwind CSS v4** — theming con CSS custom properties
+- **Chart.js** — analytics y reportes
+- **Playwright** — tests E2E
+- **Vitest** — tests unitarios
 
-```bash
-ng serve
-```
+## Requisitos previos
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- Node.js ≥ 18
+- Backend API corriendo en `http://localhost:4000/api/v1` (ver `tiendi-api/`)
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Desarrollo
 
 ```bash
-ng generate --help
+npm install
+ng serve --open
 ```
 
-## Building
+La app se levanta en `http://localhost:4201/`.
 
-To build the project run:
+## Build producción
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Tests
 
 ```bash
+# Unitarios
 ng test
-```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
+# E2E (requiere backend corriendo)
 ng e2e
+
+# Lint
+ng lint
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Estructura del proyecto
 
-## Additional Resources
+```
+src/app/vendor/
+├── core/           # Guards, interceptors, servicios core
+├── shared/ui/      # Componentes reutilizables (átomos, moléculas, organismos)
+├── shared/layout/  # Shell, topbar, sidebar, bottom-nav
+└── features/       # Módulos funcionales
+    ├── analytics/
+    ├── customers/
+    ├── dashboard/
+    ├── legal/
+    ├── notifications/
+    ├── onboarding/
+    ├── orders/
+    ├── products/
+    ├── staff/
+    ├── store-config/
+    └── subscription/
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Convenciones
+
+- **Selectores:** prefijo `td-` (componentes shared), `app-` (componentes feature)
+- **Componentes < 20 líneas de template:** inline (`template: \`...\``)
+- **Componentes > 80 líneas de template:** archivo separado (`templateUrl`)
+- **Schematics default:** `standalone: true`, `OnPush`, `inlineTemplate: true`, `inlineStyle: true`

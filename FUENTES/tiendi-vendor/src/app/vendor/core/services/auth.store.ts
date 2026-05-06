@@ -98,6 +98,36 @@ export const AuthStore = signalStore(
         }
       },
 
+      /**
+       * Refresca los datos del usuario desde GET /auth/me.
+       * Se llama al iniciar la app para sincronizar con el backend.
+       * Si falla (offline, 401, etc.) no hace nada — los datos de localStorage siguen vigentes.
+       */
+      async fetchMe(): Promise<void> {
+        const token = store.token();
+        if (!token) return;
+        try {
+          const raw = await firstValueFrom(
+            http.get<ApiAuthResponse['user']>(`${API_BASE}/auth/me`),
+          );
+          const updatedUser: User = {
+            id: raw.id,
+            name: raw.name,
+            email: raw.email,
+            role: raw.role as Role,
+            storeId: raw.storeId ?? null,
+            avatar: raw.avatarUrl ?? null,
+          };
+          patchState(store, { user: updatedUser });
+          const refreshToken = store.refreshToken();
+          if (token && refreshToken) {
+            persistSession({ token, refreshToken, user: updatedUser });
+          }
+        } catch {
+          // Silently fail — user data from localStorage is still valid
+        }
+      },
+
       async doRefreshToken(): Promise<void> {
         const currentRefresh = store.refreshToken();
         if (!currentRefresh) throw new Error('No refresh token available');
