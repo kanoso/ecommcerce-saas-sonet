@@ -71,7 +71,9 @@ export class ProductFormPage implements OnInit {
     const payload: Omit<Product, 'id' | 'createdAt'> = {
       storeId: 's1',
       name: data.name ?? '',
+      shortDescription: data.shortDescription ?? '',
       description: data.description ?? '',
+      tags: data.tags ?? '',
       categoryId: data.categoryId ?? '',
       presentation: data.presentation ?? '',
       sku: data.sku ?? '',

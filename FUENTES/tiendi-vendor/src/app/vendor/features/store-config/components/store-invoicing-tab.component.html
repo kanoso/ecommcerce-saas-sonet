@@ -70,6 +70,17 @@
 
         <div class="toggle-row">
           <div>
+            <div class="toggle-label">Cobrar IGV (18%)</div>
+            <div class="toggle-hint">Muestra el IGV desglosado en el resumen del pedido. Activá solo si tus precios son sin IGV incluido o si tu régimen requiere mostrarlo.</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" formControlName="igvEnabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div>
             <div class="toggle-label">Emitir comprobante automáticamente</div>
             <div class="toggle-hint">Al marcar un pedido como "Entregado"</div>
           </div>

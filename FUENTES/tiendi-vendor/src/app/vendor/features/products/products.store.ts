@@ -16,7 +16,9 @@ export interface Product {
   storeId: string;
   name: string;
   slug?: string;
+  shortDescription: string;
   description: string;
+  tags: string;
   categoryId: string;
   categoryName?: string;
   presentation: string;
@@ -76,7 +78,9 @@ function mapProduct(raw: Record<string, any>): Product {
     storeId:       raw['storeId']    ?? '',
     name:          raw['name']       ?? '',
     slug:          raw['slug']       ?? '',
+    shortDescription: raw['shortDescription'] ?? '',
     description:   raw['description'] ?? '',
+    tags:          raw['tags']        ?? '',
     categoryId:    cat?.id           ?? raw['categoryId'] ?? '',
     categoryName:  cat?.name         ?? '',
     presentation:  '',
@@ -158,7 +162,9 @@ export const ProductsStore = signalStore(
         patchState(store, { isSaving: true, error: null });
         const payload = {
           name: data.name,
+          shortDescription: data.shortDescription || undefined,
           description: data.description,
+          tags: data.tags || undefined,
           price: data.price,
           salePrice: data.discountPrice ?? undefined,
           sku: data.sku || undefined,
@@ -179,8 +185,10 @@ export const ProductsStore = signalStore(
       updateProduct(id: string, data: Partial<Product>): void {
         patchState(store, { isSaving: true, error: null });
         const payload: Record<string, unknown> = {};
-        if (data.name !== undefined)          payload['name']        = data.name;
-        if (data.description !== undefined)   payload['description'] = data.description;
+        if (data.name !== undefined)              payload['name']             = data.name;
+        if (data.shortDescription !== undefined)  payload['shortDescription'] = data.shortDescription;
+        if (data.description !== undefined)       payload['description']      = data.description;
+        if (data.tags !== undefined)              payload['tags']             = data.tags;
         if (data.price !== undefined)         payload['price']       = data.price;
         if (data.discountPrice !== undefined) payload['salePrice']   = data.discountPrice;
         if (data.sku !== undefined)           payload['sku']         = data.sku;

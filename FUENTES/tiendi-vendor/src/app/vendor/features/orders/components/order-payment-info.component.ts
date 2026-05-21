@@ -32,10 +32,10 @@ export class OrderPaymentInfoComponent {
   order = input.required<Order>();
 
   getIcon(method: string): string {
-    return PAYMENT_ICONS[method] ?? 'payments';
+    return PAYMENT_ICONS[method?.toUpperCase()] ?? 'payments';
   }
 
   getLabel(method: string): string {
-    return PAYMENT_LABELS[method] ?? method;
+    return PAYMENT_LABELS[method?.toUpperCase()] ?? method;
   }
 }

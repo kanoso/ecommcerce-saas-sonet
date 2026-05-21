@@ -29,6 +29,7 @@ export class StoreInvoicingTabComponent implements OnInit {
     boletaSeries:  ['B001'],
     facturaSeries: ['F001'],
     autoEmit:      [false],
+    igvEnabled:    [false],
   });
 
   ngOnInit(): void {

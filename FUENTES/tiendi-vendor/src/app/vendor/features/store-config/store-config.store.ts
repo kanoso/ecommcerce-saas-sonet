@@ -41,6 +41,7 @@ export interface StoreInvoicing {
   boletaSeries: string;
   facturaSeries: string;
   autoEmit: boolean;
+  igvEnabled: boolean;
 }
 
 export interface StoreAppearance {
@@ -110,7 +111,7 @@ const INITIAL_STATE: StoreConfigState = {
   schedule: DAY_KEYS.map(d => ({ ...d, enabled: false, from: '09:00', to: '18:00' })),
   delivery: { active: false, cost: 5, freeMinimum: 50, radius: 5, estimatedTime: '30-45 minutos' },
   payments: { cash: true, yape: false, plin: false, transfer: false, card: false, cashMessage: '', transferData: '' },
-  invoicing: { ruc: '', regime: 'RUS', businessName: '', fiscalAddress: '', oseToken: '', boletaSeries: 'B001', facturaSeries: 'F001', autoEmit: false },
+  invoicing: { ruc: '', regime: 'RUS', businessName: '', fiscalAddress: '', oseToken: '', boletaSeries: 'B001', facturaSeries: 'F001', autoEmit: false, igvEnabled: false },
   appearance: { primaryColor: '#047857', bannerUrl: '', welcomeMessage: '' },
   isLoading: false,
   isSaving: false,
@@ -165,6 +166,17 @@ function mapApiToState(data: Record<string, any>): Partial<StoreConfigState> {
       primaryColor:   data['primaryColor']   ?? '#047857',
       bannerUrl:      data['bannerUrl']      ?? '',
       welcomeMessage: data['welcomeMessage'] ?? '',
+    },
+    invoicing: {
+      ruc:           '',
+      regime:        'RUS',
+      businessName:  '',
+      fiscalAddress: '',
+      oseToken:      '',
+      boletaSeries:  'B001',
+      facturaSeries: 'F001',
+      autoEmit:      false,
+      igvEnabled:    data['igvEnabled'] ?? false,
     },
   };
 }
@@ -278,10 +290,16 @@ export const StoreConfigStore = signalStore(
       },
 
       saveInvoicing(invoicing: StoreInvoicing): void {
-        // Invoicing fields (ruc, taxRegime, etc.) no están en el schema real aún.
-        // Se guarda solo en estado local hasta que el backend lo soporte.
-        patchState(store, { invoicing: { ...invoicing, oseToken: '' }, isSaving: false });
-        showSuccess('Facturación guardada (local)');
+        patchState(store, { isSaving: true });
+        http.patch(`${API}/stores/${storeId()}`, { igvEnabled: invoicing.igvEnabled }).subscribe({
+          next: () => {
+            patchState(store, { invoicing: { ...invoicing, oseToken: '' }, isSaving: false });
+            showSuccess('Configuración de facturación guardada');
+          },
+          error: (err: unknown) => {
+            patchState(store, { isSaving: false, error: err instanceof Error ? err.message : 'Error al guardar' });
+          },
+        });
       },
 
       saveAppearance(appearance: StoreAppearance): void {

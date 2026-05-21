@@ -95,6 +95,12 @@
   color: var(--danger);
 }
 
+.field__hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .stock-warning {
   display: flex;
   align-items: center;

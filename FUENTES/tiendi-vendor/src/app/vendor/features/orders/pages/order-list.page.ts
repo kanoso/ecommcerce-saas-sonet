@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  OnDestroy,
   OnInit,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -22,10 +23,11 @@ import { OrderListTableComponent } from '../components/order-list-table.componen
   templateUrl: './order-list.page.html',
   styleUrl: './order-list.page.scss',
 })
-export class OrderListPage implements OnInit {
+export class OrderListPage implements OnInit, OnDestroy {
   protected readonly store = inject(OrdersStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     const statusParam = this.route.snapshot.queryParamMap.get('status') as OrderStatus | null;
@@ -33,6 +35,11 @@ export class OrderListPage implements OnInit {
       this.store.setActiveTab(statusParam);
     }
     this.store.loadOrders();
+    this.refreshInterval = setInterval(() => this.store.loadOrders(), 30_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshInterval) clearInterval(this.refreshInterval);
   }
 
   navigateToDetail(orderId: string): void {

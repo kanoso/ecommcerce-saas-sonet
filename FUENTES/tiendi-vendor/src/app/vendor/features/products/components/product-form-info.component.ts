@@ -30,7 +30,9 @@ export class ProductFormInfoComponent implements OnInit {
 
   form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    description: ['', Validators.maxLength(150)],
+    shortDescription: ['', Validators.maxLength(100)],
+    description: [''],
+    tags: [''],
     categoryId: ['', Validators.required],
     sku: [''],
     presentation: [''],
@@ -61,7 +63,9 @@ export class ProductFormInfoComponent implements OnInit {
     if (p) {
       this.form.patchValue({
         name: p.name ?? '',
+        shortDescription: p.shortDescription ?? '',
         description: p.description ?? '',
+        tags: p.tags ?? '',
         categoryId: p.categoryId ?? '',
         sku: p.sku ?? '',
         presentation: p.presentation ?? '',

@@ -23,6 +23,8 @@ export interface OrderItem {
   name: string;
   qty: number;
   unitPrice: number;
+  originalPrice: number | null;
+  discountAmount: number | null;
 }
 
 export interface StatusHistoryEntry {
@@ -111,11 +113,15 @@ function mapOrder(raw: Record<string, unknown>): Order {
     total:           Number(raw['total'])       || 0,
     items: items.map((item) => {
       const product = item['product'] as Record<string, unknown> | null | undefined;
+      const originalPrice  = item['originalPrice']  != null ? Number(item['originalPrice'])  : null;
+      const discountAmount = item['discountAmount'] != null ? Number(item['discountAmount']) : null;
       return {
-        productId: (item['productId'] ?? product?.['id'] ?? '') as string,
-        name:      (product?.['name'] ?? '') as string,
-        qty:       (item['quantity'] as number) ?? 0,
-        unitPrice: Number(item['unitPrice']) || 0,
+        productId:      (item['productId'] ?? product?.['id'] ?? '') as string,
+        name:           (product?.['name'] ?? '') as string,
+        qty:            (item['quantity'] as number) ?? 0,
+        unitPrice:      Number(item['unitPrice']) || 0,
+        originalPrice,
+        discountAmount,
       };
     }),
     statusHistory: (raw['statusHistory'] as StatusHistoryEntry[] | null) ?? [

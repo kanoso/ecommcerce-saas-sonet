@@ -25,21 +25,43 @@
     </div>
 
     <div class="field">
-      <label class="field__label" for="description">
-        Descripción
+      <label class="field__label" for="shortDescription">
+        Descripción corta
         <span class="field__counter" aria-live="polite">
-          {{ form.controls.description.value.length }}/150
+          {{ form.controls.shortDescription.value.length }}/100
         </span>
       </label>
+      <input
+        id="shortDescription"
+        class="field__input"
+        type="text"
+        formControlName="shortDescription"
+        placeholder="Ej: Leche evaporada entera 400g"
+        maxlength="100"
+      />
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="description">Descripción completa</label>
       <textarea
         id="description"
         class="field__input field__textarea"
         formControlName="description"
-        placeholder="Descripción breve del producto..."
-        maxlength="150"
-        rows="3"
-        aria-describedby="desc-count"
+        placeholder="Descripción detallada del producto, ingredientes, características..."
+        rows="4"
       ></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="tags">Etiquetas</label>
+      <input
+        id="tags"
+        class="field__input"
+        type="text"
+        formControlName="tags"
+        placeholder="Ej: leche,lácteo,calcio,gloria"
+      />
+      <p class="field__hint">Separadas por coma. Se muestran como chips en el detalle del producto.</p>
     </div>
 
     <div class="field">
