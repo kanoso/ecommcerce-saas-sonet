@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Búsqueda Tiendi
+---
+
 # Diagramas de Secuencia - Búsqueda y Recomendaciones - Sistema Tiendi
 
 Sistema de búsqueda avanzada, autocomplete y recomendaciones personalizadas.
@@ -365,3 +374,12 @@ sequenceDiagram
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[../arquitectura/DIAGRAMA_ARQUITECTURA_BUSQUEDA]] — arquitectura del sistema de búsqueda
+- [[DIAGRAMAS_FLUJOS_ADICIONALES]] — flujos adicionales del sistema
+- [[../../API_DOCUMENTATION]] — documentación de la API REST

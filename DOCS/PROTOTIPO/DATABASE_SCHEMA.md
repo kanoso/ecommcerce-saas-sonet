@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - base-datos
+aliases:
+  - Database Schema Tiendi
+---
+
 # Esquema de Base de Datos - Tiendi
 
 ## Diagrama Relacional
@@ -782,3 +790,14 @@ INSERT INTO categories (name, slug, parent_id, order_index) VALUES
 
 **Documento creado:** 2025-11-23
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[MODULOS_SISTEMA_TIENDI]] — análisis de módulos del sistema
+- [[DIAGRAMAS/arquitectura/DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[API_DOCUMENTATION]] — documentación de la API REST
+- [[PLANIFICACION]] — planificación por fases del proyecto
+- [[USER_STORIES]] — historias de usuario por rol

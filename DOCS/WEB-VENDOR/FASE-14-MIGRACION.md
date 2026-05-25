@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi-vendor
+  - frontend
+  - angular
+  - migracion
+aliases:
+  - Fase 14 Migración
+---
+
 # Fase 14 — Migración a backend real
 
 > **Objetivo:** reemplazar json-server por la API real, endpoint por endpoint.
@@ -194,3 +204,13 @@
 ---
 
 *Referencia: `PLAN-TRABAJO.md` Fase 14 · `VENDOR-PANEL-DEFINITIVO.md`*
+
+---
+
+## Ver también
+
+- [[PLAN-TRABAJO]] — plan de trabajo por fases del panel de vendedor
+- [[VENDOR-PANEL-DEFINITIVO]] — especificación definitiva del panel de vendedor
+- [[DIFERENCIAS-MOCK-REAL]] — diferencias entre mock y API real
+- [[../MIGRACION-JSONSERVER-API]] — plan de migración de json-server a API real
+- [[../TESTING_STRATEGY]] — estrategia de testing del sistema

@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi-vendor
+  - frontend
+  - angular
+  - planificacion
+aliases:
+  - Plan Trabajo Vendor
+---
+
 # Tiendi — Panel del Vendedor: Plan de Trabajo
 
 > **Plan ejecutable por fases** para implementar el panel vendedor según `VENDOR-PANEL-DEFINITIVO.md`.
@@ -1327,3 +1337,13 @@ Antes de release a producción:
 
 *Última actualización: 2026-04-17*
 *Referencia principal: `VENDOR-PANEL-DEFINITIVO.md`*
+
+---
+
+## Ver también
+
+- [[VENDOR-PANEL-DEFINITIVO]] — especificación definitiva del panel de vendedor
+- [[FASE-14-MIGRACION]] — migración a backend real
+- [[DIFERENCIAS-MOCK-REAL]] — diferencias entre mock y API real
+- [[../TAREAS]] — lista de tareas técnicas del proyecto
+- [[../API_DOCUMENTATION]] — documentación de la API REST

@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - migracion
+aliases:
+  - Migración JSON Server API
+---
+
 # Migración: json-server → API REST (NestJS)
 
 > Objetivo: reemplazar json-server (`localhost:3000`) por la API real (`localhost:4000/api/v1`) en el frontend Angular (tiendi-web).
@@ -167,3 +175,13 @@
 ---
 
 *Última actualización: 2026-04-15 — Migración completada ✓*
+
+---
+
+## Ver también
+
+- [[API_DOCUMENTATION]] — documentación completa de la API REST
+- [[TAREAS]] — lista de tareas por fase con estado de avance
+- [[WEB-VENDOR/DIFERENCIAS-MOCK-REAL]] — diferencias entre mock y API real
+- [[WEB-VENDOR/FASE-14-MIGRACION]] — fase 14 de migración del panel de vendedor
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema

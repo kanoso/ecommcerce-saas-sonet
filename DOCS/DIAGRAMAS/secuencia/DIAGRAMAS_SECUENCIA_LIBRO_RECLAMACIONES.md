@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+  - legal
+aliases:
+  - Secuencia Libro Reclamaciones Tiendi
+---
+
 # Diagramas de Secuencia - Libro de Reclamaciones Digital
 
 Este archivo contiene los diagramas de secuencia para el **Libro de Reclamaciones Digital**, un requerimiento legal obligatorio en Perú según el Código de Protección y Defensa del Consumidor (Ley N° 29571).
@@ -925,3 +935,12 @@ cron.schedule('0 9 * * *', async () => {
 **Fecha de creación:** 2025-01-25
 **Normativa aplicable:** Ley N° 29571 - Código de Protección y Defensa del Consumidor (Perú)
 **Formato:** Mermaid
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_DEVOLUCIONES]] — flujo de devoluciones y disputas
+- [[DIAGRAMAS_SECUENCIA_SOPORTE_TICKETS]] — flujo de soporte y tickets
+- [[../../COMPLIANCE_LEGAL]] — marco legal y regulatorio

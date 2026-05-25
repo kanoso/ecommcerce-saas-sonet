@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Diagrama Notificaciones Tiendi
+---
+
 # Arquitectura de Sistema de Notificaciones - Sistema Tiendi
 
 Sistema de notificaciones multi-canal para Tiendi.
@@ -439,3 +448,12 @@ class NotificationService {
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_INTEGRACIONES_EXTERNAS]] — integraciones con servicios externos
+- [[../secuencia/DIAGRAMAS_SECUENCIA_VARIOS]] — diagramas de secuencia varios

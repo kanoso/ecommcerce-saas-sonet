@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Devoluciones Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Devoluciones y Disputas - Sistema Tiendi
 
 Sistema de devoluciones, reembolsos y resolución de disputas.
@@ -267,3 +276,12 @@ CREATE TABLE dispute_messages (
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_SECUENCIA_LIBRO_RECLAMACIONES]] — flujo del libro de reclamaciones
+- [[../../COMPLIANCE_LEGAL]] — marco legal y regulatorio

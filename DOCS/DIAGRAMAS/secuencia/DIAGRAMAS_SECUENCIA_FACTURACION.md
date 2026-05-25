@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Facturación Tiendi
+---
+
 # Diagramas de Secuencia - Facturación Electrónica (SUNAT) - Sistema Tiendi
 
 Sistema de emisión de comprobantes electrónicos para cumplir con regulaciones peruanas.
@@ -509,3 +518,12 @@ class InvoiceService {
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_SECUENCIA_ENVIOS]] — flujo de logística y envíos
+- [[../../COMPLIANCE_LEGAL]] — marco legal y regulatorio (SUNAT)

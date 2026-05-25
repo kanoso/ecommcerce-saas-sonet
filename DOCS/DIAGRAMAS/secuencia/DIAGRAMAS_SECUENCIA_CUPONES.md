@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Cupones Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Cupones - Sistema Tiendi
 
 Sistema de cupones de descuento y promociones.
@@ -155,3 +164,12 @@ CREATE INDEX idx_coupon_usages_coupon_user ON coupon_usages(coupon_id, user_id);
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_SECUENCIA_COMISIONES]] — sistema de comisiones
+- [[DIAGRAMAS_FLUJOS_ADICIONALES]] — flujos adicionales del sistema

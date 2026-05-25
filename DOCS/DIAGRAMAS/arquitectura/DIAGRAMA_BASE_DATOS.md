@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+  - base-datos
+aliases:
+  - Diagrama Base Datos Tiendi
+---
+
 # Diagrama de Base de Datos - Sistema Tiendi
 
 Este documento contiene el diagrama de entidad-relación (ERD) del sistema Tiendi.
@@ -671,3 +681,13 @@ CREATE TABLE device_tokens (...);
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.1
 **Última actualización:** 2025-11-24 - Referenciadas nuevas tablas de los diagramas adicionales
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[../../PROTOTIPO/DATABASE_SCHEMA]] — esquema SQL completo de la base de datos
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_ARQUITECTURA_MULTITENANT]] — arquitectura multi-tenant
+- [[DIAGRAMA_COMPONENTES]] — diagrama detallado de componentes

@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - flujo-usuario
+aliases:
+  - Flujos Tiendi
+---
+
 # Diagramas de Flujo - Sistema Tiendi
 
 Este documento contiene los diagramas de flujo de los principales procesos del sistema Tiendi.
@@ -516,3 +525,14 @@ flowchart TD
 
 **Última actualización:** 2025-11-24
 **Generado a partir de:** MODULOS_SISTEMA_TIENDI.md
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_FLUJO_PANEL_VENDEDOR]] — flujo del panel de vendedor
+- [[../secuencia/DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[../secuencia/DIAGRAMAS_SECUENCIA_AUTENTICACION]] — flujo de autenticación
+- [[../../USER_STORIES]] — historias de usuario por rol
+- [[../../MODULOS_SISTEMA_TIENDI]] — análisis de módulos del sistema

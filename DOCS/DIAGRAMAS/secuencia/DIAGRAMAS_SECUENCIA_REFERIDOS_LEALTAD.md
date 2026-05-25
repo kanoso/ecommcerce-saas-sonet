@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Referidos Lealtad Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Referidos y Lealtad
 
 Este archivo contiene los diagramas de secuencia para el sistema de referidos y programa de lealtad de Tiendi.
@@ -1125,3 +1134,12 @@ cron.schedule('0 10 * * *', async () => {
 **Versión:** 1.0
 **Fecha de creación:** 2025-01-25
 **Formato:** Mermaid
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_CUPONES]] — flujo de sistema de cupones
+- [[DIAGRAMAS_SECUENCIA_COMISIONES]] — flujo de sistema de comisiones
+- [[DIAGRAMAS_FLUJOS_ADICIONALES]] — flujos adicionales del sistema

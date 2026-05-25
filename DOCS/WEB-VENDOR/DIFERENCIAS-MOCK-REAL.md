@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi-vendor
+  - frontend
+  - angular
+  - api
+aliases:
+  - Diferencias Mock Real
+---
+
 # Diferencias Mock (json-server) vs API Real
 
 > Documento de referencia para desarrolladores que migran del mock a la API real.
@@ -107,3 +117,12 @@
 ---
 
 *Última actualización: 2026-05-04*
+
+---
+
+## Ver también
+
+- [[VENDOR-PANEL-DEFINITIVO]] — especificación definitiva del panel de vendedor
+- [[FASE-14-MIGRACION]] — migración a backend real
+- [[../MIGRACION-JSONSERVER-API]] — plan de migración de json-server a API real
+- [[../API_DOCUMENTATION]] — documentación de la API REST

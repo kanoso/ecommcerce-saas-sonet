@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - legal
+aliases:
+  - Compliance Legal Tiendi
+---
+
 # Cumplimiento Legal y Regulatorio - Tiendi
 
 ## Tabla de Contenidos
@@ -1820,3 +1828,14 @@ class ComplianceAuditService {
 
 **Última actualización**: 2025-11-25
 **Versión**: 1.0
+
+---
+
+## Ver también
+
+- [[SEGURIDAD]] — estrategia de seguridad del sistema
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[DIAGRAMAS/secuencia/DIAGRAMAS_SECUENCIA_LIBRO_RECLAMACIONES]] — flujo del libro de reclamaciones
+- [[DIAGRAMAS/secuencia/DIAGRAMAS_SECUENCIA_FACTURACION]] — flujo de facturación electrónica
+- [[API_DOCUMENTATION]] — documentación de la API
+- [[PLANIFICACION]] — planificación del proyecto

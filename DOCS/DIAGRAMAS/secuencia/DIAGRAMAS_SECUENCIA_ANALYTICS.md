@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Analytics Tiendi
+---
+
 # Diagramas de Secuencia - Analytics y Reportes - Sistema Tiendi
 
 Sistema de analytics, métricas de negocio y reportes para vendedores.
@@ -357,3 +366,12 @@ cron.schedule('5 0 * * *', aggregateDailyMetrics);
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[../arquitectura/DIAGRAMA_ARQUITECTURA_ANALYTICS]] — arquitectura del sistema de analytics
+- [[DIAGRAMAS_FLUJOS_ADICIONALES]] — flujos adicionales del sistema
+- [[../../MONITORING_RUNBOOK]] — runbook de monitoreo y operaciones

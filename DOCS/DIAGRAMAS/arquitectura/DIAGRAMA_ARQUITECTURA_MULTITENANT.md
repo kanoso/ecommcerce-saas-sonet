@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Arquitectura Multi-Tenant Tiendi
+---
+
 # Arquitectura Multi-Tenant - Sistema Tiendi
 
 Este documento describe la arquitectura multi-tenant del sistema Tiendi y las estrategias de aislamiento de datos.
@@ -721,3 +730,13 @@ class TenantAwareCache {
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
 **Autor:** Sistema Tiendi
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[../../SEGURIDAD]] — estrategia de seguridad multi-tenant
+- [[DIAGRAMA_COMPONENTES]] — diagrama detallado de componentes

@@ -1,3 +1,10 @@
+---
+tags:
+  - tiendi
+aliases:
+  - Tiendi README
+---
+
 # Tiendi - E-commerce SaaS Multi-tienda
 
 > Plataforma SaaS que permite a emprendedores crear y gestionar sus propias tiendas virtuales con geolocalización
@@ -524,4 +531,15 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ---
 
-**¡Listo para empezar a construir el futuro del e-commerce! 🚀**
+**Listo para empezar a construir el futuro del e-commerce.**
+
+---
+
+## Ver también
+
+- [[PLANIFICACION]] — planificación por fases con estimaciones de tiempo
+- [[TAREAS]] — lista de tareas técnicas con estado de avance
+- [[ARCHITECTURE-SONNET]] — documento de arquitectura técnica detallada
+- [[PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos
+- [[USER_STORIES]] — historias de usuario por rol
+- [[API_DOCUMENTATION]] — documentación completa de la API REST

@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi-go
+  - mobile
+aliases:
+  - Funcionalidades Tiendi Go
+---
+
 # Tiendi Go — App de Repartidores
 
 > [!NOTE]
@@ -3499,3 +3507,13 @@ gantt
 
 > [!TIP]
 > Una vez decidido esto, lo siguiente es diseñar el **esquema de base de datos del módulo `delivery`** en `tiendi-api` y un prototipo de baja fidelidad de las pantallas críticas (notificación de pedido, navegación, confirmación de entrega).
+
+---
+
+## Ver también
+
+- [[PROTOTIPOS-CHECKLIST]] — checklist de prototipos de Tiendi Go
+- [[../PLANIFICACION]] — planificación por fases del proyecto
+- [[../PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos
+- [[../API_DOCUMENTATION]] — documentación de la API REST
+- [[../WEB-VENDOR/VENDOR-PANEL-DEFINITIVO]] — panel de vendedor (contraparte web)

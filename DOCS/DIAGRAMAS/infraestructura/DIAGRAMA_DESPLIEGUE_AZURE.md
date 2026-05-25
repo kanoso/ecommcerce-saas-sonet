@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - infraestructura
+  - devops
+aliases:
+  - Despliegue Azure Tiendi
+---
+
 # Diagrama de Despliegue en Azure - Sistema Tiendi
 
 Este documento describe la arquitectura de despliegue del sistema Tiendi en Microsoft Azure.
@@ -1014,3 +1024,13 @@ resource "azurerm_key_vault" "tiendi_kv" {
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_CI_CD]] — pipeline de CI/CD
+- [[DIAGRAMA_OBSERVABILIDAD]] — arquitectura de observabilidad
+- [[../../COSTOS_ESTIMADOS]] — estimación de costos de infraestructura
+- [[../../MONITORING_RUNBOOK]] — runbook de monitoreo y operaciones

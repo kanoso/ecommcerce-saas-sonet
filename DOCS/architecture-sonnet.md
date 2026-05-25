@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - arquitectura
+aliases:
+  - Arquitectura Tiendi
+---
+
 # Arquitectura Tecnológica - Tiendi E-commerce SaaS
 
 ## Documento de Arquitectura Técnica v1.0
@@ -1850,3 +1858,14 @@ El sistema está preparado para iniciar como monolito modular y evolucionar a mi
 **Fecha:** 2025-11-25
 **Versión:** 1.0
 **Próxima revisión:** Trimestral
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS/arquitectura/DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMAS/arquitectura/DIAGRAMA_ARQUITECTURA_MULTITENANT]] — arquitectura multi-tenant
+- [[DIAGRAMAS/arquitectura/DIAGRAMA_ARQUITECTURA_FRONTEND]] — arquitectura del frontend Angular
+- [[PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos
+- [[PLANIFICACION]] — planificación por fases del proyecto
+- [[MODULOS_SISTEMA_TIENDI]] — análisis de módulos del sistema

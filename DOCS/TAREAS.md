@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - planificacion
+aliases:
+  - Tareas Tiendi
+---
+
 # Tiendi — Tareas de Desarrollo
 
 > Marcá cada tarea con `[x]` al completarla.
@@ -373,3 +381,14 @@
 ---
 
 *Última actualización: 2026-04-13*
+
+---
+
+## Ver también
+
+- [[PLANIFICACION]] — planificación por fases con estimaciones de tiempo
+- [[README]] — índice general del proyecto y guía de instalación
+- [[ARCHITECTURE-SONNET]] — documento de arquitectura técnica detallada
+- [[TESTING_STRATEGY]] — estrategia de testing del sistema
+- [[MIGRACION-JSONSERVER-API]] — plan de migración de json-server a API real
+- [[MODULOS_SISTEMA_TIENDI]] — análisis de módulos del sistema

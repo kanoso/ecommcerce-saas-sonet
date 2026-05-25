@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - infraestructura
+  - devops
+aliases:
+  - Observabilidad Tiendi
+---
+
 # Arquitectura de Observabilidad - Sistema Tiendi
 
 Sistema de monitoreo, logs, métricas, trazas distribuidas y alertas.
@@ -753,3 +763,12 @@ Total: ~$499/mes
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_CI_CD]] — pipeline de CI/CD
+- [[DIAGRAMA_DESPLIEGUE_AZURE]] — diagrama de despliegue en Azure
+- [[../../MONITORING_RUNBOOK]] — runbook de monitoreo y operaciones

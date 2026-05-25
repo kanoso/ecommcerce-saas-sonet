@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Valoraciones Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Valoraciones y Reseñas - Sistema Tiendi
 
 Este documento describe el sistema de valoraciones de productos y reputación de tiendas.
@@ -347,3 +356,12 @@ CREATE TABLE store_reputation (
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_MODERACION]] — flujo de moderación del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[../arquitectura/DIAGRAMA_BASE_DATOS]] — diagrama de base de datos

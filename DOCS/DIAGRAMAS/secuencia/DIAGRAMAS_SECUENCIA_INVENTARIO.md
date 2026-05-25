@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Inventario Tiendi
+---
+
 # Diagramas de Secuencia - Gestión de Inventario - Sistema Tiendi
 
 Este documento contiene diagramas de secuencia para la gestión de inventario en tiempo real, incluyendo reservas, locks y prevención de sobreventa.
@@ -779,3 +788,12 @@ ORDER BY (stock::float / NULLIF(min_stock_threshold, 0)) ASC;
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
 **Autor:** Sistema Tiendi
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[../arquitectura/DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[../../PROTOTIPO/DATABASE_SCHEMA]] — esquema SQL de base de datos

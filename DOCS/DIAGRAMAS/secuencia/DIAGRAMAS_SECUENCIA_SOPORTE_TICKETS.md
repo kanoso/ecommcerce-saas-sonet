@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Soporte Tickets Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Soporte y Tickets
 
 Este archivo contiene los diagramas de secuencia para el sistema de soporte técnico y tickets de Tiendi.
@@ -966,3 +975,12 @@ cron.schedule('*/15 * * * *', async () => {
 **Versión:** 1.0
 **Fecha de creación:** 2025-01-25
 **Formato:** Mermaid
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_LIBRO_RECLAMACIONES]] — flujo del libro de reclamaciones
+- [[DIAGRAMAS_SECUENCIA_MODERACION]] — flujo de moderación del sistema
+- [[../../MONITORING_RUNBOOK]] — runbook de monitoreo y operaciones

@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - SEO Marketing Tiendi
+---
+
 # Diagrama de Arquitectura - SEO y Marketing Digital
 
 Este archivo contiene la arquitectura para SEO técnico y herramientas de marketing digital de Tiendi.
@@ -1183,3 +1192,13 @@ export const SEO_CONFIG = {
 **Versión:** 1.0
 **Fecha de creación:** 2025-01-25
 **Formato:** Mermaid + TypeScript
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_ARQUITECTURA_ANALYTICS]] — arquitectura de analytics y data pipeline
+- [[DIAGRAMA_INTEGRACIONES_EXTERNAS]] — integraciones con servicios externos
+- [[../../COMPLIANCE_LEGAL]] — marco legal y regulatorio

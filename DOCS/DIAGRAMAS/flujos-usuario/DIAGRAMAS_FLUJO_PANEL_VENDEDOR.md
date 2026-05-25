@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - flujo-usuario
+aliases:
+  - Flujo Panel Vendedor
+---
+
 # Diagramas de Flujo - Panel de Vendedor - Sistema Tiendi
 
 Este documento contiene los flujos de trabajo del panel de administración para vendedores.
@@ -458,3 +467,12 @@ graph TB
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
 **Autor:** Sistema Tiendi
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_FLUJO_TIENDI]] — flujos principales del sistema
+- [[../secuencia/DIAGRAMAS_SECUENCIA_INVENTARIO]] — flujo de gestión de inventario
+- [[../../WEB-VENDOR/VENDOR-PANEL-DEFINITIVO]] — especificación definitiva del panel de vendedor

@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Chat Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Chat - Sistema Tiendi
 
 Este documento contiene los diagramas de secuencia relacionados con el sistema de mensajería y chat en tiempo real.
@@ -507,3 +516,12 @@ const socket = io('wss://api.tiendi.com', {
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_VARIOS]] — operaciones varias del sistema
+- [[../arquitectura/DIAGRAMA_NOTIFICACIONES]] — arquitectura de notificaciones
+- [[../arquitectura/DIAGRAMA_INTEGRACIONES_EXTERNAS]] — integraciones externas

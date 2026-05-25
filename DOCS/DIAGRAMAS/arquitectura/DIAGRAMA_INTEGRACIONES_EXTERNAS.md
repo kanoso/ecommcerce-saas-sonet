@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Integraciones Externas Tiendi
+---
+
 # Arquitectura de Integraciones Externas - Sistema Tiendi
 
 Integraciones con servicios de terceros: Pagos, Mapas, Auth, SMS, Email, etc.
@@ -711,3 +720,13 @@ Total estimado: ~$1,100 - $1,500/mes
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_NOTIFICACIONES]] — arquitectura del sistema de notificaciones
+- [[../secuencia/DIAGRAMAS_SECUENCIA_WEBHOOKS]] — flujo de secuencia de webhooks
+- [[../../API_DOCUMENTATION]] — documentación de la API REST

@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - costos
+aliases:
+  - Costos Tiendi
+---
+
 # Estimación de Costos - Sistema Tiendi
 
 Estimación detallada de costos operacionales para el sistema de e-commerce multi-tenant Tiendi en Azure.
@@ -583,3 +591,14 @@ console.log(`Costo estimado: $${cost}/mes`);
 **Versión:** 1.0
 **Próxima revisión:** 2026-01-25
 **Responsable:** CFO/Finance Team - Tiendi
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS/infraestructura/DIAGRAMA_DESPLIEGUE_AZURE]] — diagrama de despliegue en Azure
+- [[DIAGRAMAS/infraestructura/DIAGRAMA_CI_CD]] — pipeline de CI/CD
+- [[DIAGRAMAS/infraestructura/DIAGRAMA_OBSERVABILIDAD]] — stack de observabilidad
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[PLANIFICACION]] — planificación por fases con estimaciones de tiempo
+- [[MONITORING_RUNBOOK]] — runbook de monitoreo y operaciones

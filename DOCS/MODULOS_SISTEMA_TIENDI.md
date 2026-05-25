@@ -1,3 +1,10 @@
+---
+tags:
+  - tiendi
+aliases:
+  - Módulos Tiendi
+---
+
 # Análisis de Módulos - Sistema Tiendi
 
 ## Descripción General
@@ -716,3 +723,14 @@ graph LR
 **Fecha de análisis:** 2025-11-23
 **Basado en:** 32 imágenes de prototipo del sistema Tiendi
 **Última actualización:** 2025-11-24
+
+---
+
+## Ver también
+
+- [[PLANIFICACION]] — planificación por fases con estimaciones de tiempo
+- [[ARCHITECTURE-SONNET]] — documento de arquitectura técnica detallada
+- [[USER_STORIES]] — historias de usuario por rol
+- [[API_DOCUMENTATION]] — documentación completa de la API REST
+- [[DIAGRAMAS/arquitectura/DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos

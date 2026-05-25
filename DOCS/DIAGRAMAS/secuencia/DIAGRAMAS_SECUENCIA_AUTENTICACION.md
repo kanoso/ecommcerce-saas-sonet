@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Autenticación Tiendi
+---
+
 # Diagramas de Secuencia - Autenticación - Sistema Tiendi
 
 Este documento contiene los diagramas de secuencia relacionados con la autenticación de usuarios.
@@ -411,3 +420,13 @@ const hashedPassword = await bcrypt.hash(password, saltRounds);
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_SECUENCIA_VARIOS]] — operaciones varias del sistema
+- [[../../SEGURIDAD]] — estrategia de seguridad del sistema
+- [[../../API_DOCUMENTATION]] — documentación de la API REST

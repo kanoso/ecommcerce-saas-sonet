@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Moderación Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Moderación - Sistema Tiendi
 
 Sistema de moderación y control de calidad de la plataforma.
@@ -324,3 +333,12 @@ CREATE INDEX idx_audit_logs_user ON audit_logs(user_id, created_at DESC);
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_VALORACIONES]] — flujo de valoraciones y reseñas
+- [[../seguridad/DIAGRAMAS_RBAC_PERMISOS]] — roles y permisos del sistema
+- [[../../SEGURIDAD]] — estrategia de seguridad del sistema

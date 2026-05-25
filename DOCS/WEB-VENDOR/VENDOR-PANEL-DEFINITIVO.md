@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi-vendor
+  - frontend
+  - angular
+aliases:
+  - Panel Vendedor Definitivo
+---
+
 # Tiendi — Panel del Vendedor: Documento Definitivo
 
 > **Fuente única de verdad** para el diseño, arquitectura y especificación del Store Manager Dashboard de Tiendi.
@@ -3381,3 +3390,14 @@ Mapear días activos / semanas activas / meses activos de cada vendedor. Cohorte
 *Última actualización: 2026-04-16*
 *Versión: 1.0.0 — Documento Definitivo*
 *Reemplaza: PANEL-VENDEDOR.md, PANTALLAS-SPECS.md, DIAGRAMAS_FLUJO_VENDEDOR.md*
+
+---
+
+## Ver también
+
+- [[PLAN-TRABAJO]] — plan de trabajo por fases del panel de vendedor
+- [[FASE-14-MIGRACION]] — migración a backend real
+- [[DIFERENCIAS-MOCK-REAL]] — diferencias entre mock y API real
+- [[../DIAGRAMAS/flujos-usuario/DIAGRAMAS_FLUJO_PANEL_VENDEDOR]] — flujo del panel de vendedor
+- [[../API_DOCUMENTATION]] — documentación de la API REST
+- [[../ARCHITECTURE-SONNET]] — arquitectura técnica del sistema

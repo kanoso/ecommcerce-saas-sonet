@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - seguridad
+aliases:
+  - Patrones Seguridad Escalabilidad Tiendi
+---
+
 # Patrones de Arquitectura, Seguridad y Escalabilidad - Sistema Tiendi
 
 Este documento describe los patrones de arquitectura, estrategias de seguridad y escalabilidad del sistema.
@@ -831,3 +840,12 @@ async function getProduct(id: string) {
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_RBAC_PERMISOS]] — sistema de roles y permisos
+- [[../arquitectura/DIAGRAMA_ARQUITECTURA_MULTITENANT]] — arquitectura multi-tenant
+- [[../../SEGURIDAD]] — estrategia de seguridad del sistema

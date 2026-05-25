@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Envíos Tiendi
+---
+
 # Diagramas de Secuencia - Logística y Envíos - Sistema Tiendi
 
 Sistema de gestión de envíos, integración con transportistas y tracking.
@@ -608,3 +617,12 @@ app.post('/webhooks/olva', async (req, res) => {
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_SECUENCIA_FACTURACION]] — flujo de facturación electrónica
+- [[../arquitectura/DIAGRAMA_INTEGRACIONES_EXTERNAS]] — integraciones con servicios externos

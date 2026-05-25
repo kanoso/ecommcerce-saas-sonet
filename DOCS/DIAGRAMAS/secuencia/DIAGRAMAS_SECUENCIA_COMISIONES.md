@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Comisiones Tiendi
+---
+
 # Diagramas de Secuencia - Sistema de Comisiones - Sistema Tiendi
 
 Este documento describe el sistema de comisiones y monetización de la plataforma Tiendi.
@@ -526,3 +535,12 @@ EXECUTE FUNCTION calculate_commission();
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
 **Autor:** Sistema Tiendi
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[../arquitectura/DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[../../COSTOS_ESTIMADOS]] — estimación de costos del sistema

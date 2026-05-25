@@ -1,3 +1,13 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+  - api
+aliases:
+  - Secuencia Webhooks Tiendi
+---
+
 # Diagramas de Secuencia - API Pública y Webhooks - Sistema Tiendi
 
 Sistema de webhooks y API pública para integraciones de terceros.
@@ -550,3 +560,12 @@ class WebhookService {
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[../arquitectura/DIAGRAMA_INTEGRACIONES_EXTERNAS]] — integraciones con servicios externos
+- [[../../API_DOCUMENTATION]] — documentación de la API REST
+- [[DIAGRAMAS_FLUJOS_ADICIONALES]] — flujos adicionales del sistema

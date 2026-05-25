@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - seguridad
+aliases:
+  - RBAC Permisos Tiendi
+---
+
 # Sistema de Roles y Permisos (RBAC) - Sistema Tiendi
 
 Este documento describe el sistema de control de acceso basado en roles (RBAC) para Tiendi.
@@ -853,3 +862,12 @@ describe('RBAC System', () => {
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
 **Autor:** Sistema Tiendi
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[PATRONES_SEGURIDAD_ESCALABILIDAD]] — patrones de seguridad y escalabilidad
+- [[../secuencia/DIAGRAMAS_SECUENCIA_AUTENTICACION]] — flujo de autenticación
+- [[../../SEGURIDAD]] — estrategia de seguridad del sistema

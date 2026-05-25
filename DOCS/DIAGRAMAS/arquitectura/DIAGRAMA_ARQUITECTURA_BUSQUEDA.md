@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Arquitectura Búsqueda Tiendi
+---
+
 # Arquitectura de Búsqueda y Recomendaciones - Sistema Tiendi
 
 Sistema de búsqueda avanzada, filtros, autocompletado y recomendaciones inteligentes.
@@ -680,3 +689,13 @@ async function searchProducts(query: SearchQuery) {
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[../secuencia/DIAGRAMAS_SECUENCIA_BUSQUEDA]] — flujo de secuencia de búsqueda
+- [[DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[DIAGRAMA_COMPONENTES]] — diagrama detallado de componentes

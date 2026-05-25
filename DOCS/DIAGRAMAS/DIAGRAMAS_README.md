@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - diagrama
+aliases:
+  - Diagramas README Tiendi
+---
+
 # Documentación de Diagramas - Sistema Tiendi
 
 Este directorio contiene toda la documentación técnica en forma de diagramas para el sistema Tiendi.
@@ -566,3 +574,14 @@ Al agregar nuevos diagramas:
 
 **Última actualización:** 2025-01-25 (Agregados diagramas de baja prioridad: Referidos y Lealtad, Libro de Reclamaciones, Soporte y Tickets, SEO y Marketing)
 **Mantenido por:** Equipo de Desarrollo Tiendi
+
+---
+
+## Ver también
+
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[arquitectura/DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[arquitectura/DIAGRAMA_ARQUITECTURA_MULTITENANT]] — arquitectura multi-tenant
+- [[infraestructura/DIAGRAMA_DESPLIEGUE_AZURE]] — despliegue en Azure
+- [[seguridad/PATRONES_SEGURIDAD_ESCALABILIDAD]] — patrones de seguridad
+- [[flujos-usuario/DIAGRAMAS_FLUJO_TIENDI]] — flujos de usuario del sistema

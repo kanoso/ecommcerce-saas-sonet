@@ -1,3 +1,14 @@
+---
+tags:
+  - tiendi-vendor
+  - frontend
+  - angular
+  - prototipo
+  - diseño
+aliases:
+  - Prototipos HTML Vendor
+---
+
 # Tiendi Vendor — Prototipos HTML
 
 Prototipos estáticos del Panel del Vendedor (Store Manager Dashboard).
@@ -53,3 +64,11 @@ El sistema de diseño está definido en `styles.css` con CSS custom properties:
 ```
 
 Este archivo sirve como referencia directa para configurar el tema de PrimeNG cuando se implemente el proyecto Angular.
+
+---
+
+## Ver también
+
+- [[../VENDOR-PANEL-DEFINITIVO]] — especificación definitiva del panel de vendedor
+- [[../PLAN-TRABAJO]] — plan de trabajo por fases del panel de vendedor
+- [[../FASE-14-MIGRACION]] — migración a backend real

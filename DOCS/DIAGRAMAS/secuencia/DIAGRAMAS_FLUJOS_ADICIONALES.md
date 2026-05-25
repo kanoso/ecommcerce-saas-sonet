@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Flujos Adicionales Tiendi
+---
+
 # Flujos Adicionales - Sistema Tiendi
 
 Diagramas de secuencia detallados para funcionalidades complementarias del sistema.
@@ -2101,3 +2110,13 @@ CREATE TABLE notification_preferences (
 **Versión:** 1.2
 **Última actualización:** 2025-11-25 - Agregados flujos de compra, vendedor, chat y notificaciones
 **Autor:** Sistema Tiendi - Arquitectura Técnica
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_SECUENCIA_AUTENTICACION]] — flujo de autenticación
+- [[DIAGRAMAS_SECUENCIA_CHAT]] — flujo del sistema de chat
+- [[../arquitectura/DIAGRAMA_ARQUITECTURA_SISTEMA]] — arquitectura general del sistema

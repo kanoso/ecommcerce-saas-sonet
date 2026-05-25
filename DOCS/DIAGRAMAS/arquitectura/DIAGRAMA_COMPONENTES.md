@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Diagrama Componentes Tiendi
+---
+
 # Diagrama de Componentes - Sistema Tiendi
 
 Este documento contiene los diagramas de componentes que muestran la estructura modular del sistema Tiendi y las relaciones entre componentes.
@@ -949,3 +958,13 @@ Separar responsabilidades en capas: API, Business Logic, Data Access.
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_ARQUITECTURA_FRONTEND]] — arquitectura del frontend Angular
+- [[DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[DIAGRAMA_NOTIFICACIONES]] — arquitectura del sistema de notificaciones

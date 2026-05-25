@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - historias-usuario
+  - producto
+aliases:
+  - User Stories Tiendi
+---
+
 # Historias de Usuario - Tiendi
 
 ## Índice
@@ -495,3 +504,14 @@
 **Documento creado:** 2025-11-23
 **Total de historias:** 28
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[PLANIFICACION]] — planificación por fases con estimaciones de tiempo
+- [[MODULOS_SISTEMA_TIENDI]] — análisis de módulos del sistema
+- [[PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos
+- [[API_DOCUMENTATION]] — documentación completa de la API REST
+- [[DIAGRAMAS/flujos-usuario/DIAGRAMAS_FLUJO_TIENDI]] — flujos de usuario en el sistema
+- [[DIAGRAMAS/flujos-usuario/DIAGRAMAS_FLUJO_PANEL_VENDEDOR]] — flujo del panel de vendedor

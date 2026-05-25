@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - planificacion
+aliases:
+  - Planificación Tiendi
+---
+
 # Planificación E-commerce SaaS - Tiendi
 
 ## Resumen Ejecutivo
@@ -1145,3 +1153,14 @@ Para cualquier duda o aclaración sobre esta planificación, contactar al equipo
 **Documento creado:** 2025-11-23
 **Versión:** 1.0
 **Próxima revisión:** Después de completar Fase 1
+
+---
+
+## Ver también
+
+- [[README]] — índice general del proyecto y guía de instalación
+- [[TAREAS]] — lista de tareas por fase con estado de avance
+- [[ARCHITECTURE-SONNET]] — documento de arquitectura técnica detallada
+- [[MODULOS_SISTEMA_TIENDI]] — análisis de módulos del sistema
+- [[PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos
+- [[USER_STORIES]] — historias de usuario por rol

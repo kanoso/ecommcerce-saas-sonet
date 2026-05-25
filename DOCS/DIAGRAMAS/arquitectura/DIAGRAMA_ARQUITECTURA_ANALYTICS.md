@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Arquitectura Analytics Tiendi
+---
+
 # Arquitectura de Analytics y Data Pipeline - Sistema Tiendi
 
 Sistema de procesamiento de datos, métricas y business intelligence.
@@ -548,3 +557,13 @@ Total: ~$980/mes
 
 **Fecha de creación:** 2025-01-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[../secuencia/DIAGRAMAS_SECUENCIA_ANALYTICS]] — flujo de secuencia de analytics
+- [[DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[../../MONITORING_RUNBOOK]] — runbook de monitoreo y operaciones

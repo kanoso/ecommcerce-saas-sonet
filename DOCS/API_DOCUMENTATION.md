@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - api
+aliases:
+  - API Tiendi
+---
+
 # Documentación API - Tiendi
 
 ## Tabla de Contenidos
@@ -2405,3 +2413,14 @@ Fecha: 12/26
 
 **Última actualización**: 2025-11-25
 **Versión de API**: v1.0.0
+
+---
+
+## Ver también
+
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[PROTOTIPO/DATABASE_SCHEMA]] — esquema de base de datos
+- [[SEGURIDAD]] — estrategia de seguridad y autenticación
+- [[DIAGRAMAS/secuencia/DIAGRAMAS_SECUENCIA_AUTENTICACION]] — flujo de autenticación
+- [[MIGRACION-JSONSERVER-API]] — migración de mock a API real
+- [[WEB-VENDOR/DIFERENCIAS-MOCK-REAL]] — diferencias entre mock y API real

@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Arquitectura Frontend Tiendi
+---
+
 # Diagrama de Arquitectura Frontend - Tiendi
 
 Este documento describe la arquitectura del frontend del sistema Tiendi.
@@ -345,3 +354,13 @@ workbox.routing.registerRoute(
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_ARQUITECTURA_SISTEMA]] — diagrama de arquitectura general
+- [[DIAGRAMA_COMPONENTES]] — diagrama detallado de componentes
+- [[DIAGRAMA_ARQUITECTURA_MULTITENANT]] — arquitectura multi-tenant
+- [[../../WEB-VENDOR/VENDOR-PANEL-DEFINITIVO]] — especificación definitiva del panel de vendedor

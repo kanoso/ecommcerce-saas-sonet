@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Varios Tiendi
+---
+
 # Diagramas de Secuencia - Operaciones Varias - Sistema Tiendi
 
 Este documento contiene diagramas de secuencia para operaciones adicionales del sistema.
@@ -567,3 +576,12 @@ sequenceDiagram
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_AUTENTICACION]] — flujo de autenticación
+- [[DIAGRAMAS_SECUENCIA_COMPRA]] — flujo de proceso de compra
+- [[DIAGRAMAS_FLUJOS_ADICIONALES]] — flujos adicionales del sistema

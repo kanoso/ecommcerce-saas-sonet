@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - seguridad
+aliases:
+  - Seguridad Tiendi
+---
+
 # Estrategia de Seguridad - Sistema Tiendi
 
 Documento que define la estrategia de seguridad completa para el sistema de e-commerce multi-tenant Tiendi.
@@ -1186,3 +1194,14 @@ external_contacts:
 **Versión:** 1.0
 **Próxima revisión:** 2026-02-25
 **Responsable:** Security Team - Tiendi
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS/seguridad/PATRONES_SEGURIDAD_ESCALABILIDAD]] — patrones de seguridad y escalabilidad
+- [[DIAGRAMAS/seguridad/DIAGRAMAS_RBAC_PERMISOS]] — diagramas de roles y permisos
+- [[COMPLIANCE_LEGAL]] — marco legal y regulatorio del sistema
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[API_DOCUMENTATION]] — documentación de la API y seguridad de endpoints
+- [[MONITORING_RUNBOOK]] — runbook de monitoreo y respuesta a incidentes

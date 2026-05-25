@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - secuencia
+aliases:
+  - Secuencia Compra Tiendi
+---
+
 # Diagramas de Secuencia - Proceso de Compra - Sistema Tiendi
 
 Este documento contiene los diagramas de secuencia relacionados con el proceso de compra y pago.
@@ -524,3 +533,13 @@ sequenceDiagram
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[../DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMAS_SECUENCIA_AUTENTICACION]] — flujo de autenticación
+- [[DIAGRAMAS_SECUENCIA_FACTURACION]] — flujo de facturación electrónica
+- [[DIAGRAMAS_SECUENCIA_DEVOLUCIONES]] — flujo de devoluciones y disputas
+- [[DIAGRAMAS_SECUENCIA_INVENTARIO]] — flujo de gestión de inventario

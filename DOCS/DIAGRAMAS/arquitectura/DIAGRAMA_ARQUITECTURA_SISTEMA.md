@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - diagrama
+  - arquitectura
+aliases:
+  - Arquitectura Sistema Tiendi
+---
+
 # Diagrama de Arquitectura General del Sistema - Tiendi
 
 Este documento contiene la arquitectura general del sistema Tiendi a alto nivel.
@@ -198,3 +207,14 @@ graph TB
 
 **Fecha de creación:** 2025-11-24
 **Versión:** 1.0
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS_README]] — índice de todos los diagramas del sistema
+- [[DIAGRAMA_COMPONENTES]] — diagrama detallado de componentes
+- [[DIAGRAMA_ARQUITECTURA_MULTITENANT]] — arquitectura multi-tenant
+- [[DIAGRAMA_ARQUITECTURA_FRONTEND]] — arquitectura del frontend Angular
+- [[DIAGRAMA_BASE_DATOS]] — diagrama de base de datos
+- [[DIAGRAMA_INTEGRACIONES_EXTERNAS]] — integraciones con servicios externos

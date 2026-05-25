@@ -1,3 +1,12 @@
+---
+tags:
+  - tiendi
+  - monitoring
+  - devops
+aliases:
+  - Monitoring Runbook Tiendi
+---
+
 # Runbook de Monitoreo y Operaciones - Tiendi
 
 ## Tabla de Contenidos
@@ -1603,3 +1612,14 @@ kubectl set env deployment/tiendi-api -n production \
 **Última actualización**: 2025-11-25
 **Versión**: 1.0
 **Mantenido por**: SRE Team
+
+---
+
+## Ver también
+
+- [[DIAGRAMAS/infraestructura/DIAGRAMA_OBSERVABILIDAD]] — stack de observabilidad con Prometheus y Grafana
+- [[DIAGRAMAS/infraestructura/DIAGRAMA_CI_CD]] — pipeline de CI/CD
+- [[DIAGRAMAS/infraestructura/DIAGRAMA_DESPLIEGUE_AZURE]] — diagrama de despliegue en Azure
+- [[COSTOS_ESTIMADOS]] — estimación de costos de infraestructura
+- [[SEGURIDAD]] — estrategia de seguridad y respuesta a incidentes
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema

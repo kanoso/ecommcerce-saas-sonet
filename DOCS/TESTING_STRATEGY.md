@@ -1,3 +1,11 @@
+---
+tags:
+  - tiendi
+  - testing
+aliases:
+  - Testing Strategy Tiendi
+---
+
 # Estrategia de Testing - Sistema Tiendi
 
 Estrategia completa de pruebas para garantizar la calidad del sistema e-commerce multi-tenant Tiendi.
@@ -706,3 +714,13 @@ async function seedDatabase() {
 **Fecha de creación:** 2025-11-25
 **Versión:** 1.0
 **Responsable:** QA Team - Tiendi
+
+---
+
+## Ver también
+
+- [[TAREAS]] — lista de tareas por fase con estado de avance
+- [[API_DOCUMENTATION]] — documentación de la API a testear
+- [[PLANIFICACION]] — planificación por fases del proyecto
+- [[ARCHITECTURE-SONNET]] — arquitectura técnica del sistema
+- [[WEB-VENDOR/FASE-14-MIGRACION]] — migración del panel de vendedor con E2E
