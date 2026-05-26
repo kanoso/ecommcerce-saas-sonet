@@ -1,13 +1,42 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Slot } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/theme';
+import { useAuthStore } from '@/stores/auth.store';
 
 export default function RootLayout() {
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const isLoading = useAuthStore((s) => s.isLoading);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        {isLoading ? (
+          <View style={styles.splash}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : (
+          <Slot />
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  splash: {
+    flex: 1,
+    backgroundColor: Colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

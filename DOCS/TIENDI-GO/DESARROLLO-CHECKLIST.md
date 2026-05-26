@@ -82,19 +82,19 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [ ] Máquina de estados del rider: `Registrado → EnRevision → Aprobado/Rechazado → Activo`
 
 #### Mobile
-- [ ] Pantalla de bienvenida / splash
-- [ ] Registro Paso 1: datos personales (nombre, documento, email, teléfono)
-- [ ] Verificación OTP por SMS al completar Paso 1
-- [ ] Registro Paso 2: datos del vehículo (tipo, placa, marca, color)
-- [ ] Registro Paso 3: subida de documentos con `expo-camera` (licencia, SOAT, antecedentes, tarjeta propiedad)
-- [ ] Pantalla de espera "En revisión" con estado visible
-- [ ] Pantalla de rechazo con motivo + opción de corregir y re-enviar
-- [ ] Login con email + contraseña
-- [ ] Configuración de biometría en el primer login exitoso (`expo-local-authentication`)
-- [ ] Login biométrico (huella / Face ID)
-- [ ] Recuperación de contraseña
+- [x] Pantalla de bienvenida / splash (ActivityIndicator mientras hidrata el store)
+- [x] Registro Paso 1: datos personales (nombre, documento, email, teléfono)
+- [x] Verificación OTP por SMS al completar Paso 1 (6 dígitos con auto-avance y reenvío 60s)
+- [x] Registro Paso 2: datos del vehículo (tipo, placa, marca, color)
+- [x] Registro Paso 3: subida de documentos con `expo-camera` / `expo-document-picker`
+- [x] Pantalla de espera "En revisión" con estado visible
+- [x] Pantalla de rechazo con motivo + opción de corregir y re-enviar
+- [x] Login con email + contraseña (react-hook-form + zod)
+- [x] Configuración de biometría (`expo-local-authentication` + flag en SecureStore)
+- [x] Login biométrico (huella / Face ID)
+- [x] Recuperación de contraseña
 - [ ] Onboarding post-aprobación: tutorial 3 pasos + permisos GPS (bloqueante) + cuenta bancaria (opcional)
-- [ ] Auth guard en Expo Router: redirige a `(auth)` si no hay token válido
+- [x] Auth guard en Expo Router: redirige a `(auth)` si no hay token válido
 
 ---
 
