@@ -1,19 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-
-type RiderStatus = 'Registrado' | 'EnRevision' | 'Aprobado' | 'Rechazado' | 'Activo' | 'Inactivo' | 'Suspendido';
-
-interface Rider {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  status: RiderStatus;
-  ratingAvg: number | null;
-  vehicleType: string;
-  avatarUrl: string | null;
-}
+import { api } from '@/services/api';
+import type { Rider } from '@/types/rider.types';
 
 interface AuthState {
   rider: Rider | null;
@@ -54,7 +42,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
       if (token) {
         set({ accessToken: token, isAuthenticated: true });
+        const { data } = await api.get<Rider>('/riders/me');
+        set({ rider: data });
       }
+    } catch {
+      await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+      set({ rider: null, accessToken: null, isAuthenticated: false });
     } finally {
       set({ isLoading: false });
     }

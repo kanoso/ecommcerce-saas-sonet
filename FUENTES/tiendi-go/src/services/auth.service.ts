@@ -1,21 +1,12 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import type { RegisterStep1FormData, RegisterStep2FormData } from '@/schemas/auth.schemas';
+import type { Rider } from '@/types/rider.types';
 import { api } from './api';
 
-const BIOMETRIC_KEY = 'tiendigo_biometric_enabled';
+export type { Rider };
 
-export interface Rider {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  status: 'Registrado' | 'EnRevision' | 'Aprobado' | 'Rechazado' | 'Activo' | 'Inactivo' | 'Suspendido';
-  ratingAvg: number | null;
-  vehicleType: string;
-  avatarUrl: string | null;
-}
+const BIOMETRIC_KEY = 'tiendigo_biometric_enabled';
 
 export interface LoginResponse {
   accessToken: string;
