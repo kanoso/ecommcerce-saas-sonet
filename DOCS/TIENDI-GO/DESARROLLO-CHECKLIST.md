@@ -35,6 +35,9 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 
 ---
 
+> [!IMPORTANT]
+> **Antes de implementar cada módulo**: revisar la sección correspondiente en [[FUNCIONALIDADES]] para entender el detalle completo de reglas de negocio, estados, flujos y restricciones. Este checklist es una guía de avance, no reemplaza la especificación.
+
 ## MVP — Fase 1
 
 > Objetivo: primera versión funcional operativa con riders reales. ~5 meses.
@@ -70,16 +73,19 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 ### 🔐 Módulo 1 — Autenticación y Registro
 
 #### Backend
-- [ ] `POST /auth/register` — registro multi-paso con datos personales, vehículo y documentos
-- [ ] `POST /auth/verify-otp` — verificación de teléfono por SMS (Twilio Verify)
-- [ ] `POST /auth/login` — email + contraseña → JWT access + refresh token
-- [ ] `POST /auth/refresh` — refresh token → nuevo access token
+- [x] `POST /riders/register/step1` — datos personales + OTP por SMS (mocked console.log)
+- [x] `POST /riders/register/verify-otp` — verificación de código OTP
+- [x] `POST /riders/register/step2` — datos del vehículo
+- [x] `POST /riders/register/step3` — subida de documentos (mocked Cloudinary URLs)
+- [x] `POST /auth/login` — email + contraseña → JWT access + refresh token (módulo auth existente, role-agnostic)
+- [x] `POST /auth/refresh` — refresh token → nuevo access token (módulo auth existente)
 - [ ] `POST /auth/forgot-password` / `POST /auth/reset-password`
-- [ ] `GET /auth/me` — datos del rider autenticado
-- [ ] `POST /riders/documents` — subida de documentos a Cloudinary (acceso privado)
+- [x] `GET /riders/me` — datos del rider autenticado
+- [x] Máquina de estados del rider: `PENDING_DOCUMENTS → UNDER_REVIEW → APPROVED/REJECTED → ACTIVE`
+- [ ] Integración real Twilio Verify para OTP
+- [ ] Integración real Cloudinary para documentos
 - [ ] Panel de admin en tiendi-vendor para revisar y aprobar/rechazar riders
 - [ ] Push + email al rider en cada cambio de estado (aprobado, rechazado)
-- [ ] Máquina de estados del rider: `Registrado → EnRevision → Aprobado/Rechazado → Activo`
 
 #### Mobile
 - [x] Pantalla de bienvenida / splash (ActivityIndicator mientras hidrata el store)
