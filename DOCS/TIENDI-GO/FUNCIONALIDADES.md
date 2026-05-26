@@ -22,7 +22,7 @@ aliases:
 | **Usuarios objetivo** | Repartidores independientes o asociados (motos, bicis, autos, a pie) |
 | **Integración** | Se conecta a `tiendi-api` — comparte datos con `tiendi-web` y `tiendi-vendor` |
 | **Plataforma** | App móvil nativa (iOS + Android) |
-| **Stack sugerido** | Ionic + Angular (reuso) o Flutter (performance) |
+| **Stack** | React Native + Expo |
 | **Backend** | Nuevo módulo `delivery` en NestJS + WebSockets + BullMQ |
 | **Tiempo al MVP** | ~5 meses |
 
@@ -1128,7 +1128,7 @@ El rider puede cancelar un pedido aceptado, pero con restricciones crecientes se
 |------|-----------|----------------|
 | **Mapas base** | Google Maps SDK (Android/iOS) | Renderizado del mapa, markers, polylines |
 | **Navegación turn-by-turn** | Google Maps App (deep link) / Waze (deep link) | Instrucciones de voz y ruta — app externa |
-| **Geolocalización** | Capacitor Geolocation (Ionic) / geolocator (Flutter) | Lectura del GPS del dispositivo |
+| **Geolocalización** | expo-location | Lectura del GPS del dispositivo |
 | **Tracking en tiempo real** | Socket.IO sobre WebSocket | Envío de coordenadas a tiendi-api |
 | **Optimización de rutas** | Google Directions API (multi-waypoint) | Cálculo de ruta óptima para multi-pedido |
 | **Geocoding** | Google Geocoding API | Convertir dirección de texto a coordenadas |
@@ -2962,35 +2962,47 @@ El Admin de Flota tiene en tiendi-vendor un dashboard de operaciones en tiempo r
 
 ### Stack Tecnológico
 
-> [!NOTE]
-> Hay dos caminos viables. La elección depende del equipo y del presupuesto.
+> [!IMPORTANT]
+> Stack definido: **React Native + Expo**. Ecosistema maduro para apps de delivery (Uber, DoorDash), amplia comunidad, y las APIs de Expo cubren exactamente los requisitos de Tiendi Go sin fricciones.
 
 ```mermaid
 flowchart TB
-    subgraph Opcion1["Opción A: Ionic + Angular"]
-        I1[Ionic Framework]
-        I2[Angular 17+]
-        I3[Capacitor]
-        I4[NgRx]
+    subgraph Frontend["📱 Frontend — React Native + Expo"]
+        RN[React Native]
+        EXPO[Expo SDK]
+        ROUTER[Expo Router]
+        ZUSTAND[Zustand]
     end
-    
-    subgraph Opcion2["Opción B: Flutter"]
-        F1[Flutter SDK]
-        F2[Dart]
-        F3[Riverpod / Bloc]
+
+    subgraph ExpoAPIs["🔌 Expo APIs"]
+        LOC[expo-location]
+        CAM[expo-camera]
+        NOTIF[expo-notifications]
+        SEC[expo-secure-store]
+        DOC[expo-document-picker]
     end
-    
-    Opcion1 -.->|Reusa conocimiento<br/>tiendi-vendor| DEC[Decisión]
-    Opcion2 -.->|Mejor performance<br/>nativa| DEC
+
+    subgraph Maps["🗺️ Mapas"]
+        GMAPS[react-native-maps\n+ Google Maps SDK]
+        DIRECTIONS[Google Directions API]
+    end
+
+    Frontend --> ExpoAPIs
+    Frontend --> Maps
 ```
 
-| Capa | Ionic + Angular | Flutter |
-|------|----------------|---------|
-| **Curva de aprendizaje** | Baja (equipo ya sabe Angular) | Media-alta |
-| **Performance** | Buena | Excelente |
-| **UI nativa** | Web-based (Capacitor) | Nativa real |
-| **Tiempo al MVP** | ~3 meses | ~4-5 meses |
-| **Mantenimiento** | Compartido con tiendi-vendor | Stack separado |
+| Capa | Tecnología | Responsabilidad |
+|------|-----------|----------------|
+| **Framework** | React Native + Expo SDK | Base de la app multiplataforma (iOS + Android) |
+| **Navegación** | Expo Router (file-based) | Rutas y navegación entre pantallas |
+| **Estado global** | Zustand | Estado de sesión, pedido activo, wallet |
+| **Mapas** | react-native-maps + Google Maps SDK | Renderizado del mapa, markers, polylines |
+| **GPS** | expo-location | Lectura y tracking de ubicación en background |
+| **Cámara / fotos** | expo-camera | Escaneo QR, POD, documentos de registro |
+| **Push notifications** | expo-notifications + FCM | Ofertas de pedidos, alertas del sistema |
+| **Almacenamiento seguro** | expo-secure-store | Tokens JWT, datos de sesión |
+| **Biometría** | expo-local-authentication | Login con huella / Face ID |
+| **Build / distribución** | EAS Build + EAS Submit | CI/CD y publicación en stores |
 
 #### Backend (extensión de tiendi-api)
 - Nuevo módulo `delivery` en NestJS
