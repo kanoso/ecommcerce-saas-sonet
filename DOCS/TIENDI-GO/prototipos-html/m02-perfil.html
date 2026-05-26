@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiendi Go — M02 Perfil y Estado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:       #F97316;
+      --primary-dark:  #EA580C;
+      --primary-light: #FFF7ED;
+      --success:       #16A34A;
+      --success-light: #DCFCE7;
+      --warning:       #D97706;
+      --warning-light: #FEF3C7;
+      --error:         #DC2626;
+      --error-light:   #FEE2E2;
+      --info:          #2563EB;
+      --info-light:    #DBEAFE;
+      --bg:            #F3F4F6;
+      --card:          #FFFFFF;
+      --text-1:        #111827;
+      --text-2:        #6B7280;
+      --text-3:        #9CA3AF;
+      --border:        #E5E7EB;
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 20px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #1C1C1E; display: flex; min-height: 100vh; color: var(--text-1); }
+
+    /* Sidebar */
+    .sidebar { width: 220px; min-height: 100vh; background: #2C2C2E; padding: 24px 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+    .sidebar-header { padding: 0 16px 16px; border-bottom: 1px solid #3A3A3C; margin-bottom: 8px; }
+    .sidebar-logo { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .sidebar-module { font-size: 11px; font-weight: 500; color: #8E8E93; text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; }
+    .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; color: #AEAEB2; font-size: 13px; font-weight: 500; border-left: 3px solid transparent; transition: background .15s; }
+    .sidebar-item:hover { background: #3A3A3C; color: #fff; }
+    .sidebar-item.active { background: #3A3A3C; color: #fff; border-left-color: var(--primary); }
+    .sidebar-num { width: 22px; height: 22px; border-radius: 50%; background: #3A3A3C; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #8E8E93; flex-shrink: 0; }
+    .sidebar-item.active .sidebar-num { background: var(--primary); color: #fff; }
+    .sidebar-nav { padding: 12px 16px 0; margin-top: auto; border-top: 1px solid #3A3A3C; }
+    .sidebar-nav a { display: block; color: #8E8E93; font-size: 12px; text-decoration: none; padding: 6px 0; }
+    .sidebar-nav a:hover { color: var(--primary); }
+
+    /* Stage */
+    .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 20px; }
+    .stage-label { color: #8E8E93; font-size: 13px; font-weight: 500; }
+    .phone { width: 390px; height: 844px; background: var(--card); border-radius: 48px; box-shadow: 0 0 0 12px #2C2C2E, 0 0 0 14px #3A3A3C, 0 8px 32px rgba(0,0,0,.4); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+    .status-bar { height: 50px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 8px; font-size: 13px; font-weight: 600; flex-shrink: 0; z-index: 10; }
+    .status-bar.light { color: var(--text-1); }
+    .status-bar.dark  { color: #fff; }
+    .status-icons { display: flex; align-items: center; gap: 6px; }
+    .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .screen.active { display: flex; }
+    .screen-body { flex: 1; overflow-y: auto; scrollbar-width: none; }
+    .screen-body::-webkit-scrollbar { display: none; }
+
+    /* Buttons */
+    .btn-primary { width: 100%; padding: 16px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-md); font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { width: 100%; padding: 14px; background: transparent; color: var(--primary); border: 2px solid var(--primary); border-radius: var(--radius-md); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-ghost { background: none; border: none; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer; padding: 8px; font-family: inherit; }
+    .btn-danger { width: 100%; padding: 14px; background: var(--error-light); color: var(--error); border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+    /* Inputs */
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .input-field { width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; font-family: inherit; color: var(--text-1); outline: none; transition: border-color .15s; }
+    .input-field:focus { border-color: var(--primary); }
+    .input-field:disabled { background: var(--bg); color: var(--text-3); cursor: not-allowed; }
+    .input-field::placeholder { color: var(--text-3); }
+
+    /* Nav */
+    .screen-nav { display: flex; align-items: center; padding: 12px 16px; gap: 12px; flex-shrink: 0; }
+    .back-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--bg); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text-1); flex-shrink: 0; }
+    .nav-title { font-size: 17px; font-weight: 700; }
+    .nav-action { margin-left: auto; color: var(--primary); font-size: 14px; font-weight: 700; cursor: pointer; border: none; background: none; font-family: inherit; }
+
+    /* Profile header */
+    .profile-hero {
+      background: linear-gradient(160deg, #1C1C1E 0%, #3A3A3C 100%);
+      padding: 20px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+    .profile-settings-btn {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .avatar-wrap { position: relative; }
+    .avatar {
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #FB923C);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+      border: 3px solid rgba(255,255,255,.2);
+    }
+    .avatar-edit {
+      position: absolute; bottom: 0; right: 0;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      border: 2px solid #1C1C1E;
+    }
+    .profile-name { font-size: 22px; font-weight: 800; color: #fff; }
+    .profile-badges { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .level-badge {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.12);
+      border-radius: 100px;
+      padding: 5px 12px;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .fleet-badge {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(249,115,22,.2);
+      border-radius: 100px;
+      padding: 5px 12px;
+      font-size: 12px; font-weight: 700; color: #FB923C;
+    }
+    .availability-pill {
+      display: flex; align-items: center; gap: 6px;
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 12px; font-weight: 700;
+      cursor: pointer;
+    }
+    .pill-available   { background: #14532D; color: #4ADE80; }
+    .pill-unavailable { background: #374151; color: #9CA3AF; }
+    .pill-pause       { background: #451A03; color: #FB923C; }
+    .pill-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot-green  { background: #4ADE80; }
+    .dot-gray   { background: #9CA3AF; }
+    .dot-orange { background: #FB923C; }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-item {
+      padding: 16px 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value { font-size: 20px; font-weight: 800; color: var(--text-1); }
+    .stat-label { font-size: 11px; color: var(--text-2); font-weight: 500; text-align: center; }
+
+    /* Sections */
+    .section-block { background: var(--card); margin-top: 8px; }
+    .section-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .section-row:last-child { border-bottom: none; }
+    .section-icon { font-size: 20px; width: 24px; text-align: center; flex-shrink: 0; }
+    .section-label { font-size: 15px; font-weight: 600; color: var(--text-1); flex: 1; }
+    .section-value { font-size: 14px; color: var(--text-2); }
+    .section-arrow { color: var(--text-3); font-size: 18px; }
+
+    .collapsible-content { display: none; padding: 0 20px 16px; background: var(--bg); }
+    .collapsible-content.open { display: block; }
+    .section-row.collapsible { user-select: none; }
+
+    /* Field permission tag */
+    .field-tag {
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 100px;
+    }
+    .tag-editable  { background: var(--success-light); color: var(--success); }
+    .tag-locked    { background: var(--bg); color: var(--text-3); }
+    .tag-review    { background: var(--warning-light); color: var(--warning); }
+
+    /* Upload */
+    .upload-area { border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+    .upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
+    .uploaded-file { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--success-light); border-radius: var(--radius-sm); border: 1.5px solid #86EFAC; }
+
+    /* Vehicle card */
+    .vehicle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .vehicle-card { border: 2px solid var(--border); border-radius: var(--radius-md); padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all .15s; }
+    .vehicle-card:hover, .vehicle-card.active { border-color: var(--primary); background: var(--primary-light); }
+    .vehicle-icon { font-size: 36px; }
+    .vehicle-name { font-size: 13px; font-weight: 700; }
+
+    /* Progress steps */
+    .progress-steps { display: flex; align-items: center; gap: 0; padding: 16px 24px; }
+    .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .step-dot.done    { background: var(--primary); color: #fff; }
+    .step-dot.active  { background: var(--primary); color: #fff; box-shadow: 0 0 0 4px var(--primary-light); }
+    .step-dot.pending { background: var(--border); color: var(--text-3); }
+    .step-line { flex: 1; height: 2px; background: var(--border); }
+    .step-line.done   { background: var(--primary); }
+
+    /* Availability states */
+    .avail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+    .avail-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      cursor: pointer; transition: all .15s;
+    }
+    .avail-card.active { border-color: var(--primary); }
+    .avail-card-icon { font-size: 28px; }
+    .avail-card-title { font-size: 14px; font-weight: 700; color: var(--text-1); }
+    .avail-card-sub { font-size: 12px; color: var(--text-2); line-height: 1.4; }
+    .avail-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* Bottom sheet overlay */
+    .overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 50;
+      align-items: flex-end;
+    }
+    .overlay.visible { display: flex; }
+    .bottom-sheet {
+      background: var(--card);
+      border-radius: 24px 24px 0 0;
+      padding: 24px;
+      width: 100%;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto; }
+    .sheet-title { font-size: 18px; font-weight: 800; color: var(--text-1); }
+    .sheet-body  { font-size: 14px; color: var(--text-2); line-height: 1.6; }
+
+    .screen-footer { padding: 16px 24px 32px; border-top: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+
+    /* Pause timer */
+    .pause-timer {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px;
+      background: var(--warning-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 16px;
+    }
+    .pause-clock { font-size: 32px; font-weight: 800; color: var(--warning); font-variant-numeric: tabular-nums; }
+    .pause-label { font-size: 13px; color: var(--warning); font-weight: 600; }
+
+    /* Rating stars */
+    .stars { color: #FBBF24; font-size: 18px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">Tiendi Go</div>
+    <div class="sidebar-module">M02 — Perfil y Estado</div>
+  </div>
+  <div class="sidebar-item active" onclick="showScreen('profile', this)">
+    <span class="sidebar-num">1</span> Perfil principal
+  </div>
+  <div class="sidebar-item" onclick="showScreen('edit', this)">
+    <span class="sidebar-num">2</span> Editar perfil
+  </div>
+  <div class="sidebar-item" onclick="showScreen('vehicle', this)">
+    <span class="sidebar-num">3</span> Cambio de vehículo
+  </div>
+  <div class="sidebar-item" onclick="showScreen('availability', this)">
+    <span class="sidebar-num">4</span> Toggle disponibilidad
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html">← Todos los módulos</a>
+  </div>
+</aside>
+
+<!-- STAGE -->
+<main class="stage">
+<div class="phone">
+
+  <!-- ── S01 — Perfil principal ─────────────────────────────────────────── -->
+  <div class="screen active" id="profile">
+    <div class="status-bar dark" style="background:#1C1C1E;"></div>
+
+    <div class="screen-body">
+      <!-- Hero -->
+      <div class="profile-hero">
+        <button class="profile-settings-btn" onclick="showScreen('edit', document.querySelectorAll('.sidebar-item')[1])">⚙️</button>
+        <div class="avatar-wrap">
+          <div class="avatar">JP</div>
+          <div class="avatar-edit">✏️</div>
+        </div>
+        <div class="profile-name">Juan Pérez</div>
+        <div class="profile-badges">
+          <div class="level-badge">🥇 Oro · 730 pts</div>
+          <div class="fleet-badge">🚐 LogiRápido</div>
+        </div>
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <div style="font-size:13px; color:rgba(255,255,255,.6);">4.8 · 234 entregas</div>
+        <div class="availability-pill pill-available" onclick="showScreen('availability', document.querySelectorAll('.sidebar-item')[3])">
+          <span class="pill-dot dot-green"></span>
+          Disponible
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-value">234</div>
+          <div class="stat-label">Entregas</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">4.8 ⭐</div>
+          <div class="stat-label">Calificación</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">92%</div>
+          <div class="stat-label">Aceptación</div>
+        </div>
+      </div>
+
+      <!-- Sections -->
+      <div style="background:var(--bg); padding-bottom: 32px;">
+
+        <div class="section-block">
+          <div class="section-row collapsible" onclick="toggleSection('sec-vehicle')">
+            <span class="section-icon">🛵</span>
+            <span class="section-label">Mi vehículo</span>
+            <span class="section-value">Moto · ABC-123</span>
+            <span class="section-arrow" id="arrow-sec-vehicle">›</span>
+          </div>
+          <div class="collapsible-content" id="sec-vehicle">
+            <div style="display:flex; flex-direction:column; gap:8px; padding-top:12px;">
+              <div style="font-size:13px; color:var(--text-2);"><strong>Marca:</strong> Honda</div>
+              <div style="font-size:13px; color:var(--text-2);"><strong>Placa:</strong> ABC-123</div>
+              <div style="font-size:13px; color:var(--text-2);"><strong>Color:</strong> Negro</div>
+              <button class="btn-secondary" style="margin-top:8px;" onclick="showScreen('vehicle', document.querySelectorAll('.sidebar-item')[2])">
+                Cambiar vehículo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-block" style="margin-top:8px;">
+          <div class="section-row collapsible" onclick="toggleSection('sec-docs')">
+            <span class="section-icon">📄</span>
+            <span class="section-label">Documentos</span>
+            <span class="section-value" style="color:var(--success);">Al día ✓</span>
+            <span class="section-arrow" id="arrow-sec-docs">›</span>
+          </div>
+          <div class="collapsible-content" id="sec-docs">
+            <div style="display:flex; flex-direction:column; gap:8px; padding-top:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                <span>DNI</span><span style="color:var(--success); font-weight:600;">✅ Vigente</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                <span>Licencia</span><span style="color:var(--success); font-weight:600;">✅ Vigente</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                <span>SOAT</span><span style="color:var(--warning); font-weight:600;">⚠️ Vence en 14d</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-block" style="margin-top:8px;">
+          <div class="section-row" onclick="showScreen('availability', document.querySelectorAll('.sidebar-item')[3])">
+            <span class="section-icon">🟢</span>
+            <span class="section-label">Disponibilidad</span>
+            <span class="section-value">Disponible</span>
+            <span class="section-arrow">›</span>
+          </div>
+          <div class="section-row" onclick="showScreen('edit', document.querySelectorAll('.sidebar-item')[1])">
+            <span class="section-icon">✏️</span>
+            <span class="section-label">Editar perfil</span>
+            <span class="section-arrow">›</span>
+          </div>
+          <div class="section-row">
+            <span class="section-icon">⭐</span>
+            <span class="section-label">Mi calificación</span>
+            <span class="section-value">4.8</span>
+            <span class="section-arrow">›</span>
+          </div>
+          <div class="section-row">
+            <span class="section-icon">🏆</span>
+            <span class="section-label">Mi nivel y puntos</span>
+            <span class="section-value">🥇 Oro</span>
+            <span class="section-arrow">›</span>
+          </div>
+          <div class="section-row">
+            <span class="section-icon">🚐</span>
+            <span class="section-label">Mi flota</span>
+            <span class="section-value">LogiRápido</span>
+            <span class="section-arrow">›</span>
+          </div>
+        </div>
+
+        <div class="section-block" style="margin-top:8px;">
+          <div class="section-row" style="color:var(--error);">
+            <span class="section-icon">🚪</span>
+            <span class="section-label" style="color:var(--error);">Cerrar sesión</span>
+          </div>
+        </div>
+
+      </div><!-- /bg -->
+    </div>
+  </div>
+
+  <!-- ── S02 — Editar perfil ────────────────────────────────────────────── -->
+  <div class="screen" id="edit">
+    <div class="status-bar light"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('profile', document.querySelectorAll('.sidebar-item')[0])">←</button>
+      <span class="nav-title">Editar perfil</span>
+      <button class="nav-action">Guardar</button>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg);">
+
+      <!-- Avatar section -->
+      <div style="background:var(--card); padding:24px; display:flex; flex-direction:column; align-items:center; gap:12px; border-bottom:1px solid var(--border);">
+        <div style="position:relative;">
+          <div class="avatar" style="width:80px;height:80px;font-size:30px;">JP</div>
+          <div class="avatar-edit">📷</div>
+        </div>
+        <button class="btn-ghost" style="font-size:13px;">Cambiar foto de perfil</button>
+      </div>
+
+      <!-- Fields -->
+      <div style="background:var(--card); margin-top:8px; padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div style="font-size:12px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.6px;">Datos editables</div>
+
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">Nombre</label>
+            <span class="field-tag tag-editable">Editable</span>
+          </div>
+          <input class="input-field" type="text" value="Juan Pérez">
+        </div>
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">Teléfono</label>
+            <span class="field-tag tag-editable">Editable</span>
+          </div>
+          <input class="input-field" type="tel" value="+51 999 888 777">
+        </div>
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">Foto de perfil</label>
+            <span class="field-tag tag-editable">Editable</span>
+          </div>
+          <div style="font-size:13px; color:var(--text-2);">Subí una foto clara de tu cara sin accesorios.</div>
+        </div>
+      </div>
+
+      <div style="background:var(--card); margin-top:8px; padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div style="font-size:12px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.6px;">Requieren re-verificación</div>
+
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">Email</label>
+            <span class="field-tag tag-review">Requiere verificación</span>
+          </div>
+          <input class="input-field" type="email" value="juan@correo.com">
+          <div style="font-size:12px; color:var(--warning);">⚠️ Al cambiar el email, recibirás un código de confirmación.</div>
+        </div>
+
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">Contraseña</label>
+            <span class="field-tag tag-review">Requiere verificación</span>
+          </div>
+          <input class="input-field" type="password" placeholder="Ingresá tu contraseña actual para cambiarla">
+        </div>
+      </div>
+
+      <div style="background:var(--card); margin-top:8px; padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div style="font-size:12px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.6px;">Solo lectura</div>
+
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">DNI</label>
+            <span class="field-tag tag-locked">🔒 Bloqueado</span>
+          </div>
+          <input class="input-field" type="text" value="45678912" disabled>
+          <div style="font-size:12px; color:var(--text-3);">Para cambiar el DNI contactá a soporte.</div>
+        </div>
+
+        <div class="input-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="input-label">Vehículo</label>
+            <span class="field-tag tag-locked">🔒 Bloqueado</span>
+          </div>
+          <input class="input-field" type="text" value="Moto Honda · ABC-123" disabled>
+          <div style="font-size:12px; color:var(--text-3);">Para cambiar el vehículo usá "Cambio de vehículo".</div>
+        </div>
+      </div>
+
+      <div style="padding:20px; padding-bottom:32px;">
+        <button class="btn-primary">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S03 — Cambio de vehículo ───────────────────────────────────────── -->
+  <div class="screen" id="vehicle">
+    <div class="status-bar light"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('profile', document.querySelectorAll('.sidebar-item')[0])">←</button>
+      <span class="nav-title">Cambio de vehículo</span>
+    </div>
+    <div class="progress-steps">
+      <div class="step-dot active" id="vstep1">1</div>
+      <div class="step-line" id="vline1"></div>
+      <div class="step-dot pending" id="vstep2">2</div>
+      <div class="step-line" id="vline2"></div>
+      <div class="step-dot pending" id="vstep3">3</div>
+    </div>
+
+    <!-- Step 1: Select vehicle -->
+    <div class="screen-body" id="vstep-1" style="background:var(--bg);">
+      <div style="background:var(--card); padding:20px; margin-bottom:8px;">
+        <div style="font-size:15px; font-weight:700; margin-bottom:4px;">Seleccioná el nuevo vehículo</div>
+        <div style="font-size:13px; color:var(--text-2);">Tu vehículo actual (Moto) seguirá activo hasta que el cambio sea aprobado.</div>
+      </div>
+      <div style="background:var(--card); padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div class="vehicle-grid">
+          <div class="vehicle-card" onclick="selectVehicle(this)">
+            <div class="vehicle-icon">🛵</div>
+            <div class="vehicle-name">Moto</div>
+          </div>
+          <div class="vehicle-card active" onclick="selectVehicle(this)">
+            <div class="vehicle-icon">🚗</div>
+            <div class="vehicle-name">Auto</div>
+          </div>
+          <div class="vehicle-card" onclick="selectVehicle(this)">
+            <div class="vehicle-icon">🚲</div>
+            <div class="vehicle-name">Bicicleta</div>
+          </div>
+          <div class="vehicle-card" onclick="selectVehicle(this)">
+            <div class="vehicle-icon">🚶</div>
+            <div class="vehicle-name">A pie</div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Marca</label>
+          <input class="input-field" type="text" placeholder="Toyota, Hyundai...">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Placa</label>
+          <input class="input-field" type="text" placeholder="XYZ-456">
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Docs (hidden initially) -->
+    <div class="screen-body" id="vstep-2" style="display:none; background:var(--bg);">
+      <div style="background:var(--card); padding:20px; margin-bottom:8px; display:flex; flex-direction:column; gap:16px;">
+        <div>
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">Documentos del nuevo vehículo</div>
+          <div style="font-size:13px; color:var(--text-2);">Subí los documentos del auto que vas a registrar.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Tarjeta de propiedad</label>
+          <div class="upload-area">
+            <div style="font-size:32px;">📄</div>
+            <div style="font-size:14px; font-weight:600; color:var(--text-2);">Subir foto</div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">SOAT vigente</label>
+          <div class="uploaded-file">
+            <span style="font-size:20px;">📋</span>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:var(--success);">soat_auto.jpg</div>
+              <div style="font-size:11px; color:#4ADE80;">2.1 MB</div>
+            </div>
+            <span style="margin-left:auto; color:var(--success);">✅</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Licencia de conducir</label>
+          <div class="uploaded-file">
+            <span style="font-size:20px;">🪪</span>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:var(--success);">licencia.jpg</div>
+              <div style="font-size:11px; color:#4ADE80;">1.5 MB</div>
+            </div>
+            <span style="margin-left:auto; color:var(--success);">✅</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Pending (hidden initially) -->
+    <div class="screen-body" id="vstep-3" style="display:none; background:var(--bg);">
+      <div style="padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center;">
+        <div style="font-size:60px;">⏳</div>
+        <div style="font-size:22px; font-weight:800;">Cambio en revisión</div>
+        <div style="font-size:14px; color:var(--text-2); line-height:1.6;">
+          Estamos verificando los documentos de tu nuevo vehículo. Este proceso tarda entre 24–48 horas.
+        </div>
+        <div style="background:var(--warning-light); border-radius:var(--radius-md); padding:14px 16px; text-align:left; width:100%;">
+          <div style="font-size:13px; color:var(--warning); font-weight:600; margin-bottom:4px;">⚠️ Mientras tanto</div>
+          <div style="font-size:13px; color:var(--warning); line-height:1.5;">
+            Seguís operando con tu Moto (ABC-123) hasta que el cambio sea aprobado. No pierdas ninguna entrega.
+          </div>
+        </div>
+        <button class="btn-secondary" style="margin-top:8px;" onclick="showScreen('profile', document.querySelectorAll('.sidebar-item')[0])">
+          Volver al perfil
+        </button>
+      </div>
+    </div>
+
+    <div class="screen-footer" id="vehicle-footer">
+      <button class="btn-primary" id="vehicle-next-btn" onclick="vehicleNext()">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- ── S04 — Toggle disponibilidad ───────────────────────────────────── -->
+  <div class="screen" id="availability">
+    <div class="status-bar light"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('profile', document.querySelectorAll('.sidebar-item')[0])">←</button>
+      <span class="nav-title">Mi disponibilidad</span>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg);">
+
+      <!-- Current state card -->
+      <div style="background:var(--card); padding:20px; margin-bottom:8px; display:flex; align-items:center; gap:14px;">
+        <div style="font-size:32px;">🟢</div>
+        <div>
+          <div style="font-size:16px; font-weight:800; color:var(--text-1);">Disponible</div>
+          <div style="font-size:13px; color:var(--text-2);">Recibís pedidos normalmente</div>
+        </div>
+        <div style="margin-left:auto; background:var(--success-light); padding:6px 14px; border-radius:100px; font-size:13px; font-weight:700; color:var(--success);">Activo</div>
+      </div>
+
+      <!-- State options -->
+      <div style="padding:16px; background:var(--card); margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px;">Cambiar estado</div>
+        <div class="avail-grid">
+          <div class="avail-card active" onclick="setAvail(this, 'available-sheet')">
+            <div class="avail-card-icon">🟢</div>
+            <div class="avail-card-title">Disponible</div>
+            <div class="avail-card-sub">Recibís pedidos de tu zona</div>
+          </div>
+          <div class="avail-card" onclick="setAvail(this, 'unavailable-sheet')">
+            <div class="avail-card-icon">⛔</div>
+            <div class="avail-card-title">No disponible</div>
+            <div class="avail-card-sub">No recibís pedidos por ahora</div>
+          </div>
+          <div class="avail-card" onclick="setAvail(this, 'pause-sheet')">
+            <div class="avail-card-icon">⏸️</div>
+            <div class="avail-card-title">En pausa</div>
+            <div class="avail-card-sub">Pausa de 30 min, después volvés solo</div>
+          </div>
+          <div class="avail-card" style="opacity:.5; cursor:default;">
+            <div class="avail-card-icon">🚚</div>
+            <div class="avail-card-title">Ocupado</div>
+            <div class="avail-card-sub">Sistema automático</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div style="background:var(--info-light); margin:0 16px; padding:14px 16px; border-radius:var(--radius-md);">
+        <div style="font-size:13px; color:var(--info); line-height:1.6;">
+          ℹ️ <strong>En pausa</strong> activa un timer de 30 minutos. Al terminar volvés automáticamente a Disponible. Podés reactivarte antes si querés.
+        </div>
+      </div>
+
+      <!-- Pause timer (shown when paused) -->
+      <div class="pause-timer" id="pause-timer" style="display:none;">
+        <div>
+          <div class="pause-label">Pausa activa — volvés en</div>
+          <div class="pause-clock">28:43</div>
+        </div>
+        <button class="btn-primary" style="width:auto; padding:10px 16px; font-size:14px;" onclick="closeOverlay('pause-sheet')">
+          Reactivarme
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Bottom sheet: No disponible -->
+    <div class="overlay" id="unavailable-sheet">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">¿Pausar pedidos?</div>
+        <div class="sheet-body">No recibirás pedidos mientras estés en modo "No disponible". Podés volver cuando quieras.</div>
+        <button class="btn-danger" onclick="confirmAvail('unavailable-sheet', '⛔ No disponible')">Sí, poner no disponible</button>
+        <button class="btn-ghost" onclick="closeOverlay('unavailable-sheet')">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Bottom sheet: En pausa -->
+    <div class="overlay" id="pause-sheet">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Tomar una pausa</div>
+        <div class="sheet-body">Pausás por 30 minutos. Al terminar volvés automáticamente a Disponible. Sin penalización.</div>
+        <button class="btn-primary" onclick="confirmPause()">Pausar 30 minutos</button>
+        <button class="btn-ghost" onclick="closeOverlay('pause-sheet')">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Bottom sheet: Volver disponible -->
+    <div class="overlay" id="available-sheet">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">¿Volver a estar disponible?</div>
+        <div class="sheet-body">Empezarás a recibir pedidos de tu zona de nuevo.</div>
+        <button class="btn-primary" onclick="closeOverlay('available-sheet')">Sí, estoy disponible</button>
+        <button class="btn-ghost" onclick="closeOverlay('available-sheet')">Cancelar</button>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /phone -->
+<div class="stage-label">390 × 844 px — iPhone 14</div>
+</main>
+
+<script>
+  function showScreen(id, sidebarItem) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (sidebarItem) sidebarItem.classList.add('active');
+  }
+
+  function toggleSection(id) {
+    const el = document.getElementById(id);
+    const arrow = document.getElementById('arrow-' + id);
+    el.classList.toggle('open');
+    arrow.textContent = el.classList.contains('open') ? '⌄' : '›';
+  }
+
+  function selectVehicle(card) {
+    document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+  }
+
+  // Vehicle step flow
+  let vStep = 1;
+  function vehicleNext() {
+    if (vStep === 1) {
+      document.getElementById('vstep-1').style.display = 'none';
+      document.getElementById('vstep-2').style.display = 'block';
+      document.getElementById('vstep1').className = 'step-dot done';
+      document.getElementById('vstep1').textContent = '✓';
+      document.getElementById('vline1').className = 'step-line done';
+      document.getElementById('vstep2').className = 'step-dot active';
+      vStep = 2;
+    } else if (vStep === 2) {
+      document.getElementById('vstep-2').style.display = 'none';
+      document.getElementById('vstep-3').style.display = 'block';
+      document.getElementById('vstep2').className = 'step-dot done';
+      document.getElementById('vstep2').textContent = '✓';
+      document.getElementById('vline2').className = 'step-line done';
+      document.getElementById('vstep3').className = 'step-dot done';
+      document.getElementById('vstep3').textContent = '✓';
+      document.getElementById('vehicle-footer').style.display = 'none';
+      vStep = 3;
+    }
+  }
+
+  // Availability
+  function setAvail(card, sheetId) {
+    document.getElementById(sheetId).classList.add('visible');
+  }
+  function closeOverlay(sheetId) {
+    document.getElementById(sheetId).classList.remove('visible');
+  }
+  function confirmAvail(sheetId, label) {
+    closeOverlay(sheetId);
+  }
+  function confirmPause() {
+    closeOverlay('pause-sheet');
+    document.getElementById('pause-timer').style.display = 'flex';
+  }
+</script>
+</body>
+</html>

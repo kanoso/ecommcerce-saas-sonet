@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M14 — Repartidores de Confianza · Tiendi Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#F97316;--primary-soft:rgba(249,115,22,.12);
+  --success:#16A34A;--warning:#D97706;--error:#DC2626;--info:#2563EB;
+  --bg:#1C1C1E;--card:#2C2C2E;--card2:#3A3A3C;
+  --text:#F5F5F7;--text2:#A1A1AA;--border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#111;min-height:100vh;display:flex;}
+.sidebar{width:220px;background:#2C2C2E;padding:24px 0;display:flex;flex-direction:column;gap:4px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-title{color:#A1A1AA;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 16px 8px}
+.sb{display:block;padding:10px 16px;color:#A1A1AA;font-size:13px;font-weight:500;cursor:pointer;border-left:3px solid transparent;background:transparent;width:100%;text-align:left;transition:all .15s;text-decoration:none;border-right:none;border-top:none;border-bottom:none;font-family:inherit}
+.sb:hover{color:#F5F5F7;background:rgba(255,255,255,.04)}
+.sb.active{color:#F97316;background:rgba(249,115,22,.12);border-left-color:#F97316}
+.sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+.main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:48px;overflow:hidden;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 20px 60px rgba(0,0,0,.6);position:relative;display:flex;flex-direction:column}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 6px;flex-shrink:0}
+.sbar-t{font-size:15px;font-weight:600;color:var(--text)}
+.sbar-i{display:flex;gap:6px;align-items:center;color:var(--text);font-size:12px}
+.top-bar{display:flex;align-items:center;gap:12px;padding:6px 20px 10px;flex-shrink:0}
+.btn-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:10px;color:var(--text2);cursor:pointer;border:none;font-size:18px;flex-shrink:0;font-family:inherit}
+.top-title{font-size:17px;font-weight:600;color:var(--text);flex:1}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+.screen.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:0 20px 24px}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
+.h2{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px}
+.mb8{margin-bottom:8px}
+.mb12{margin-bottom:12px}
+.mb16{margin-bottom:16px}
+.mb20{margin-bottom:20px}
+
+/* demo box */
+.demo-box{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+.demo-box p{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px}
+.demo-row{display:flex;gap:6px;flex-wrap:wrap}
+.demo-btn{padding:5px 10px;background:var(--card2);border:none;border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.demo-btn.on{background:var(--primary-soft);color:var(--primary)}
+
+/* info banner */
+.info-banner{background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px}
+.info-banner .icon{font-size:18px;flex-shrink:0}
+.info-banner p{font-size:13px;color:var(--text2);line-height:1.5}
+.info-banner strong{color:var(--text)}
+
+/* store cards */
+.store-list{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.store-card{background:var(--card);border-radius:18px;padding:16px}
+.store-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.store-logo{width:44px;height:44px;border-radius:12px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.store-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px}
+.store-rating{font-size:12px;color:var(--text2)}
+.store-stats{display:flex;gap:16px;margin-bottom:12px}
+.store-stat{display:flex;flex-direction:column;gap:2px}
+.store-stat-val{font-size:14px;font-weight:700;color:var(--text)}
+.store-stat-lbl{font-size:11px;color:var(--text2)}
+.store-footer{display:flex;align-items:center;justify-content:space-between}
+.store-since{font-size:12px;color:var(--text2)}
+.btn-leave{padding:8px 14px;background:transparent;border:1.5px solid rgba(220,38,38,.4);color:var(--error);font-size:13px;font-weight:600;border-radius:10px;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-leave:hover{background:rgba(220,38,38,.08)}
+
+/* invite cards */
+.invite-list{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.invite-card{background:var(--card);border-radius:18px;padding:16px;border:1px solid rgba(249,115,22,.15)}
+.invite-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.invite-age{font-size:12px;color:var(--text2);margin-bottom:12px}
+.warning-tag{display:flex;align-items:flex-start;gap:8px;background:rgba(217,119,6,.1);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--warning);line-height:1.4}
+.invite-acts{display:flex;gap:10px}
+.btn-reject{flex:1;padding:11px;background:transparent;border:1.5px solid var(--border);color:var(--text2);font-size:13px;font-weight:600;border-radius:12px;cursor:pointer;font-family:inherit}
+.btn-reject:hover{background:var(--card2)}
+.btn-accept{flex:2;padding:11px;background:var(--primary);color:#fff;font-size:13px;font-weight:700;border:none;border-radius:12px;cursor:pointer;font-family:inherit}
+.btn-accept:hover{opacity:.9}
+.btn-view{width:100%;padding:9px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-size:13px;font-weight:500;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:10px}
+.btn-view:hover{background:var(--card2)}
+
+/* empty state */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;gap:12px}
+.empty-icon{font-size:56px}
+.empty-title{font-size:17px;font-weight:700;color:var(--text)}
+.empty-desc{font-size:14px;color:var(--text2);line-height:1.6}
+.btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-primary:hover{opacity:.9}
+
+/* bottom sheet */
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+.sheet-overlay.show{opacity:1;pointer-events:all}
+.sheet{background:#1C1C1E;border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.sheet-overlay.show .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--card2);border-radius:99px;margin:0 auto 16px}
+.sheet-title{font-size:17px;font-weight:700;color:var(--text);margin-bottom:10px}
+.sheet-body{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.sheet-acts{display:flex;gap:10px}
+.btn-sheet-cancel{flex:1;padding:14px;background:var(--card2);border:none;color:var(--text);font-size:14px;font-weight:600;border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-sheet-confirm{flex:2;padding:14px;background:var(--error);border:none;color:#fff;font-size:14px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-sheet-confirm.neutral{background:var(--card2);color:var(--text)}
+
+/* store detail modal */
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal{background:var(--bg);border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;max-height:85%;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--card2);border-radius:99px;margin:0 auto 16px}
+.modal-title{font-size:19px;font-weight:800;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
+.modal-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:14px;color:var(--text2)}
+.modal-row .icon{flex-shrink:0}
+.modal-divider{height:1px;background:var(--border);margin:14px 0}
+.modal-stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.modal-stat{background:var(--card);border-radius:12px;padding:12px;text-align:center}
+.modal-stat-val{font-size:16px;font-weight:800;color:var(--text);margin-bottom:2px}
+.modal-stat-lbl{font-size:11px;color:var(--text2)}
+.modal-hist{background:var(--card2);border-radius:12px;padding:12px;margin-bottom:16px}
+.modal-hist p{font-size:13px;color:var(--text2);margin-bottom:4px}
+.modal-hist strong{color:var(--text)}
+.modal-acts{display:flex;gap:10px}
+.btn-modal-close{flex:1;padding:14px;background:var(--card2);border:none;color:var(--text);font-size:14px;font-weight:600;border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-modal-accept{flex:2;padding:14px;background:var(--primary);border:none;color:#fff;font-size:14px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M14 — Confianza</div>
+  <button class="sb active" onclick="showScreen('s01')">🏪 P14-01 Mis tiendas</button>
+  <button class="sb" onclick="showScreen('s02')">📨 P14-02 Invitaciones</button>
+  <div class="sep"></div>
+  <a class="sb" href="index.html">← Volver al índice</a>
+</nav>
+
+<div class="main">
+<div class="phone">
+  <div class="sbar">
+    <span class="sbar-t">9:41</span>
+    <div class="sbar-i"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
+
+  <!-- ══════════════ S01 — Mis tiendas de confianza ══════════════ -->
+  <div id="s01" class="screen active">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div class="top-title">Mis tiendas de confianza</div>
+    </div>
+
+    <div class="scroll">
+      <div class="demo-box">
+        <p>Demo — estado:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setS01State('with-stores',this)">Con tiendas</button>
+          <button class="demo-btn" onclick="setS01State('empty',this)">Sin tiendas</button>
+        </div>
+      </div>
+
+      <!-- with-stores view -->
+      <div id="s01-stores">
+        <div class="info-banner mb20">
+          <div class="icon">⚡</div>
+          <p>Sos repartidor de confianza de <strong>3 tiendas</strong>. Recibís sus pedidos antes que el pool general durante <strong>60 segundos</strong>.</p>
+        </div>
+
+        <div class="store-list" id="store-list">
+          <div class="store-card" id="sc-0">
+            <div class="store-head">
+              <div class="store-logo">🍔</div>
+              <div><div class="store-name">El Buen Sabor</div><div class="store-rating">⭐ 4.7 · $$ · Comida rápida</div></div>
+            </div>
+            <div class="store-stats">
+              <div class="store-stat"><div class="store-stat-val">48</div><div class="store-stat-lbl">pedidos juntos</div></div>
+              <div class="store-stat"><div class="store-stat-val">4.8</div><div class="store-stat-lbl">tu rating aquí</div></div>
+            </div>
+            <div class="store-footer">
+              <div class="store-since">Miembro desde abr 2026</div>
+              <button class="btn-leave" onclick="openLeaveSheet('El Buen Sabor','sc-0')">Salir</button>
+            </div>
+          </div>
+
+          <div class="store-card" id="sc-1">
+            <div class="store-head">
+              <div class="store-logo">🍗</div>
+              <div><div class="store-name">Pollería Norte</div><div class="store-rating">⭐ 4.5 · $ · Pollos</div></div>
+            </div>
+            <div class="store-stats">
+              <div class="store-stat"><div class="store-stat-val">12</div><div class="store-stat-lbl">pedidos juntos</div></div>
+              <div class="store-stat"><div class="store-stat-val">5.0</div><div class="store-stat-lbl">tu rating aquí</div></div>
+            </div>
+            <div class="store-footer">
+              <div class="store-since">Miembro desde may 2026</div>
+              <button class="btn-leave" onclick="openLeaveSheet('Pollería Norte','sc-1')">Salir</button>
+            </div>
+          </div>
+
+          <div class="store-card" id="sc-2">
+            <div class="store-head">
+              <div class="store-logo">🍝</div>
+              <div><div class="store-name">La Trattoria</div><div class="store-rating">⭐ 4.9 · $$$ · Italiana</div></div>
+            </div>
+            <div class="store-stats">
+              <div class="store-stat"><div class="store-stat-val">3</div><div class="store-stat-lbl">pedidos juntos</div></div>
+              <div class="store-stat"><div class="store-stat-val">4.7</div><div class="store-stat-lbl">tu rating aquí</div></div>
+            </div>
+            <div class="store-footer">
+              <div class="store-since">Miembro desde may 2026</div>
+              <button class="btn-leave" onclick="openLeaveSheet('La Trattoria','sc-2')">Salir</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="h2">Invitaciones pendientes</div>
+        <div class="invite-list">
+          <div class="invite-card">
+            <div class="invite-head">
+              <div class="store-logo">🍔</div>
+              <div><div class="store-name">Burger Palace</div><div class="store-rating">⭐ 4.3 · $$ · Burgers</div></div>
+            </div>
+            <div class="invite-age">Hace 2 días · Expira en 12 días</div>
+            <div class="invite-acts">
+              <button class="btn-reject" onclick="openRejectSheet('Burger Palace')">Rechazar</button>
+              <button class="btn-accept" onclick="acceptInvite('Burger Palace','🍔')">Aceptar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- empty view -->
+      <div id="s01-empty" class="empty-state" style="display:none">
+        <div class="empty-icon">🏪</div>
+        <div class="empty-title">Todavía no sos repartidor de confianza</div>
+        <div class="empty-desc">Las tiendas pueden invitarte desde Tiendi Vendor cuando tenés buen historial con ellas. Seguí acumulando pedidos para aparecer en su radar.</div>
+        <button class="btn-primary" onclick="alert('Navegando a estadísticas...')">Ver mis estadísticas</button>
+      </div>
+    </div>
+
+    <!-- leave bottom sheet -->
+    <div class="sheet-overlay" id="leave-sheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="leave-title">¿Salir de la tienda?</div>
+        <div class="sheet-body">Ya no recibirás sus pedidos en prioridad. Podés seguir recibiéndolos desde el pool general.<br><br>La tienda puede volver a invitarte en el futuro.</div>
+        <div class="sheet-acts">
+          <button class="btn-sheet-cancel" onclick="closeLeaveSheet()">Cancelar</button>
+          <button class="btn-sheet-confirm" id="leave-confirm" onclick="confirmLeave()">Sí, salir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ S02 — Invitaciones ══════════════ -->
+  <div id="s02" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div class="top-title">Invitaciones</div>
+    </div>
+
+    <div class="scroll">
+      <div class="demo-box">
+        <p>Demo — estado:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setS02State('with-invites',this)">Con invitaciones</button>
+          <button class="demo-btn" onclick="setS02State('empty',this)">Sin invitaciones</button>
+          <button class="demo-btn" onclick="setS02State('low-rating',this)">Rating bajo</button>
+        </div>
+      </div>
+
+      <!-- with-invites view -->
+      <div id="s02-invites">
+        <p class="mb16" style="font-size:14px;color:var(--text2)">Tiendas que quieren que seas su repartidor de confianza:</p>
+
+        <div class="invite-list" id="inv-list">
+          <div class="invite-card" id="inv-0">
+            <div class="invite-head">
+              <div class="store-logo">🍔</div>
+              <div><div class="store-name">Burger Palace</div><div class="store-rating">⭐ 4.3 · $$ · Burgers</div></div>
+            </div>
+            <div class="invite-age">2 pedidos históricos · Hace 2 días · Expira en 12 días</div>
+            <button class="btn-view" onclick="openStoreModal('Burger Palace','🍔','4.3','$$','Burgers','inv-0')">Ver tienda</button>
+            <div class="invite-acts">
+              <button class="btn-reject" onclick="openRejectSheet('Burger Palace','inv-0')">Rechazar</button>
+              <button class="btn-accept" onclick="acceptInvite2('Burger Palace','🍔','inv-0')">Aceptar</button>
+            </div>
+          </div>
+
+          <div class="invite-card" id="inv-1">
+            <div class="invite-head">
+              <div class="store-logo">🍣</div>
+              <div><div class="store-name">Sushi Rápido</div><div class="store-rating">⭐ 4.8 · $$$ · Japonesa</div></div>
+            </div>
+            <div class="invite-age">0 pedidos históricos · Hace 5 días · Expira en 9 días</div>
+            <button class="btn-view" onclick="openStoreModal('Sushi Rápido','🍣','4.8','$$$','Japonesa','inv-1')">Ver tienda</button>
+            <div class="invite-acts">
+              <button class="btn-reject" onclick="openRejectSheet('Sushi Rápido','inv-1')">Rechazar</button>
+              <button class="btn-accept" onclick="acceptInvite2('Sushi Rápido','🍣','inv-1')">Aceptar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- low-rating warning view (same cards + warning) -->
+      <div id="s02-low" style="display:none">
+        <p class="mb12" style="font-size:14px;color:var(--text2)">Tiendas que quieren que seas su repartidor de confianza:</p>
+        <div class="invite-card mb12">
+          <div class="invite-head">
+            <div class="store-logo">🍔</div>
+            <div><div class="store-name">Burger Palace</div><div class="store-rating">⭐ 4.3 · $$ · Burgers</div></div>
+          </div>
+          <div class="invite-age">2 pedidos históricos · Hace 2 días</div>
+          <div class="warning-tag">
+            <span>⚠️</span>
+            <span>Tu rating actual (3.8) está por debajo del mínimo (4.0). Podés aceptar la invitación y mejorar tu score para activarla.</span>
+          </div>
+          <div class="invite-acts">
+            <button class="btn-reject" onclick="openRejectSheet('Burger Palace',null)">Rechazar</button>
+            <button class="btn-accept" onclick="alert('Invitación aceptada.\nSe activará cuando tu rating supere 4.0.')">Aceptar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- empty view -->
+      <div id="s02-empty" class="empty-state" style="display:none;flex-direction:column;">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">No tenés invitaciones pendientes</div>
+        <div class="empty-desc">Cuando una tienda quiera sumarte a su red, te llegará una notificación.</div>
+      </div>
+    </div>
+
+    <!-- reject bottom sheet -->
+    <div class="sheet-overlay" id="reject-sheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">¿Rechazar invitación?</div>
+        <div class="sheet-body">La tienda no sabrá por qué rechazaste. Podés recibir sus pedidos desde el pool general igual.</div>
+        <div class="sheet-acts">
+          <button class="btn-sheet-cancel" onclick="closeRejectSheet()">Cancelar</button>
+          <button class="btn-sheet-confirm neutral" id="reject-confirm" onclick="confirmReject()">Sí, rechazar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- store detail modal -->
+    <div class="modal-overlay" id="store-modal">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="md-name">Burger Palace</div>
+        <div class="modal-sub" id="md-sub">⭐ 4.3 · $$ · Burgers</div>
+        <div class="modal-row"><span class="icon">📍</span><span>Av. Larco 450, Miraflores</span></div>
+        <div class="modal-row"><span class="icon">🕐</span><span>Lun–Dom 12:00–23:00</span></div>
+        <div class="modal-divider"></div>
+        <div class="modal-stat-grid">
+          <div class="modal-stat"><div class="modal-stat-val">23</div><div class="modal-stat-lbl">pedidos/día</div></div>
+          <div class="modal-stat"><div class="modal-stat-val">S/.35</div><div class="modal-stat-lbl">ticket prom.</div></div>
+          <div class="modal-stat"><div class="modal-stat-val" id="md-hist-n">2</div><div class="modal-stat-lbl">pedidos tuyos</div></div>
+        </div>
+        <div class="modal-hist">
+          <p>Tu historial con ellos:</p>
+          <strong id="md-hist-text">2 pedidos · S/.18.40 total</strong>
+        </div>
+        <div class="modal-acts">
+          <button class="btn-modal-close" onclick="closeStoreModal()">Cerrar</button>
+          <button class="btn-modal-accept" id="md-accept-btn" onclick="acceptFromModal()">Aceptar invitación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+// ── Nav ──────────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sb').forEach((l,i)=>{
+    l.classList.toggle('active',['s01','s02'][i]===id);
+  });
+}
+
+// ── S01 ──────────────────────────────────────────────────────────────────────
+function setS01State(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('s01-stores').style.display=mode==='with-stores'?'':'none';
+  document.getElementById('s01-empty').style.display=mode==='empty'?'flex':'none';
+}
+
+let leaveTargetId=null;
+function openLeaveSheet(storeName,cardId){
+  leaveTargetId=cardId;
+  document.getElementById('leave-title').textContent='¿Salir de '+storeName+'?';
+  document.getElementById('leave-sheet').classList.add('show');
+}
+function closeLeaveSheet(){
+  document.getElementById('leave-sheet').classList.remove('show');
+  leaveTargetId=null;
+}
+function confirmLeave(){
+  if(leaveTargetId){
+    const card=document.getElementById(leaveTargetId);
+    if(card){card.style.transition='opacity .3s';card.style.opacity='0';setTimeout(()=>card.remove(),300);}
+  }
+  closeLeaveSheet();
+}
+
+function acceptInvite(name,logo){
+  const list=document.getElementById('store-list');
+  const card=document.createElement('div');
+  card.className='store-card';
+  card.style.cssText='border:1.5px solid rgba(22,163,74,.3);animation:fadeIn .4s ease';
+  card.innerHTML=`<div class="store-head"><div class="store-logo">${logo}</div><div><div class="store-name">${name}</div><div class="store-rating">⭐ 4.3 · $$ · Burgers</div></div></div><div class="store-stats"><div class="store-stat"><div class="store-stat-val">0</div><div class="store-stat-lbl">pedidos juntos</div></div><div class="store-stat"><div class="store-stat-val">—</div><div class="store-stat-lbl">tu rating aquí</div></div></div><div class="store-footer"><div class="store-since">Miembro desde may 2026 ✅</div><button class="btn-leave">Salir</button></div>`;
+  list.appendChild(card);
+  // remove invite
+  const invCard=document.querySelector('.s01 .invite-card');
+  if(invCard){invCard.remove();}
+  alert('✅ ¡Aceptaste la invitación de '+name+'!\nYa sos su repartidor de confianza.');
+}
+
+// ── S02 ──────────────────────────────────────────────────────────────────────
+function setS02State(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('s02-invites').style.display=mode==='with-invites'?'':'none';
+  document.getElementById('s02-low').style.display=mode==='low-rating'?'':'none';
+  const empty=document.getElementById('s02-empty');
+  empty.style.display=mode==='empty'?'flex':'none';
+  if(mode==='empty') empty.style.flexDirection='column';
+}
+
+let rejectTargetId=null;
+function openRejectSheet(name,cardId){
+  rejectTargetId=cardId;
+  document.getElementById('reject-sheet').classList.add('show');
+}
+function closeRejectSheet(){
+  document.getElementById('reject-sheet').classList.remove('show');
+  rejectTargetId=null;
+}
+function confirmReject(){
+  if(rejectTargetId){
+    const card=document.getElementById(rejectTargetId);
+    if(card){card.style.transition='opacity .3s';card.style.opacity='0';setTimeout(()=>card.remove(),300);}
+  }
+  closeRejectSheet();
+}
+
+let currentInvCardId=null;
+function acceptInvite2(name,logo,cardId){
+  const card=document.getElementById(cardId);
+  if(card){card.style.transition='opacity .3s';card.style.opacity='0';setTimeout(()=>card.remove(),300);}
+  alert('✅ ¡Invitación de '+name+' aceptada!\nAhora sos su repartidor de confianza.');
+}
+
+let modalInvCardId=null;
+function openStoreModal(name,logo,rating,price,cat,cardId){
+  modalInvCardId=cardId;
+  document.getElementById('md-name').textContent=name;
+  document.getElementById('md-sub').textContent='⭐ '+rating+' · '+price+' · '+cat;
+  const hist=cardId==='inv-0'?{n:'2',txt:'2 pedidos · S/.18.40 total'}:{n:'0',txt:'Primera vez trabajando juntos'};
+  document.getElementById('md-hist-n').textContent=hist.n;
+  document.getElementById('md-hist-text').textContent=hist.txt;
+  document.getElementById('store-modal').classList.add('show');
+}
+function closeStoreModal(){
+  document.getElementById('store-modal').classList.remove('show');
+}
+function acceptFromModal(){
+  const cardId=modalInvCardId;
+  closeStoreModal();
+  if(cardId){setTimeout(()=>acceptInvite2(document.getElementById('md-name').textContent,'🍔',cardId),300);}
+}
+</script>
+</body>
+</html>

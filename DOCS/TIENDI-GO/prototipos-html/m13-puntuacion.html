@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M13 — Sistema de Puntuación · Tiendi Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#F97316;--primary-soft:rgba(249,115,22,.12);
+  --success:#16A34A;--warning:#D97706;--error:#DC2626;--info:#2563EB;
+  --bg:#1C1C1E;--card:#2C2C2E;--card2:#3A3A3C;
+  --text:#F5F5F7;--text2:#A1A1AA;--border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#111;min-height:100vh;display:flex;}
+.sidebar{width:220px;background:#2C2C2E;padding:24px 0;display:flex;flex-direction:column;gap:4px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-title{color:#A1A1AA;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 16px 8px}
+.sb{display:block;padding:10px 16px;color:#A1A1AA;font-size:13px;font-weight:500;cursor:pointer;border-left:3px solid transparent;background:transparent;width:100%;text-align:left;transition:all .15s;text-decoration:none;border-right:none;border-top:none;border-bottom:none;font-family:inherit}
+.sb:hover{color:#F5F5F7;background:rgba(255,255,255,.04)}
+.sb.active{color:#F97316;background:rgba(249,115,22,.12);border-left-color:#F97316}
+.sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+.main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:48px;overflow:hidden;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 20px 60px rgba(0,0,0,.6);position:relative;display:flex;flex-direction:column}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 6px;flex-shrink:0}
+.sbar-t{font-size:15px;font-weight:600;color:var(--text)}
+.sbar-i{display:flex;gap:6px;align-items:center;color:var(--text);font-size:12px}
+.top-bar{display:flex;align-items:center;gap:12px;padding:6px 20px 10px;flex-shrink:0}
+.btn-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:10px;color:var(--text2);cursor:pointer;border:none;font-size:18px;flex-shrink:0;font-family:inherit}
+.top-title{font-size:17px;font-weight:600;color:var(--text);flex:1}
+.top-sub{font-size:12px;color:var(--text2)}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+.screen.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:0 20px 24px}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
+.sec-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
+.h2{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px}
+.btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-ghost{background:none;border:none;color:var(--primary);font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;padding:4px 0}
+.mb8{margin-bottom:8px}
+.mb12{margin-bottom:12px}
+.mb16{margin-bottom:16px}
+.mb20{margin-bottom:20px}
+
+/* demo box */
+.demo-box{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+.demo-box p{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px}
+.demo-row{display:flex;gap:6px;flex-wrap:wrap}
+.demo-btn{padding:5px 10px;background:var(--card2);border:none;border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.demo-btn.on{background:var(--primary-soft);color:var(--primary)}
+
+/* ── P13-01 — Nivel y puntos ── */
+.level-card{border-radius:20px;padding:20px;margin-bottom:20px;position:relative;overflow:hidden}
+.level-card.bronze{background:linear-gradient(135deg,rgba(180,120,60,.2),rgba(180,120,60,.05));border:1px solid rgba(180,120,60,.3)}
+.level-card.silver{background:linear-gradient(135deg,rgba(150,160,175,.2),rgba(150,160,175,.05));border:1px solid rgba(150,160,175,.3)}
+.level-card.gold{background:linear-gradient(135deg,rgba(217,119,6,.25),rgba(217,119,6,.05));border:1px solid rgba(217,119,6,.35)}
+.level-card.diamond{background:linear-gradient(135deg,rgba(37,99,235,.25),rgba(6,182,212,.1));border:1px solid rgba(99,179,237,.3)}
+.lc-badge{font-size:32px;margin-bottom:4px}
+.lc-name{font-size:18px;font-weight:800;color:var(--text);margin-bottom:12px}
+.lc-pts{font-size:42px;font-weight:800;color:var(--text);line-height:1;margin-bottom:4px}
+.lc-pts-label{font-size:13px;color:var(--text2);margin-bottom:14px}
+.lc-bar-track{height:10px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.lc-bar-fill{height:100%;border-radius:99px;transition:width .5s}
+.lc-bar-fill.bronze{background:linear-gradient(90deg,#B47A3C,#D4955A)}
+.lc-bar-fill.silver{background:linear-gradient(90deg,#909CB0,#B0BCC8)}
+.lc-bar-fill.gold{background:linear-gradient(90deg,#D97706,#F59E0B)}
+.lc-bar-fill.diamond{background:linear-gradient(90deg,#2563EB,#06B6D4);animation:shimmer 2s linear infinite}
+@keyframes shimmer{0%{filter:brightness(1)}50%{filter:brightness(1.3)}100%{filter:brightness(1)}}
+.lc-caption{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px}
+.lc-helper{font-size:13px;font-weight:600;color:var(--text2)}
+.lc-helper.urgent{color:var(--warning)}
+
+.mult-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.mult-card{background:var(--card);border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.mult-icon{font-size:20px;flex-shrink:0}
+.mult-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.mult-desc{font-size:12px;color:var(--text2)}
+
+.hist-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.hist-item{background:var(--card);border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px}
+.hist-pts{font-size:14px;font-weight:700;min-width:52px}
+.hist-pts.pos{color:var(--success)}
+.hist-pts.neg{color:var(--error)}
+.hist-info .hist-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.hist-info .hist-time{font-size:12px;color:var(--text2)}
+
+.reset-card{background:var(--card);border-radius:14px;padding:14px 16px}
+.reset-card p{font-size:13px;color:var(--text2);line-height:1.6}
+.reset-card strong{color:var(--text)}
+
+/* ── P13-02 — Logros ── */
+.filter-chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.chip{padding:7px 14px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.chip.on{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+
+.badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.badge-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.badge-icon-wrap{width:64px;height:64px;border-radius:20px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;border:2px solid transparent;transition:all .2s}
+.badge-icon-wrap.unlocked{border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.08)}
+.badge-icon-wrap.locked{opacity:.4;filter:grayscale(1)}
+.badge-label{font-size:11px;font-weight:600;color:var(--text2);text-align:center;line-height:1.3}
+.badge-date{font-size:10px;color:var(--text2)}
+
+.prog-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.prog-card{background:var(--card);border-radius:16px;padding:14px 16px}
+.prog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.prog-name{font-size:14px;font-weight:700;color:var(--text)}
+.rarity-pill{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px}
+.rarity-pill.common{background:rgba(150,150,150,.2);color:#A1A1AA}
+.rarity-pill.rare{background:rgba(22,163,74,.2);color:#4ADE80}
+.rarity-pill.epic{background:rgba(124,58,237,.2);color:#A78BFA}
+.rarity-pill.legendary{background:rgba(217,119,6,.2);color:#FCD34D}
+.prog-desc{font-size:12px;color:var(--text2);margin-bottom:8px}
+.prog-bar-track{height:8px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:4px}
+.prog-bar-fill{height:100%;border-radius:99px}
+.prog-bar-fill.rare{background:#4ADE80}
+.prog-bar-fill.epic{background:#A78BFA}
+.prog-nums{font-size:12px;color:var(--text2)}
+
+/* unlock animation overlay */
+.unlock-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:100;opacity:0;pointer-events:none;transition:opacity .3s}
+.unlock-overlay.show{opacity:1;pointer-events:all}
+.unlock-big-icon{font-size:64px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.unlock-title{font-size:20px;font-weight:800;color:var(--text)}
+.unlock-rarity{font-size:14px;font-weight:700;color:var(--warning)}
+.unlock-pts{font-size:16px;color:var(--success);font-weight:600}
+.unlock-close{padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.cf{position:absolute;width:8px;height:8px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(900px) rotate(720deg);opacity:0}}
+
+/* ── P13-03 — Ranking ── */
+.tab-group{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tab-btn{flex:1;padding:9px;border-radius:12px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;min-width:80px}
+.tab-btn.on{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+
+.pos-card{background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));border:1px solid rgba(249,115,22,.3);border-radius:18px;padding:18px;text-align:center;margin-bottom:20px}
+.pos-num{font-size:40px;font-weight:800;color:var(--text)}
+.pos-total{font-size:14px;color:var(--text2);margin-bottom:6px}
+.pos-top{font-size:15px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.pos-delta{font-size:13px;font-weight:600}
+.pos-delta.up{color:var(--success)}
+.pos-delta.down{color:var(--error)}
+.pos-delta.same{color:var(--text2)}
+.pos-updated{font-size:11px;color:var(--text2);margin-top:6px}
+
+.rank-list{margin-bottom:16px}
+.rank-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:4px;transition:background .15s}
+.rank-row.leader{background:var(--card)}
+.rank-row.me{background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.25)}
+.rank-row.normal{background:transparent}
+.rank-row.separator{justify-content:center;padding:4px;background:transparent}
+.rank-pos{font-size:13px;font-weight:700;color:var(--text2);width:28px;flex-shrink:0}
+.rank-medal{font-size:16px;width:22px;flex-shrink:0}
+.rank-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.rank-row.me .rank-name{color:var(--primary)}
+.rank-pts{font-size:13px;font-weight:700;color:var(--text2)}
+.rank-sep-dots{color:var(--text2);font-size:12px;letter-spacing:4px}
+
+.tips-card{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:16px}
+.tip-row{display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:13px;color:var(--text2);line-height:1.4}
+.tip-dot{color:var(--primary);flex-shrink:0}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M13 — Puntuación</div>
+  <button class="sb active" onclick="showScreen('s01')">⭐ P13-01 Mi nivel</button>
+  <button class="sb" onclick="showScreen('s02')">🏅 P13-02 Logros</button>
+  <button class="sb" onclick="showScreen('s03')">🏆 P13-03 Ranking</button>
+  <div class="sep"></div>
+  <a class="sb" href="index.html">← Volver al índice</a>
+</nav>
+
+<div class="main">
+<div class="phone">
+  <div class="sbar">
+    <span class="sbar-t">9:41</span>
+    <div class="sbar-i"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
+
+  <!-- ══════════════ S01 — Mi nivel y puntos ══════════════ -->
+  <div id="s01" class="screen active">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div class="top-title">Mi puntuación</div>
+    </div>
+    <div class="scroll">
+      <div class="demo-box">
+        <p>Demo — nivel del rider:</p>
+        <div class="demo-row">
+          <button class="demo-btn" onclick="setLevel('bronze',150,300,'Plata',this)">🥉 Bronce</button>
+          <button class="demo-btn" onclick="setLevel('silver',450,700,'Oro',this)">🥈 Plata</button>
+          <button class="demo-btn on" onclick="setLevel('gold',730,1300,'Diamante',this)">🥇 Oro</button>
+          <button class="demo-btn" onclick="setLevel('diamond',1450,1450,'Diamante',this)">💎 Diamante</button>
+        </div>
+      </div>
+
+      <div class="level-card gold" id="lc">
+        <div class="lc-badge" id="lc-badge">🥇</div>
+        <div class="lc-name" id="lc-name">ORO</div>
+        <div class="lc-pts" id="lc-pts">730</div>
+        <div class="lc-pts-label">pts este mes</div>
+        <div class="lc-bar-track"><div class="lc-bar-fill gold" id="lc-fill" style="width:56%"></div></div>
+        <div class="lc-caption">
+          <span id="lc-caption-l">730 pts / 1300 → Diamante</span>
+          <span id="lc-reset-cd" class="lc-helper">Se reinicia el 1 jun</span>
+        </div>
+        <div class="lc-helper" id="lc-helper">Faltan 570 pts para Diamante 💎</div>
+      </div>
+
+      <div class="h2 mb12">Multiplicadores activos</div>
+      <div class="mult-list mb20">
+        <div class="mult-card"><div class="mult-icon">⚡</div><div><div class="mult-name">Nivel Oro</div><div class="mult-desc">+10% en comisiones base este mes</div></div></div>
+        <div class="mult-card"><div class="mult-icon">🎯</div><div><div class="mult-name">Desafío diario</div><div class="mult-desc">+S/.30 al llegar a 15 entregas hoy (7/15)</div></div></div>
+      </div>
+
+      <div class="h2 mb12">Cómo gané puntos este mes</div>
+      <div class="hist-list">
+        <div class="hist-item">
+          <div class="hist-pts pos">+10 pts</div>
+          <div class="hist-info"><div class="hist-title">Entrega #124 — El Buen Sabor</div><div class="hist-time">Hoy · 10:32 AM</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-pts pos">+50 pts</div>
+          <div class="hist-info"><div class="hist-title">Logro: "50 entregas en el mes"</div><div class="hist-time">Ayer</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-pts pos">+10 pts</div>
+          <div class="hist-info"><div class="hist-title">Entrega #123 — Pollería</div><div class="hist-time">Ayer · 3:18 PM</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-pts neg">−20 pts</div>
+          <div class="hist-info"><div class="hist-title">Cancelación fuera de tiempo #PED-088</div><div class="hist-time">hace 3 días</div></div>
+        </div>
+      </div>
+      <button class="btn-ghost mb20">Ver todas las actividades →</button>
+
+      <div class="h2 mb8">Reset mensual</div>
+      <div class="reset-card">
+        <p>Los puntos se reinician el <strong>1 de junio 2026</strong>.<br>Tu nivel actual se mantiene con <strong>30 días extra de gracia</strong> aunque bajes de puntos el mes siguiente.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ S02 — Logros ══════════════ -->
+  <div id="s02" class="screen" style="position:relative">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div>
+        <div class="top-title">Mis logros</div>
+        <div class="top-sub">Desbloqueados: 7 / 20</div>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="filter-chips">
+        <button class="chip on" onclick="filterBadges('all',this)">Todos</button>
+        <button class="chip" onclick="filterBadges('progress',this)">En progreso</button>
+        <button class="chip" onclick="filterBadges('unlocked',this)">Desbloqueados</button>
+        <button class="chip" onclick="filterBadges('locked',this)">Bloqueados</button>
+      </div>
+
+      <div id="sec-recent">
+        <div class="sec-title mb8">Recientes</div>
+        <div class="badge-grid mb20">
+          <div class="badge-item" onclick="showUnlock('🏅','Primera entrega','Común','10')">
+            <div class="badge-icon-wrap unlocked">🏅</div>
+            <div class="badge-label">Primera entrega</div>
+            <div class="badge-date">hace 3 meses</div>
+          </div>
+          <div class="badge-item" onclick="showUnlock('🚀','Velocidad máx.','Épico','150')">
+            <div class="badge-icon-wrap unlocked">🚀</div>
+            <div class="badge-label">Velocidad máx.</div>
+            <div class="badge-date">hace 5 días</div>
+          </div>
+          <div class="badge-item" onclick="showUnlock('⭐','El fiel','Raro','50')">
+            <div class="badge-icon-wrap unlocked">⭐</div>
+            <div class="badge-label">El fiel</div>
+            <div class="badge-date">hoy</div>
+          </div>
+          <div class="badge-item" onclick="showUnlock('🌙','Arranque sólido','Común','10')">
+            <div class="badge-icon-wrap unlocked">🌙</div>
+            <div class="badge-label">Arranque sólido</div>
+            <div class="badge-date">hace 1 mes</div>
+          </div>
+          <div class="badge-item" onclick="showUnlock('🤝','Confiable','Común','10')">
+            <div class="badge-icon-wrap unlocked">🤝</div>
+            <div class="badge-label">Confiable</div>
+            <div class="badge-date">hace 2 meses</div>
+          </div>
+          <div class="badge-item" onclick="showUnlock('🌅','Madrugador','Raro','50')">
+            <div class="badge-icon-wrap unlocked">🌅</div>
+            <div class="badge-label">Madrugador</div>
+            <div class="badge-date">hace 2 semanas</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-progress">
+        <div class="sec-title mb8">En progreso</div>
+        <div class="prog-list mb20">
+          <div class="prog-card">
+            <div class="prog-head">
+              <div class="prog-name">Centurión</div>
+              <div class="rarity-pill rare">🟢 RARO</div>
+            </div>
+            <div class="prog-desc">100 entregas en 1 mes · +50 pts al desbloquear</div>
+            <div class="prog-bar-track"><div class="prog-bar-fill rare" style="width:83%"></div></div>
+            <div class="prog-nums">83 / 100 — Faltan 17</div>
+          </div>
+          <div class="prog-card">
+            <div class="prog-head">
+              <div class="prog-name">Monstruo del pico</div>
+              <div class="rarity-pill epic">🟣 ÉPICO</div>
+            </div>
+            <div class="prog-desc">100 entregas en horario pico · +150 pts al desbloquear</div>
+            <div class="prog-bar-track"><div class="prog-bar-fill epic" style="width:56%"></div></div>
+            <div class="prog-nums">56 / 100 — Faltan 44</div>
+          </div>
+          <div class="prog-card">
+            <div class="prog-head">
+              <div class="prog-name">Sin manchas</div>
+              <div class="rarity-pill epic">🟣 ÉPICO</div>
+            </div>
+            <div class="prog-desc">0 cancelaciones en 3 meses · +150 pts al desbloquear</div>
+            <div class="prog-bar-track"><div class="prog-bar-fill epic" style="width:33%"></div></div>
+            <div class="prog-nums">1 de 3 meses — Faltan 2</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-locked">
+        <div class="sec-title mb8">Bloqueados</div>
+        <div class="badge-grid mb8">
+          <div class="badge-item" onclick="showLockedInfo('El legendario','Alcanzar nivel Diamante 3 meses seguidos','Legendario','+500 pts')">
+            <div class="badge-icon-wrap locked">🔒</div>
+            <div class="badge-label">El legendario</div>
+          </div>
+          <div class="badge-item" onclick="showLockedInfo('Noctámbulo','50 entregas después de las 10pm','Raro','+50 pts')">
+            <div class="badge-icon-wrap locked">🔒</div>
+            <div class="badge-label">Noctámbulo</div>
+          </div>
+          <div class="badge-item" onclick="showLockedInfo('El referente','5 referidos activos simultáneos','Épico','+150 pts')">
+            <div class="badge-icon-wrap locked">🔒</div>
+            <div class="badge-label">El referente</div>
+          </div>
+          <div class="badge-item" onclick="showLockedInfo('Embajador','10 referidos completando 90 días','Legendario','+500 pts')">
+            <div class="badge-icon-wrap locked">🔒</div>
+            <div class="badge-label">Embajador</div>
+          </div>
+          <div class="badge-item" onclick="showLockedInfo('Noctámbulo II','100 entregas después 10pm','Épico','+150 pts')">
+            <div class="badge-icon-wrap locked">🔒</div>
+            <div class="badge-label">Velocidad+</div>
+          </div>
+          <div class="badge-item" onclick="showLockedInfo('Diamante vivo','6 meses nivel Diamante','Legendario','+500 pts')">
+            <div class="badge-icon-wrap locked">🔒</div>
+            <div class="badge-label">Diamante vivo</div>
+          </div>
+        </div>
+        <button class="btn-ghost mb16">Ver más bloqueados →</button>
+      </div>
+    </div>
+
+    <!-- unlock animation overlay -->
+    <div class="unlock-overlay" id="unlock-overlay">
+      <div class="confetti" id="confetti"></div>
+      <div class="unlock-big-icon" id="ul-icon">🏅</div>
+      <div class="unlock-title" id="ul-title">Primera entrega</div>
+      <div class="unlock-rarity" id="ul-rarity">⚪ COMÚN</div>
+      <div class="unlock-pts" id="ul-pts">+10 pts bonus</div>
+      <button class="unlock-close" onclick="closeUnlock()">Continuar</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ S03 — Ranking ══════════════ -->
+  <div id="s03" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div class="top-title">Ranking</div>
+    </div>
+    <div class="scroll">
+      <div class="tab-group mb8">
+        <button class="tab-btn on" onclick="setRankTab('week',this)">Esta semana</button>
+        <button class="tab-btn" onclick="setRankTab('month',this)">Mes</button>
+      </div>
+      <div class="tab-group mb16">
+        <button class="tab-btn on" onclick="setRankScope('zone',this)">Mi zona</button>
+        <button class="tab-btn" onclick="setRankScope('national',this)">Nacional</button>
+      </div>
+
+      <div class="demo-box">
+        <p>Demo — posición del rider:</p>
+        <div class="demo-row">
+          <button class="demo-btn" onclick="setMyPos(1,this)">🥇 #1</button>
+          <button class="demo-btn" onclick="setMyPos(3,this)">🥉 #3</button>
+          <button class="demo-btn" onclick="setMyPos(7,this)">#7</button>
+          <button class="demo-btn on" onclick="setMyPos(12,this)">#12</button>
+          <button class="demo-btn" onclick="setMyPos(50,this)">#50</button>
+        </div>
+      </div>
+
+      <div class="h2">Tu posición</div>
+      <div class="pos-card mb20">
+        <div class="pos-num" id="r-pos">#12</div>
+        <div class="pos-total" id="r-total">de 148 riders en tu zona</div>
+        <div class="pos-top" id="r-top">Top 8%</div>
+        <div class="pos-delta up" id="r-delta">▲ +3 posiciones vs ayer</div>
+        <div class="pos-updated">Actualizado hace 47 min</div>
+      </div>
+
+      <div class="h2">Líderes</div>
+      <div class="rank-list" id="rank-list"></div>
+
+      <div class="h2">¿Cómo subo?</div>
+      <div class="tips-card">
+        <div class="tip-row"><div class="tip-dot">•</div><div>+10 pts por cada entrega completada</div></div>
+        <div class="tip-row"><div class="tip-dot">•</div><div>+50 / +150 / +500 pts al desbloquear logros según rareza</div></div>
+        <div class="tip-row"><div class="tip-dot">•</div><div>Mantené tu acceptance rate sobre 85%</div></div>
+        <div class="tip-row"><div class="tip-dot">•</div><div>Hacé entregas en horarios pico para sumar más rápido</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+// ── Nav ──────────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sb').forEach((l,i)=>{
+    l.classList.toggle('active',['s01','s02','s03'][i]===id);
+  });
+}
+
+// ── S01 — Nivel ──────────────────────────────────────────────────────────────
+const LEVELS={
+  bronze:{badge:'🥉',name:'BRONCE',cls:'bronze',fillCls:'bronze',next:'Plata',color:'180,120,60'},
+  silver:{badge:'🥈',name:'PLATA', cls:'silver',fillCls:'silver',next:'Oro',color:'150,160,175'},
+  gold:  {badge:'🥇',name:'ORO',   cls:'gold',  fillCls:'gold',  next:'Diamante',color:'217,119,6'},
+  diamond:{badge:'💎',name:'DIAMANTE',cls:'diamond',fillCls:'diamond',next:'Diamante',color:'37,99,235'},
+};
+
+function setLevel(lvl,pts,max,nextName,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const L=LEVELS[lvl];
+  const card=document.getElementById('lc');
+  card.className='level-card '+L.cls;
+  document.getElementById('lc-badge').textContent=L.badge;
+  document.getElementById('lc-name').textContent=L.name;
+  document.getElementById('lc-pts').textContent=pts;
+  const fill=document.getElementById('lc-fill');
+  fill.className='lc-bar-fill '+L.fillCls;
+  const pct=lvl==='diamond'?100:Math.round(pts/max*100);
+  fill.style.width=pct+'%';
+  if(lvl==='diamond'){
+    document.getElementById('lc-caption-l').textContent='1,450 pts · Nivel máximo';
+    document.getElementById('lc-helper').textContent='¡Sos Diamante! Nivel máximo alcanzado 🎉';
+    document.getElementById('lc-reset-cd').textContent='';
+  } else {
+    const faltan=max-pts;
+    document.getElementById('lc-caption-l').textContent=`${pts} pts / ${max} → ${nextName}`;
+    document.getElementById('lc-helper').textContent=`Faltan ${faltan} pts para ${nextName} ${L.next==='Diamante'?'💎':L.next==='Oro'?'🥇':'🥈'}`;
+    document.getElementById('lc-reset-cd').textContent=faltan<=100?`⏱️ Se reinicia en 5 días`:'Se reinicia el 1 jun';
+  }
+}
+
+// ── S02 — Logros ─────────────────────────────────────────────────────────────
+function filterBadges(mode,btn){
+  btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('sec-recent').style.display=(mode==='all'||mode==='unlocked')?'':'none';
+  document.getElementById('sec-progress').style.display=(mode==='all'||mode==='progress')?'':'none';
+  document.getElementById('sec-locked').style.display=(mode==='all'||mode==='locked')?'':'none';
+}
+
+const RARITY_LABELS={Común:'⚪ COMÚN',Raro:'🟢 RARO',Épico:'🟣 ÉPICO',Legendario:'🟡 LEGENDARIO'};
+const RARITY_PTS={Común:'10',Raro:'50',Épico:'150',Legendario:'500'};
+
+function showUnlock(icon,name,rarity,pts){
+  document.getElementById('ul-icon').textContent=icon;
+  document.getElementById('ul-title').textContent=name;
+  document.getElementById('ul-rarity').textContent=RARITY_LABELS[rarity]||rarity;
+  document.getElementById('ul-pts').textContent=`+${pts} pts bonus`;
+  spawnConfetti();
+  document.getElementById('unlock-overlay').classList.add('show');
+  setTimeout(closeUnlock,4500);
+}
+
+function showLockedInfo(name,desc,rarity,pts){
+  document.getElementById('ul-icon').textContent='🔒';
+  document.getElementById('ul-title').textContent=name;
+  document.getElementById('ul-rarity').textContent=RARITY_LABELS[rarity]||rarity+' · '+pts;
+  document.getElementById('ul-pts').textContent=desc;
+  document.getElementById('unlock-overlay').classList.add('show');
+}
+
+function closeUnlock(){
+  document.getElementById('unlock-overlay').classList.remove('show');
+  document.getElementById('confetti').innerHTML='';
+}
+
+function spawnConfetti(){
+  const cf=document.getElementById('confetti');cf.innerHTML='';
+  const colors=['#F97316','#F59E0B','#4ADE80','#60A5FA','#A78BFA','#F472B6'];
+  for(let i=0;i<30;i++){
+    const el=document.createElement('div');
+    el.className='cf';
+    el.style.cssText=`left:${Math.random()*100}%;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.5}s;transform:rotate(${Math.random()*360}deg)`;
+    cf.appendChild(el);
+  }
+}
+
+// ── S03 — Ranking ─────────────────────────────────────────────────────────────
+const RIDERS=[
+  {pos:1, name:'Rider A****',pts:1840,medal:'🥇'},
+  {pos:2, name:'Rider C****',pts:1620,medal:'🥈'},
+  {pos:3, name:'Rider M****',pts:1598,medal:'🥉'},
+  {pos:11,name:'Rider H****',pts:812, medal:''},
+  {pos:13,name:'Rider J****',pts:718, medal:''},
+  {pos:148,name:'Rider P****',pts:12,  medal:''},
+];
+
+const ME={pos:12,pts:730,name:'TÚ'};
+let myPos=12;
+
+function setMyPos(pos,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  myPos=pos;
+  const total=148;
+  const topPct=Math.round(pos/total*100);
+  document.getElementById('r-pos').textContent='#'+pos;
+  document.getElementById('r-total').textContent=`de ${total} riders en tu zona`;
+  document.getElementById('r-top').textContent=`Top ${topPct}%`;
+  const delta=document.getElementById('r-delta');
+  if(pos<=3){delta.className='pos-delta up';delta.textContent='▲ En el podio 🏆';}
+  else if(pos<=10){delta.className='pos-delta up';delta.textContent='▲ +2 posiciones vs ayer';}
+  else if(pos<=20){delta.className='pos-delta up';delta.textContent='▲ +3 posiciones vs ayer';}
+  else{delta.className='pos-delta down';delta.textContent='▼ −1 posición vs ayer';}
+  buildRanking(pos);
+}
+
+function buildRanking(myP){
+  const list=document.getElementById('rank-list');
+  list.innerHTML='';
+  const medals=['','🥇','🥈','🥉'];
+  const fakeNames=['Rider A****','Rider C****','Rider M****','Rider D****','Rider E****','Rider F****','Rider G****','Rider H****','Rider J****','Rider K****'];
+  const fakePts=[1840,1620,1598,1420,1310,1200,1100,1050,980,900];
+
+  const addRow=(pos,name,pts,cls)=>{
+    const div=document.createElement('div');
+    div.className='rank-row '+(cls||'normal');
+    div.innerHTML=`<div class="rank-pos">#${pos}</div><div class="rank-medal">${medals[pos]||''}</div><div class="rank-name">${name}</div><div class="rank-pts">${pts} pts</div>`;
+    list.appendChild(div);
+  };
+  const addSep=()=>{
+    const div=document.createElement('div');
+    div.className='rank-row separator';
+    div.innerHTML='<div class="rank-sep-dots">• • •</div>';
+    list.appendChild(div);
+  };
+
+  // Always show top 3
+  for(let i=1;i<=3;i++){
+    const isMe=myP===i;
+    const nm=isMe?'👉 TÚ':fakeNames[i-1];
+    const pts=isMe?ME.pts:fakePts[i-1];
+    addRow(i,nm,pts,isMe?'me leader':'leader');
+  }
+
+  if(myP>3){
+    if(myP>5) addSep();
+    if(myP>4) addRow(myP-1,fakeNames[Math.min(myP-2,9)],fakePts[Math.min(myP-2,9)]+50,'normal');
+    addRow(myP,'👉 TÚ',ME.pts,'me');
+    if(myP<147) addRow(myP+1,fakeNames[Math.min(myP,9)],Math.max(0,ME.pts-12),'normal');
+    addSep();
+    addRow(148,'Rider P****',12,'normal');
+  }
+}
+
+function setRankTab(tab,btn){
+  btn.closest('.tab-group').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function setRankScope(scope,btn){
+  btn.closest('.tab-group').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const total=scope==='national'?12400:148;
+  document.getElementById('r-total').textContent=`de ${total.toLocaleString()} riders ${scope==='national'?'a nivel nacional':'en tu zona'}`;
+}
+
+// Init
+buildRanking(12);
+</script>
+</body>
+</html>

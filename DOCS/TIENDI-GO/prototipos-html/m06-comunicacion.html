@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M06 — Comunicación | Tiendi Go</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #F97316;
+      --success: #16A34A;
+      --warning: #D97706;
+      --error:   #DC2626;
+      --info:    #2563EB;
+      --bg:      #1C1C1E;
+      --card:    #2C2C2E;
+      --card2:   #3A3A3C;
+      --border:  #48484A;
+      --text:    #FFFFFF;
+      --text-2:  #EBEBF5;
+      --text-3:  #8E8E93;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #111;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      background: #2C2C2E;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6C6C70;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0 16px 16px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+      color: var(--text-3);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .nav-item.active {
+      background: rgba(249,115,22,.12);
+      border-left-color: var(--primary);
+      color: var(--primary);
+    }
+    .nav-num { font-size: 11px; font-weight: 700; color: #6C6C70; width: 20px; }
+    .nav-item.active .nav-num { color: var(--primary); }
+
+    /* ── PHONE ── */
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: var(--bg);
+      border-radius: 48px;
+      box-shadow: 0 0 0 12px #2C2C2E, 0 0 0 14px #3A3A3C, 0 32px 80px rgba(0,0,0,.8);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .screen { display: none; flex-direction: column; height: 100%; }
+    .screen.active { display: flex; }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px 4px;
+      flex-shrink: 0;
+    }
+    .status-time { font-size: 15px; font-weight: 700; color: #fff; }
+    .status-icons { display: flex; gap: 6px; font-size: 12px; color: #fff; }
+
+    /* ════════════════════════════════════
+       CHAT COMPONENT (shared S01 + S02)
+    ════════════════════════════════════ */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px 10px;
+      background: var(--card);
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-back { font-size: 20px; cursor: pointer; color: var(--primary); }
+    .chat-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .chat-info { flex: 1; }
+    .chat-name { font-size: 15px; font-weight: 700; color: #fff; }
+    .chat-sub  { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+    .chat-call {
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--success);
+      padding: 4px;
+    }
+
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: #161618;
+    }
+    .time-sep {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-3);
+      padding: 6px 0 10px;
+    }
+    .msg-row { display: flex; flex-direction: column; margin-bottom: 2px; }
+    .msg-row.right { align-items: flex-end; }
+    .msg-row.left  { align-items: flex-start; }
+
+    .bubble {
+      max-width: 72%;
+      padding: 10px 13px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .bubble.right {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 18px 18px 4px 18px;
+    }
+    .bubble.left {
+      background: var(--card);
+      color: var(--text-2);
+      border-radius: 18px 18px 18px 4px;
+    }
+    .msg-meta {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 3px;
+      padding: 0 4px;
+    }
+
+    /* Quick replies */
+    .quick-replies {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      overflow-x: auto;
+      flex-shrink: 0;
+      background: #1A1A1C;
+      border-top: 1px solid #2C2C2E;
+      scrollbar-width: none;
+    }
+    .quick-replies::-webkit-scrollbar { display: none; }
+    .qr-chip {
+      display: inline-flex;
+      align-items: center;
+      background: #2C2C2E;
+      color: var(--primary);
+      border: 1px solid rgba(249,115,22,.3);
+      border-radius: 20px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background .12s;
+    }
+    .qr-chip:active { background: #3A3A3C; }
+
+    /* Input bar */
+    .chat-input {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px 24px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .input-field {
+      flex: 1;
+      background: #1C1C1E;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text-3);
+    }
+    .send-btn {
+      width: 38px;
+      height: 38px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+
+    /* Driving mode banner — replaces input */
+    .driving-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px 24px;
+      background: #78350F;
+      border-top: 1px solid #92400E;
+      flex-shrink: 0;
+    }
+    .driving-banner.show { display: flex; }
+    .driving-icon { font-size: 20px; }
+    .driving-text { flex: 1; }
+    .driving-title { font-size: 13px; font-weight: 700; color: #FDE68A; }
+    .driving-sub   { font-size: 11px; color: #FCD34D; margin-top: 1px; }
+
+    /* Demo driving toggle */
+    .demo-toggle {
+      padding: 6px 14px;
+      background: #0A0A0A;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #6C6C70;
+      flex-shrink: 0;
+    }
+    .toggle-pill {
+      width: 36px;
+      height: 20px;
+      background: var(--card2);
+      border-radius: 10px;
+      cursor: pointer;
+      position: relative;
+      transition: background .2s;
+    }
+    .toggle-pill.on { background: var(--warning); }
+    .toggle-pill::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      top: 2px; left: 2px;
+      transition: transform .2s;
+    }
+    .toggle-pill.on::after { transform: translateX(16px); }
+
+    /* ── CALL PROXY BOTTOM SHEET ── */
+    .sheet-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.65);
+      z-index: 100;
+      align-items: flex-end;
+    }
+    .sheet-overlay.show { display: flex; }
+    .sheet {
+      width: 100%;
+      background: #2C2C2E;
+      border-radius: 28px 28px 0 0;
+      padding: 0 20px 36px;
+    }
+    .sheet-handle {
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 14px auto 20px;
+    }
+    .sheet-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 16px; text-align: center; }
+    .callout-box {
+      background: rgba(37,99,235,.15);
+      border: 1px solid rgba(37,99,235,.3);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+    }
+    .callout-text { font-size: 13px; color: #93C5FD; line-height: 1.5; }
+    .btn-call {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: var(--success);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .btn-cancel {
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+      color: var(--text-3);
+      cursor: pointer;
+    }
+
+    /* ════════════════════════════════════
+       S03 — NOTIFICACIONES
+    ════════════════════════════════════ */
+    .notif-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px 12px;
+      background: var(--card);
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .notif-title-text { font-size: 18px; font-weight: 800; color: #fff; }
+    .bell-btn {
+      position: relative;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    .bell-badge {
+      position: absolute;
+      top: -4px; right: -6px;
+      background: var(--error);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 8px;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .notif-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .notif-section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 14px 18px 6px;
+      background: #161618;
+    }
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 16px;
+      background: #1C1C1E;
+      border-bottom: 1px solid #2C2C2E;
+      cursor: pointer;
+      transition: background .12s;
+      position: relative;
+    }
+    .notif-item:active { background: #2C2C2E; }
+    .notif-item.unread { background: rgba(249,115,22,.05); }
+
+    .unread-dot {
+      width: 8px; height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+    .unread-dot.hidden { visibility: hidden; }
+
+    .notif-ico {
+      width: 44px; height: 44px;
+      background: var(--card);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .notif-body { flex: 1; }
+    .notif-body-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .notif-body-sub   { font-size: 13px; color: var(--text-3); line-height: 1.4; }
+    .notif-time { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+    .notif-load-more {
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
+      color: var(--primary);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="sidebar-title">M06 — Comunicación</div>
+  <div class="nav-item active" data-screen="s01" onclick="showScreen('s01')">
+    <span class="nav-num">01</span>Chat con cliente
+  </div>
+  <div class="nav-item" data-screen="s02" onclick="showScreen('s02')">
+    <span class="nav-num">02</span>Chat con tienda
+  </div>
+  <div class="nav-item" data-screen="s03" onclick="showScreen('s03')">
+    <span class="nav-num">03</span>Lista de notificaciones
+  </div>
+</nav>
+
+<!-- ── PHONE ── -->
+<div class="main">
+<div class="phone">
+
+  <!-- ═══════════════════════════════════
+       S01 — CHAT CON CLIENTE
+  ═══════════════════════════════════ -->
+  <div class="screen active" id="s01">
+    <div class="status-bar">
+      <span class="status-time">10:41</span>
+      <div class="status-icons">📶 🔋</div>
+    </div>
+
+    <div class="chat-header">
+      <div class="chat-back">‹</div>
+      <div class="chat-avatar" style="background:linear-gradient(135deg,#4338CA,#7C3AED);">CM</div>
+      <div class="chat-info">
+        <div class="chat-name">Carlos M.</div>
+        <div class="chat-sub">Pedido #PED-001</div>
+      </div>
+      <div class="chat-call" onclick="toggleSheet('call-sheet-01', true)">📞</div>
+    </div>
+
+    <div class="chat-area" id="chat01">
+      <div class="time-sep">10:32 AM</div>
+
+      <div class="msg-row right">
+        <div class="bubble right">Estoy en camino, llego en 5 min 🛵</div>
+        <div class="msg-meta">10:32 ✓✓</div>
+      </div>
+
+      <div class="msg-row left">
+        <div class="bubble left">Ok! Estoy en casa, timbre roto, llamame</div>
+        <div class="msg-meta">10:33</div>
+      </div>
+
+      <div class="time-sep">10:40 AM</div>
+
+      <div class="msg-row right">
+        <div class="bubble right">Ya llegué 📍</div>
+        <div class="msg-meta">10:40 ✓✓</div>
+      </div>
+
+      <div class="msg-row left">
+        <div class="bubble left">Salgo ya, 1 minuto 👍</div>
+        <div class="msg-meta">10:40</div>
+      </div>
+    </div>
+
+    <!-- Quick replies -->
+    <div class="quick-replies">
+      <div class="qr-chip" onclick="sendQuick('s01', 'Llego en 5 min 🛵')">Llego en 5 min 🛵</div>
+      <div class="qr-chip" onclick="sendQuick('s01', 'Ya estoy en la puerta')">Ya estoy en la puerta</div>
+      <div class="qr-chip" onclick="sendQuick('s01', 'No encuentro la dirección')">No encuentro la dirección</div>
+      <div class="qr-chip" onclick="sendQuick('s01', '¿Podés bajar a buscar el pedido?')">¿Podés bajar?</div>
+    </div>
+
+    <!-- Input bar (hidden when driving) -->
+    <div class="chat-input" id="input-01">
+      <div class="input-field">💬 Escribir mensaje…</div>
+      <div class="send-btn">➤</div>
+    </div>
+
+    <!-- Driving mode banner (shown when driving) -->
+    <div class="driving-banner" id="driving-01">
+      <div class="driving-icon">🚫</div>
+      <div class="driving-text">
+        <div class="driving-title">Estás en movimiento</div>
+        <div class="driving-sub">Usá los accesos rápidos arriba</div>
+      </div>
+    </div>
+
+    <!-- Demo toggle for driving mode -->
+    <div class="demo-toggle">
+      <span>Demo: modo conducción activo</span>
+      <div class="toggle-pill" id="drv-toggle-01" onclick="toggleDriving('01')"></div>
+    </div>
+  </div>
+
+  <!-- Call proxy sheet for S01 -->
+  <div class="sheet-overlay" id="call-sheet-01">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Llamar a Carlos M.</div>
+      <div class="callout-box">
+        <div class="callout-text">📞 Tu número no será visible para el cliente. La llamada se realiza a través de un número proxy.</div>
+      </div>
+      <div class="btn-call">Llamar</div>
+      <div class="btn-cancel" onclick="toggleSheet('call-sheet-01', false)">Cancelar</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       S02 — CHAT CON TIENDA
+  ═══════════════════════════════════ -->
+  <div class="screen" id="s02">
+    <div class="status-bar">
+      <span class="status-time">10:41</span>
+      <div class="status-icons">📶 🔋</div>
+    </div>
+
+    <div class="chat-header">
+      <div class="chat-back">‹</div>
+      <div class="chat-avatar" style="background:linear-gradient(135deg,#065F46,#10B981);">EB</div>
+      <div class="chat-info">
+        <div class="chat-name">El Buen Sabor</div>
+        <div class="chat-sub">Pedido #PED-001</div>
+      </div>
+      <div class="chat-call" onclick="toggleSheet('call-sheet-02', true)">📞</div>
+    </div>
+
+    <div class="chat-area" id="chat02">
+      <div class="time-sep">10:14 AM</div>
+
+      <div class="msg-row right">
+        <div class="bubble right">Estoy afuera, ¿cuánto falta?</div>
+        <div class="msg-meta">10:15 ✓✓</div>
+      </div>
+
+      <div class="msg-row left">
+        <div class="bubble left">5 minutitos, ya sale tu pedido 👨‍🍳</div>
+        <div class="msg-meta">10:16</div>
+      </div>
+
+      <div class="msg-row right">
+        <div class="bubble right">Ok, esperando afuera 🛵</div>
+        <div class="msg-meta">10:16 ✓✓</div>
+      </div>
+
+      <div class="msg-row left">
+        <div class="bubble left">¡Listo! Pasá a buscarlo por la caja</div>
+        <div class="msg-meta">10:22</div>
+      </div>
+    </div>
+
+    <!-- Quick replies — store context -->
+    <div class="quick-replies">
+      <div class="qr-chip" onclick="sendQuick('s02', 'Ya llegué, esperando afuera')">Ya llegué, esperando afuera</div>
+      <div class="qr-chip" onclick="sendQuick('s02', '¿Cuánto falta?')">¿Cuánto falta?</div>
+      <div class="qr-chip" onclick="sendQuick('s02', 'El pedido está incompleto')">Pedido incompleto</div>
+      <div class="qr-chip" onclick="sendQuick('s02', 'Voy a tener que cancelar si sigue tardando')">Sigue tardando…</div>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input" id="input-02">
+      <div class="input-field">💬 Escribir mensaje…</div>
+      <div class="send-btn">➤</div>
+    </div>
+
+    <div class="demo-toggle" style="display:none;"></div>
+  </div>
+
+  <!-- Call proxy sheet for S02 -->
+  <div class="sheet-overlay" id="call-sheet-02">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Llamar a El Buen Sabor</div>
+      <div class="callout-box">
+        <div class="callout-text">📞 Tu número no será visible para la tienda. La llamada se realiza a través de un número proxy.</div>
+      </div>
+      <div class="btn-call">Llamar</div>
+      <div class="btn-cancel" onclick="toggleSheet('call-sheet-02', false)">Cancelar</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       S03 — LISTA DE NOTIFICACIONES
+  ═══════════════════════════════════ -->
+  <div class="screen" id="s03">
+    <div class="status-bar">
+      <span class="status-time">10:41</span>
+      <div class="status-icons">📶 🔋</div>
+    </div>
+
+    <div class="notif-header">
+      <div class="notif-title-text">Notificaciones</div>
+      <div class="bell-btn" onclick="markAllRead()">
+        🔔
+        <div class="bell-badge" id="bell-count">2</div>
+      </div>
+    </div>
+
+    <div class="notif-list">
+
+      <!-- HOY -->
+      <div class="notif-section-label">Hoy</div>
+
+      <!-- Unread: new order -->
+      <div class="notif-item unread" onclick="readNotif(this)">
+        <div class="unread-dot"></div>
+        <div class="notif-ico" style="background:rgba(249,115,22,.15);">🛵</div>
+        <div class="notif-body">
+          <div class="notif-body-title">Nuevo pedido disponible</div>
+          <div class="notif-body-sub">El Buen Sabor · 0.8 km · S/ 8.40 est.</div>
+          <div class="notif-time">hace 2 min</div>
+        </div>
+      </div>
+
+      <!-- Unread: message -->
+      <div class="notif-item unread" onclick="readNotif(this)">
+        <div class="unread-dot"></div>
+        <div class="notif-ico" style="background:rgba(37,99,235,.15);">💬</div>
+        <div class="notif-body">
+          <div class="notif-body-title">Mensaje de Carlos M.</div>
+          <div class="notif-body-sub">Timbre roto, llamame cuando llegues</div>
+          <div class="notif-time">hace 18 min</div>
+        </div>
+      </div>
+
+      <!-- Read: rating received -->
+      <div class="notif-item" onclick="readNotif(this)">
+        <div class="unread-dot hidden"></div>
+        <div class="notif-ico" style="background:rgba(251,191,36,.15);">⭐</div>
+        <div class="notif-body">
+          <div class="notif-body-title">Calificación recibida</div>
+          <div class="notif-body-sub">Carlos M. te dio 5 ⭐ · Pedido #PED-998</div>
+          <div class="notif-time">hace 1 h</div>
+        </div>
+      </div>
+
+      <!-- Read: bonus -->
+      <div class="notif-item" onclick="readNotif(this)">
+        <div class="unread-dot hidden"></div>
+        <div class="notif-ico" style="background:rgba(22,163,74,.15);">💰</div>
+        <div class="notif-body">
+          <div class="notif-body-title">Bono activado</div>
+          <div class="notif-body-sub">Zona caliente en Miraflores · ×1.5</div>
+          <div class="notif-time">hace 2 h</div>
+        </div>
+      </div>
+
+      <!-- AYER -->
+      <div class="notif-section-label">Ayer</div>
+
+      <!-- Read: delivery success -->
+      <div class="notif-item" onclick="readNotif(this)">
+        <div class="unread-dot hidden"></div>
+        <div class="notif-ico" style="background:rgba(22,163,74,.15);">✅</div>
+        <div class="notif-body">
+          <div class="notif-body-title">Entrega exitosa</div>
+          <div class="notif-body-sub">#PED-997 completado · Ganaste S/ 12.30</div>
+          <div class="notif-time">hace 1 d</div>
+        </div>
+      </div>
+
+      <!-- Read: document warning -->
+      <div class="notif-item" onclick="readNotif(this)">
+        <div class="unread-dot hidden"></div>
+        <div class="notif-ico" style="background:rgba(220,38,38,.15);">⚠️</div>
+        <div class="notif-body">
+          <div class="notif-body-title">Documento por vencer</div>
+          <div class="notif-body-sub">SOAT vence en 15 días · Actualizá tus docs</div>
+          <div class="notif-time">hace 1 d</div>
+        </div>
+      </div>
+
+      <!-- Read: achievement -->
+      <div class="notif-item" onclick="readNotif(this)">
+        <div class="unread-dot hidden"></div>
+        <div class="notif-ico" style="background:rgba(139,92,246,.15);">🏆</div>
+        <div class="notif-body">
+          <div class="notif-body-title">¡Nivel alcanzado!</div>
+          <div class="notif-body-sub">Ascendiste a Oro 🥇 · 700 puntos</div>
+          <div class="notif-time">hace 1 d</div>
+        </div>
+      </div>
+
+      <div class="notif-load-more">Cargar más →</div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+  // ── Screen nav ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n =>
+      n.classList.toggle('active', n.dataset.screen === id)
+    );
+  }
+
+  // ── Send quick reply (appends bubble) ──
+  function sendQuick(screenId, text) {
+    const chatId = screenId === 's01' ? 'chat01' : 'chat02';
+    const area = document.getElementById(chatId);
+    const now = new Date();
+    const t = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+    const row = document.createElement('div');
+    row.className = 'msg-row right';
+    row.innerHTML = `<div class="bubble right">${text}</div><div class="msg-meta">${t} ✓</div>`;
+    area.appendChild(row);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  // ── Driving mode toggle (S01) ──
+  let drivingOn = false;
+  function toggleDriving(id) {
+    drivingOn = !drivingOn;
+    document.getElementById('drv-toggle-' + id).classList.toggle('on', drivingOn);
+    document.getElementById('input-0' + id).style.display   = drivingOn ? 'none' : 'flex';
+    document.getElementById('driving-0' + id).classList.toggle('show', drivingOn);
+  }
+
+  // ── Call proxy sheet ──
+  function toggleSheet(id, show) {
+    document.getElementById(id).classList.toggle('show', show);
+  }
+
+  // ── Notifications: mark as read ──
+  let unreadCount = 2;
+  function readNotif(el) {
+    if (el.classList.contains('unread')) {
+      el.classList.remove('unread');
+      el.querySelector('.unread-dot').classList.add('hidden');
+      unreadCount = Math.max(0, unreadCount - 1);
+      updateBadge();
+    }
+  }
+  function markAllRead() {
+    document.querySelectorAll('.notif-item.unread').forEach(el => {
+      el.classList.remove('unread');
+      el.querySelector('.unread-dot').classList.add('hidden');
+    });
+    unreadCount = 0;
+    updateBadge();
+  }
+  function updateBadge() {
+    const b = document.getElementById('bell-count');
+    b.textContent = unreadCount;
+    b.style.display = unreadCount > 0 ? 'block' : 'none';
+  }
+</script>
+
+</body>
+</html>

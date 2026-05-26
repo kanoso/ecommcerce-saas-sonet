@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M11 — Soporte y Ayuda · Tiendi Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:#F97316; --primary-soft:rgba(249,115,22,.12);
+  --success:#16A34A; --warning:#D97706; --error:#DC2626; --info:#2563EB;
+  --bg:#1C1C1E; --card:#2C2C2E; --card2:#3A3A3C;
+  --text:#F5F5F7; --text2:#A1A1AA; --border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#111;min-height:100vh;display:flex;}
+.sidebar{width:220px;background:#2C2C2E;border-radius:0;padding:24px 0;display:flex;flex-direction:column;gap:4px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+.sidebar-title{color:#A1A1AA;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 16px 8px}
+.sb-link{display:block;padding:10px 16px;color:#A1A1AA;font-size:13px;font-weight:500;cursor:pointer;border-left:3px solid transparent;border-right:none;border-top:none;border-bottom:none;background:transparent;width:100%;text-align:left;transition:all .15s;text-decoration:none}
+.sb-link:hover{color:#F5F5F7;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#F97316;background:rgba(249,115,22,.12);border-left-color:#F97316}
+.sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:48px;overflow:hidden;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 20px 60px rgba(0,0,0,.6);position:relative;display:flex;flex-direction:column}
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 6px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:600;color:var(--text)}
+.status-icons{display:flex;gap:6px;align-items:center;color:var(--text);font-size:12px}
+.top-bar{display:flex;align-items:center;gap:12px;padding:6px 20px 10px;flex-shrink:0}
+.btn-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:10px;color:var(--text2);cursor:pointer;border:none;font-size:18px;flex-shrink:0;font-family:inherit}
+.top-title{font-size:17px;font-weight:600;color:var(--text);flex:1}
+.top-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+.screen.active{display:flex}
+.sv{display:none;flex-direction:column;flex:1;overflow:hidden}
+.sv.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:0 20px 24px}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
+
+/* search */
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:12px 16px;margin-bottom:20px}
+.search-bar input{background:none;border:none;outline:none;color:var(--text2);font-size:14px;font-family:inherit;flex:1}
+
+/* labels */
+.sec-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
+
+/* category grid */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.cat-card{background:var(--card);border-radius:16px;padding:16px 14px;cursor:pointer;transition:background .15s;display:flex;flex-direction:column;gap:8px}
+.cat-card:hover{background:var(--card2)}
+.cat-icon{font-size:24px}
+.cat-label{font-size:13px;font-weight:600;color:var(--text)}
+
+/* article list */
+.art-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.art-item{background:var(--card);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s}
+.art-item:hover{background:var(--card2)}
+.art-text{font-size:14px;color:var(--text);font-weight:500;flex:1;line-height:1.4}
+.art-arrow{color:var(--text2);font-size:18px;margin-left:12px}
+
+/* article content */
+.art-content{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px}
+.art-content h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
+.art-content p{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.art-content ul{padding-left:18px}
+.art-content li{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:4px}
+.example-box{background:var(--card2);border-radius:10px;padding:12px;margin-top:8px}
+.example-box code{font-size:12px;color:var(--primary);font-family:monospace}
+
+/* feedback */
+.fb-section{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px;text-align:center}
+.fb-section p{font-size:14px;color:var(--text);font-weight:600;margin-bottom:12px}
+.fb-btns{display:flex;gap:12px;justify-content:center}
+.fb-btn{flex:1;padding:12px;background:var(--card2);border:1.5px solid transparent;border-radius:12px;font-size:22px;cursor:pointer;transition:all .15s}
+.fb-btn.selected{background:var(--primary-soft);border-color:var(--primary)}
+.fb-msg{font-size:13px;color:var(--text2);margin-top:10px;display:none}
+
+/* buttons */
+.btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.4;cursor:default}
+.btn-secondary{width:100%;padding:14px;background:var(--card);color:var(--text);font-size:14px;font-weight:600;border:1.5px solid var(--border);border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-secondary:hover{background:var(--card2)}
+.btn-ghost{background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:6px 0}
+.btn-danger{width:100%;padding:15px;background:var(--error);color:#fff;font-size:15px;font-weight:700;border:none;border-radius:16px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* radio */
+.radio-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.radio-item{background:var(--card);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.radio-item:hover{background:var(--card2)}
+.radio-item.selected{border-color:var(--primary);background:var(--primary-soft)}
+.radio-item.emrg{border-color:rgba(220,38,38,.25)}
+.radio-item.emrg.selected{border-color:var(--error);background:rgba(220,38,38,.1)}
+.radio-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--card2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s}
+.radio-dot::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--primary);display:none}
+.radio-item.selected .radio-dot{border-color:var(--primary)}
+.radio-item.selected .radio-dot::after{display:block}
+.radio-item.emrg.selected .radio-dot{border-color:var(--error)}
+.radio-item.emrg.selected .radio-dot::after{background:var(--error)}
+.radio-emoji{font-size:20px}
+.radio-label{font-size:14px;font-weight:600;color:var(--text)}
+.radio-sub{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* textarea */
+.field-label{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px}
+textarea{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:14px;font-family:inherit;padding:14px;resize:none;outline:none;min-height:100px}
+textarea:focus{border-color:var(--primary)}
+.char-count{font-size:12px;color:var(--text2);text-align:right;margin-bottom:16px}
+.upload-area{background:var(--card);border:1.5px dashed var(--card2);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:16px}
+.upload-text{font-size:14px;color:var(--text2);font-weight:500}
+.upload-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.info-cap{background:rgba(37,99,235,.08);border-radius:12px;padding:12px;display:flex;align-items:flex-start;gap:8px;margin-bottom:20px}
+.info-cap p{font-size:12px;color:var(--text2);line-height:1.5}
+
+/* emergency */
+.emrg-screen{text-align:center;padding:24px 8px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.emrg-icon{font-size:56px}
+.emrg-title{font-size:22px;font-weight:700;color:var(--error);line-height:1.3}
+.emrg-sub{font-size:14px;color:var(--text2);line-height:1.5}
+
+/* ticket list */
+.tkts{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.tkt-item{background:var(--card);border-radius:16px;padding:14px 16px;cursor:pointer;transition:background .15s}
+.tkt-item:hover{background:var(--card2)}
+.tkt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tkt-id{font-size:13px;font-weight:700;color:var(--text)}
+.tkt-desc{font-size:13px;color:var(--text2);margin-bottom:4px}
+.tkt-foot{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px}
+.pill.open{background:rgba(37,99,235,.15);color:#60A5FA}
+.pill.review{background:rgba(217,119,6,.15);color:#FCD34D}
+.pill.waiting{background:rgba(124,58,237,.15);color:#A78BFA}
+.pill.resolved{background:rgba(22,163,74,.15);color:#4ADE80}
+.pill.closed{background:rgba(100,100,100,.15);color:var(--text2)}
+.prio{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(217,119,6,.2);color:var(--warning)}
+.prio.low{background:rgba(100,100,100,.15);color:var(--text2)}
+
+/* ticket detail */
+.tkt-header{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:12px}
+.tkt-cat{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.tkt-meta{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.sla-wrap{margin-top:12px}
+.sla-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px}
+.sla-track{height:6px;background:var(--card2);border-radius:99px;overflow:hidden}
+.sla-fill{height:100%;border-radius:99px;transition:width .3s,background .3s}
+.sla-fill.safe{background:var(--info)}
+.sla-fill.risk{background:var(--warning)}
+.sla-fill.over{background:var(--error)}
+
+/* chat */
+.time-sep{text-align:center;font-size:11px;color:var(--text2);margin:12px 0}
+.chat-area{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+.msg-row{display:flex;flex-direction:column}
+.msg-row.right{align-items:flex-end}
+.msg-row.left{align-items:flex-start}
+.msg-bubble{max-width:78%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.5;color:var(--text)}
+.msg-row.right .msg-bubble{background:var(--primary);border-bottom-right-radius:4px}
+.msg-row.left .msg-bubble{background:var(--card);border-bottom-left-radius:4px}
+.msg-row.bot .msg-bubble{background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.2)}
+.msg-sender{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600}
+.msg-time{font-size:11px;color:var(--text2);margin-top:4px}
+.chat-input-area{padding:10px 20px 14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.chat-row{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:99px;padding:10px 16px}
+.chat-row input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit}
+.chat-send{width:32px;height:32px;background:var(--primary);border:none;border-radius:50%;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-acts{display:flex;gap:10px}
+.chat-act{flex:1;padding:10px;background:var(--card);border:none;border-radius:12px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+.chat-act.ok{color:var(--success)}
+
+/* legal */
+.legal-list{display:flex;flex-direction:column;gap:10px}
+.legal-item{background:var(--card);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:background .15s}
+.legal-item:hover{background:var(--card2)}
+.legal-icon{font-size:28px;flex-shrink:0}
+.legal-info{flex:1}
+.legal-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.legal-date{font-size:12px;color:var(--text2)}
+.legal-arrow{color:var(--text2);font-size:18px}
+.legal-doc{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px}
+.legal-doc h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;padding-top:6px}
+.legal-doc h3:first-child{padding-top:0}
+.legal-doc p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px}
+.legal-acts{display:flex;gap:10px}
+.legal-act{flex:1;padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+.legal-act:hover{background:var(--card2)}
+
+/* demo box */
+.demo-box{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:12px;padding:9px 12px;margin-bottom:10px}
+.demo-box p{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px}
+.demo-row{display:flex;gap:6px;flex-wrap:wrap}
+.demo-btn{padding:5px 10px;background:var(--card2);border:none;border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.demo-btn.on{background:var(--primary-soft);color:var(--primary)}
+
+.mb8{margin-bottom:8px}
+.mb12{margin-bottom:12px}
+.mb16{margin-bottom:16px}
+.mb20{margin-bottom:20px}
+.note-card{background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.note-card p{font-size:14px;color:var(--text2);line-height:1.5}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M11 — Soporte</div>
+  <button class="sb-link active" onclick="showScreen('s01')">📚 P11-01 Centro de ayuda</button>
+  <button class="sb-link" onclick="showScreen('s02')">📝 P11-02 Reporte de problema</button>
+  <button class="sb-link" onclick="showScreen('s03')">🎫 P11-03 Ticket activo</button>
+  <button class="sb-link" onclick="showScreen('s04')">📄 P11-04 Documentos legales</button>
+  <div class="sep"></div>
+  <a class="sb-link" href="index.html">← Volver al índice</a>
+</nav>
+
+<div class="main">
+<div class="phone">
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
+
+  <!-- ══════════════ S01 — Centro de ayuda ══════════════ -->
+  <div id="s01" class="screen active">
+    <div class="top-bar">
+      <button class="btn-back" onclick="s01Back()">‹</button>
+      <div class="top-title" id="s01-title">Ayuda</div>
+    </div>
+
+    <!-- main view -->
+    <div id="sv01-main" class="sv active">
+      <div class="scroll">
+        <div class="search-bar">
+          <span>🔍</span>
+          <input type="text" placeholder="¿En qué te ayudamos?" oninput="filterMain(this.value)">
+        </div>
+        <div class="sec-title">Temas frecuentes</div>
+        <div class="cat-grid">
+          <div class="cat-card" onclick="showCat('ganancias')"><div class="cat-icon">💰</div><div class="cat-label">Ganancias</div></div>
+          <div class="cat-card" onclick="showCat('pedidos')"><div class="cat-icon">📦</div><div class="cat-label">Pedidos</div></div>
+          <div class="cat-card" onclick="showCat('cuenta')"><div class="cat-icon">🪪</div><div class="cat-label">Mi cuenta</div></div>
+          <div class="cat-card" onclick="showCat('entregas')"><div class="cat-icon">🛵</div><div class="cat-label">Entregas</div></div>
+          <div class="cat-card" onclick="showCat('calificaciones')"><div class="cat-icon">⭐</div><div class="cat-label">Calificaciones</div></div>
+          <div class="cat-card" onclick="showCat('gps')"><div class="cat-icon">📍</div><div class="cat-label">GPS</div></div>
+        </div>
+        <div class="sec-title">Artículos más vistos</div>
+        <div class="art-list" id="main-arts">
+          <div class="art-item" onclick="showArticle('comision')"><div class="art-text">¿Cómo se calcula mi ganancia?</div><div class="art-arrow">›</div></div>
+          <div class="art-item" onclick="showArticle('cancelar')"><div class="art-text">¿Qué pasa si cancelo un pedido?</div><div class="art-arrow">›</div></div>
+          <div class="art-item" onclick="showArticle('otp')"><div class="art-text">¿Cómo funciona el OTP de entrega?</div><div class="art-arrow">›</div></div>
+          <div class="art-item" onclick="showArticle('rating')"><div class="art-text">Mi rating bajó, ¿qué puedo hacer?</div><div class="art-arrow">›</div></div>
+        </div>
+        <div class="note-card mb8"><p>¿No encontraste lo que buscabas?</p></div>
+        <button class="btn-secondary" onclick="showScreen('s02')">Reportar un problema</button>
+      </div>
+    </div>
+
+    <!-- category view -->
+    <div id="sv01-cat" class="sv">
+      <div class="scroll">
+        <div class="search-bar">
+          <span>🔍</span>
+          <input type="text" id="cat-input" placeholder="Buscar...">
+        </div>
+        <div class="art-list" id="cat-arts"></div>
+      </div>
+    </div>
+
+    <!-- article view -->
+    <div id="sv01-art" class="sv">
+      <div class="scroll">
+        <div class="art-content" id="art-body"></div>
+        <div class="fb-section">
+          <p>¿Esto resolvió tu duda?</p>
+          <div class="fb-btns">
+            <button class="fb-btn" id="fb-yes" onclick="setFb('yes')">👍</button>
+            <button class="fb-btn" id="fb-no" onclick="setFb('no')">👎</button>
+          </div>
+          <div class="fb-msg" id="fb-msg"></div>
+        </div>
+        <p class="mb8" style="font-size:13px;color:var(--text2)">Si no, podés:</p>
+        <button class="btn-secondary" onclick="showScreen('s02')">Abrir un ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ S02 — Reporte de problema ══════════════ -->
+  <div id="s02" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="s02Back()">‹</button>
+      <div class="top-title" id="s02-title">Reportar problema</div>
+    </div>
+
+    <!-- form view -->
+    <div id="sv02-form" class="sv active">
+      <div class="scroll">
+        <p class="mb16" style="font-size:15px;font-weight:700;color:var(--text)">¿Qué tipo de problema es?</p>
+        <div class="radio-list">
+          <div class="radio-item" id="ri-entrega" onclick="pickCat('entrega')">
+            <div class="radio-dot"></div><div class="radio-emoji">🛵</div>
+            <div><div class="radio-label">Problema durante una entrega</div><div class="radio-sub">SLA 30 min</div></div>
+          </div>
+          <div class="radio-item" id="ri-ganancias" onclick="pickCat('ganancias')">
+            <div class="radio-dot"></div><div class="radio-emoji">💰</div>
+            <div><div class="radio-label">Problema con ganancias o pagos</div><div class="radio-sub">SLA 4 horas</div></div>
+          </div>
+          <div class="radio-item" id="ri-cuenta" onclick="pickCat('cuenta')">
+            <div class="radio-dot"></div><div class="radio-emoji">🪪</div>
+            <div><div class="radio-label">Problema con mi cuenta o perfil</div><div class="radio-sub">SLA 24 horas</div></div>
+          </div>
+          <div class="radio-item" id="ri-tecnico" onclick="pickCat('tecnico')">
+            <div class="radio-dot"></div><div class="radio-emoji">📱</div>
+            <div><div class="radio-label">Problema técnico con la app</div><div class="radio-sub">SLA 24 horas</div></div>
+          </div>
+          <div class="radio-item emrg" id="ri-emergencia" onclick="goEmergency()">
+            <div class="radio-dot"></div><div class="radio-emoji">🚨</div>
+            <div><div class="radio-label" style="color:var(--error)">Emergencia / Accidente</div><div class="radio-sub">SLA 5 min (Diamante) / 30 min</div></div>
+          </div>
+          <div class="radio-item" id="ri-otro" onclick="pickCat('otro')">
+            <div class="radio-dot"></div><div class="radio-emoji">❓</div>
+            <div><div class="radio-label">Otro</div><div class="radio-sub">SLA 72 horas</div></div>
+          </div>
+        </div>
+
+        <div id="desc-sec" style="display:none">
+          <div class="field-label">Descripción</div>
+          <textarea id="desc-ta" maxlength="500" placeholder="Describí tu problema con el mayor detalle posible..." oninput="updChar()"></textarea>
+          <div class="char-count"><span id="char-n">0</span>/500</div>
+          <div class="upload-area">
+            <span style="font-size:20px">📷</span>
+            <div><div class="upload-text">Adjuntar captura</div><div class="upload-sub">Opcional · JPG, PNG</div></div>
+          </div>
+          <div class="info-cap">
+            <span style="font-size:16px;flex-shrink:0">ℹ️</span>
+            <p>Se adjuntará automáticamente: pedido activo, ubicación y versión de app.</p>
+          </div>
+          <button class="btn-primary" onclick="sendReport()">Enviar reporte</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- emergency view -->
+    <div id="sv02-emrg" class="sv">
+      <div class="scroll">
+        <div class="emrg-screen">
+          <div class="emrg-icon">🚨</div>
+          <div class="emrg-title">¿Estás en peligro inmediato?</div>
+          <div class="emrg-sub">Tu seguridad es lo primero. Si estás en peligro, llamá a emergencias ahora.</div>
+          <button class="btn-danger" onclick="alert('Llamando al 105...')">📞 Llamar a emergencias (105)</button>
+          <button class="btn-secondary" onclick="sendEmergency()">Alertar a soporte Tiendi</button>
+          <button class="btn-ghost" onclick="showSV('s02','sv02-form');document.getElementById('s02-title').textContent='Reportar problema'">Continuar con el formulario</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ S03 — Ticket activo ══════════════ -->
+  <div id="s03" class="screen">
+
+    <!-- ticket list -->
+    <div id="sv03-list" class="sv active" style="flex-direction:column">
+      <div class="top-bar">
+        <button class="btn-back" onclick="showScreen('s01')">‹</button>
+        <div class="top-title">Mis tickets</div>
+      </div>
+      <div class="scroll">
+        <div class="tkts">
+          <div class="tkt-item" onclick="openTicket()">
+            <div class="tkt-head"><span class="tkt-id">#TKT-4521</span><span class="pill review">🟡 En revisión</span></div>
+            <div class="tkt-desc">Problema con ganancias</div>
+            <div class="tkt-foot"><span>Hoy · 2h ago</span><span class="prio">P2</span></div>
+          </div>
+          <div class="tkt-item">
+            <div class="tkt-head"><span class="tkt-id">#TKT-4100</span><span class="pill closed">⚫ Cerrado</span></div>
+            <div class="tkt-desc">Consulta sobre nivel</div>
+            <div class="tkt-foot"><span>hace 3 semanas</span><span class="prio low">P4</span></div>
+          </div>
+          <div class="tkt-item">
+            <div class="tkt-head"><span class="tkt-id">#TKT-3950</span><span class="pill resolved">🟢 Resuelto</span></div>
+            <div class="tkt-desc">Problema técnico con GPS</div>
+            <div class="tkt-foot"><span>hace 6 semanas</span><span class="prio low">P3</span></div>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="showScreen('s02')">+ Nuevo ticket</button>
+      </div>
+    </div>
+
+    <!-- ticket detail -->
+    <div id="sv03-detail" class="sv" style="flex-direction:column">
+      <div class="top-bar">
+        <button class="btn-back" onclick="showSV('s03','sv03-list')">‹</button>
+        <div>
+          <div class="top-title">Ticket #TKT-4521</div>
+          <div id="tkt-pill-wrap" class="top-sub"><span class="pill review">🟡 En revisión</span></div>
+        </div>
+      </div>
+
+      <div style="padding:0 20px 8px;flex-shrink:0">
+        <div class="demo-box">
+          <p>Demo — Estado del ticket:</p>
+          <div class="demo-row">
+            <button class="demo-btn" onclick="setTktState('open',this)">🔵 Abierto</button>
+            <button class="demo-btn on" onclick="setTktState('review',this)">🟡 En revisión</button>
+            <button class="demo-btn" onclick="setTktState('waiting',this)">🟣 Esperando</button>
+            <button class="demo-btn" onclick="setTktState('resolved',this)">🟢 Resuelto</button>
+          </div>
+        </div>
+        <div class="tkt-header">
+          <div class="tkt-cat">Problema con ganancias</div>
+          <div class="tkt-meta">Abierto hace 2h <span class="prio">P2</span></div>
+          <div class="sla-wrap">
+            <div class="sla-labels"><span id="sla-txt">SLA: respuesta en &lt; 4h</span><span id="sla-time">2h restantes</span></div>
+            <div class="sla-track"><div class="sla-fill safe" id="sla-fill" style="width:50%"></div></div>
+          </div>
+        </div>
+        <div class="demo-box">
+          <p>Demo — SLA:</p>
+          <div class="demo-row">
+            <button class="demo-btn on" onclick="setSLA('safe',this)">✅ Con tiempo</button>
+            <button class="demo-btn" onclick="setSLA('risk',this)">⚠️ En riesgo</button>
+            <button class="demo-btn" onclick="setSLA('over',this)">🔴 Vencido</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll" style="padding-top:0">
+        <div class="chat-area">
+          <div class="time-sep">10:30 AM</div>
+          <div class="msg-row right">
+            <div class="msg-bubble">No recibí el pago de la entrega #PED-001 de ayer. El desglose muestra S/ 0.00.</div>
+            <div class="msg-time">10:30 ✓✓</div>
+          </div>
+          <div class="msg-row left bot">
+            <div class="msg-sender">🤖 Soporte Tiendi (automático)</div>
+            <div class="msg-bubble">Gracias por reportar tu caso. Un agente lo revisará en menos de 4 horas.</div>
+            <div class="msg-time">10:30</div>
+          </div>
+          <div class="time-sep">12:45 PM</div>
+          <div class="msg-row left">
+            <div class="msg-sender">👤 Agente: María S.</div>
+            <div class="msg-bubble">Revisamos el caso. El pago estaba en fondos retenidos por una disputa cerrada. Ya fue liberado a tu wallet. ✅</div>
+            <div class="msg-time">12:45</div>
+          </div>
+          <div id="extra-msgs"></div>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-row">
+          <input type="text" id="chat-in" placeholder="💬 Responder...">
+          <button class="chat-send" onclick="sendChat()">➤</button>
+        </div>
+        <div class="chat-acts">
+          <button class="chat-act ok" onclick="markResolved()">✅ Marcar resuelto</button>
+          <button class="chat-act">📎 Adjuntar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ S04 — Documentos legales ══════════════ -->
+  <div id="s04" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="s04Back()">‹</button>
+      <div>
+        <div class="top-title" id="s04-title">Documentos legales</div>
+        <div class="top-sub" id="s04-ver" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- list -->
+    <div id="sv04-list" class="sv active">
+      <div class="scroll">
+        <div class="legal-list">
+          <div class="legal-item" onclick="openDoc('terms')">
+            <div class="legal-icon">📄</div>
+            <div class="legal-info"><div class="legal-name">Términos y condiciones</div><div class="legal-date">Actualizado: 01/03/2026</div></div>
+            <div class="legal-arrow">›</div>
+          </div>
+          <div class="legal-item" onclick="openDoc('privacy')">
+            <div class="legal-icon">🔒</div>
+            <div class="legal-info"><div class="legal-name">Política de privacidad</div><div class="legal-date">Actualizado: 01/03/2026</div></div>
+            <div class="legal-arrow">›</div>
+          </div>
+          <div class="legal-item" onclick="openDoc('contract')">
+            <div class="legal-icon">🛵</div>
+            <div class="legal-info"><div class="legal-name">Contrato de repartidor</div><div class="legal-date">Firmado: 15/01/2026</div></div>
+            <div class="legal-arrow">›</div>
+          </div>
+          <div class="legal-item" onclick="openDoc('cookies')">
+            <div class="legal-icon">🍪</div>
+            <div class="legal-info"><div class="legal-name">Política de cookies</div><div class="legal-date">Actualizado: 01/03/2026</div></div>
+            <div class="legal-arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- doc reader -->
+    <div id="sv04-doc" class="sv">
+      <div class="scroll">
+        <div class="legal-doc" id="doc-body"></div>
+        <div class="legal-acts">
+          <button class="legal-act" onclick="alert('Compartiendo...')">🔗 Compartir</button>
+          <button class="legal-act" onclick="alert('Descargando PDF...')">⬇️ Descargar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+// ── Nav helpers ──────────────────────────────────────────────────────────────
+function showSV(screenId, svId) {
+  document.querySelectorAll('#' + screenId + ' .sv').forEach(v => v.classList.remove('active'));
+  document.getElementById(svId).classList.add('active');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sb-link').forEach((l,i) => {
+    l.classList.toggle('active', ['s01','s02','s03','s04'][i] === id);
+  });
+  if (id==='s01') { showSV('s01','sv01-main'); document.getElementById('s01-title').textContent='Ayuda'; }
+  if (id==='s02') { showSV('s02','sv02-form'); clearForm(); document.getElementById('s02-title').textContent='Reportar problema'; }
+  if (id==='s03') showSV('s03','sv03-list');
+  if (id==='s04') { showSV('s04','sv04-list'); document.getElementById('s04-title').textContent='Documentos legales'; document.getElementById('s04-ver').style.display='none'; }
+}
+
+// ── S01 ──────────────────────────────────────────────────────────────────────
+const CATS = {
+  ganancias:{ label:'Ganancias', arts:[
+    {id:'comision',t:'¿Cómo se calcula mi comisión?'},
+    {id:'pago',t:'¿Cuándo se acredita mi pago?'},
+    {id:'wallet',t:'¿Qué es el wallet?'},
+    {id:'retiro',t:'¿Cómo retiro fondos?'},
+    {id:'retenidos',t:'¿Qué son los fondos retenidos?'},
+  ]},
+  pedidos:{ label:'Pedidos', arts:[
+    {id:'cancelar',t:'¿Qué pasa si cancelo un pedido?'},
+    {id:'asignar',t:'¿Cómo se me asigna un pedido?'},
+    {id:'otp',t:'¿Cómo funciona el OTP de entrega?'},
+  ]},
+  cuenta:{ label:'Mi cuenta', arts:[
+    {id:'perfil',t:'¿Cómo edito mi perfil?'},
+    {id:'vehiculo',t:'¿Cómo cambio mis datos de vehículo?'},
+    {id:'bloqueo',t:'¿Qué hago si mi cuenta está bloqueada?'},
+  ]},
+  entregas:{ label:'Entregas', arts:[
+    {id:'otp',t:'¿Cómo funciona el OTP de entrega?'},
+    {id:'incidente',t:'¿Qué hago si tengo un accidente?'},
+    {id:'noesta',t:'¿Qué pasa si el cliente no está?'},
+  ]},
+  calificaciones:{ label:'Calificaciones', arts:[
+    {id:'rating',t:'Mi rating bajó, ¿qué puedo hacer?'},
+    {id:'calcula',t:'¿Cómo se calcula mi rating?'},
+    {id:'impacto',t:'¿Qué impacta negativamente?'},
+  ]},
+  gps:{ label:'GPS', arts:[
+    {id:'gps-perm',t:'¿Por qué la app necesita GPS?'},
+    {id:'gps-off',t:'¿Qué pasa si pierdo la señal?'},
+    {id:'gps-batt',t:'¿Cómo afecta el GPS a la batería?'},
+  ]},
+};
+
+const ARTICLES = {
+  comision:{title:'¿Cómo se calcula mi ganancia?',html:`<p>Tu ganancia por cada entrega se calcula así:</p><ul><li><b>Tarifa base</b>: monto fijo por iniciar la entrega</li><li><b>Tarifa por distancia</b>: S/ por km recorrido</li><li><b>Zona de alta demanda</b>: multiplicador 1.2× a 2.0×</li><li><b>Propina del cliente</b>: 100% para vos</li></ul><div class="example-box"><code>Ejemplo: S/ 3.50 base + S/ 2.10 distancia × 1.3 zona = S/ 7.28 neto</code></div>`},
+  cancelar:{title:'¿Qué pasa si cancelo un pedido?',html:`<p>Cancelar tiene consecuencias según el momento:</p><ul><li><b>Antes de recoger</b>: sin penalidad (1ª vez del día)</li><li><b>En camino al local</b>: descuenta 1 punto de puntualidad</li><li><b>Pedido en mano</b>: afecta rating y requiere justificación</li></ul><p>Más de 3 cancelaciones diarias activan una revisión automática.</p>`},
+  otp:{title:'¿Cómo funciona el OTP de entrega?',html:`<p>El OTP confirma que el pedido llegó al cliente correcto.</p><ul><li>El cliente recibe un código de 4 dígitos por SMS</li><li>Vos ingresás el código que el cliente te da</li><li>Si el cliente no tiene el código, usás el backup del pedido</li></ul>`},
+  rating:{title:'Mi rating bajó, ¿qué puedo hacer?',html:`<p>Podés mejorar tu rating enfocándote en:</p><ul><li>Completar entregas sin cancelar</li><li>Llegar a tiempo (puntualidad)</li><li>Trato cordial con clientes y locales</li><li>No reportar falsos incidentes</li></ul><p>El rating se calcula con las últimas 100 entregas — mejora gradualmente.</p>`},
+};
+
+let s01From = 'main';
+
+function showCat(catId) {
+  const cat = CATS[catId];
+  if (!cat) return;
+  s01From = 'main';
+  document.getElementById('s01-title').textContent = cat.label;
+  document.getElementById('cat-input').placeholder = 'Buscar en ' + cat.label;
+  document.getElementById('cat-arts').innerHTML = cat.arts.map(a =>
+    `<div class="art-item" onclick="showArticle('${a.id}')"><div class="art-text">${a.t}</div><div class="art-arrow">›</div></div>`
+  ).join('');
+  showSV('s01','sv01-cat');
+}
+
+function showArticle(id) {
+  const catActive = document.getElementById('sv01-cat').classList.contains('active');
+  s01From = catActive ? 'cat' : 'main';
+  const art = ARTICLES[id] || {title:'Artículo', html:'<p>Contenido del artículo.</p>'};
+  document.getElementById('s01-title').textContent = art.title.length>26 ? art.title.slice(0,24)+'…' : art.title;
+  document.getElementById('art-body').innerHTML = `<h3>${art.title}</h3>${art.html}`;
+  document.getElementById('fb-yes').classList.remove('selected');
+  document.getElementById('fb-no').classList.remove('selected');
+  const fm = document.getElementById('fb-msg'); fm.style.display='none'; fm.textContent='';
+  showSV('s01','sv01-art');
+}
+
+function s01Back() {
+  const main = document.getElementById('sv01-main');
+  const cat  = document.getElementById('sv01-cat');
+  const art  = document.getElementById('sv01-art');
+  if (art.classList.contains('active')) {
+    if (s01From === 'cat') showSV('s01','sv01-cat');
+    else { showSV('s01','sv01-main'); document.getElementById('s01-title').textContent='Ayuda'; }
+  } else if (cat.classList.contains('active')) {
+    showSV('s01','sv01-main'); document.getElementById('s01-title').textContent='Ayuda';
+  } else {
+    window.location.href='index.html';
+  }
+}
+
+function setFb(v) {
+  document.getElementById('fb-yes').classList.toggle('selected', v==='yes');
+  document.getElementById('fb-no').classList.toggle('selected', v==='no');
+  const m = document.getElementById('fb-msg');
+  m.style.display='block';
+  m.textContent = v==='yes' ? '¡Gracias! Tu feedback nos ayuda a mejorar.' : 'Lamentamos eso. Podés abrir un ticket abajo.';
+}
+
+function filterMain(val) {
+  document.querySelectorAll('#main-arts .art-item').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+  });
+}
+
+// ── S02 ──────────────────────────────────────────────────────────────────────
+function pickCat(id) {
+  document.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  document.getElementById('ri-' + id).classList.add('selected');
+  document.getElementById('desc-sec').style.display = 'block';
+}
+
+function goEmergency() {
+  document.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  document.getElementById('ri-emergencia').classList.add('selected');
+  document.getElementById('s02-title').textContent = '🚨 Emergencia';
+  showSV('s02','sv02-emrg');
+}
+
+function s02Back() {
+  if (document.getElementById('sv02-emrg').classList.contains('active')) {
+    showSV('s02','sv02-form'); document.getElementById('s02-title').textContent='Reportar problema';
+  } else {
+    showScreen('s01');
+  }
+}
+
+function clearForm() {
+  document.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  document.getElementById('desc-sec').style.display='none';
+  const ta = document.getElementById('desc-ta'); if(ta) ta.value='';
+  const cn = document.getElementById('char-n'); if(cn) cn.textContent='0';
+}
+
+function updChar() {
+  document.getElementById('char-n').textContent = document.getElementById('desc-ta').value.length;
+}
+
+function sendReport() {
+  alert('✅ Reporte enviado.\nTicket creado: #TKT-4521 · SLA: respuesta en < 4h');
+  showScreen('s03'); openTicket();
+}
+
+function sendEmergency() {
+  alert('🚨 Alerta enviada a soporte Tiendi.\nTu ubicación GPS fue compartida.\nTicket P0 creado: #TKT-EMER-001');
+  showScreen('s03'); openTicket();
+}
+
+// ── S03 ──────────────────────────────────────────────────────────────────────
+function openTicket() { showSV('s03','sv03-detail'); }
+
+const TKT_STATES = {
+  open:    {label:'🔵 Abierto',       cls:'open',     sla:'SLA: primera respuesta en < 30 min', time:'28 min restantes', fill:93, sc:'safe'},
+  review:  {label:'🟡 En revisión',   cls:'review',   sla:'SLA: respuesta en < 4h',             time:'2h restantes',     fill:50, sc:'safe'},
+  waiting: {label:'🟣 Esperando rider',cls:'waiting', sla:'SLA: esperando tu respuesta',        time:'1h restantes',     fill:75, sc:'risk'},
+  resolved:{label:'🟢 Resuelto',      cls:'resolved', sla:'Caso cerrado ✅',                    time:'—',                fill:100,sc:'safe'},
+};
+
+function setTktState(key, btn) {
+  const st = TKT_STATES[key];
+  document.getElementById('tkt-pill-wrap').innerHTML = `<span class="pill ${st.cls}">${st.label}</span>`;
+  document.getElementById('sla-txt').textContent = st.sla;
+  document.getElementById('sla-time').textContent = st.time;
+  const fill = document.getElementById('sla-fill');
+  fill.style.width = st.fill + '%';
+  fill.className = 'sla-fill ' + st.sc;
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function setSLA(mode, btn) {
+  const cfg = {
+    safe:{fill:50,sc:'safe',txt:'SLA: respuesta en < 4h',  time:'2h restantes'},
+    risk:{fill:80,sc:'risk',txt:'SLA: ⚠️ Poco tiempo',      time:'28 min restantes'},
+    over:{fill:100,sc:'over',txt:'SLA vencido 🔴',          time:'Vencido'},
+  };
+  const c = cfg[mode];
+  const fill = document.getElementById('sla-fill');
+  fill.style.width = c.fill + '%';
+  fill.className = 'sla-fill ' + c.sc;
+  document.getElementById('sla-txt').textContent = c.txt;
+  document.getElementById('sla-time').textContent = c.time;
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-in');
+  const text = input.value.trim(); if (!text) return;
+  const t = new Date(); const ts = t.getHours()+':'+String(t.getMinutes()).padStart(2,'0');
+  document.getElementById('extra-msgs').innerHTML +=
+    `<div class="msg-row right" style="margin-top:12px"><div class="msg-bubble">${text}</div><div class="msg-time">${ts} ✓✓</div></div>`;
+  input.value = '';
+}
+
+function markResolved() {
+  if (!confirm('¿Marcás este ticket como resuelto?')) return;
+  setTktState('resolved', document.querySelector('[onclick*="resolved"]'));
+}
+
+// ── S04 ──────────────────────────────────────────────────────────────────────
+const DOCS = {
+  terms:{title:'Términos y condiciones',ver:'Versión 3.1 · 01/03/2026',html:`<h3>1. Objeto del contrato</h3><p>Los presentes Términos regulan la relación entre Tiendi S.A.C. y el repartidor registrado en la plataforma Tiendi Go.</p><h3>2. Obligaciones del repartidor</h3><p>El repartidor se compromete a realizar las entregas de manera diligente, respetando los tiempos acordados y manteniendo un trato cordial con clientes y establecimientos.</p><h3>3. Ganancias y pagos</h3><p>Las ganancias se calculan según la tarifa base, distancia y multiplicadores de demanda vigentes. Los pagos se acreditan cada lunes hábil.</p><h3>4. Suspensión de cuenta</h3><p>Tiendi se reserva el derecho de suspender cuentas que incumplan estas condiciones, con o sin previo aviso según la gravedad del incumplimiento.</p>`},
+  privacy:{title:'Política de privacidad',ver:'Versión 2.0 · 01/03/2026',html:`<h3>Datos que recopilamos</h3><p>Recopilamos datos de ubicación GPS en tiempo real durante entregas activas, datos de dispositivo, historial de entregas y calificaciones.</p><h3>Uso de los datos</h3><p>Los datos se utilizan para operar el servicio, mejorar la asignación de pedidos y garantizar la seguridad de repartidores y clientes.</p><h3>Retención</h3><p>Los datos de ubicación se conservan por 90 días. El historial de entregas se conserva indefinidamente para efectos contables.</p>`},
+  contract:{title:'Contrato de repartidor',ver:'Firmado: 15/01/2026 · Vigente',html:`<h3>Naturaleza de la relación</h3><p>El presente contrato establece una relación de servicios independientes. El repartidor no es empleado de Tiendi S.A.C.</p><h3>Modalidad de trabajo</h3><p>El repartidor gestiona libremente su horario y disponibilidad. No existe obligación de conectarse en horarios específicos.</p><h3>Vigencia</h3><p>El contrato es de duración indefinida y puede ser rescindido por cualquiera de las partes con 15 días de preaviso.</p>`},
+  cookies:{title:'Política de cookies',ver:'Versión 1.2 · 01/03/2026',html:`<h3>¿Qué son las cookies?</h3><p>Las cookies son pequeños archivos que la app almacena en tu dispositivo para recordar tus preferencias y mantener tu sesión activa.</p><h3>Cookies que usamos</h3><p>Usamos cookies de sesión (autenticación), preferencias y analíticas (uso anónimo para mejoras).</p><h3>Control</h3><p>Podés desactivar cookies no esenciales desde Configuración → Privacidad → Política de cookies.</p>`},
+};
+
+function openDoc(id) {
+  const doc = DOCS[id];
+  document.getElementById('s04-title').textContent = doc.title.length>22 ? doc.title.slice(0,20)+'…' : doc.title;
+  document.getElementById('s04-ver').textContent = doc.ver;
+  document.getElementById('s04-ver').style.display = 'block';
+  document.getElementById('doc-body').innerHTML = doc.html;
+  showSV('s04','sv04-doc');
+}
+
+function s04Back() {
+  if (document.getElementById('sv04-doc').classList.contains('active')) {
+    showSV('s04','sv04-list');
+    document.getElementById('s04-title').textContent = 'Documentos legales';
+    document.getElementById('s04-ver').style.display = 'none';
+  } else {
+    showScreen('s01');
+  }
+}
+</script>
+</div><!-- /main -->
+</body>
+</html>

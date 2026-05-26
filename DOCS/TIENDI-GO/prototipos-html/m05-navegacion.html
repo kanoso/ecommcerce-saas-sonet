@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M05 — Navegación y GPS | Tiendi Go</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #F97316;
+      --success: #16A34A;
+      --warning: #D97706;
+      --error:   #DC2626;
+      --info:    #2563EB;
+      --bg:      #1C1C1E;
+      --card:    #2C2C2E;
+      --card2:   #3A3A3C;
+      --border:  #48484A;
+      --text:    #FFFFFF;
+      --text-2:  #EBEBF5;
+      --text-3:  #8E8E93;
+      --nav-blue:   #0D47A1;
+      --nav-green:  #388E3C;
+      --nav-orange: #F57C00;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #111;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      background: #2C2C2E;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6C6C70;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0 16px 16px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+      color: #8E8E93;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .nav-item.active {
+      background: rgba(249,115,22,.12);
+      border-left-color: var(--primary);
+      color: var(--primary);
+    }
+    .nav-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6C6C70;
+      width: 20px;
+    }
+    .nav-item.active .nav-num { color: var(--primary); }
+
+    /* ── MAIN / PHONE ── */
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: var(--bg);
+      border-radius: 48px;
+      box-shadow: 0 0 0 12px #2C2C2E, 0 0 0 14px #3A3A3C, 0 32px 80px rgba(0,0,0,.8);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .screen { display: none; flex-direction: column; height: 100%; }
+    .screen.active { display: flex; }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px 4px;
+      flex-shrink: 0;
+    }
+    .status-time { font-size: 15px; font-weight: 700; color: #fff; }
+    .status-icons { display: flex; gap: 6px; font-size: 12px; color: #fff; }
+
+    /* ════════════════════════════════════
+       S01 — NAVEGACIÓN TURN-BY-TURN
+    ════════════════════════════════════ */
+    .nav-instr {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      flex-shrink: 0;
+      transition: background .35s;
+    }
+    .nav-instr.state-normal  { background: var(--nav-blue); }
+    .nav-instr.state-arrived { background: var(--nav-green); }
+    .nav-instr.state-recalc  { background: var(--nav-orange); }
+
+    .turn-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(255,255,255,.2);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+    .turn-main { font-size: 20px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .turn-dist { font-size: 14px; color: rgba(255,255,255,.8); margin-top: 3px; }
+
+    /* Map */
+    .nav-map {
+      flex: 1;
+      background: #3A4A3B;
+      position: relative;
+      overflow: hidden;
+    }
+    .map-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .street-h {
+      position: absolute;
+      height: 9px;
+      background: #4A5A4B;
+      border-radius: 4px;
+    }
+    .street-v {
+      position: absolute;
+      width: 9px;
+      background: #4A5A4B;
+      border-radius: 4px;
+    }
+    .route-seg {
+      position: absolute;
+      background: #2196F3;
+      border-radius: 4px;
+      z-index: 2;
+    }
+    .rider-dot {
+      position: absolute;
+      width: 20px; height: 20px;
+      background: #2196F3;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      z-index: 10;
+      transform: translate(-50%, -50%);
+    }
+    .rider-ring {
+      position: absolute;
+      width: 36px; height: 36px;
+      border: 2px solid rgba(33,150,243,.5);
+      border-radius: 50%;
+      z-index: 9;
+      transform: translate(-50%, -50%);
+      animation: pulse-blue 2s infinite;
+    }
+    @keyframes pulse-blue {
+      0%   { transform: translate(-50%,-50%) scale(1);   opacity: .8; }
+      100% { transform: translate(-50%,-50%) scale(1.9); opacity: 0;  }
+    }
+    .dest-pin {
+      position: absolute;
+      font-size: 26px;
+      z-index: 10;
+      transform: translate(-50%, -100%);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.5));
+    }
+
+    /* Destination info bar */
+    .dest-bar {
+      background: #111;
+      padding: 12px 18px;
+      flex-shrink: 0;
+      border-top: 1px solid #2C2C2E;
+    }
+    .dest-row { display: flex; justify-content: space-between; align-items: center; }
+    .dest-name { font-size: 15px; font-weight: 700; color: #fff; }
+    .dest-km   { font-size: 15px; font-weight: 600; color: var(--primary); }
+    .eta-row   { display: flex; justify-content: space-between; margin-top: 3px; }
+    .eta-text  { font-size: 13px; color: var(--text-3); }
+
+    /* Controls */
+    .nav-controls {
+      background: #111;
+      padding: 10px 20px 28px;
+      display: flex;
+      justify-content: space-around;
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      width: 58px; height: 58px;
+      background: var(--card);
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .nav-btn .icon  { font-size: 22px; }
+    .nav-btn .lbl   { font-size: 10px; color: var(--text-3); font-weight: 600; }
+    .nav-btn.muted  { opacity: .35; }
+    .nav-btn.danger { background: #2C1A1A; }
+    .nav-btn.danger .lbl { color: var(--error); }
+
+    /* Demo state buttons */
+    .demo-tabs {
+      display: flex;
+      gap: 1px;
+      background: #000;
+      flex-shrink: 0;
+    }
+    .demo-tab {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      background: #1C1C1E;
+      color: var(--text-3);
+      transition: all .15s;
+    }
+    .demo-tab.on-blue   { background: var(--nav-blue);   color: #fff; }
+    .demo-tab.on-green  { background: var(--nav-green);  color: #fff; }
+    .demo-tab.on-orange { background: var(--nav-orange); color: #fff; }
+
+    /* ════════════════════════════════════
+       S02 — CONSENTIMIENTO GPS
+    ════════════════════════════════════ */
+    .consent-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .consent-hero {
+      text-align: center;
+      padding: 8px 0 24px;
+    }
+    .consent-illus {
+      width: 96px; height: 96px;
+      background: linear-gradient(135deg, #1E3A5F, #2563EB);
+      border-radius: 28px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 46px;
+    }
+    .consent-h1  { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .consent-sub { font-size: 14px; color: var(--text-3); line-height: 1.5; }
+
+    .info-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .info-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .info-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 5px;
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-bullet { color: var(--text-3); flex-shrink: 0; }
+
+    .privacy-lnk {
+      text-align: center;
+      font-size: 13px;
+      color: var(--info);
+      padding: 10px 0;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .consent-footer {
+      padding: 14px 20px 28px;
+      flex-shrink: 0;
+    }
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-primary:active { opacity: .8; }
+    .btn-ghost {
+      text-align: center;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--text-3);
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    /* GPS denied */
+    #denied-panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    #denied-panel.show { display: flex; }
+    .denied-ico {
+      width: 88px; height: 88px;
+      background: #2C1A1A;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 22px;
+    }
+    .denied-h1   { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 10px; }
+    .denied-body { font-size: 14px; color: var(--text-3); line-height: 1.6; margin-bottom: 30px; }
+
+    /* ════════════════════════════════════
+       S03 — MODO OFFLINE
+    ════════════════════════════════════ */
+    .sub-tabs {
+      display: flex;
+      gap: 1px;
+      background: #000;
+      flex-shrink: 0;
+    }
+    .sub-tab {
+      flex: 1;
+      padding: 10px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      background: var(--card);
+      color: var(--text-3);
+      transition: all .15s;
+    }
+    .sub-tab.active { background: var(--card2); color: #fff; }
+
+    /* GPS-lost tab: map with banner */
+    .gps-lost-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .gps-banner {
+      background: #92400E;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .gps-banner-t  { font-size: 13px; font-weight: 700; color: #FDE68A; }
+    .gps-banner-s  { font-size: 11px; color: #FCD34D; margin-top: 2px; }
+
+    .offline-map {
+      flex: 1;
+      background: #2D3830;
+      position: relative;
+      overflow: hidden;
+      filter: grayscale(.5) brightness(.75);
+    }
+
+    .mini-card {
+      position: absolute;
+      bottom: 16px; left: 16px; right: 16px;
+      background: rgba(28,28,30,.95);
+      border: 1px solid #3A3A3C;
+      border-radius: 16px;
+      padding: 14px;
+      z-index: 15;
+      backdrop-filter: blur(8px);
+      filter: grayscale(0) brightness(1);
+    }
+    .mini-lbl     { font-size: 11px; color: var(--text-3); margin-bottom: 3px; }
+    .mini-address { font-size: 14px; font-weight: 600; color: #fff; }
+    .mini-chip {
+      display: inline-block;
+      background: #451A03;
+      color: #FB923C;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 6px;
+    }
+
+    /* Internet-lost tab */
+    .inet-lost-wrap {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+    }
+    .inet-lost-wrap.show { display: flex; }
+
+    .inet-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px 0;
+      text-align: center;
+    }
+    .inet-ico {
+      width: 88px; height: 88px;
+      background: #1A1A2E;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 18px;
+    }
+    .inet-h1   { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .inet-body { font-size: 14px; color: var(--text-3); line-height: 1.5; margin-bottom: 20px; }
+
+    .avail-card {
+      width: 100%;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .avail-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .avail-title.green { color: var(--success); }
+    .avail-title.red   { color: var(--error); }
+    .avail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-2);
+      margin-bottom: 5px;
+    }
+    .avail-row:last-child { margin-bottom: 0; }
+
+    .inet-footer {
+      padding: 14px 20px 28px;
+      flex-shrink: 0;
+    }
+    .retry-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="sidebar-title">M05 — Navegación GPS</div>
+  <div class="nav-item active" data-screen="s01" onclick="showScreen('s01')">
+    <span class="nav-num">01</span>Navegación turn-by-turn
+  </div>
+  <div class="nav-item" data-screen="s02" onclick="showScreen('s02')">
+    <span class="nav-num">02</span>Consentimiento GPS
+  </div>
+  <div class="nav-item" data-screen="s03" onclick="showScreen('s03')">
+    <span class="nav-num">03</span>Modo offline / sin señal
+  </div>
+</nav>
+
+<!-- ── PHONE ── -->
+<div class="main">
+<div class="phone">
+
+  <!-- ═══════════════════════════════════
+       S01 — NAVEGACIÓN TURN-BY-TURN
+  ═══════════════════════════════════ -->
+  <div class="screen active" id="s01">
+    <div class="status-bar" style="background: var(--nav-blue);">
+      <span class="status-time">10:41</span>
+      <div class="status-icons">📶 🔋</div>
+    </div>
+
+    <!-- Instruction panel -->
+    <div class="nav-instr state-normal" id="nav-instr">
+      <div class="turn-icon" id="turn-ico">↰</div>
+      <div>
+        <div class="turn-main" id="turn-main">Girar a la izquierda</div>
+        <div class="turn-dist" id="turn-dist">en 80 metros</div>
+      </div>
+    </div>
+
+    <!-- Map -->
+    <div class="nav-map">
+      <div class="map-grid"></div>
+      <!-- Streets -->
+      <div class="street-h" style="top:28%;left:0;right:0;"></div>
+      <div class="street-h" style="top:54%;left:0;right:0;"></div>
+      <div class="street-h" style="top:76%;left:0;right:0;"></div>
+      <div class="street-v" style="left:22%;top:0;bottom:0;"></div>
+      <div class="street-v" style="left:58%;top:0;bottom:0;"></div>
+      <div class="street-v" style="left:78%;top:0;bottom:0;"></div>
+      <!-- Blue route: vertical segment then horizontal -->
+      <div class="route-seg" style="width:9px;top:28%;bottom:46%;left:calc(58% - 4px);"></div>
+      <div class="route-seg" style="height:9px;top:calc(28% - 4px);left:22%;width:calc(58% - 22% + 5px);"></div>
+      <div class="route-seg" style="width:9px;top:28%;height:26%;left:calc(22% - 4px);"></div>
+      <!-- Rider -->
+      <div class="rider-ring" style="top:54%;left:58%;"></div>
+      <div class="rider-dot"  style="top:54%;left:58%;"></div>
+      <!-- Destination -->
+      <div class="dest-pin" style="top:28%;left:22%;">📍</div>
+    </div>
+
+    <!-- Destination bar -->
+    <div class="dest-bar">
+      <div class="dest-row">
+        <div class="dest-name">🏪 El Buen Sabor</div>
+        <div class="dest-km">1.2 km</div>
+      </div>
+      <div class="eta-row">
+        <div class="eta-text">ETA: 6 min</div>
+        <div class="eta-text">Llegada: 10:47</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="nav-controls">
+      <div class="nav-btn" id="voice-btn" onclick="toggleVoice()">
+        <span class="icon">🔊</span>
+        <span class="lbl">Voz</span>
+      </div>
+      <div class="nav-btn">
+        <span class="icon">📋</span>
+        <span class="lbl">Pedido</span>
+      </div>
+      <div class="nav-btn danger">
+        <span class="icon">✖️</span>
+        <span class="lbl">Salir</span>
+      </div>
+    </div>
+
+    <!-- Demo: switch instruction state -->
+    <div class="demo-tabs">
+      <div class="demo-tab on-blue" id="dt-normal"  onclick="setNavState('normal')">En ruta</div>
+      <div class="demo-tab"         id="dt-arrived" onclick="setNavState('arrived')">Llegaste</div>
+      <div class="demo-tab"         id="dt-recalc"  onclick="setNavState('recalc')">Recalculando</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       S02 — CONSENTIMIENTO GPS
+  ═══════════════════════════════════ -->
+  <div class="screen" id="s02">
+    <div class="status-bar">
+      <span class="status-time">10:41</span>
+      <div class="status-icons">📶 🔋</div>
+    </div>
+
+    <!-- Normal consent flow -->
+    <div id="consent-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="consent-body">
+        <div class="consent-hero">
+          <div class="consent-illus">📍</div>
+          <div class="consent-h1">Necesitamos tu ubicación</div>
+          <div class="consent-sub">Para que Tiendi Go funcione correctamente necesitamos acceso a tu GPS.</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">📍 Qué recolectamos</div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Tu ubicación en tiempo real mientras trabajás</span></div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Historial de rutas de cada entrega</span></div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">🎯 Para qué lo usamos</div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Asignarte pedidos cercanos a tu posición</span></div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Calcular tus ganancias por distancia</span></div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Compartir tu posición con el cliente y la tienda durante la entrega</span></div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">🔒 Cómo lo protegemos</div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Solo compartimos tu ubicación durante entregas activas</span></div>
+          <div class="info-row"><span class="info-bullet">•</span><span>No vendemos tus datos a terceros</span></div>
+          <div class="info-row"><span class="info-bullet">•</span><span>Podés solicitar eliminar tu historial en cualquier momento</span></div>
+        </div>
+
+        <div class="privacy-lnk">Leer política de privacidad completa →</div>
+      </div>
+
+      <div class="consent-footer">
+        <div class="btn-primary">Permitir ubicación</div>
+        <div class="btn-ghost" onclick="showDenied(true)">Ahora no</div>
+      </div>
+    </div>
+
+    <!-- GPS denied state -->
+    <div id="denied-panel">
+      <div class="denied-ico">📡</div>
+      <div class="denied-h1">Ubicación desactivada</div>
+      <div class="denied-body">Sin acceso a tu ubicación no podemos asignarte pedidos ni calcular tus ganancias.</div>
+      <div class="btn-primary" style="width:100%;max-width:300px;">Ir a Configuración</div>
+      <div class="btn-ghost" onclick="showDenied(false)" style="margin-top:8px;">← Volver</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       S03 — MODO OFFLINE / SIN SEÑAL
+  ═══════════════════════════════════ -->
+  <div class="screen" id="s03">
+    <div class="status-bar" style="background:#1A1A1A;">
+      <span class="status-time" style="color:#8E8E93;">10:41</span>
+      <div class="status-icons" style="color:#555;">📡 🔋</div>
+    </div>
+
+    <!-- Sub-tabs -->
+    <div class="sub-tabs">
+      <div class="sub-tab active" id="tab-gps"  onclick="setOfflineTab('gps')">📡 Sin GPS (no bloquea)</div>
+      <div class="sub-tab"        id="tab-inet" onclick="setOfflineTab('inet')">🌐 Sin internet</div>
+    </div>
+
+    <!-- TAB A: GPS lost — non-blocking -->
+    <div class="gps-lost-wrap" id="gps-lost-view">
+      <div class="gps-banner">
+        <div>
+          <div class="gps-banner-t">📡 Sin señal GPS</div>
+          <div class="gps-banner-s">Última posición: hace 45 s</div>
+        </div>
+      </div>
+
+      <!-- Grayed-out map -->
+      <div class="offline-map">
+        <div class="map-grid"></div>
+        <div class="street-h" style="top:30%;left:0;right:0;"></div>
+        <div class="street-h" style="top:60%;left:0;right:0;"></div>
+        <div class="street-v" style="left:35%;top:0;bottom:0;"></div>
+        <div class="street-v" style="left:65%;top:0;bottom:0;"></div>
+        <!-- Faded route -->
+        <div class="route-seg" style="opacity:.3;height:9px;top:calc(30%-4px);left:35%;width:calc(65%-35%);"></div>
+        <!-- Last known position (static, grayed) -->
+        <div class="rider-dot" style="top:30%;left:50%;background:#666;border-color:#888;"></div>
+      </div>
+
+      <!-- Mini delivery card floating above map -->
+      <div class="mini-card">
+        <div class="mini-lbl">Entrega activa</div>
+        <div class="mini-address">Av. Los Ingenieros 345, Dpto. 4B</div>
+        <div class="mini-chip">Navegá usando caché de ruta</div>
+      </div>
+    </div>
+
+    <!-- TAB B: Internet lost — full screen -->
+    <div class="inet-lost-wrap" id="inet-lost-view">
+      <div class="inet-content">
+        <div class="inet-ico">🌐</div>
+        <div class="inet-h1">Sin conexión</div>
+        <div class="inet-body">Revisá tu conexión a internet. Algunas funciones siguen activas.</div>
+
+        <div class="avail-card">
+          <div class="avail-title green">✅ Disponible offline</div>
+          <div class="avail-row"><span>•</span><span>Navegación por GPS</span></div>
+          <div class="avail-row"><span>•</span><span>Ver detalles del pedido actual (en caché)</span></div>
+          <div class="avail-row"><span>•</span><span>Registro de entrega — QR offline</span></div>
+        </div>
+
+        <div class="avail-card">
+          <div class="avail-title red">❌ No disponible</div>
+          <div class="avail-row"><span>•</span><span>Recibir nuevos pedidos</span></div>
+          <div class="avail-row"><span>•</span><span>Chat con cliente o tienda</span></div>
+          <div class="avail-row"><span>•</span><span>Actualizar estado del pedido</span></div>
+        </div>
+      </div>
+
+      <div class="inet-footer">
+        <div class="btn-primary">🔄 Reintentar</div>
+        <div class="retry-note">🔄 Reintentando en <span id="cd">15</span> s…</div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+  // ── Screen navigation ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.toggle('active', n.dataset.screen === id);
+    });
+    if (id === 's03') startCountdown();
+  }
+
+  // ── S01: Navigation states ──
+  const NAV = {
+    normal:  { cls: 'state-normal',  ico: '↰',  main: 'Girar a la izquierda', dist: 'en 80 metros',         tabId: 'dt-normal',  tabCls: 'on-blue'   },
+    arrived: { cls: 'state-arrived', ico: '📍', main: 'Llegaste a El Buen Sabor', dist: '',                  tabId: 'dt-arrived', tabCls: 'on-green'  },
+    recalc:  { cls: 'state-recalc',  ico: '🔄', main: 'Recalculando ruta…',    dist: 'buscando mejor camino', tabId: 'dt-recalc',  tabCls: 'on-orange' },
+  };
+  function setNavState(key) {
+    const s = NAV[key];
+    const el = document.getElementById('nav-instr');
+    el.className = 'nav-instr ' + s.cls;
+    document.getElementById('turn-ico').textContent  = s.ico;
+    document.getElementById('turn-main').textContent = s.main;
+    document.getElementById('turn-dist').textContent = s.dist;
+    document.querySelectorAll('.demo-tab').forEach(t => t.className = 'demo-tab');
+    document.getElementById(s.tabId).classList.add(s.tabCls);
+  }
+
+  let voiceOn = true;
+  function toggleVoice() {
+    voiceOn = !voiceOn;
+    document.getElementById('voice-btn').classList.toggle('muted', !voiceOn);
+  }
+
+  // ── S02: GPS denied state ──
+  function showDenied(show) {
+    document.getElementById('consent-panel').style.display = show ? 'none' : 'flex';
+    document.getElementById('denied-panel').classList.toggle('show', show);
+  }
+
+  // ── S03: Offline sub-tabs ──
+  function setOfflineTab(tab) {
+    document.getElementById('tab-gps').classList.toggle('active', tab === 'gps');
+    document.getElementById('tab-inet').classList.toggle('active', tab === 'inet');
+    document.getElementById('gps-lost-view').style.display  = tab === 'gps'  ? 'flex' : 'none';
+    document.getElementById('inet-lost-view').classList.toggle('show', tab === 'inet');
+  }
+
+  // Retry countdown
+  let cdTimer = null;
+  function startCountdown() {
+    if (cdTimer) clearInterval(cdTimer);
+    let t = 15;
+    document.getElementById('cd').textContent = t;
+    cdTimer = setInterval(() => {
+      t = t <= 1 ? 15 : t - 1;
+      document.getElementById('cd').textContent = t;
+    }, 1000);
+  }
+</script>
+
+</body>
+</html>

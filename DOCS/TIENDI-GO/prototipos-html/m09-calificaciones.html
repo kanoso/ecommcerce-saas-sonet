@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M09 — Calificaciones | Tiendi Go</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #F97316; --success: #16A34A; --warning: #D97706;
+      --error: #DC2626; --info: #2563EB;
+      --bg: #1C1C1E; --card: #2C2C2E; --card2: #3A3A3C;
+      --border: #48484A; --text: #FFFFFF; --text-2: #EBEBF5; --text-3: #8E8E93;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111; display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar { width: 220px; background: #2C2C2E; padding: 24px 0; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-title { font-size: 11px; font-weight: 700; color: #6C6C70; letter-spacing: 1px; text-transform: uppercase; padding: 0 16px 16px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; border-left: 3px solid transparent; transition: all .15s; color: var(--text-3); font-size: 13px; font-weight: 500; }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .nav-item.active { background: rgba(249,115,22,.12); border-left-color: var(--primary); color: var(--primary); }
+    .nav-num { font-size: 11px; font-weight: 700; color: #6C6C70; width: 20px; }
+    .nav-item.active .nav-num { color: var(--primary); }
+
+    /* ── PHONE ── */
+    .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .phone { width: 390px; height: 844px; background: var(--bg); border-radius: 48px; box-shadow: 0 0 0 12px #2C2C2E, 0 0 0 14px #3A3A3C, 0 32px 80px rgba(0,0,0,.8); overflow: hidden; display: flex; flex-direction: column; position: relative; }
+    .screen { display: none; flex-direction: column; height: 100%; }
+    .screen.active { display: flex; }
+    .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 4px; flex-shrink: 0; }
+    .status-time { font-size: 15px; font-weight: 700; color: #fff; }
+    .status-icons { font-size: 12px; color: #fff; }
+
+    /* ── SHARED ── */
+    .page-header { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: var(--card); flex-shrink: 0; border-bottom: 1px solid var(--border); }
+    .back-btn { font-size: 22px; color: var(--primary); cursor: pointer; }
+    .page-title { font-size: 17px; font-weight: 700; color: #fff; }
+    .scroll-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .scroll-body::-webkit-scrollbar { width: 3px; }
+    .scroll-body::-webkit-scrollbar-thumb { background: #3A3A3C; border-radius: 2px; }
+    .btn-primary { display: block; width: 100%; padding: 15px; background: var(--primary); color: #fff; font-size: 16px; font-weight: 700; border-radius: 14px; text-align: center; cursor: pointer; transition: opacity .15s; }
+    .btn-primary:active { opacity: .8; }
+    .btn-primary.disabled { opacity: .35; pointer-events: none; }
+    .btn-primary.success-btn { background: var(--success); }
+    .btn-ghost { text-align: center; padding: 12px; font-size: 14px; color: var(--text-3); cursor: pointer; }
+    .section-label { font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+
+    /* ════════════════════════════════
+       S01 — CALIFICACIÓN POST-ENTREGA
+    ════════════════════════════════ */
+
+    /* Step indicator */
+    .step-indicator { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 0 0; flex-shrink: 0; }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background .25s; }
+    .step-dot.active { background: var(--primary); width: 20px; border-radius: 4px; }
+    .step-dot.done { background: var(--success); }
+
+    /* Rating hero */
+    .rating-hero { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .rating-hero-head { text-align: center; padding: 20px 20px 16px; }
+    .rating-question { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.3; }
+    .rating-name { font-size: 22px; font-weight: 800; color: var(--primary); }
+    .rating-ped { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+
+    /* Stars */
+    .stars-row { display: flex; justify-content: center; gap: 6px; padding: 8px 0 14px; flex-shrink: 0; }
+    .star-btn {
+      font-size: 46px;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform .12s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .star-btn:active { transform: scale(.88); }
+    .star-btn.filled { color: #F59E0B; }
+    .star-btn.hollow { color: #3A3A3C; }
+
+    /* Score label */
+    .score-label { text-align: center; font-size: 15px; font-weight: 700; color: var(--text-3); padding-bottom: 10px; min-height: 28px; transition: color .2s; flex-shrink: 0; }
+    .score-label.pos { color: var(--success); }
+    .score-label.neg { color: var(--error); }
+    .score-label.neu { color: var(--warning); }
+
+    /* Labels chips area */
+    .labels-scroll { padding: 0 14px 10px; overflow-y: auto; flex-shrink: 0; }
+    .label-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .label-chip {
+      padding: 8px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      background: var(--card); color: var(--text-2);
+      border: 1px solid var(--border); transition: all .12s;
+    }
+    .label-chip.selected { background: rgba(249,115,22,.15); border-color: var(--primary); color: var(--primary); }
+
+    /* Comment */
+    .comment-area { padding: 0 14px 10px; flex-shrink: 0; }
+    .comment-label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+    .comment-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 72px; font-size: 14px; color: var(--text-3); }
+    .comment-counter { font-size: 11px; color: var(--text-3); text-align: right; margin-top: 4px; }
+
+    /* Footer */
+    .rating-footer { padding: 10px 16px 24px; flex-shrink: 0; }
+
+    /* ════════════════════════════════
+       S02 — MI PUNTUACIÓN
+    ════════════════════════════════ */
+    .score-hero { text-align: center; padding: 20px 0 16px; }
+    .score-big { font-size: 56px; font-weight: 800; color: #fff; letter-spacing: -2px; line-height: 1; }
+    .score-stars { font-size: 28px; letter-spacing: 3px; margin: 8px 0 6px; }
+    .score-based { font-size: 13px; color: var(--text-3); }
+
+    .dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .dist-star { font-size: 13px; color: var(--text-3); white-space: nowrap; width: 28px; }
+    .dist-bar-wrap { flex: 1; height: 10px; background: #3A3A3C; border-radius: 5px; overflow: hidden; }
+    .dist-bar { height: 100%; background: var(--primary); border-radius: 5px; }
+    .dist-pct { font-size: 12px; color: var(--text-3); width: 36px; text-align: right; }
+
+    .impact-card {
+      border-radius: 14px; padding: 14px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .impact-card.on-track { background: rgba(22,163,74,.1); border: 1px solid rgba(22,163,74,.3); }
+    .impact-card.warning  { background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.3); }
+    .impact-card.danger   { background: rgba(220,38,38,.1);  border: 1px solid rgba(220,38,38,.3);  }
+    .impact-icon { font-size: 28px; flex-shrink: 0; }
+    .impact-title { font-size: 14px; font-weight: 700; color: #fff; }
+    .impact-text  { font-size: 13px; color: var(--text-3); margin-top: 3px; line-height: 1.4; }
+    .impact-note { font-size: 12px; color: var(--text-3); line-height: 1.5; margin-bottom: 14px; }
+
+    .review-item { background: var(--card); border-radius: 12px; padding: 13px; margin-bottom: 8px; }
+    .review-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    .review-stars { font-size: 16px; }
+    .review-name { font-size: 13px; font-weight: 600; color: var(--text-3); }
+    .review-comment { font-size: 13px; color: var(--text-2); font-style: italic; margin-bottom: 3px; }
+    .review-meta { font-size: 12px; color: var(--text-3); }
+    .see-all { text-align: center; padding: 12px 0 4px; font-size: 14px; color: var(--primary); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M09 — Calificaciones</div>
+  <div class="nav-item active" data-screen="s01" onclick="showScreen('s01')">
+    <span class="nav-num">01</span>Calificación post-entrega
+  </div>
+  <div class="nav-item" data-screen="s02" onclick="showScreen('s02')">
+    <span class="nav-num">02</span>Mi puntuación
+  </div>
+</nav>
+
+<div class="main">
+<div class="phone">
+
+  <!-- ═══════════════════════════════════
+       S01 — CALIFICACIÓN POST-ENTREGA
+  ═══════════════════════════════════ -->
+  <div class="screen active" id="s01">
+    <div class="status-bar">
+      <span class="status-time">10:41</span>
+      <span class="status-icons">📶 🔋</span>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+    </div>
+
+    <!-- STEP 1: Rate client -->
+    <div class="rating-hero" id="step-client">
+      <div class="rating-hero-head">
+        <div class="rating-question">¿Cómo estuvo</div>
+        <div class="rating-name" id="ratee-name">Carlos M.?</div>
+        <div class="rating-ped">Pedido #PED-001</div>
+      </div>
+
+      <div class="stars-row" id="stars-row">
+        <span class="star-btn hollow" data-val="1" onclick="setRating(1, 'client')">★</span>
+        <span class="star-btn hollow" data-val="2" onclick="setRating(2, 'client')">★</span>
+        <span class="star-btn hollow" data-val="3" onclick="setRating(3, 'client')">★</span>
+        <span class="star-btn hollow" data-val="4" onclick="setRating(4, 'client')">★</span>
+        <span class="star-btn hollow" data-val="5" onclick="setRating(5, 'client')">★</span>
+      </div>
+
+      <div class="score-label" id="score-label-client">Seleccioná una calificación</div>
+
+      <div class="labels-scroll">
+        <div class="label-chips" id="label-chips-client"></div>
+      </div>
+
+      <div class="comment-area">
+        <div class="comment-label">Comentario (opcional)</div>
+        <div class="comment-box" id="comment-box">Escribí algo sobre la experiencia…</div>
+        <div class="comment-counter">0 / 200</div>
+      </div>
+
+      <div class="rating-footer">
+        <div class="btn-primary disabled" id="send-client-btn" onclick="advanceToStore()">Enviar calificación</div>
+        <div class="btn-ghost">Saltar por ahora</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Rate store (hidden initially) -->
+    <div class="rating-hero" id="step-store" style="display:none;">
+      <div class="rating-hero-head">
+        <div class="rating-question">¿Cómo estuvo</div>
+        <div class="rating-name" style="color:var(--success);">El Buen Sabor?</div>
+        <div class="rating-ped">Pedido #PED-001</div>
+      </div>
+
+      <div class="stars-row">
+        <span class="star-btn hollow" data-val="1" onclick="setRating(1, 'store')">★</span>
+        <span class="star-btn hollow" data-val="2" onclick="setRating(2, 'store')">★</span>
+        <span class="star-btn hollow" data-val="3" onclick="setRating(3, 'store')">★</span>
+        <span class="star-btn hollow" data-val="4" onclick="setRating(4, 'store')">★</span>
+        <span class="star-btn hollow" data-val="5" onclick="setRating(5, 'store')">★</span>
+      </div>
+
+      <div class="score-label" id="score-label-store">Seleccioná una calificación</div>
+
+      <div class="labels-scroll">
+        <div class="label-chips" id="label-chips-store"></div>
+      </div>
+
+      <div class="comment-area">
+        <div class="comment-label">Comentario (opcional)</div>
+        <div class="comment-box">Algo sobre la tienda…</div>
+        <div class="comment-counter">0 / 200</div>
+      </div>
+
+      <div class="rating-footer">
+        <div class="btn-primary success-btn disabled" id="send-store-btn" onclick="showScreen('s02')">Enviar y terminar</div>
+        <div class="btn-ghost">Saltar</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       S02 — MI PUNTUACIÓN
+  ═══════════════════════════════════ -->
+  <div class="screen" id="s02">
+    <div class="status-bar">
+      <span class="status-time">10:41</span>
+      <span class="status-icons">📶 🔋</span>
+    </div>
+    <div class="page-header">
+      <div class="back-btn">‹</div>
+      <div class="page-title">Mi calificación</div>
+    </div>
+
+    <div class="scroll-body">
+      <!-- Big score -->
+      <div class="score-hero">
+        <div class="score-big">4.8</div>
+        <div class="score-stars">⭐⭐⭐⭐⭐</div>
+        <div class="score-based">Basado en 234 viajes</div>
+      </div>
+
+      <!-- Distribution -->
+      <div class="section-label">Distribución</div>
+      <div style="background:var(--card);border-radius:14px;padding:14px;margin-bottom:14px;">
+        <div class="dist-row">
+          <div class="dist-star">5 ★</div>
+          <div class="dist-bar-wrap"><div class="dist-bar" style="width:89%;"></div></div>
+          <div class="dist-pct">89%</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-star">4 ★</div>
+          <div class="dist-bar-wrap"><div class="dist-bar" style="width:8%;background:var(--primary);opacity:.7;"></div></div>
+          <div class="dist-pct">8%</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-star">3 ★</div>
+          <div class="dist-bar-wrap"><div class="dist-bar" style="width:2%;background:var(--warning);"></div></div>
+          <div class="dist-pct">2%</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-star">2 ★</div>
+          <div class="dist-bar-wrap"><div class="dist-bar" style="width:2%;background:var(--error);opacity:.7;"></div></div>
+          <div class="dist-pct">0.5%</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-star">1 ★</div>
+          <div class="dist-bar-wrap"><div class="dist-bar" style="width:2%;background:var(--error);"></div></div>
+          <div class="dist-pct">0.5%</div>
+        </div>
+      </div>
+
+      <!-- Impact -->
+      <div class="section-label">Impacto en tu operativa</div>
+      <div class="impact-card on-track">
+        <div class="impact-icon">✅</div>
+        <div>
+          <div class="impact-title">Pool general activo</div>
+          <div class="impact-text">Recibís pedidos de cualquier tienda</div>
+        </div>
+      </div>
+      <div class="impact-note">Mantené tu rating &gt; 4.0 para seguir en el pool general.</div>
+
+      <!-- Recent ratings -->
+      <div class="section-label">Últimas calificaciones</div>
+
+      <div class="review-item">
+        <div class="review-top">
+          <div class="review-stars">⭐⭐⭐⭐⭐</div>
+          <div class="review-name">Carlos M.</div>
+        </div>
+        <div class="review-comment">"Muy puntual y amable, llegó antes de lo esperado"</div>
+        <div class="review-meta">El Buen Sabor · hoy</div>
+      </div>
+
+      <div class="review-item">
+        <div class="review-top">
+          <div class="review-stars">⭐⭐⭐⭐</div>
+          <div class="review-name">Ana G.</div>
+        </div>
+        <div class="review-comment" style="color:var(--text-3);font-style:normal;">Sin comentario</div>
+        <div class="review-meta">Pollería Central · ayer</div>
+      </div>
+
+      <div class="review-item">
+        <div class="review-top">
+          <div class="review-stars">⭐⭐⭐</div>
+          <div class="review-name">María L.</div>
+        </div>
+        <div class="review-comment">"Tardó un poco más de lo esperado"</div>
+        <div class="review-meta">La Trattoria · hace 3d</div>
+      </div>
+
+      <div class="see-all">Ver todas →</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+  // ── Screen nav ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n =>
+      n.classList.toggle('active', n.dataset.screen === id)
+    );
+    // Reset S01 when re-entering
+    if (id === 's01') resetRating();
+  }
+
+  // ── S01: Rating data ──
+  const LABELS = {
+    client: {
+      5: ['Instrucciones claras', 'Muy amable', 'Esperó con paciencia', 'Dirección exacta'],
+      4: ['Buenas instrucciones', 'Dirección correcta', 'Sin problemas'],
+      3: ['Instrucciones confusas', 'Tardó en responder'],
+      2: ['Dirección incorrecta', 'No respondió mensajes'],
+      1: ['Dirección muy incorrecta', 'Actitud inapropiada', 'No estaba'],
+    },
+    store: {
+      5: ['Pedido listo al llegar', 'Empaque perfecto', 'Atención rápida', 'Todo completo'],
+      4: ['Pedido casi listo', 'Buen empaque', 'Sin problemas'],
+      3: ['Tardó un poco', 'Empaque mejorable'],
+      2: ['Tardó mucho', 'Ítem incorrecto'],
+      1: ['No tenían el pedido', 'Trato inapropiado', 'Pedido muy demorado'],
+    }
+  };
+  const SCORE_TEXTS = {
+    5: { text: '¡Excelente experiencia!', cls: 'pos' },
+    4: { text: 'Buena experiencia', cls: 'pos' },
+    3: { text: 'Experiencia regular', cls: 'neu' },
+    2: { text: 'Experiencia mala', cls: 'neg' },
+    1: { text: 'Experiencia muy mala', cls: 'neg' },
+  };
+
+  let ratings = { client: 0, store: 0 };
+
+  function setRating(val, type) {
+    ratings[type] = val;
+    const suffix = type === 'client' ? 'client' : 'store';
+    const stepEl = type === 'client' ? document.getElementById('step-client') : document.getElementById('step-store');
+
+    // Update stars in this step
+    stepEl.querySelectorAll('.star-btn').forEach((s, i) => {
+      s.classList.toggle('filled', i < val);
+      s.classList.toggle('hollow', i >= val);
+    });
+
+    // Score label
+    const labelEl = document.getElementById(`score-label-${suffix}`);
+    const s = SCORE_TEXTS[val];
+    labelEl.textContent = s.text;
+    labelEl.className = `score-label ${s.cls}`;
+
+    // Dynamic chips
+    const chipsEl = document.getElementById(`label-chips-${suffix}`);
+    chipsEl.innerHTML = LABELS[type][val]
+      .map(l => `<div class="label-chip" onclick="this.classList.toggle('selected')">${l}</div>`)
+      .join('');
+
+    // Enable button
+    const btnId = type === 'client' ? 'send-client-btn' : 'send-store-btn';
+    document.getElementById(btnId).classList.remove('disabled');
+  }
+
+  function advanceToStore() {
+    if (ratings.client === 0) return;
+    // Mark step 1 done, activate step 2
+    document.getElementById('dot-1').classList.remove('active');
+    document.getElementById('dot-1').classList.add('done');
+    document.getElementById('dot-2').classList.add('active');
+    document.getElementById('step-client').style.display = 'none';
+    document.getElementById('step-store').style.display = 'flex';
+    document.getElementById('step-store').style.flexDirection = 'column';
+  }
+
+  function resetRating() {
+    ratings = { client: 0, store: 0 };
+    document.getElementById('dot-1').className = 'step-dot active';
+    document.getElementById('dot-2').className = 'step-dot';
+    document.getElementById('step-client').style.display = 'flex';
+    document.getElementById('step-store').style.display = 'none';
+    document.querySelectorAll('.star-btn').forEach(s => { s.classList.add('hollow'); s.classList.remove('filled'); });
+    ['client','store'].forEach(t => {
+      document.getElementById(`score-label-${t}`).textContent = 'Seleccioná una calificación';
+      document.getElementById(`score-label-${t}`).className = 'score-label';
+      document.getElementById(`label-chips-${t}`).innerHTML = '';
+    });
+    document.getElementById('send-client-btn').classList.add('disabled');
+    document.getElementById('send-store-btn').classList.add('disabled');
+  }
+</script>
+
+</body>
+</html>

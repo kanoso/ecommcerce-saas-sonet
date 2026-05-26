@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transversales — Pantallas globales · Tiendi Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#F97316;--primary-soft:rgba(249,115,22,.12);
+  --success:#16A34A;--warning:#D97706;--error:#DC2626;--info:#2563EB;
+  --bg:#1C1C1E;--card:#2C2C2E;--card2:#3A3A3C;
+  --text:#F5F5F7;--text2:#A1A1AA;--border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#111;min-height:100vh;display:flex;}
+.sidebar{width:220px;background:#2C2C2E;padding:24px 0;display:flex;flex-direction:column;gap:4px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-title{color:#A1A1AA;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 16px 8px}
+.sb{display:block;padding:10px 16px;color:#A1A1AA;font-size:13px;font-weight:500;cursor:pointer;border-left:3px solid transparent;background:transparent;width:100%;text-align:left;transition:all .15s;text-decoration:none;border-right:none;border-top:none;border-bottom:none;font-family:inherit}
+.sb:hover{color:#F5F5F7;background:rgba(255,255,255,.04)}
+.sb.active{color:#F97316;background:rgba(249,115,22,.12);border-left-color:#F97316}
+.sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+.main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:48px;overflow:hidden;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 20px 60px rgba(0,0,0,.6);position:relative;display:flex;flex-direction:column}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 6px;flex-shrink:0}
+.sbar-t{font-size:15px;font-weight:600;color:var(--text)}
+.sbar-i{display:flex;gap:6px;align-items:center;color:var(--text);font-size:12px}
+.top-bar{display:flex;align-items:center;gap:12px;padding:6px 20px 10px;flex-shrink:0}
+.btn-back-sm{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:10px;color:var(--text2);cursor:pointer;border:none;font-size:18px;flex-shrink:0;font-family:inherit}
+.top-title{font-size:17px;font-weight:600;color:var(--text);flex:1}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+.screen.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:0 20px 24px}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
+.h2{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
+.mb8{margin-bottom:8px}
+.mb12{margin-bottom:12px}
+.mb16{margin-bottom:16px}
+.mb20{margin-bottom:20px}
+
+/* demo box */
+.demo-box{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+.demo-box p{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px}
+.demo-row{display:flex;gap:6px;flex-wrap:wrap}
+.demo-btn{padding:5px 10px;background:var(--card2);border:none;border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.demo-btn.on{background:var(--primary-soft);color:var(--primary)}
+
+/* buttons */
+.btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-family:inherit;font-weight:600;text-align:center;display:block;width:100%;padding:4px 0}
+.btn-ghost.neutral{color:var(--text2)}
+
+/* ── PT-01 Error genérico ── */
+.error-full{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;gap:12px}
+.error-icon{font-size:60px}
+.error-title{font-size:22px;font-weight:800;color:var(--text)}
+.error-desc{font-size:15px;color:var(--text2);line-height:1.6}
+.error-ctx{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:12px;padding:12px;font-size:13px;color:var(--text2);line-height:1.5;text-align:left}
+.error-ctx strong{color:var(--primary)}
+.error-code{font-size:11px;color:#6C6C70;font-family:monospace}
+
+/* boundary error */
+.boundary-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:14px;text-align:center}
+
+/* ── PT-02 Sin conexión ── */
+.offline-full{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;gap:14px}
+.offline-icon{font-size:64px}
+.offline-title{font-size:22px;font-weight:800;color:var(--text)}
+.offline-desc{font-size:15px;color:var(--text2);line-height:1.5}
+.offline-last{font-size:13px;color:var(--text2);margin-top:4px}
+
+/* toast */
+.toast-area{position:absolute;top:80px;left:0;right:0;padding:0 20px;z-index:80;pointer-events:none;display:flex;flex-direction:column;gap:8px}
+.toast{border-radius:12px;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;opacity:0;transform:translateY(-8px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0);pointer-events:all}
+.toast.success{background:rgba(22,163,74,.9);color:#fff}
+.toast.warn{background:rgba(217,119,6,.9);color:#fff}
+
+/* offline capability table */
+.cap-table{background:var(--card);border-radius:14px;overflow:hidden;margin-top:16px;width:100%}
+.cap-header{display:grid;grid-template-columns:1fr auto auto;gap:0;background:var(--card2)}
+.cap-header div{font-size:11px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:center}
+.cap-header div:first-child{text-align:left}
+.cap-row{display:grid;grid-template-columns:1fr auto auto;border-top:1px solid var(--border)}
+.cap-row div{font-size:12px;color:var(--text2);padding:8px 10px;text-align:center;display:flex;align-items:center;justify-content:center}
+.cap-row div:first-child{justify-content:flex-start;color:var(--text)}
+.cap-ok{color:var(--success)!important;font-weight:700}
+.cap-no{color:var(--error)!important;font-weight:700}
+
+/* ── PT-03 Skeleton ── */
+.sk-section{margin-bottom:24px}
+.sk-label{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.sk-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:10px}
+.sk-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sk-row:last-child{margin-bottom:0}
+.sk-block{background:var(--card2);border-radius:6px;position:relative;overflow:hidden}
+.sk-block::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:shimmer 1.2s ease-in-out infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.sk-circle{background:var(--card2);border-radius:50%;position:relative;overflow:hidden;flex-shrink:0}
+.sk-circle::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:shimmer 1.2s ease-in-out infinite}
+
+/* KPI 3-col */
+.sk-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.sk-kpi{background:var(--card2);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.sk-kpi::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:shimmer 1.2s ease-in-out infinite}
+.sk-kpi .sk-block{background:rgba(255,255,255,.05)}
+
+/* ── PT-04 Empty state ── */
+.empty-switcher{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.empty-scene{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;gap:12px}
+.empty-scene.active{display:flex}
+.empty-icon{font-size:56px}
+.empty-title{font-size:18px;font-weight:700;color:var(--text)}
+.empty-desc{font-size:14px;color:var(--text2);line-height:1.6}
+.empty-zone{background:var(--card);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.empty-zone strong{color:var(--text)}
+.btn-secondary{width:100%;padding:14px;background:var(--card);color:var(--text);font-size:14px;font-weight:600;border:1.5px solid var(--border);border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-secondary:hover{background:var(--card2)}
+.search-term{color:var(--primary);font-style:italic}
+
+/* ── PT-05 Confirmación ── */
+.modal-gallery{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.modal-preview{background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:space-between}
+.modal-preview:hover{background:var(--card2)}
+.modal-preview-info{flex:1}
+.modal-preview-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.modal-preview-sub{font-size:12px;color:var(--text2)}
+.modal-preview-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px}
+.badge-critical{background:rgba(220,38,38,.2);color:var(--error)}
+.badge-high{background:rgba(217,119,6,.2);color:var(--warning)}
+.badge-medium{background:rgba(249,115,22,.15);color:var(--primary)}
+.badge-low{background:rgba(100,100,100,.2);color:var(--text2)}
+
+/* sheet */
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+.sheet-overlay.show{opacity:1;pointer-events:all}
+.sheet{background:#1C1C1E;border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.sheet-overlay.show .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--card2);border-radius:99px;margin:0 auto 20px}
+.sheet-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:10px}
+.sheet-body{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:20px}
+.btn-sheet-primary{width:100%;padding:15px;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px}
+.btn-sheet-primary.danger{background:var(--error);color:#fff}
+.btn-sheet-primary.warn{background:var(--warning);color:#fff}
+.btn-sheet-primary.primary{background:var(--primary);color:#fff}
+.btn-sheet-primary:disabled{opacity:.4;cursor:default}
+
+/* critical confirm field */
+.confirm-field{background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;width:100%;color:var(--text);font-size:15px;font-family:monospace;outline:none;margin-bottom:12px;letter-spacing:2px;text-transform:uppercase}
+.confirm-field:focus{border-color:var(--error)}
+.confirm-hint{font-size:12px;color:var(--text2);margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">Transversales</div>
+  <button class="sb active" onclick="showScreen('s01')">⚠️ PT-01 Error genérico</button>
+  <button class="sb" onclick="showScreen('s02')">📵 PT-02 Sin conexión</button>
+  <button class="sb" onclick="showScreen('s03')">⬜ PT-03 Skeleton</button>
+  <button class="sb" onclick="showScreen('s04')">📭 PT-04 Empty state</button>
+  <button class="sb" onclick="showScreen('s05')">🔔 PT-05 Confirmación</button>
+  <div class="sep"></div>
+  <a class="sb" href="index.html">← Volver al índice</a>
+</nav>
+
+<div class="main">
+<div class="phone">
+  <div class="sbar">
+    <span class="sbar-t">9:41</span>
+    <div class="sbar-i"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
+
+  <!-- toast layer (shared) -->
+  <div class="toast-area">
+    <div class="toast success" id="toast-ok">✅ Conexión restaurada</div>
+    <div class="toast warn" id="toast-warn">⚠️ Sin conexión — Algunas funciones no están disponibles</div>
+  </div>
+
+  <!-- ══════════════ PT-01 — Error genérico ══════════════ -->
+  <div id="s01" class="screen active">
+    <div style="padding:6px 20px 6px;flex-shrink:0">
+      <div class="demo-box">
+        <p>Demo — variante:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setErr('app',this)">App full</button>
+          <button class="demo-btn" onclick="setErr('boundary',this)">Boundary</button>
+          <button class="demo-btn" onclick="setErr('404',this)">404</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- full-screen app error -->
+    <div id="err-app" class="error-full">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">Algo salió mal</div>
+      <div class="error-desc">No pudimos completar esta acción. Ya lo registramos automáticamente para revisarlo.</div>
+      <div class="error-ctx">
+        <strong>Si tenés una entrega activa</strong>, seguí usando el mapa — eso no se ve afectado.
+      </div>
+      <button class="btn-primary" onclick="alert('Reintentando...')">Reintentar</button>
+      <button class="btn-ghost neutral" onclick="alert('Yendo al inicio...')">Ir al inicio</button>
+      <div class="error-code">Código: ERR-4821</div>
+    </div>
+
+    <!-- boundary error -->
+    <div id="err-boundary" style="display:none;flex-direction:column;flex:1">
+      <div class="top-bar">
+        <button class="btn-back-sm">‹</button>
+        <div class="top-title">Mis ganancias</div>
+      </div>
+      <div class="boundary-body">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title" style="font-size:18px">No pudimos cargar esta sección</div>
+        <div class="error-desc" style="font-size:14px">Verificá tu conexión o volvé a intentar.</div>
+        <button class="btn-primary" onclick="alert('Reintentando...')">Reintentar</button>
+      </div>
+    </div>
+
+    <!-- 404 error -->
+    <div id="err-404" style="display:none;flex-direction:column;flex:1">
+      <div class="top-bar">
+        <button class="btn-back-sm">‹</button>
+        <div class="top-title"></div>
+      </div>
+      <div class="error-full" style="padding-top:0">
+        <div class="error-icon">🔍</div>
+        <div class="error-title" style="font-size:18px">Este contenido ya no está disponible</div>
+        <div class="error-desc" style="font-size:14px">El pedido o recurso que buscás puede haber sido cancelado o expirado.</div>
+        <button class="btn-ghost neutral" onclick="alert('Yendo al inicio...')">Ir al inicio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PT-02 — Sin conexión ══════════════ -->
+  <div id="s02" class="screen">
+    <div style="padding:6px 20px 6px;flex-shrink:0">
+      <div class="demo-box">
+        <p>Demo — toasts de conexión:</p>
+        <div class="demo-row">
+          <button class="demo-btn" onclick="showToast('warn')">📵 Perder señal</button>
+          <button class="demo-btn" onclick="showToast('ok')">✅ Recuperar señal</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="offline-full">
+      <div class="offline-icon">📵</div>
+      <div class="offline-title">Sin conexión</div>
+      <div class="offline-desc">Revisá tu señal de datos o WiFi para continuar.</div>
+      <button class="btn-primary" onclick="simulateReconnect()">Reintentar conexión</button>
+      <div class="offline-last">Última conexión: hace 3 minutos</div>
+    </div>
+
+    <!-- capability table -->
+    <div style="padding:0 20px 20px;flex-shrink:0">
+      <div class="h2" style="margin-bottom:8px">¿Qué funciona sin señal?</div>
+      <div class="cap-table">
+        <div class="cap-header">
+          <div>Función</div><div>Sin entrega</div><div>Con entrega</div>
+        </div>
+        <div class="cap-row"><div>Mapa (caché)</div><div class="cap-ok">✅</div><div class="cap-ok">✅</div></div>
+        <div class="cap-row"><div>Chat</div><div class="cap-no">❌</div><div class="cap-no">❌*</div></div>
+        <div class="cap-row"><div>Aceptar pedidos</div><div class="cap-no">❌</div><div style="color:var(--text2)">N/A</div></div>
+        <div class="cap-row"><div>POD foto</div><div class="cap-no">❌</div><div class="cap-ok">✅**</div></div>
+        <div class="cap-row"><div>POD QR offline</div><div style="color:var(--text2)">N/A</div><div class="cap-ok">✅</div></div>
+        <div class="cap-row"><div>Historial</div><div class="cap-ok">✅</div><div class="cap-ok">✅</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5">* Se encola · ** Se sube al reconectar</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PT-03 — Skeleton ══════════════ -->
+  <div id="s03" class="screen">
+    <div class="top-bar">
+      <div class="top-title" style="font-size:14px;color:var(--text2)">Cargando...</div>
+    </div>
+    <div class="scroll">
+      <div class="demo-box">
+        <p>Demo — tipo de skeleton:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setSkeleton('pedido',this)">Card pedido</button>
+          <button class="demo-btn" onclick="setSkeleton('historial',this)">Historial</button>
+          <button class="demo-btn" onclick="setSkeleton('ganancias',this)">Ganancias</button>
+        </div>
+      </div>
+
+      <!-- card pedido skeleton -->
+      <div id="sk-pedido">
+        <div class="sk-label">Lista de pedidos disponibles</div>
+        <div class="sk-card" style="margin-bottom:10px">
+          <div class="sk-row">
+            <div class="sk-circle" style="width:40px;height:40px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <div class="sk-block" style="height:14px;width:70%"></div>
+              <div class="sk-block" style="height:12px;width:50%"></div>
+            </div>
+            <div class="sk-block" style="width:36px;height:24px;border-radius:8px"></div>
+          </div>
+          <div class="sk-row" style="gap:16px">
+            <div class="sk-block" style="height:12px;width:80px"></div>
+            <div class="sk-block" style="height:12px;width:60px"></div>
+          </div>
+          <div class="sk-block" style="height:42px;width:100%;border-radius:12px;margin-top:6px"></div>
+        </div>
+        <div class="sk-card" style="margin-bottom:10px">
+          <div class="sk-row">
+            <div class="sk-circle" style="width:40px;height:40px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <div class="sk-block" style="height:14px;width:60%"></div>
+              <div class="sk-block" style="height:12px;width:40%"></div>
+            </div>
+            <div class="sk-block" style="width:36px;height:24px;border-radius:8px"></div>
+          </div>
+          <div class="sk-row" style="gap:16px">
+            <div class="sk-block" style="height:12px;width:90px"></div>
+            <div class="sk-block" style="height:12px;width:50px"></div>
+          </div>
+          <div class="sk-block" style="height:42px;width:100%;border-radius:12px;margin-top:6px"></div>
+        </div>
+        <div class="sk-card">
+          <div class="sk-row">
+            <div class="sk-circle" style="width:40px;height:40px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <div class="sk-block" style="height:14px;width:75%"></div>
+              <div class="sk-block" style="height:12px;width:55%"></div>
+            </div>
+            <div class="sk-block" style="width:36px;height:24px;border-radius:8px"></div>
+          </div>
+          <div class="sk-row" style="gap:16px">
+            <div class="sk-block" style="height:12px;width:70px"></div>
+            <div class="sk-block" style="height:12px;width:65px"></div>
+          </div>
+          <div class="sk-block" style="height:42px;width:100%;border-radius:12px;margin-top:6px"></div>
+        </div>
+      </div>
+
+      <!-- historial skeleton -->
+      <div id="sk-historial" style="display:none">
+        <div class="sk-label">Historial de entregas</div>
+        <div class="sk-block" style="height:12px;width:120px;margin-bottom:10px"></div>
+        <div class="sk-card" style="margin-bottom:6px">
+          <div class="sk-row">
+            <div class="sk-circle" style="width:32px;height:32px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <div class="sk-row" style="gap:10px;margin-bottom:0">
+                <div class="sk-block" style="height:13px;width:100px"></div>
+                <div class="sk-block" style="height:13px;width:60px"></div>
+              </div>
+              <div class="sk-row" style="gap:10px;margin-bottom:0">
+                <div class="sk-block" style="height:11px;width:70px"></div>
+                <div class="sk-block" style="height:11px;width:50px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sk-card" style="margin-bottom:6px">
+          <div class="sk-row">
+            <div class="sk-circle" style="width:32px;height:32px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <div class="sk-row" style="gap:10px;margin-bottom:0">
+                <div class="sk-block" style="height:13px;width:80px"></div>
+                <div class="sk-block" style="height:13px;width:70px"></div>
+              </div>
+              <div class="sk-row" style="gap:10px;margin-bottom:0">
+                <div class="sk-block" style="height:11px;width:90px"></div>
+                <div class="sk-block" style="height:11px;width:40px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sk-block" style="height:12px;width:100px;margin-bottom:10px;margin-top:4px"></div>
+        <div class="sk-card">
+          <div class="sk-row">
+            <div class="sk-circle" style="width:32px;height:32px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <div class="sk-row" style="gap:10px;margin-bottom:0">
+                <div class="sk-block" style="height:13px;width:110px"></div>
+                <div class="sk-block" style="height:13px;width:55px"></div>
+              </div>
+              <div class="sk-row" style="gap:10px;margin-bottom:0">
+                <div class="sk-block" style="height:11px;width:65px"></div>
+                <div class="sk-block" style="height:11px;width:55px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ganancias skeleton -->
+      <div id="sk-ganancias" style="display:none">
+        <div class="sk-label">Dashboard de ganancias</div>
+        <div class="sk-card" style="text-align:center;padding:24px 16px;margin-bottom:12px">
+          <div class="sk-block" style="height:36px;width:140px;margin:0 auto 8px"></div>
+          <div class="sk-block" style="height:13px;width:100px;margin:0 auto"></div>
+        </div>
+        <div class="sk-kpi-row">
+          <div class="sk-kpi"><div class="sk-block" style="height:20px;width:100%;margin-bottom:6px"></div><div class="sk-block" style="height:11px;width:70%"></div></div>
+          <div class="sk-kpi"><div class="sk-block" style="height:20px;width:100%;margin-bottom:6px"></div><div class="sk-block" style="height:11px;width:70%"></div></div>
+          <div class="sk-kpi"><div class="sk-block" style="height:20px;width:100%;margin-bottom:6px"></div><div class="sk-block" style="height:11px;width:70%"></div></div>
+        </div>
+        <div class="sk-card" style="padding:12px">
+          <div class="sk-block" style="height:12px;width:80px;margin-bottom:12px"></div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:60px">
+            <div class="sk-block" style="height:80%;flex:1;border-radius:4px 4px 0 0"></div>
+            <div class="sk-block" style="height:50%;flex:1;border-radius:4px 4px 0 0"></div>
+            <div class="sk-block" style="height:100%;flex:1;border-radius:4px 4px 0 0"></div>
+            <div class="sk-block" style="height:65%;flex:1;border-radius:4px 4px 0 0"></div>
+            <div class="sk-block" style="height:40%;flex:1;border-radius:4px 4px 0 0"></div>
+            <div class="sk-block" style="height:70%;flex:1;border-radius:4px 4px 0 0"></div>
+            <div class="sk-block" style="height:55%;flex:1;border-radius:4px 4px 0 0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PT-04 — Empty state ══════════════ -->
+  <div id="s04" class="screen">
+    <div style="padding:6px 20px 6px;flex-shrink:0">
+      <div class="demo-box">
+        <p>Demo — contexto:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setEmpty('pedidos',this)">Sin pedidos</button>
+          <button class="demo-btn" onclick="setEmpty('historial',this)">Sin historial</button>
+          <button class="demo-btn" onclick="setEmpty('notifs',this)">Sin notifs</button>
+          <button class="demo-btn" onclick="setEmpty('search',this)">Sin resultados</button>
+          <button class="demo-btn" onclick="setEmpty('logros',this)">Sin logros</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-scene active" id="es-pedidos">
+      <div class="empty-icon">🛵</div>
+      <div class="empty-title">No hay pedidos cerca</div>
+      <div class="empty-desc">El sistema te notificará cuando haya uno disponible en tu zona.</div>
+      <div class="empty-zone">📍 Tu zona actual: <strong>Miraflores</strong></div>
+      <button class="btn-secondary">Ver mapa de calor</button>
+    </div>
+    <div class="empty-scene" id="es-historial">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">Todavía no tenés entregas</div>
+      <div class="empty-desc">Acá vas a ver el historial de todos tus pedidos completados.</div>
+    </div>
+    <div class="empty-scene" id="es-notifs">
+      <div class="empty-icon">🔔</div>
+      <div class="empty-title">No tenés notificaciones nuevas</div>
+      <div class="empty-desc">Cuando haya actividad en tu cuenta, aparecerá acá.</div>
+    </div>
+    <div class="empty-scene" id="es-search">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">Sin resultados</div>
+      <div class="empty-desc">No encontramos nada para <span class="search-term">"cómo funciona el OTP"</span>. Intentá con otras palabras.</div>
+      <button class="btn-secondary" onclick="alert('Limpiando búsqueda...')">Limpiar búsqueda</button>
+    </div>
+    <div class="empty-scene" id="es-logros">
+      <div class="empty-icon">🏅</div>
+      <div class="empty-title">Todavía no desbloqueaste ningún logro</div>
+      <div class="empty-desc">Hacé entregas, mejorá tu rating y sumá puntos para desbloquear badges.</div>
+      <button class="btn-secondary" onclick="alert('Ver logros en progreso...')">Ver en progreso</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ PT-05 — Confirmación ══════════════ -->
+  <div id="s05" class="screen">
+    <div class="top-bar">
+      <div class="top-title">Modales de confirmación</div>
+    </div>
+    <div class="scroll">
+      <p class="mb12" style="font-size:13px;color:var(--text2)">Tocá cualquier acción para ver su modal:</p>
+      <div class="modal-gallery">
+        <div class="modal-preview" onclick="openSheet('cancelar')">
+          <div class="modal-preview-info">
+            <div class="modal-preview-title">Cancelar entrega activa</div>
+            <div class="modal-preview-sub">P04-01 · Puede aplicar penalización</div>
+          </div>
+          <div class="modal-preview-badge badge-high">Alta</div>
+        </div>
+        <div class="modal-preview" onclick="openSheet('flota')">
+          <div class="modal-preview-info">
+            <div class="modal-preview-title">Salir de flota</div>
+            <div class="modal-preview-sub">P15-01 · Efectivo al cierre del día</div>
+          </div>
+          <div class="modal-preview-badge badge-medium">Media</div>
+        </div>
+        <div class="modal-preview" onclick="openSheet('confianza')">
+          <div class="modal-preview-info">
+            <div class="modal-preview-title">Salir de red de confianza</div>
+            <div class="modal-preview-sub">P14-01 · Sin prioridad de pedidos</div>
+          </div>
+          <div class="modal-preview-badge badge-low">Baja</div>
+        </div>
+        <div class="modal-preview" onclick="openSheet('rechazo')">
+          <div class="modal-preview-info">
+            <div class="modal-preview-title">Rechazar invitación flota</div>
+            <div class="modal-preview-sub">P15-02 · Anónimo para el admin</div>
+          </div>
+          <div class="modal-preview-badge badge-low">Baja</div>
+        </div>
+        <div class="modal-preview" onclick="openSheet('incidente')">
+          <div class="modal-preview-info">
+            <div class="modal-preview-title">Reportar incidente</div>
+            <div class="modal-preview-sub">P04-05 · Puede pausar la entrega</div>
+          </div>
+          <div class="modal-preview-badge badge-medium">Media</div>
+        </div>
+        <div class="modal-preview" onclick="openSheet('cuenta')">
+          <div class="modal-preview-info">
+            <div class="modal-preview-title">Eliminar cuenta</div>
+            <div class="modal-preview-sub">P10-06 · Proceso de 30 días · requiere confirmación</div>
+          </div>
+          <div class="modal-preview-badge badge-critical">Crítica</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- sheet container -->
+    <div class="sheet-overlay" id="modal-sheet" onclick="closeSheet(event)">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="sh-title">Título</div>
+        <div class="sheet-body" id="sh-body">Descripción</div>
+        <div id="sh-confirm-wrap" style="display:none">
+          <div class="confirm-hint">Escribí <strong style="color:var(--error);font-family:monospace">ELIMINAR</strong> para confirmar:</div>
+          <input class="confirm-field" id="sh-confirm-input" placeholder="ELIMINAR" oninput="checkConfirm()" autocomplete="off">
+        </div>
+        <button class="btn-sheet-primary" id="sh-action-btn" onclick="alert('Acción confirmada.')">Acción</button>
+        <button class="btn-ghost neutral" onclick="closeSheet()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+// ── Nav ──────────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sb').forEach((l,i)=>{
+    l.classList.toggle('active',['s01','s02','s03','s04','s05'][i]===id);
+  });
+}
+
+// ── PT-01 ────────────────────────────────────────────────────────────────────
+function setErr(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('err-app').style.display=mode==='app'?'flex':'none';
+  document.getElementById('err-boundary').style.display=mode==='boundary'?'flex':'none';
+  document.getElementById('err-404').style.display=mode==='404'?'flex':'none';
+}
+
+// ── PT-02 ────────────────────────────────────────────────────────────────────
+let toastTimer={};
+function showToast(type){
+  const el=document.getElementById(type==='ok'?'toast-ok':'toast-warn');
+  const other=document.getElementById(type==='ok'?'toast-warn':'toast-ok');
+  other.classList.remove('show');
+  el.classList.add('show');
+  clearTimeout(toastTimer[type]);
+  toastTimer[type]=setTimeout(()=>el.classList.remove('show'),type==='ok'?3000:99999);
+}
+function simulateReconnect(){
+  document.getElementById('toast-warn').classList.remove('show');
+  setTimeout(()=>showToast('ok'),300);
+}
+
+// ── PT-03 ────────────────────────────────────────────────────────────────────
+function setSkeleton(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  ['pedido','historial','ganancias'].forEach(k=>{
+    document.getElementById('sk-'+k).style.display=k===mode?'':'none';
+  });
+}
+
+// ── PT-04 ────────────────────────────────────────────────────────────────────
+function setEmpty(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.empty-scene').forEach(s=>s.classList.remove('active'));
+  document.getElementById('es-'+mode).classList.add('active');
+}
+
+// ── PT-05 ────────────────────────────────────────────────────────────────────
+const SHEETS={
+  cancelar:{title:'¿Cancelar la entrega?',body:'Dependiendo del momento y el motivo, puede aplicarse una penalización de puntos.<br><br>La tienda y el cliente serán notificados.',btn:'Sí, cancelar la entrega',cls:'danger'},
+  flota:{title:'¿Salir de LogiRápido SAC?',body:'La salida es efectiva al cierre del día (23:59).<br><br>Tus comisiones pendientes se liquidarán según el ciclo normal de pagos. El admin recibirá una notificación ahora.',btn:'Sí, salir',cls:'danger'},
+  confianza:{title:'¿Salir de El Buen Sabor?',body:'Ya no recibirás sus pedidos con prioridad. Podés seguir recibiéndolos desde el pool general.<br><br>La tienda puede volver a invitarte en el futuro.',btn:'Sí, salir',cls:'warn'},
+  rechazo:{title:'¿Rechazar invitación?',body:'La flota no sabrá el motivo del rechazo. Podés recibir sus pedidos desde el pool general igual.',btn:'Sí, rechazar',cls:'warn'},
+  incidente:{title:'¿Reportar incidente?',body:'Se notificará al equipo de soporte con tu ubicación GPS actual. La entrega puede quedar pausada hasta que el agente confirme la situación.',btn:'Sí, reportar incidente',cls:'danger'},
+  cuenta:{title:'¿Eliminar tu cuenta?',body:'Esta acción inicia un proceso de 30 días. Podés cancelarla antes del <strong style="color:var(--text)">23 jun 2026</strong>.<br><br>Tus ganancias pendientes se liquidarán antes del cierre.',btn:'Sí, eliminar mi cuenta',cls:'danger',critical:true},
+};
+
+let currentSheet=null;
+function openSheet(key){
+  const sh=SHEETS[key]; if(!sh) return;
+  currentSheet=key;
+  document.getElementById('sh-title').textContent=sh.title;
+  document.getElementById('sh-body').innerHTML=sh.body;
+  const btn=document.getElementById('sh-action-btn');
+  btn.textContent=sh.btn;
+  btn.className='btn-sheet-primary '+sh.cls;
+  const wrap=document.getElementById('sh-confirm-wrap');
+  const inp=document.getElementById('sh-confirm-input');
+  if(sh.critical){
+    wrap.style.display='block'; inp.value=''; btn.disabled=true;
+  } else {
+    wrap.style.display='none'; btn.disabled=false;
+  }
+  document.getElementById('modal-sheet').classList.add('show');
+}
+
+function closeSheet(e){
+  if(!e||e.target===document.getElementById('modal-sheet')){
+    document.getElementById('modal-sheet').classList.remove('show');
+  }
+}
+
+function checkConfirm(){
+  const val=document.getElementById('sh-confirm-input').value.trim().toUpperCase();
+  document.getElementById('sh-action-btn').disabled=val!=='ELIMINAR';
+}
+</script>
+</body>
+</html>

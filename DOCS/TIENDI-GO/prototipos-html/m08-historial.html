@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M08 — Historial y Estadísticas | Tiendi Go</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #F97316; --success: #16A34A; --warning: #D97706;
+      --error: #DC2626; --info: #2563EB;
+      --bg: #1C1C1E; --card: #2C2C2E; --card2: #3A3A3C;
+      --border: #48484A; --text: #FFFFFF; --text-2: #EBEBF5; --text-3: #8E8E93;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111; display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar { width: 220px; background: #2C2C2E; padding: 24px 0; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-title { font-size: 11px; font-weight: 700; color: #6C6C70; letter-spacing: 1px; text-transform: uppercase; padding: 0 16px 16px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; border-left: 3px solid transparent; transition: all .15s; color: var(--text-3); font-size: 13px; font-weight: 500; }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .nav-item.active { background: rgba(249,115,22,.12); border-left-color: var(--primary); color: var(--primary); }
+    .nav-num { font-size: 11px; font-weight: 700; color: #6C6C70; width: 20px; }
+    .nav-item.active .nav-num { color: var(--primary); }
+
+    /* ── PHONE ── */
+    .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .phone { width: 390px; height: 844px; background: var(--bg); border-radius: 48px; box-shadow: 0 0 0 12px #2C2C2E, 0 0 0 14px #3A3A3C, 0 32px 80px rgba(0,0,0,.8); overflow: hidden; display: flex; flex-direction: column; position: relative; }
+    .screen { display: none; flex-direction: column; height: 100%; }
+    .screen.active { display: flex; }
+    .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 4px; flex-shrink: 0; }
+    .status-time { font-size: 15px; font-weight: 700; color: #fff; }
+    .status-icons { font-size: 12px; color: #fff; }
+
+    /* ── SHARED ── */
+    .page-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: var(--card); flex-shrink: 0; border-bottom: 1px solid var(--border); }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .back-btn { font-size: 22px; color: var(--primary); cursor: pointer; }
+    .page-title { font-size: 17px; font-weight: 700; color: #fff; }
+    .page-sub { font-size: 11px; color: var(--text-3); }
+    .scroll-body { flex: 1; overflow-y: auto; padding: 14px; }
+    .scroll-body::-webkit-scrollbar { width: 3px; }
+    .scroll-body::-webkit-scrollbar-thumb { background: #3A3A3C; border-radius: 2px; }
+    .section-sep { font-size: 12px; font-weight: 700; color: var(--text-3); padding: 10px 0 6px; }
+    .btn-primary { display: block; width: 100%; padding: 14px; background: var(--primary); color: #fff; font-size: 15px; font-weight: 700; border-radius: 14px; text-align: center; cursor: pointer; }
+    .btn-ghost { text-align: center; padding: 10px; font-size: 14px; color: var(--text-3); cursor: pointer; }
+    .sheet-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,.65); z-index: 100; align-items: flex-end; }
+    .sheet-overlay.show { display: flex; }
+    .sheet { width: 100%; background: var(--card); border-radius: 28px 28px 0 0; padding: 0 20px 32px; }
+    .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 18px; }
+    .sheet-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 14px; }
+
+    /* ══════════════ S01 HISTORIAL ══════════════ */
+    .search-bar { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; }
+    .search-ico { font-size: 16px; }
+    .search-text { font-size: 14px; color: var(--text-3); }
+    .filter-chips { display: flex; gap: 8px; margin-bottom: 10px; }
+    .filter-chip { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); color: var(--text-3); background: var(--card); transition: all .15s; }
+    .filter-chip.active { background: rgba(249,115,22,.15); border-color: var(--primary); color: var(--primary); }
+    .list-counter { font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+
+    .history-item { display: flex; gap: 12px; align-items: center; background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: background .12s; }
+    .history-item:active { background: var(--card2); }
+    .history-ico { width: 38px; height: 38px; background: #161618; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .history-body { flex: 1; }
+    .history-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .history-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .history-right { text-align: right; }
+    .history-amount { font-size: 15px; font-weight: 700; color: var(--success); }
+    .history-amount.zero { color: var(--error); }
+    .history-rating { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .penalty-badge { display: inline-block; background: rgba(220,38,38,.15); color: var(--error); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 5px; }
+
+    /* Filter sheet radio items */
+    .radio-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .radio-item:last-child { border-bottom: none; }
+    .radio-label { font-size: 14px; color: var(--text-2); }
+    .radio-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; }
+    .radio-circle.checked { border-color: var(--primary); background: var(--primary); }
+    .radio-circle.checked::after { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+    .sheet-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .sheet-btns .btn-primary { flex: 2; }
+    .sheet-btn-ghost { flex: 1; padding: 14px; background: var(--card2); color: var(--text-3); font-size: 15px; font-weight: 600; border-radius: 14px; text-align: center; cursor: pointer; }
+
+    /* ══════════════ S02 DETALLE HISTÓRICO ══════════════ */
+    .static-map { height: 160px; background: #2D3830; position: relative; overflow: hidden; filter: grayscale(.6) brightness(.75); flex-shrink: 0; }
+    .map-grid-s { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px); background-size: 30px 30px; }
+    .street-h { position: absolute; height: 8px; background: #555B45; border-radius: 3px; }
+    .street-v { position: absolute; width: 8px; background: #555B45; border-radius: 3px; }
+    .route-gray { position: absolute; background: #9E9E9E; border-radius: 3px; z-index: 2; }
+    .map-pin { position: absolute; font-size: 20px; z-index: 10; transform: translate(-50%,-100%); filter: grayscale(0) brightness(1); }
+
+    .summary-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .summary-cell { flex: 1; background: var(--card); border-radius: 12px; padding: 12px; text-align: center; }
+    .summary-val { font-size: 20px; font-weight: 800; color: #fff; }
+    .summary-lbl { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+    .route-detail { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .route-store { font-size: 14px; font-weight: 700; color: #fff; }
+    .route-path { font-size: 12px; color: var(--text-3); margin: 4px 0; }
+    .route-time { font-size: 12px; color: var(--text-3); }
+
+    .earnings-table { background: var(--card); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+    .earn-row { display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid #3A3A3C; font-size: 13px; }
+    .earn-row:last-child { border-bottom: none; background: #1C1C1E; font-weight: 700; }
+    .earn-lbl { color: var(--text-2); }
+    .earn-amt { font-weight: 600; color: #fff; }
+    .earn-amt.pos { color: var(--success); }
+    .earn-amt.neg { color: var(--error); }
+    .earn-amt.hl  { color: var(--primary); }
+
+    .stars-display { font-size: 22px; letter-spacing: 2px; }
+    .rating-card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .rating-card-title { font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; margin-bottom: 8px; }
+    .rating-comment { font-size: 13px; color: var(--text-2); font-style: italic; margin-top: 6px; }
+    .rating-author { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+    /* ══════════════ S03 ESTADÍSTICAS ══════════════ */
+    .period-chips { display: flex; gap: 8px; padding: 10px 0; }
+    .period-chip { padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--card); color: var(--text-3); border: 1px solid var(--border); transition: all .15s; }
+    .period-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .kpi-card { border-radius: 14px; padding: 14px; margin-bottom: 10px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .kpi-card.neutral { background: var(--card); }
+    .kpi-card.on-track { background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.2); }
+    .kpi-card.off-track { background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.2); }
+    .kpi-icon { font-size: 22px; }
+    .kpi-body { flex: 1; }
+    .kpi-label { font-size: 12px; color: var(--text-3); font-weight: 600; margin-bottom: 4px; }
+    .kpi-val { font-size: 28px; font-weight: 800; color: #fff; line-height: 1; }
+    .kpi-trend { font-size: 12px; margin-top: 4px; }
+    .kpi-trend.up   { color: var(--success); }
+    .kpi-trend.down { color: var(--error); }
+    .kpi-trend.good { color: var(--success); }
+    .kpi-meta { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-top: 5px; }
+    .kpi-meta.ok  { background: rgba(22,163,74,.2); color: #4ade80; }
+    .kpi-meta.bad { background: rgba(220,38,38,.2); color: #f87171; }
+    .graphs-link { text-align: center; padding: 12px 0; font-size: 14px; color: var(--primary); cursor: pointer; }
+
+    /* ══════════════ S04 GRÁFICOS ══════════════ */
+    .chart-tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .chart-tab { flex: 1; padding: 11px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-3); cursor: pointer; position: relative; }
+    .chart-tab.active { color: var(--primary); }
+    .chart-tab.active::after { content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 2px; background: var(--primary); border-radius: 2px; }
+
+    .chart-block { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .chart-block-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .chart-caption { font-size: 12px; color: var(--text-3); margin-top: 8px; text-align: center; }
+
+    /* Bar chart (deliveries) */
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+    .bc-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+    .bc-bar { width: 100%; background: rgba(249,115,22,.6); border-radius: 4px 4px 0 0; cursor: pointer; }
+    .bc-bar:hover, .bc-bar.best { background: var(--primary); }
+    .bc-lbl { font-size: 10px; color: var(--text-3); }
+
+    /* Highlight best bar */
+    .best-tag { display: block; font-size: 9px; color: var(--success); text-align: center; margin-bottom: 2px; font-weight: 700; }
+
+    /* ══════════════ S05 MAPA DE CALOR ══════════════ */
+    .heatmap-toggle { display: flex; background: var(--card); border-radius: 10px; padding: 3px; margin-bottom: 12px; }
+    .hm-tab { flex: 1; padding: 7px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-3); border-radius: 8px; cursor: pointer; transition: all .15s; }
+    .hm-tab.active { background: var(--primary); color: #fff; }
+
+    .heatmap-area { background: #2D3830; border-radius: 14px; overflow: hidden; margin-bottom: 12px; position: relative; height: 220px; }
+    .hm-grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px); background-size: 28px 28px; }
+    .hm-street-h { position: absolute; height: 6px; background: #3A4A3B; }
+    .hm-street-v { position: absolute; width: 6px; background: #3A4A3B; }
+    .hm-cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 1fr); gap: 3px; padding: 8px; }
+    .hm-cell { border-radius: 5px; opacity: .7; cursor: pointer; transition: opacity .15s; }
+    .hm-cell:hover { opacity: 1; }
+    .hm-cell.vhigh  { background: #DC2626; }
+    .hm-cell.high   { background: #F97316; }
+    .hm-cell.med    { background: #EAB308; }
+    .hm-cell.low    { background: #16A34A; }
+    .hm-cell.nodata { background: #2563EB; opacity: .3; }
+    .rider-pin { position: absolute; top: 55%; left: 52%; transform: translate(-50%,-50%); font-size: 18px; z-index: 10; filter: drop-shadow(0 0 4px #fff); }
+
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-3); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    .top-zones { }
+    .zone-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .zone-row:last-child { border-bottom: none; }
+    .zone-rank { font-size: 16px; }
+    .zone-name { flex: 1; font-size: 14px; font-weight: 600; color: #fff; margin: 0 10px; }
+    .zone-mult { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .nav-zone-btn { font-size: 12px; color: var(--info); cursor: pointer; }
+
+    /* ══════════════ S06 HORARIOS PICO ══════════════ */
+    .caption-card { background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.2); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+
+    .schedule-wrap { overflow-x: auto; margin-bottom: 14px; }
+    .schedule-grid { display: grid; grid-template-columns: 36px repeat(5, 1fr); gap: 3px; min-width: 280px; }
+    .sg-header { font-size: 10px; font-weight: 700; color: var(--text-3); text-align: center; padding: 4px 2px; }
+    .sg-hour { font-size: 10px; color: var(--text-3); display: flex; align-items: center; padding-right: 4px; white-space: nowrap; }
+    .sg-cell { height: 22px; border-radius: 4px; cursor: pointer; transition: opacity .15s; }
+    .sg-cell:hover { opacity: .7; }
+    .sg-cell.vhigh  { background: #DC2626; }
+    .sg-cell.high   { background: #F97316; }
+    .sg-cell.med    { background: #EAB308; }
+    .sg-cell.low    { background: #16A34A; }
+
+    /* Schedule tooltip */
+    #sg-tooltip { display: none; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+    #sg-tooltip.show { display: block; }
+    .sg-tip-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .sg-tip-row { font-size: 12px; color: var(--text-2); margin-bottom: 2px; }
+
+    .top-slots { }
+    .slot-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .slot-row:last-child { border-bottom: none; }
+    .slot-medal { font-size: 20px; flex-shrink: 0; }
+    .slot-info { flex: 1; }
+    .slot-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .slot-earn { font-size: 12px; color: var(--success); margin-top: 2px; }
+    .calendar-link { display: flex; align-items: center; gap: 8px; padding: 12px 0 4px; font-size: 14px; color: var(--primary); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M08 — Historial / Stats</div>
+  <div class="nav-item active" data-screen="s01" onclick="showScreen('s01')"><span class="nav-num">01</span>Historial de pedidos</div>
+  <div class="nav-item" data-screen="s02" onclick="showScreen('s02')"><span class="nav-num">02</span>Detalle histórico</div>
+  <div class="nav-item" data-screen="s03" onclick="showScreen('s03')"><span class="nav-num">03</span>Estadísticas personales</div>
+  <div class="nav-item" data-screen="s04" onclick="showScreen('s04')"><span class="nav-num">04</span>Gráficos de desempeño</div>
+  <div class="nav-item" data-screen="s05" onclick="showScreen('s05')"><span class="nav-num">05</span>Mapa de calor</div>
+  <div class="nav-item" data-screen="s06" onclick="showScreen('s06')"><span class="nav-num">06</span>Horarios pico</div>
+</nav>
+
+<div class="main">
+<div class="phone">
+
+  <!-- ════════════════════════
+       S01 — HISTORIAL
+  ════════════════════════ -->
+  <div class="screen active" id="s01">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header">
+      <div class="header-left"><div class="back-btn">‹</div><div class="page-title">Historial</div></div>
+    </div>
+
+    <div class="scroll-body">
+      <div class="search-bar">
+        <span class="search-ico">🔍</span>
+        <span class="search-text">Buscar por tienda…</span>
+      </div>
+      <div class="filter-chips">
+        <div class="filter-chip active" onclick="toggleSheet('date-sheet', true)">📅 Mes actual ×</div>
+        <div class="filter-chip" onclick="">Estado</div>
+        <div class="filter-chip" onclick="">Tienda</div>
+      </div>
+      <div class="list-counter">47 entregas · Mayo 2026</div>
+
+      <div class="section-sep">Hoy — 23 mayo</div>
+      <div class="history-item" onclick="showScreen('s02')">
+        <div class="history-ico">✅</div>
+        <div class="history-body">
+          <div class="history-name">El Buen Sabor</div>
+          <div class="history-meta">2.3 km · 24 min · 12:34</div>
+        </div>
+        <div class="history-right">
+          <div class="history-amount">S/ 9.85</div>
+          <div class="history-rating">⭐ 5.0</div>
+        </div>
+      </div>
+      <div class="history-item" onclick="showScreen('s02')">
+        <div class="history-ico">✅</div>
+        <div class="history-body">
+          <div class="history-name">Pollería Central</div>
+          <div class="history-meta">1.8 km · 18 min · 11:50</div>
+        </div>
+        <div class="history-right">
+          <div class="history-amount">S/ 7.20</div>
+          <div class="history-rating">⭐ 4.0</div>
+        </div>
+      </div>
+
+      <div class="section-sep">Ayer — 22 mayo</div>
+      <div class="history-item">
+        <div class="history-ico">❌</div>
+        <div class="history-body">
+          <div class="history-name">La Trattoria</div>
+          <div class="history-meta">Cancelado · 10:15</div>
+        </div>
+        <div class="history-right">
+          <div class="history-amount zero">S/ 0.00</div>
+          <div class="history-rating"><span class="penalty-badge">−10 pts</span></div>
+        </div>
+      </div>
+      <div class="history-item">
+        <div class="history-ico">⏱️</div>
+        <div class="history-body">
+          <div class="history-name">Burger House</div>
+          <div class="history-meta">Expirado · 09:42</div>
+        </div>
+        <div class="history-right">
+          <div class="history-amount zero">S/ 0.00</div>
+        </div>
+      </div>
+      <div class="history-item">
+        <div class="history-ico">⚠️</div>
+        <div class="history-body">
+          <div class="history-name">Pizza Express</div>
+          <div class="history-meta">Incidente reportado · 08:55</div>
+        </div>
+        <div class="history-right">
+          <div class="history-amount">S/ 6.40</div>
+          <div class="history-rating" style="color:var(--warning);">En revisión</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Date filter sheet -->
+  <div class="sheet-overlay" id="date-sheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Filtrar por fecha</div>
+      <div class="radio-item"><div class="radio-label">Hoy</div><div class="radio-circle"></div></div>
+      <div class="radio-item"><div class="radio-label">Esta semana</div><div class="radio-circle"></div></div>
+      <div class="radio-item"><div class="radio-label">Este mes</div><div class="radio-circle checked"></div></div>
+      <div class="radio-item"><div class="radio-label">Últimos 3 meses</div><div class="radio-circle"></div></div>
+      <div class="radio-item"><div class="radio-label">Rango personalizado</div><div class="radio-circle"></div></div>
+      <div class="sheet-btns">
+        <div class="sheet-btn-ghost" onclick="toggleSheet('date-sheet', false)">Limpiar</div>
+        <div class="btn-primary" onclick="toggleSheet('date-sheet', false)">Aplicar</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════
+       S02 — DETALLE HISTÓRICO
+  ════════════════════════ -->
+  <div class="screen" id="s02">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header">
+      <div class="header-left"><div class="back-btn" onclick="showScreen('s01')">‹</div><div class="page-title">Entrega #PED-001</div></div>
+      <div class="page-sub" style="color:var(--success);">✅ Completada</div>
+    </div>
+
+    <!-- Static map -->
+    <div class="static-map">
+      <div class="map-grid-s"></div>
+      <div class="street-h" style="top:35%;left:0;right:0;"></div>
+      <div class="street-h" style="top:65%;left:0;right:0;"></div>
+      <div class="street-v" style="left:25%;top:0;bottom:0;"></div>
+      <div class="street-v" style="left:65%;top:0;bottom:0;"></div>
+      <!-- Gray route -->
+      <div class="route-gray" style="height:7px;top:calc(35%-3px);left:25%;width:calc(65%-25%);"></div>
+      <div class="route-gray" style="width:7px;top:35%;height:calc(65%-35%);left:calc(65%-3px);"></div>
+      <!-- Pins (unfiltered for readability) -->
+      <div class="map-pin" style="top:35%;left:25%;filter:none;">🏪</div>
+      <div class="map-pin" style="top:65%;left:65%;filter:none;">🏠</div>
+    </div>
+
+    <div class="scroll-body">
+      <div class="summary-row">
+        <div class="summary-cell"><div class="summary-val">2.3 km</div><div class="summary-lbl">Distancia</div></div>
+        <div class="summary-cell"><div class="summary-val">24 min</div><div class="summary-lbl">Duración</div></div>
+      </div>
+      <div class="route-detail">
+        <div class="route-store">El Buen Sabor</div>
+        <div class="route-path">Av. Larco 234 → Jr. Unión 567</div>
+        <div class="route-time">Hoy · 12:10 – 12:34</div>
+      </div>
+
+      <div class="section-sep" style="padding-top:0;">Ganancia</div>
+      <div class="earnings-table">
+        <div class="earn-row"><div class="earn-lbl">Subtotal base</div><div class="earn-amt">S/ 5.60</div></div>
+        <div class="earn-row"><div class="earn-lbl">× Zona caliente ×1.5</div><div class="earn-amt hl">S/ 8.40</div></div>
+        <div class="earn-row"><div class="earn-lbl">− Comisión 15%</div><div class="earn-amt neg">−S/ 1.26</div></div>
+        <div class="earn-row"><div class="earn-lbl">+ Bono Oro +10%</div><div class="earn-amt pos">+S/ 0.71</div></div>
+        <div class="earn-row"><div class="earn-lbl">+ Propina</div><div class="earn-amt pos">+S/ 2.00</div></div>
+        <div class="earn-row"><div class="earn-lbl">Total</div><div class="earn-amt" style="color:var(--success);font-size:16px;">S/ 9.85</div></div>
+      </div>
+
+      <div class="rating-card">
+        <div class="rating-card-title">Calificación recibida</div>
+        <div class="stars-display">⭐⭐⭐⭐⭐</div>
+        <div class="rating-comment">"Muy puntual y amable, llegó antes de lo esperado"</div>
+        <div class="rating-author">— Carlos M.</div>
+      </div>
+      <div class="rating-card">
+        <div class="rating-card-title">Mi calificación a la ruta</div>
+        <div class="stars-display">⭐⭐⭐⭐☆</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════
+       S03 — ESTADÍSTICAS
+  ════════════════════════ -->
+  <div class="screen" id="s03">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header">
+      <div class="header-left"><div class="back-btn">‹</div><div class="page-title">Mis estadísticas</div></div>
+    </div>
+    <div class="scroll-body">
+      <div class="period-chips">
+        <div class="period-chip active">Mes</div>
+        <div class="period-chip">3 meses</div>
+        <div class="period-chip">Año</div>
+      </div>
+
+      <div class="kpi-card neutral">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Entregas</div>
+          <div class="kpi-val">47</div>
+          <div class="kpi-trend up">▲ +8 vs mes anterior</div>
+        </div>
+      </div>
+      <div class="kpi-card on-track">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Tasa de aceptación</div>
+          <div class="kpi-val">94%</div>
+          <div class="kpi-meta ok">Meta: &gt; 90% ✓</div>
+        </div>
+      </div>
+      <div class="kpi-card neutral">
+        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Tiempo promedio</div>
+          <div class="kpi-val">22 min</div>
+          <div class="kpi-trend good">▼ −2 min vs anterior</div>
+        </div>
+      </div>
+      <div class="kpi-card on-track">
+        <div class="kpi-icon">❌</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Cancelaciones</div>
+          <div class="kpi-val">2</div>
+          <div class="kpi-meta ok">Meta: &lt; 5 ✓</div>
+        </div>
+      </div>
+      <div class="kpi-card on-track">
+        <div class="kpi-icon">⭐</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Rating promedio</div>
+          <div class="kpi-val">4.8</div>
+          <div class="kpi-meta ok">Meta: &gt; 4.0 ✓</div>
+        </div>
+      </div>
+      <div class="kpi-card neutral">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Ingresos totales</div>
+          <div class="kpi-val" style="font-size:22px;">S/ 1,240.50</div>
+          <div class="kpi-trend up">▲ +S/ 180 vs anterior</div>
+        </div>
+      </div>
+      <div class="graphs-link" onclick="showScreen('s04')">Ver gráficos →</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════
+       S04 — GRÁFICOS
+  ════════════════════════ -->
+  <div class="screen" id="s04">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header">
+      <div class="header-left"><div class="back-btn" onclick="showScreen('s03')">‹</div><div class="page-title">Gráficos</div></div>
+    </div>
+    <div class="chart-tabs">
+      <div class="chart-tab active" id="ct-semana" onclick="setChartTab('semana')">Semana</div>
+      <div class="chart-tab" id="ct-mes" onclick="setChartTab('mes')">Mes</div>
+    </div>
+
+    <div class="scroll-body">
+      <!-- Income line chart -->
+      <div class="chart-block">
+        <div class="chart-block-title">Ingresos diarios</div>
+        <svg width="100%" height="110" viewBox="0 0 310 110" preserveAspectRatio="xMidYMid meet">
+          <!-- Grid -->
+          <line x1="32" y1="10" x2="300" y2="10" stroke="#3A3A3C" stroke-width="1" stroke-dasharray="3"/>
+          <line x1="32" y1="50" x2="300" y2="50" stroke="#3A3A3C" stroke-width="1" stroke-dasharray="3"/>
+          <line x1="32" y1="90" x2="300" y2="90" stroke="#3A3A3C" stroke-width="1" stroke-dasharray="3"/>
+          <!-- Labels Y -->
+          <text x="0" y="14" fill="#6C6C70" font-size="9" font-family="Inter">S/150</text>
+          <text x="4" y="54" fill="#6C6C70" font-size="9" font-family="Inter">S/75</text>
+          <text x="8" y="94" fill="#6C6C70" font-size="9" font-family="Inter">S/0</text>
+          <!-- Area fill -->
+          <polygon id="chart-area" points="55,70 105,43 155,10 205,30 255,47 255,90 55,90" fill="rgba(249,115,22,.12)"/>
+          <!-- Line -->
+          <polyline id="chart-line" points="55,70 105,43 155,10 205,30 255,47" fill="none" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Points -->
+          <circle cx="55"  cy="70" r="4.5" fill="#F97316" id="cp0"/>
+          <circle cx="105" cy="43" r="4.5" fill="#F97316" id="cp1"/>
+          <circle cx="155" cy="10" r="5.5" fill="#16A34A" id="cp2"/>
+          <circle cx="205" cy="30" r="4.5" fill="#F97316" id="cp3"/>
+          <circle cx="255" cy="47" r="4.5" fill="#F97316" id="cp4"/>
+          <!-- X labels -->
+          <text x="55"  y="106" fill="#6C6C70" font-size="10" font-family="Inter" text-anchor="middle" id="xl0">Lun</text>
+          <text x="105" y="106" fill="#6C6C70" font-size="10" font-family="Inter" text-anchor="middle" id="xl1">Mar</text>
+          <text x="155" y="106" fill="#6C6C70" font-size="10" font-family="Inter" text-anchor="middle" id="xl2">Mié</text>
+          <text x="205" y="106" fill="#6C6C70" font-size="10" font-family="Inter" text-anchor="middle" id="xl3">Jue</text>
+          <text x="255" y="106" fill="#6C6C70" font-size="10" font-family="Inter" text-anchor="middle" id="xl4">Vie</text>
+        </svg>
+        <div class="chart-caption" id="chart-caption">Promedio diario: S/ 87.40</div>
+      </div>
+
+      <!-- Delivery bar chart -->
+      <div class="chart-block">
+        <div class="chart-block-title">Entregas por día</div>
+        <div class="bar-chart" id="bar-chart">
+          <!-- rendered by JS -->
+        </div>
+        <div class="chart-caption" id="bar-caption">Total semana: 47 entregas</div>
+      </div>
+
+      <!-- Hour-of-day chart (visible in mes view) -->
+      <div class="chart-block" id="hour-chart" style="display:none;">
+        <div class="chart-block-title">Ingresos por hora del día</div>
+        <div class="bar-chart">
+          <div class="bc-col"><div class="bc-bar" style="height:50%;"></div><div class="bc-lbl">8am</div></div>
+          <div class="bc-col"><div class="bc-bar best" style="height:100%;"></div><span class="best-tag">🔥</span><div class="bc-lbl">11am</div></div>
+          <div class="bc-col"><div class="bc-bar best" style="height:90%;"></div><div class="bc-lbl">2pm</div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:70%;"></div><div class="bc-lbl">5pm</div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:80%;"></div><div class="bc-lbl">8pm</div></div>
+        </div>
+        <div class="chart-caption">🔥 Mejor franja: 11am – 2pm</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════
+       S05 — MAPA DE CALOR
+  ════════════════════════ -->
+  <div class="screen" id="s05">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header">
+      <div class="header-left"><div class="back-btn">‹</div><div class="page-title">Zonas de demanda</div></div>
+      <div style="font-size:11px;color:var(--text-3);">Act. hace 2h</div>
+    </div>
+
+    <div class="scroll-body">
+      <div class="heatmap-toggle">
+        <div class="hm-tab active">Ahora</div>
+        <div class="hm-tab">Histórico</div>
+      </div>
+
+      <!-- Heat map -->
+      <div class="heatmap-area">
+        <div class="hm-grid-bg"></div>
+        <div class="hm-street-h" style="top:35%;left:0;right:0;"></div>
+        <div class="hm-street-h" style="top:70%;left:0;right:0;"></div>
+        <div class="hm-street-v" style="left:30%;top:0;bottom:0;"></div>
+        <div class="hm-street-v" style="left:65%;top:0;bottom:0;"></div>
+        <div class="hm-cells">
+          <!-- Row 1 -->
+          <div class="hm-cell nodata"></div><div class="hm-cell nodata"></div><div class="hm-cell low"></div><div class="hm-cell low"></div><div class="hm-cell med"></div><div class="hm-cell med"></div><div class="hm-cell nodata"></div><div class="hm-cell nodata"></div>
+          <!-- Row 2 -->
+          <div class="hm-cell nodata"></div><div class="hm-cell low"></div><div class="hm-cell med"></div><div class="hm-cell high"></div><div class="hm-cell high"></div><div class="hm-cell med"></div><div class="hm-cell low"></div><div class="hm-cell nodata"></div>
+          <!-- Row 3 -->
+          <div class="hm-cell low"></div><div class="hm-cell med"></div><div class="hm-cell high"></div><div class="hm-cell vhigh"></div><div class="hm-cell vhigh"></div><div class="hm-cell high"></div><div class="hm-cell med"></div><div class="hm-cell low"></div>
+          <!-- Row 4 -->
+          <div class="hm-cell nodata"></div><div class="hm-cell med"></div><div class="hm-cell vhigh"></div><div class="hm-cell high"></div><div class="hm-cell high"></div><div class="hm-cell vhigh"></div><div class="hm-cell med"></div><div class="hm-cell nodata"></div>
+          <!-- Row 5 -->
+          <div class="hm-cell nodata"></div><div class="hm-cell low"></div><div class="hm-cell med"></div><div class="hm-cell high"></div><div class="hm-cell med"></div><div class="hm-cell med"></div><div class="hm-cell low"></div><div class="hm-cell nodata"></div>
+          <!-- Row 6 -->
+          <div class="hm-cell nodata"></div><div class="hm-cell nodata"></div><div class="hm-cell low"></div><div class="hm-cell med"></div><div class="hm-cell low"></div><div class="hm-cell low"></div><div class="hm-cell nodata"></div><div class="hm-cell nodata"></div>
+        </div>
+        <div class="rider-pin">📍</div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#DC2626;"></div>Muy alta</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#F97316;"></div>Alta</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EAB308;"></div>Media</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#16A34A;"></div>Baja</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2563EB;opacity:.4;"></div>Sin datos</div>
+      </div>
+
+      <div class="section-sep" style="padding-top:0;">Top zonas ahora</div>
+      <div class="top-zones">
+        <div class="zone-row">
+          <div class="zone-rank">1.</div>
+          <div class="zone-name">🔥 Miraflores</div>
+          <div class="zone-mult">×1.5</div>
+          <div class="nav-zone-btn">Ir →</div>
+        </div>
+        <div class="zone-row">
+          <div class="zone-rank">2.</div>
+          <div class="zone-name">🔥 San Isidro</div>
+          <div class="zone-mult">×1.3</div>
+          <div class="nav-zone-btn">Ir →</div>
+        </div>
+        <div class="zone-row">
+          <div class="zone-rank">3.</div>
+          <div class="zone-name">Surco</div>
+          <div class="zone-mult" style="color:var(--text-3);">×1.0</div>
+          <div class="nav-zone-btn">Ir →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════
+       S06 — HORARIOS PICO
+  ════════════════════════ -->
+  <div class="screen" id="s06">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header">
+      <div class="header-left"><div class="back-btn">‹</div><div class="page-title">Mejores horarios</div></div>
+    </div>
+
+    <div class="scroll-body">
+      <div class="caption-card">Basado en tus últimos 3 meses de actividad. Tocá una celda para ver el detalle.</div>
+
+      <!-- Tooltip -->
+      <div id="sg-tooltip">
+        <div class="sg-tip-title" id="sg-tip-title">—</div>
+        <div class="sg-tip-row" id="sg-tip-demand">—</div>
+        <div class="sg-tip-row" id="sg-tip-prom">—</div>
+        <div class="sg-tip-row" id="sg-tip-count">—</div>
+      </div>
+
+      <!-- Schedule grid -->
+      <div class="schedule-wrap">
+        <div class="schedule-grid" id="sg-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <div class="section-sep">Mejores momentos para vos</div>
+      <div class="top-slots">
+        <div class="slot-row">
+          <div class="slot-medal">🥇</div>
+          <div class="slot-info">
+            <div class="slot-name">Viernes 12pm – 2pm</div>
+            <div class="slot-earn">Promedio S/ 18.40 / h</div>
+          </div>
+        </div>
+        <div class="slot-row">
+          <div class="slot-medal">🥈</div>
+          <div class="slot-info">
+            <div class="slot-name">Sábado 7pm – 9pm</div>
+            <div class="slot-earn">Promedio S/ 16.20 / h</div>
+          </div>
+        </div>
+        <div class="slot-row">
+          <div class="slot-medal">🥉</div>
+          <div class="slot-info">
+            <div class="slot-name">Domingo 1pm – 3pm</div>
+            <div class="slot-earn">Promedio S/ 14.80 / h</div>
+          </div>
+        </div>
+      </div>
+      <div class="calendar-link">📅 Agregar al calendario</div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+  // ── Screen nav ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n =>
+      n.classList.toggle('active', n.dataset.screen === id)
+    );
+  }
+
+  // ── Sheet toggle ──
+  function toggleSheet(id, show) {
+    document.getElementById(id).classList.toggle('show', show);
+  }
+
+  // ── S04: Chart tabs ──
+  const WEEK = { bars:[{h:36,l:'Lun'},{h:57,l:'Mar'},{h:100,l:'Mié'},{h:71,l:'Jue'},{h:50,l:'Vie'}], caption:'Total semana: 47 entregas', chartCaption:'Promedio diario: S/ 87.40' };
+  const MES  = { bars:[{h:63,l:'S1'},{h:89,l:'S2'},{h:80,l:'S3'},{h:100,l:'S4'}], caption:'Total mes: 187 entregas', chartCaption:'Promedio semanal: S/ 412.80' };
+
+  function setChartTab(tab) {
+    document.getElementById('ct-semana').classList.toggle('active', tab === 'semana');
+    document.getElementById('ct-mes').classList.toggle('active', tab === 'mes');
+    document.getElementById('hour-chart').style.display = tab === 'mes' ? 'block' : 'none';
+    renderBarChart(tab === 'semana' ? WEEK : MES);
+    document.getElementById('chart-caption').textContent = tab === 'semana' ? WEEK.chartCaption : MES.chartCaption;
+  }
+
+  function renderBarChart(data) {
+    const maxH = Math.max(...data.bars.map(b=>b.h));
+    document.getElementById('bar-chart').innerHTML = data.bars.map((b,i) =>
+      `<div class="bc-col"><div class="bc-bar${b.h===maxH?' best':''}" style="height:${b.h}%;"></div><div class="bc-lbl">${b.l}</div></div>`
+    ).join('');
+    document.getElementById('bar-caption').textContent = data.caption;
+  }
+  renderBarChart(WEEK);
+
+  // ── S06: Schedule grid ──
+  const HOURS = ['8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm'];
+  const DAYS  = ['Lun','Mar','Mié','Jue','Vie'];
+  const DEMAND_PATTERN = ['med','high','vhigh','vhigh','vhigh','high','med','low','low','high','vhigh','vhigh','high','med'];
+  const DEMAND_LABELS = { vhigh:'🔥 Muy alta', high:'🟠 Alta', med:'🟡 Media', low:'🟢 Baja' };
+  const DEMAND_PROM   = { vhigh:'S/ 16.80 / h', high:'S/ 12.40 / h', med:'S/ 8.20 / h', low:'S/ 4.60 / h' };
+  const DEMAND_COUNT  = { vhigh:'8–12 entregas típicas', high:'5–8 entregas típicas', med:'3–5 entregas típicas', low:'1–3 entregas típicas' };
+
+  function buildGrid() {
+    const grid = document.getElementById('sg-grid');
+    let html = '<div class="sg-header"></div>';
+    DAYS.forEach(d => { html += `<div class="sg-header">${d}</div>`; });
+    HOURS.forEach((h, hi) => {
+      html += `<div class="sg-hour">${h}</div>`;
+      const lvl = DEMAND_PATTERN[hi];
+      DAYS.forEach((d, di) => {
+        html += `<div class="sg-cell ${lvl}" onclick="showHourTip('${h}','${d}','${lvl}')"></div>`;
+      });
+    });
+    grid.innerHTML = html;
+  }
+  buildGrid();
+
+  function showHourTip(hour, day, lvl) {
+    const tip = document.getElementById('sg-tooltip');
+    document.getElementById('sg-tip-title').textContent  = `${day} ${hour}`;
+    document.getElementById('sg-tip-demand').textContent = `Demanda: ${DEMAND_LABELS[lvl]}`;
+    document.getElementById('sg-tip-prom').textContent   = `Promedio: ${DEMAND_PROM[lvl]}`;
+    document.getElementById('sg-tip-count').textContent  = DEMAND_COUNT[lvl];
+    tip.classList.add('show');
+  }
+</script>
+
+</body>
+</html>

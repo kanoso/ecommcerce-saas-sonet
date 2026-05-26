@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiendi Go — Prototipos HTML</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #1C1C1E;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 32px;
+    }
+
+    .header {
+      max-width: 900px;
+      margin: 0 auto 40px;
+    }
+    .logo { font-size: 32px; font-weight: 800; color: #F97316; letter-spacing: -1px; }
+    .subtitle { font-size: 16px; color: #8E8E93; margin-top: 6px; }
+
+    .progress-bar-wrap {
+      max-width: 900px;
+      margin: 0 auto 32px;
+      background: #2C2C2E;
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .progress-info { flex: 1; }
+    .progress-label { font-size: 13px; color: #8E8E93; font-weight: 500; margin-bottom: 6px; }
+    .progress-count { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+    .progress-count span { font-size: 16px; font-weight: 500; color: #8E8E93; }
+    .progress-track {
+      flex: 2;
+      height: 10px;
+      background: #3A3A3C;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #F97316, #FB923C);
+      border-radius: 5px;
+      transition: width .4s ease;
+    }
+    .progress-pct { font-size: 18px; font-weight: 700; color: #F97316; min-width: 44px; text-align: right; }
+
+    .grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .module-card {
+      background: #2C2C2E;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1.5px solid #3A3A3C;
+      transition: border-color .2s;
+    }
+    .module-card:hover { border-color: #F97316; }
+
+    .module-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .module-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #3A3A3C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #8E8E93;
+      flex-shrink: 0;
+    }
+    .module-num.done { background: #16A34A; color: #fff; }
+    .module-num.partial { background: #D97706; color: #fff; }
+
+    .module-info { flex: 1; }
+    .module-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .module-meta  { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+
+    .module-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-done    { background: #14532D; color: #4ADE80; }
+    .badge-partial { background: #451A03; color: #FB923C; }
+    .badge-pending { background: #1C1C1E; color: #6B7280; }
+
+    .module-link {
+      padding: 6px 12px;
+      background: #F97316;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .module-link:hover { background: #EA580C; }
+    .module-link.disabled {
+      background: #3A3A3C;
+      color: #6B7280;
+      pointer-events: none;
+    }
+
+    .module-screens {
+      border-top: 1px solid #3A3A3C;
+      padding: 0 20px 16px;
+    }
+    .screen-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #3A3A3C;
+      cursor: pointer;
+    }
+    .screen-row:last-child { border-bottom: none; }
+
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      border: 2px solid #3A3A3C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all .15s;
+      font-size: 12px;
+    }
+    .check.checked { background: #F97316; border-color: #F97316; }
+
+    .screen-name { font-size: 13px; color: #AEAEB2; font-weight: 500; flex: 1; }
+    .screen-row.checked-row .screen-name {
+      color: #6B7280;
+      text-decoration: line-through;
+    }
+
+    .toggle-arrow {
+      color: #6B7280;
+      font-size: 14px;
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+    .module-card.open .toggle-arrow { transform: rotate(90deg); }
+    .module-screens { display: none; }
+    .module-card.open .module-screens { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🛵 Tiendi Go</div>
+  <div class="subtitle">Prototipos HTML — 73 pantallas · 16 módulos</div>
+</div>
+
+<div class="progress-bar-wrap">
+  <div class="progress-info">
+    <div class="progress-label">Progreso general</div>
+    <div class="progress-count" id="count-done">0 <span>/ 73 pantallas</span></div>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="progress-pct" id="progress-pct">0%</div>
+</div>
+
+<div class="grid" id="modules-grid">
+
+  <!-- M01 -->
+  <div class="module-card open" data-module="m01">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m01">01</div>
+      <div class="module-info">
+        <div class="module-title">M01 — Autenticación y Registro</div>
+        <div class="module-meta">8 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-partial" id="badge-m01">0 / 8</span>
+        <a href="m01-auth.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Splash / Carga inicial</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Login</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Registro — Paso 1: Datos personales</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Registro — Paso 2: Datos del vehículo</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Registro — Paso 3: Documentos</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Pendiente de revisión</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Cuenta suspendida</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Onboarding post-aprobación</div></div>
+    </div>
+  </div>
+
+  <!-- M02 -->
+  <div class="module-card" data-module="m02">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m02">02</div>
+      <div class="module-info">
+        <div class="module-title">M02 — Perfil y Estado</div>
+        <div class="module-meta">4 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m02">0 / 4</span>
+        <a href="m02-perfil.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Perfil principal</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Editar perfil</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Cambio de vehículo</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Toggle de disponibilidad</div></div>
+    </div>
+  </div>
+
+  <!-- M03 -->
+  <div class="module-card" data-module="m03">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m03">03</div>
+      <div class="module-info">
+        <div class="module-title">M03 — Recepción de Pedidos</div>
+        <div class="module-meta">3 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m03">0 / 3</span>
+        <a href="m03-pedidos.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Tarjeta de oferta de pedido</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Cola de pedidos activos</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Detalle del pedido</div></div>
+    </div>
+  </div>
+
+  <!-- M04 -->
+  <div class="module-card" data-module="m04">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m04">04</div>
+      <div class="module-info">
+        <div class="module-title">M04 — Flujo de Entrega</div>
+        <div class="module-meta">8 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m04">0 / 8</span>
+        <a href="m04-entrega.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Entrega activa</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Confirmación de recogida</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">POD — Foto</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">POD — OTP</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">POD — Firma digital</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">POD — QR offline</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Reporte de incidente</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Cancelación por el rider</div></div>
+    </div>
+  </div>
+
+  <!-- M05 -->
+  <div class="module-card" data-module="m05">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m05">05</div>
+      <div class="module-info">
+        <div class="module-title">M05 — Navegación y GPS</div>
+        <div class="module-meta">3 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m05">0 / 3</span>
+        <a href="m05-navegacion.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Navegación turn-by-turn</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Consentimiento GPS</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Modo offline / sin señal</div></div>
+    </div>
+  </div>
+
+  <!-- M06 -->
+  <div class="module-card" data-module="m06">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m06">06</div>
+      <div class="module-info">
+        <div class="module-title">M06 — Comunicación</div>
+        <div class="module-meta">3 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m06">0 / 3</span>
+        <a href="m06-comunicacion.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Chat con cliente</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Chat con tienda</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Lista de notificaciones</div></div>
+    </div>
+  </div>
+
+  <!-- M07 -->
+  <div class="module-card" data-module="m07">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m07">07</div>
+      <div class="module-info">
+        <div class="module-title">M07 — Ganancias y Pagos</div>
+        <div class="module-meta">5 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m07">0 / 5</span>
+        <a href="m07-ganancias.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Dashboard de ganancias</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Detalle de comisión</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Wallet</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Solicitud de retiro</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Manejo de efectivo (COD)</div></div>
+    </div>
+  </div>
+
+  <!-- M08 -->
+  <div class="module-card" data-module="m08">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m08">08</div>
+      <div class="module-info">
+        <div class="module-title">M08 — Historial y Estadísticas</div>
+        <div class="module-meta">6 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m08">0 / 6</span>
+        <a href="m08-historial.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Historial de pedidos</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Detalle de entrega histórica</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Estadísticas personales</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Gráficos de desempeño</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Mapa de calor H3</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Sugerencias de horarios</div></div>
+    </div>
+  </div>
+
+  <!-- M09 -->
+  <div class="module-card" data-module="m09">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m09">09</div>
+      <div class="module-info">
+        <div class="module-title">M09 — Calificaciones</div>
+        <div class="module-meta">2 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m09">0 / 2</span>
+        <a href="m09-calificaciones.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Calificación post-entrega</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Mi puntuación / historial</div></div>
+    </div>
+  </div>
+
+  <!-- M10 -->
+  <div class="module-card" data-module="m10">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m10">10</div>
+      <div class="module-info">
+        <div class="module-title">M10 — Configuración</div>
+        <div class="module-meta">6 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m10">0 / 6</span>
+        <a href="m10-configuracion.html" class="module-link disabled">Pendiente</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Zonas de cobertura</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Preferencias de pedidos</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Horarios de trabajo</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Notificaciones</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Privacidad y cuenta</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Apariencia</div></div>
+    </div>
+  </div>
+
+  <!-- M11 -->
+  <div class="module-card" data-module="m11">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m11">11</div>
+      <div class="module-info">
+        <div class="module-title">M11 — Soporte y Ayuda</div>
+        <div class="module-meta">4 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m11">0 / 4</span>
+        <a href="m11-soporte.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Centro de ayuda (FAQ)</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Reporte de problema</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Ticket activo</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Documentos legales</div></div>
+    </div>
+  </div>
+
+  <!-- M12 -->
+  <div class="module-card" data-module="m12">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m12">12</div>
+      <div class="module-info">
+        <div class="module-title">M12 — Incentivos</div>
+        <div class="module-meta">5 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m12">0 / 5</span>
+        <a href="m12-incentivos.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Desafío diario</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Bono horario pico</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Mapa zona caliente</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Programa de referidos</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Bonos nivel Diamante</div></div>
+    </div>
+  </div>
+
+  <!-- M13 -->
+  <div class="module-card" data-module="m13">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m13">13</div>
+      <div class="module-info">
+        <div class="module-title">M13 — Sistema de Puntuación</div>
+        <div class="module-meta">3 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m13">0 / 3</span>
+        <a href="m13-puntuacion.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Mi nivel y puntos</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Logros desbloqueables</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Ranking</div></div>
+    </div>
+  </div>
+
+  <!-- M14 -->
+  <div class="module-card" data-module="m14">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m14">14</div>
+      <div class="module-info">
+        <div class="module-title">M14 — Repartidores de Confianza</div>
+        <div class="module-meta">2 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m14">0 / 2</span>
+        <a href="m14-confianza.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Mis tiendas de confianza</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Gestión de invitaciones</div></div>
+    </div>
+  </div>
+
+  <!-- M15 -->
+  <div class="module-card" data-module="m15">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-m15">15</div>
+      <div class="module-info">
+        <div class="module-title">M15 — Admin de Flota</div>
+        <div class="module-meta">2 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-m15">0 / 2</span>
+        <a href="m15-flota.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Mi flota (badge en perfil)</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">Invitación a flota</div></div>
+    </div>
+  </div>
+
+  <!-- Transversales -->
+  <div class="module-card" data-module="pt">
+    <div class="module-header" onclick="toggleModule(this)">
+      <div class="module-num" id="num-pt" style="background:#3A3A3C; font-size:11px;">PT</div>
+      <div class="module-info">
+        <div class="module-title">Transversales / Sistema</div>
+        <div class="module-meta">5 pantallas</div>
+      </div>
+      <div class="module-badge">
+        <span class="badge badge-pending" id="badge-pt">0 / 5</span>
+        <a href="transversales.html" class="module-link">Ver →</a>
+      </div>
+      <span class="toggle-arrow">›</span>
+    </div>
+    <div class="module-screens">
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">PT-01 Error genérico</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">PT-02 Sin conexión</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">PT-03 Loading skeleton</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">PT-04 Empty state</div></div>
+      <div class="screen-row" onclick="toggleCheck(this)"><div class="check"></div><div class="screen-name">PT-05 Modal de confirmación</div></div>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<script>
+  const TOTALS = {
+    m01:8, m02:4, m03:3, m04:8, m05:3, m06:3, m07:5,
+    m08:6, m09:2, m10:6, m11:4, m12:5, m13:3, m14:2, m15:2, pt:5
+  };
+  const TOTAL_SCREENS = 73;
+
+  // Load state from localStorage
+  const state = JSON.parse(localStorage.getItem('tiendi-go-progress') || '{}');
+
+  function saveState() {
+    localStorage.setItem('tiendi-go-progress', JSON.stringify(state));
+  }
+
+  function updateProgress() {
+    let totalDone = 0;
+
+    Object.keys(TOTALS).forEach(mod => {
+      const done = state[mod] ? state[mod].length : 0;
+      const total = TOTALS[mod];
+      totalDone += done;
+
+      const badge = document.getElementById('badge-' + mod);
+      const num   = document.getElementById('num-' + mod);
+      if (!badge) return;
+
+      badge.textContent = done + ' / ' + total;
+      badge.className = 'badge ' + (done === total ? 'badge-done' : done > 0 ? 'badge-partial' : 'badge-pending');
+      if (num && mod !== 'pt') {
+        num.className = 'module-num ' + (done === total ? 'done' : done > 0 ? 'partial' : '');
+      }
+    });
+
+    const pct = Math.round((totalDone / TOTAL_SCREENS) * 100);
+    document.getElementById('count-done').innerHTML = totalDone + ' <span>/ ' + TOTAL_SCREENS + ' pantallas</span>';
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  function toggleCheck(row) {
+    const card = row.closest('.module-card');
+    const mod  = card.dataset.module;
+    const idx  = Array.from(row.parentElement.children).indexOf(row);
+    const key  = mod + '-' + idx;
+
+    if (!state[mod]) state[mod] = [];
+    const pos = state[mod].indexOf(key);
+
+    if (pos === -1) {
+      state[mod].push(key);
+      row.querySelector('.check').classList.add('checked');
+      row.querySelector('.check').textContent = '✓';
+      row.classList.add('checked-row');
+    } else {
+      state[mod].splice(pos, 1);
+      row.querySelector('.check').classList.remove('checked');
+      row.querySelector('.check').textContent = '';
+      row.classList.remove('checked-row');
+    }
+
+    saveState();
+    updateProgress();
+  }
+
+  function toggleModule(header) {
+    header.closest('.module-card').classList.toggle('open');
+  }
+
+  // Restore checked state from localStorage
+  function restoreState() {
+    Object.keys(state).forEach(mod => {
+      const card = document.querySelector('[data-module="' + mod + '"]');
+      if (!card) return;
+      const rows = card.querySelectorAll('.screen-row');
+      state[mod].forEach(key => {
+        const idx = parseInt(key.split('-').pop());
+        const row = rows[idx];
+        if (row) {
+          row.querySelector('.check').classList.add('checked');
+          row.querySelector('.check').textContent = '✓';
+          row.classList.add('checked-row');
+        }
+      });
+    });
+    updateProgress();
+  }
+
+  restoreState();
+</script>
+</body>
+</html>

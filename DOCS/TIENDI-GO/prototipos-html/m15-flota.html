@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M15 — Admin de Flota · Tiendi Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#F97316;--primary-soft:rgba(249,115,22,.12);
+  --success:#16A34A;--warning:#D97706;--error:#DC2626;--info:#2563EB;
+  --bg:#1C1C1E;--card:#2C2C2E;--card2:#3A3A3C;
+  --text:#F5F5F7;--text2:#A1A1AA;--border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#111;min-height:100vh;display:flex;}
+.sidebar{width:220px;background:#2C2C2E;padding:24px 0;display:flex;flex-direction:column;gap:4px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-title{color:#A1A1AA;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 16px 8px}
+.sb{display:block;padding:10px 16px;color:#A1A1AA;font-size:13px;font-weight:500;cursor:pointer;border-left:3px solid transparent;background:transparent;width:100%;text-align:left;transition:all .15s;text-decoration:none;border-right:none;border-top:none;border-bottom:none;font-family:inherit}
+.sb:hover{color:#F5F5F7;background:rgba(255,255,255,.04)}
+.sb.active{color:#F97316;background:rgba(249,115,22,.12);border-left-color:#F97316}
+.sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+.main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:48px;overflow:hidden;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 20px 60px rgba(0,0,0,.6);position:relative;display:flex;flex-direction:column}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 6px;flex-shrink:0}
+.sbar-t{font-size:15px;font-weight:600;color:var(--text)}
+.sbar-i{display:flex;gap:6px;align-items:center;color:var(--text);font-size:12px}
+.top-bar{display:flex;align-items:center;gap:12px;padding:6px 20px 10px;flex-shrink:0}
+.btn-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:10px;color:var(--text2);cursor:pointer;border:none;font-size:18px;flex-shrink:0;font-family:inherit}
+.top-title{font-size:17px;font-weight:600;color:var(--text);flex:1}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+.screen.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:0 20px 24px}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
+.h2{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
+.mb8{margin-bottom:8px}
+.mb12{margin-bottom:12px}
+.mb16{margin-bottom:16px}
+.mb20{margin-bottom:20px}
+
+/* demo box */
+.demo-box{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+.demo-box p{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px}
+.demo-row{display:flex;gap:6px;flex-wrap:wrap}
+.demo-btn{padding:5px 10px;background:var(--card2);border:none;border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.demo-btn.on{background:var(--primary-soft);color:var(--primary)}
+
+/* fleet card */
+.fleet-card{background:linear-gradient(135deg,rgba(37,99,235,.2),rgba(6,182,212,.1));border:1px solid rgba(99,179,237,.25);border-radius:20px;padding:20px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.fleet-logo{width:56px;height:56px;border-radius:16px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.fleet-info{flex:1}
+.fleet-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:4px}
+.fleet-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(22,163,74,.2);color:#4ADE80;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;margin-bottom:6px}
+.fleet-meta{font-size:12px;color:var(--text2)}
+
+/* conditions */
+.cond-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px}
+.cond-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
+.cond-label{color:var(--text2)}
+.cond-val{font-weight:700;color:var(--text)}
+.cond-val.highlight{color:var(--primary)}
+.cond-divider{height:1px;background:var(--border);margin:10px 0}
+.breakdown{background:var(--card2);border-radius:12px;padding:12px;margin-top:10px}
+.breakdown-title{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:600}
+.breakdown-row{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);padding:3px 0}
+.breakdown-row.net{color:var(--success);font-weight:700;font-size:14px;padding-top:6px;border-top:1px solid var(--border);margin-top:4px}
+
+/* benefits */
+.benefit-list{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px}
+.benefit-row{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text)}
+.benefit-icon{font-size:16px}
+
+/* contact */
+.contact-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:20px}
+.contact-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px}
+.contact-btns{display:flex;gap:10px}
+.contact-btn{flex:1;padding:12px;background:var(--card2);border:none;color:var(--text);font-size:13px;font-weight:600;border-radius:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+.contact-btn:hover{background:#48484A}
+
+/* leave button */
+.btn-leave{width:100%;padding:15px;background:transparent;border:1.5px solid rgba(220,38,38,.4);color:var(--error);font-size:15px;font-weight:600;border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-leave:hover{background:rgba(220,38,38,.06)}
+
+/* empty state */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;gap:12px}
+.empty-icon{font-size:60px}
+.empty-title{font-size:17px;font-weight:700;color:var(--text)}
+.empty-desc{font-size:14px;color:var(--text2);line-height:1.6}
+.perks-list{background:var(--card);border-radius:16px;padding:14px 16px;width:100%;text-align:left;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.perk-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
+
+/* warning banner */
+.warn-banner{background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.3);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.warn-banner .icon{font-size:18px;flex-shrink:0}
+.warn-banner p{font-size:13px;color:var(--text2);line-height:1.5}
+.warn-banner strong{color:var(--warning)}
+
+/* section card */
+.sec-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px}
+.info-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;color:var(--text2)}
+.info-row span:last-child{color:var(--text);font-weight:600}
+
+/* buttons */
+.btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-primary:hover{opacity:.9}
+.btn-secondary{width:100%;padding:14px;background:var(--card);color:var(--text);font-size:14px;font-weight:600;border:1.5px solid var(--border);border-radius:16px;cursor:pointer;font-family:inherit}
+.btn-secondary:hover{background:var(--card2)}
+.btn-reject{flex:1;padding:14px;background:var(--card2);border:none;color:var(--text2);font-size:14px;font-weight:600;border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-accept{flex:2;padding:14px;background:var(--primary);border:none;color:#fff;font-size:14px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-accept:hover{opacity:.9}
+.btn-combo{flex:3;padding:14px;background:var(--error);border:none;color:#fff;font-size:13px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit}
+.act-row{display:flex;gap:10px;margin-bottom:12px}
+
+/* disclaimer */
+.disclaimer{display:flex;align-items:flex-start;gap:8px;background:rgba(217,119,6,.08);border-radius:10px;padding:10px;margin-bottom:16px}
+.disclaimer p{font-size:12px;color:var(--warning);line-height:1.5}
+
+/* expiry pill */
+.expiry-pill{text-align:center;font-size:12px;color:var(--text2);margin-top:4px}
+
+/* history */
+.hist-list{display:flex;flex-direction:column;gap:10px}
+.hist-item{background:var(--card);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.hist-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.hist-date{font-size:12px;color:var(--text2)}
+.hist-status{font-size:13px;font-weight:700}
+.hist-status.accepted{color:var(--success)}
+.hist-status.rejected{color:var(--error)}
+.hist-status.expired{color:var(--text2)}
+
+/* bottom sheet */
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+.sheet-overlay.show{opacity:1;pointer-events:all}
+.sheet{background:#1C1C1E;border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.sheet-overlay.show .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--card2);border-radius:99px;margin:0 auto 16px}
+.sheet-title{font-size:17px;font-weight:700;color:var(--text);margin-bottom:10px}
+.sheet-body{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.sheet-acts{display:flex;gap:10px}
+.btn-sheet-cancel{flex:1;padding:14px;background:var(--card2);border:none;color:var(--text);font-size:14px;font-weight:600;border-radius:14px;cursor:pointer;font-family:inherit}
+.btn-sheet-danger{flex:2;padding:14px;background:var(--error);border:none;color:#fff;font-size:14px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M15 — Flota</div>
+  <button class="sb active" onclick="showScreen('s01')">🚐 P15-01 Mi flota</button>
+  <button class="sb" onclick="showScreen('s02')">📨 P15-02 Invitación</button>
+  <div class="sep"></div>
+  <a class="sb" href="index.html">← Volver al índice</a>
+</nav>
+
+<div class="main">
+<div class="phone">
+  <div class="sbar">
+    <span class="sbar-t">9:41</span>
+    <div class="sbar-i"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
+
+  <!-- ══════════════ S01 — Mi flota ══════════════ -->
+  <div id="s01" class="screen active">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div class="top-title">Mi flota</div>
+    </div>
+
+    <div class="scroll">
+      <div class="demo-box">
+        <p>Demo — estado del rider:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setS01('active',this)">Con flota activa</button>
+          <button class="demo-btn" onclick="setS01('independent',this)">Independiente</button>
+        </div>
+      </div>
+
+      <!-- active view -->
+      <div id="s01-active">
+        <div class="fleet-card">
+          <div class="fleet-logo">🚐</div>
+          <div class="fleet-info">
+            <div class="fleet-name">LogiRápido SAC</div>
+            <div class="fleet-badge">★ Flota activa</div>
+            <div class="fleet-meta">Miembro desde abr 2026 · 37 riders</div>
+          </div>
+        </div>
+
+        <div class="h2">Mis condiciones</div>
+        <div class="cond-card mb16">
+          <div class="cond-row"><span class="cond-label">Comisión flota</span><span class="cond-val">10%</span></div>
+          <div class="cond-row"><span class="cond-label">Vos recibís</span><span class="cond-val highlight">90% neto</span></div>
+          <div class="cond-divider"></div>
+          <div class="breakdown">
+            <div class="breakdown-title">Ejemplo — último pedido #PED-124</div>
+            <div class="breakdown-row"><span>Comisión bruta</span><span>S/.9.85</span></div>
+            <div class="breakdown-row"><span>Fee flota (10%)</span><span style="color:var(--error)">−S/.0.99</span></div>
+            <div class="breakdown-row net"><span>Vos recibiste</span><span>S/.8.86</span></div>
+          </div>
+        </div>
+
+        <div class="h2">Beneficios de tu flota</div>
+        <div class="benefit-list mb16">
+          <div class="benefit-row"><span class="benefit-icon">✅</span><span>Seguro contra accidentes</span></div>
+          <div class="benefit-row"><span class="benefit-icon">✅</span><span>Adelanto de comisiones</span></div>
+          <div class="benefit-row"><span class="benefit-icon">✅</span><span>Equipamiento incluido</span></div>
+          <div class="benefit-row" style="font-size:12px;color:var(--text2);margin-top:4px;padding-left:26px">Beneficios ofrecidos por el admin, no garantizados por Tiendi.</div>
+        </div>
+
+        <div class="h2">Contacto del admin</div>
+        <div class="contact-card">
+          <div class="contact-name">Carlos Mendoza</div>
+          <div class="contact-btns">
+            <button class="contact-btn" onclick="alert('Llamando a Carlos Mendoza...')">📞 Llamar</button>
+            <button class="contact-btn" onclick="alert('Abriendo WhatsApp...')">💬 WhatsApp</button>
+          </div>
+        </div>
+
+        <button class="btn-leave" onclick="openLeaveSheet()">Salir de la flota</button>
+      </div>
+
+      <!-- independent view -->
+      <div id="s01-independent" class="empty-state" style="display:none">
+        <div class="empty-icon">🚴</div>
+        <div class="empty-title">Sos un repartidor independiente</div>
+        <div class="empty-desc">Las flotas son grupos de riders organizados por un operador. Podés recibir una invitación si un admin te agrega.</div>
+        <div class="perks-list">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Ventajas de una flota</div>
+          <div class="perk-row"><span>✅</span><span>Seguro y beneficios</span></div>
+          <div class="perk-row"><span>✅</span><span>Adelanto de comisiones</span></div>
+          <div class="perk-row"><span>✅</span><span>Zonas coordinadas</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- leave sheet -->
+    <div class="sheet-overlay" id="leave-sheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">¿Salir de LogiRápido SAC?</div>
+        <div class="sheet-body">
+          Efectivo al cierre del día de hoy (23:59).<br><br>
+          Tus comisiones pendientes se liquidarán según el ciclo normal de pagos.<br><br>
+          El admin recibirá una notificación ahora.
+        </div>
+        <div class="sheet-acts">
+          <button class="btn-sheet-cancel" onclick="closeLeaveSheet()">Cancelar</button>
+          <button class="btn-sheet-danger" onclick="confirmLeave()">Sí, salir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ S02 — Invitación a flota ══════════════ -->
+  <div id="s02" class="screen">
+    <div class="top-bar">
+      <button class="btn-back" onclick="showScreen('s01')">‹</button>
+      <div class="top-title">Invitación a flota</div>
+    </div>
+
+    <div class="scroll">
+      <div class="demo-box">
+        <p>Demo — situación del rider:</p>
+        <div class="demo-row">
+          <button class="demo-btn on" onclick="setS02('free',this)">Sin flota actual</button>
+          <button class="demo-btn" onclick="setS02('in-fleet',this)">Ya en otra flota</button>
+          <button class="demo-btn" onclick="setS02('history',this)">Historial</button>
+        </div>
+      </div>
+
+      <!-- invitation view -->
+      <div id="s02-invite">
+        <!-- "ya en flota" warning — hidden by default -->
+        <div class="warn-banner mb12" id="already-fleet-warn" style="display:none">
+          <div class="icon">⚠️</div>
+          <p>Pertenecés a <strong>FlotaXYZ</strong>. Para aceptar esta invitación, primero tenés que salir de tu flota actual.</p>
+        </div>
+        <div id="goto-fleet-btn" style="display:none" class="mb12">
+          <button class="btn-secondary" onclick="showScreen('s01')">Ir a Mi flota</button>
+        </div>
+
+        <!-- invite hero -->
+        <div class="fleet-card mb16">
+          <div class="fleet-logo">🚐</div>
+          <div class="fleet-info">
+            <div class="fleet-name">LogiRápido SAC</div>
+            <div class="fleet-meta" style="margin-top:4px">te invita a unirte a su flota</div>
+            <div class="fleet-meta" style="margin-top:4px;color:var(--text2)">Hace 3 horas</div>
+          </div>
+        </div>
+
+        <div class="h2">Sobre la flota</div>
+        <div class="sec-card mb16">
+          <div class="info-row"><span>Admin</span><span>Carlos Mendoza</span></div>
+          <div class="info-row"><span>Riders activos</span><span>37</span></div>
+          <div class="info-row"><span>Zona principal</span><span>Miraflores</span></div>
+          <div class="info-row"><span>Horario habitual</span><span>10:00–22:00</span></div>
+        </div>
+
+        <div class="h2">Condiciones económicas</div>
+        <div class="cond-card mb16">
+          <div class="cond-row"><span class="cond-label">Fee de flota</span><span class="cond-val">10%</span></div>
+          <div class="cond-row"><span class="cond-label">Vos recibís</span><span class="cond-val highlight">90% neto</span></div>
+          <div class="cond-divider"></div>
+          <div class="breakdown">
+            <div class="breakdown-title">Con tu promedio actual (últimos 30 días)</div>
+            <div class="breakdown-row"><span>Estimado mensual</span><span>S/.2,100</span></div>
+            <div class="breakdown-row"><span style="color:var(--error)">Fee estimado</span><span style="color:var(--error)">−S/.210</span></div>
+            <div class="breakdown-row net"><span>Neto estimado</span><span>S/.1,890</span></div>
+          </div>
+        </div>
+
+        <div class="h2">Beneficios ofrecidos</div>
+        <div class="benefit-list mb12">
+          <div class="benefit-row"><span class="benefit-icon">✅</span><span>Seguro contra accidentes</span></div>
+          <div class="benefit-row"><span class="benefit-icon">✅</span><span>Equipamiento incluido</span></div>
+        </div>
+        <div class="disclaimer mb16">
+          <p>⚠️ Estos beneficios son ofrecidos por el admin de flota, no por Tiendi. Tiendi no garantiza su cumplimiento.</p>
+        </div>
+
+        <div id="acts-free" class="act-row">
+          <button class="btn-reject" onclick="rejectInvite()">Rechazar</button>
+          <button class="btn-accept" onclick="acceptInvite()">Aceptar</button>
+        </div>
+        <div id="acts-fleet" class="act-row" style="display:none">
+          <button class="btn-reject" onclick="rejectInvite()">Rechazar</button>
+          <button class="btn-combo" onclick="openLeaveAndJoin()">Salir y unirme</button>
+        </div>
+        <div class="expiry-pill">Vence en 7 días</div>
+      </div>
+
+      <!-- history view -->
+      <div id="s02-history" style="display:none">
+        <div class="hist-list">
+          <div class="hist-item">
+            <div><div class="hist-name">FlotaRapida S.R.L.</div><div class="hist-date">Abr 2026</div></div>
+            <div class="hist-status accepted">✅ Aceptaste</div>
+          </div>
+          <div class="hist-item">
+            <div><div class="hist-name">Moto Express Lima</div><div class="hist-date">Mar 2026</div></div>
+            <div class="hist-status rejected">❌ Rechazaste</div>
+          </div>
+          <div class="hist-item">
+            <div><div class="hist-name">DeliverPro Perú</div><div class="hist-date">Feb 2026</div></div>
+            <div class="hist-status expired">⏱ Expiró</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- leave-and-join sheet -->
+    <div class="sheet-overlay" id="combo-sheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Salir y unirme a LogiRápido</div>
+        <div class="sheet-body">
+          Esto hará dos acciones:<br><br>
+          1. <strong style="color:var(--text)">Salir de FlotaXYZ</strong> — efectivo al cierre del día (23:59).<br><br>
+          2. <strong style="color:var(--text)">Unirte a LogiRápido SAC</strong> — activo desde mañana.
+        </div>
+        <div class="sheet-acts">
+          <button class="btn-sheet-cancel" onclick="closeComboSheet()">Cancelar</button>
+          <button class="btn-sheet-danger" onclick="confirmCombo()">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /main -->
+
+<script>
+// ── Nav ──────────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sb').forEach((l,i)=>{
+    l.classList.toggle('active',['s01','s02'][i]===id);
+  });
+}
+
+// ── S01 ──────────────────────────────────────────────────────────────────────
+function setS01(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('s01-active').style.display=mode==='active'?'':'none';
+  const ind=document.getElementById('s01-independent');
+  ind.style.display=mode==='independent'?'flex':'none';
+  if(mode==='independent') ind.style.flexDirection='column';
+}
+
+function openLeaveSheet(){ document.getElementById('leave-sheet').classList.add('show'); }
+function closeLeaveSheet(){ document.getElementById('leave-sheet').classList.remove('show'); }
+function confirmLeave(){
+  closeLeaveSheet();
+  alert('Solicitud enviada.\nSalida efectiva hoy a las 23:59.\nEl admin fue notificado.');
+  setS01('independent', document.querySelector('[onclick="setS01(\'independent\',this)"]'));
+}
+
+// ── S02 ──────────────────────────────────────────────────────────────────────
+function setS02(mode,btn){
+  btn.closest('.demo-row').querySelectorAll('.demo-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+
+  document.getElementById('s02-invite').style.display=mode!=='history'?'':'none';
+  document.getElementById('s02-history').style.display=mode==='history'?'':'none';
+
+  if(mode!=='history'){
+    const isFleet=mode==='in-fleet';
+    document.getElementById('already-fleet-warn').style.display=isFleet?'flex':'none';
+    document.getElementById('goto-fleet-btn').style.display=isFleet?'':'none';
+    document.getElementById('acts-free').style.display=isFleet?'none':'flex';
+    document.getElementById('acts-fleet').style.display=isFleet?'flex':'none';
+  }
+}
+
+function rejectInvite(){
+  if(confirm('¿Rechazar la invitación de LogiRápido SAC?')){
+    alert('Invitación rechazada.\nPodés recibir sus pedidos desde el pool general igual.');
+    showScreen('s01');
+  }
+}
+
+function acceptInvite(){
+  alert('✅ ¡Bienvenido a LogiRápido SAC!\nYa sos parte de la flota.');
+  setS01('active', document.querySelectorAll('.s01-demo-btn, .demo-btn')[0]);
+  showScreen('s01');
+}
+
+function openLeaveAndJoin(){ document.getElementById('combo-sheet').classList.add('show'); }
+function closeComboSheet(){ document.getElementById('combo-sheet').classList.remove('show'); }
+function confirmCombo(){
+  closeComboSheet();
+  alert('✅ Confirmado.\nSalida de FlotaXYZ al cierre del día.\nEntrada a LogiRápido SAC desde mañana.');
+  showScreen('s01');
+}
+</script>
+</body>
+</html>

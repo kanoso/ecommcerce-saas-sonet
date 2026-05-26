@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M10 — Configuración | Tiendi Go</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:#F97316;--success:#16A34A;--warning:#D97706;
+      --error:#DC2626;--info:#2563EB;
+      --bg:#1C1C1E;--card:#2C2C2E;--card2:#3A3A3C;
+      --border:#48484A;--text:#FFF;--text-2:#EBEBF5;--text-3:#8E8E93;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',system-ui,sans-serif;background:#111;display:flex;min-height:100vh;}
+
+    /* SIDEBAR */
+    .sidebar{width:220px;background:#2C2C2E;padding:24px 0;display:flex;flex-direction:column;gap:2px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-title{font-size:11px;font-weight:700;color:#6C6C70;letter-spacing:1px;text-transform:uppercase;padding:0 16px 16px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;color:var(--text-3);font-size:13px;font-weight:500;}
+    .nav-item:hover{background:rgba(255,255,255,.05);color:#fff;}
+    .nav-item.active{background:rgba(249,115,22,.12);border-left-color:var(--primary);color:var(--primary);}
+    .nav-num{font-size:11px;font-weight:700;color:#6C6C70;width:20px;}
+    .nav-item.active .nav-num{color:var(--primary);}
+
+    /* PHONE */
+    .main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;}
+    .phone{width:390px;height:844px;background:var(--bg);border-radius:48px;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 32px 80px rgba(0,0,0,.8);overflow:hidden;display:flex;flex-direction:column;position:relative;}
+    .screen{display:none;flex-direction:column;height:100%;}
+    .screen.active{display:flex;}
+    .status-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 4px;flex-shrink:0;}
+    .status-time{font-size:15px;font-weight:700;color:#fff;}
+    .status-icons{font-size:12px;color:#fff;}
+
+    /* SHARED */
+    .page-header{display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--card);flex-shrink:0;border-bottom:1px solid var(--border);}
+    .back-btn{font-size:22px;color:var(--primary);cursor:pointer;}
+    .page-title{font-size:17px;font-weight:700;color:#fff;}
+    .scroll-body{flex:1;overflow-y:auto;padding:0 16px 16px;}
+    .scroll-body::-webkit-scrollbar{width:3px;}
+    .scroll-body::-webkit-scrollbar-thumb{background:#3A3A3C;border-radius:2px;}
+    .btn-primary{display:block;width:100%;padding:14px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;border-radius:14px;text-align:center;cursor:pointer;margin-top:12px;}
+    .btn-secondary{display:block;width:100%;padding:13px;background:var(--card2);color:var(--text-2);font-size:15px;font-weight:600;border-radius:14px;text-align:center;cursor:pointer;margin-top:8px;}
+    .btn-ghost{text-align:center;padding:11px;font-size:14px;color:var(--text-3);cursor:pointer;}
+    .section-lbl{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;padding:16px 0 6px;}
+    .divider{height:1px;background:var(--border);margin:4px 0;}
+
+    /* TOGGLE */
+    .toggle{width:48px;height:28px;background:var(--border);border-radius:14px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+    .toggle.on{background:var(--primary);}
+    .toggle::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+    .toggle.on::after{transform:translateX(20px);}
+    .toggle.locked{opacity:.35;pointer-events:none;}
+
+    /* SETTINGS ROW */
+    .setting-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #2C2C2E;cursor:pointer;transition:opacity .12s;}
+    .setting-row:last-child{border-bottom:none;}
+    .setting-row:active{opacity:.7;}
+    .setting-left{display:flex;align-items:center;gap:12px;}
+    .setting-icon{font-size:20px;width:28px;text-align:center;}
+    .setting-label{font-size:15px;color:var(--text-2);}
+    .setting-sublabel{font-size:12px;color:var(--text-3);margin-top:2px;}
+    .setting-arrow{font-size:20px;color:var(--text-3);}
+    .setting-row.danger .setting-label{color:var(--error);}
+    .setting-row.logout .setting-label{color:var(--error);font-weight:600;}
+
+    /* NOTIFICATION ROW */
+    .notif-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #2C2C2E;}
+    .notif-row:last-child{border-bottom:none;}
+    .notif-info{flex:1;}
+    .notif-title{font-size:14px;font-weight:600;color:var(--text-2);}
+    .notif-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
+    .lock-badge{font-size:10px;color:var(--text-3);background:var(--card2);padding:2px 6px;border-radius:6px;margin-left:6px;}
+
+    /* BOTTOM SHEET */
+    .sheet-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:flex-end;}
+    .sheet-overlay.show{display:flex;}
+    .sheet{width:100%;background:var(--card);border-radius:28px 28px 0 0;padding:0 20px 36px;}
+    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 18px;}
+    .sheet-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:10px;}
+    .sheet-body{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:16px;}
+    .sheet-warn-item{display:flex;gap:8px;font-size:13px;color:var(--text-3);margin-bottom:6px;}
+    .btn-danger{display:block;width:100%;padding:14px;background:var(--error);color:#fff;font-size:15px;font-weight:700;border-radius:14px;text-align:center;cursor:pointer;margin-bottom:8px;}
+
+    /* ── S01: ROOT MENU ── */
+    .menu-version{text-align:center;padding:16px 0 8px;font-size:12px;color:var(--text-3);}
+
+    /* ── S02: ZONAS ── */
+    .zone-map{height:200px;background:#2D3830;border-radius:14px;position:relative;overflow:hidden;margin-bottom:12px;}
+    .zone-map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04)1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04)1px,transparent 1px);background-size:28px 28px;}
+    .zone-poly{position:absolute;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;transition:all .2s;}
+    .zone-poly.active{background:rgba(249,115,22,.35);border:2px solid rgba(249,115,22,.7);color:#FB923C;}
+    .zone-poly.inactive{background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.2);color:var(--text-3);}
+    .rider-map-pin{position:absolute;font-size:18px;bottom:30%;left:48%;transform:translateX(-50%);z-index:10;}
+    .zone-counter{font-size:13px;color:var(--text-3);margin-bottom:10px;}
+    .zone-chips{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+    .zone-chip{display:flex;align-items:center;justify-content:space-between;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:10px 14px;}
+    .zone-chip-name{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--primary);}
+    .zone-chip-dot{width:12px;height:12px;background:var(--primary);border-radius:3px;}
+    .zone-chip-x{font-size:18px;color:var(--text-3);cursor:pointer;padding:0 4px;}
+    .add-zone{font-size:14px;color:var(--primary);cursor:pointer;padding:8px 0;}
+
+    /* ── S03: PREFERENCES ── */
+    .slider-wrap{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;}
+    .slider-row{display:flex;align-items:center;gap:8px;}
+    .slider-min,.slider-max{font-size:11px;color:var(--text-3);white-space:nowrap;}
+    input[type=range]{flex:1;accent-color:var(--primary);cursor:pointer;}
+    .slider-val{text-align:center;font-size:16px;font-weight:700;color:#fff;margin-top:6px;}
+    .pref-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--card);border-radius:12px;margin-bottom:8px;}
+    .pref-left{display:flex;align-items:center;gap:10px;}
+    .pref-icon{font-size:20px;}
+    .pref-label{font-size:14px;color:var(--text-2);}
+    .cod-limit{overflow:hidden;transition:max-height .25s,opacity .25s;max-height:0;opacity:0;}
+    .cod-limit.show{max-height:80px;opacity:1;}
+    .cod-limit-inner{padding:0 0 10px;display:flex;align-items:center;gap:8px;}
+    .cod-prefix{font-size:15px;font-weight:700;color:var(--text-3);}
+    .cod-field{flex:1;background:#161618;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:16px;font-weight:700;color:#fff;}
+
+    /* ── S04: HORARIOS ── */
+    .day-block{margin-bottom:4px;}
+    .day-header{display:flex;align-items:center;justify-content:space-between;padding:12px 0;}
+    .day-name{font-size:15px;font-weight:700;color:#fff;}
+    .time-pickers{display:flex;gap:10px;padding-bottom:10px;}
+    .time-picker-btn{flex:1;background:var(--card);border-radius:10px;padding:10px;text-align:center;cursor:pointer;}
+    .tp-label{font-size:10px;color:var(--text-3);margin-bottom:4px;}
+    .tp-time{font-size:16px;font-weight:700;color:#fff;}
+    .day-divider{height:1px;background:var(--border);}
+
+    /* ── S06: PRIVACIDAD ── */
+    .danger-section .section-lbl{color:var(--error);}
+    .danger-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:12px;margin-bottom:8px;cursor:pointer;}
+    .danger-row-label{font-size:14px;font-weight:600;color:var(--error);}
+
+    /* ── S07: APARIENCIA (merged as extra section) ── */
+    .theme-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+    .theme-card{background:var(--card);border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
+    .theme-card.active{border-color:var(--primary);}
+    .theme-card-icon{font-size:24px;margin-bottom:6px;}
+    .theme-card-label{font-size:12px;font-weight:600;color:var(--text-3);}
+    .theme-card.active .theme-card-label{color:var(--primary);}
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">M10 — Configuración</div>
+  <div class="nav-item active" data-screen="s01" onclick="showScreen('s01')"><span class="nav-num">00</span>Menú raíz</div>
+  <div class="nav-item" data-screen="s02" onclick="showScreen('s02')"><span class="nav-num">01</span>Zonas de cobertura</div>
+  <div class="nav-item" data-screen="s03" onclick="showScreen('s03')"><span class="nav-num">02</span>Preferencias pedidos</div>
+  <div class="nav-item" data-screen="s04" onclick="showScreen('s04')"><span class="nav-num">03</span>Horarios de trabajo</div>
+  <div class="nav-item" data-screen="s05" onclick="showScreen('s05')"><span class="nav-num">04</span>Notificaciones</div>
+  <div class="nav-item" data-screen="s06" onclick="showScreen('s06')"><span class="nav-num">05</span>Privacidad y cuenta</div>
+</nav>
+
+<div class="main"><div class="phone">
+
+  <!-- ════════════════════ S01 — MENÚ RAÍZ ════════════════════ -->
+  <div class="screen active" id="s01">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header"><div class="back-btn">‹</div><div class="page-title">Configuración</div></div>
+    <div class="scroll-body" style="padding-top:8px;">
+      <div class="section-lbl" style="padding-top:8px;">Operativa</div>
+      <div class="setting-row" onclick="showScreen('s02')">
+        <div class="setting-left"><div class="setting-icon">📍</div><div><div class="setting-label">Zonas de cobertura</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+      <div class="setting-row" onclick="showScreen('s03')">
+        <div class="setting-left"><div class="setting-icon">📦</div><div><div class="setting-label">Preferencias de pedidos</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+      <div class="setting-row" onclick="showScreen('s04')">
+        <div class="setting-left"><div class="setting-icon">🕐</div><div><div class="setting-label">Horarios de trabajo</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+
+      <div class="section-lbl">App</div>
+      <div class="setting-row" onclick="showScreen('s05')">
+        <div class="setting-left"><div class="setting-icon">🔔</div><div><div class="setting-label">Notificaciones</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+      <div class="setting-row" onclick="">
+        <div class="setting-left"><div class="setting-icon">🎨</div><div><div class="setting-label">Apariencia</div><div class="setting-sublabel">Oscuro · Texto normal</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+
+      <div class="section-lbl">Cuenta</div>
+      <div class="setting-row" onclick="showScreen('s06')">
+        <div class="setting-left"><div class="setting-icon">🔒</div><div><div class="setting-label">Privacidad y datos</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+      <div class="setting-row" onclick="">
+        <div class="setting-left"><div class="setting-icon">🏦</div><div><div class="setting-label">Cuenta bancaria</div><div class="setting-sublabel">BCP ****4521</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+      <div class="setting-row" onclick="">
+        <div class="setting-left"><div class="setting-icon">🔑</div><div><div class="setting-label">Cambiar contraseña</div></div></div>
+        <div class="setting-arrow">›</div>
+      </div>
+
+      <div class="divider" style="margin:12px 0;"></div>
+      <div class="setting-row logout" onclick="">
+        <div class="setting-left"><div class="setting-icon" style="color:var(--error);">⎋</div><div class="setting-label">Cerrar sesión</div></div>
+      </div>
+      <div class="menu-version">v1.4.2 · Tiendi Go</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════ S02 — ZONAS DE COBERTURA ════════════════════ -->
+  <div class="screen" id="s02">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header"><div class="back-btn" onclick="showScreen('s01')">‹</div><div class="page-title">Zonas de cobertura</div></div>
+    <div class="scroll-body" style="padding-top:12px;">
+      <div style="font-size:13px;color:var(--text-3);margin-bottom:10px;">Seleccioná las zonas donde querés recibir pedidos.</div>
+
+      <!-- Map simulation -->
+      <div class="zone-map">
+        <div class="zone-map-grid"></div>
+        <div class="zone-poly active"  style="top:15%;left:32%;width:28%;height:28%;" onclick="toggleZone(this,'Miraflores')">Miraflores</div>
+        <div class="zone-poly active"  style="top:38%;left:18%;width:26%;height:24%;" onclick="toggleZone(this,'San Isidro')">San Isidro</div>
+        <div class="zone-poly inactive" style="top:45%;left:52%;width:24%;height:22%;" onclick="toggleZone(this,'Surco')">Surco</div>
+        <div class="zone-poly inactive" style="top:18%;left:64%;width:24%;height:24%;" onclick="toggleZone(this,'La Molina')">La Molina</div>
+        <div class="rider-map-pin">📍</div>
+      </div>
+
+      <div class="zone-counter" id="zone-counter">Zonas activas: 2 / 8</div>
+
+      <div class="zone-chips" id="zone-chips">
+        <div class="zone-chip" id="chip-Miraflores">
+          <div class="zone-chip-name"><div class="zone-chip-dot"></div>Miraflores</div>
+          <div class="zone-chip-x" onclick="removeZone('Miraflores')">×</div>
+        </div>
+        <div class="zone-chip" id="chip-San Isidro">
+          <div class="zone-chip-name"><div class="zone-chip-dot"></div>San Isidro</div>
+          <div class="zone-chip-x" onclick="removeZone('San Isidro')">×</div>
+        </div>
+      </div>
+
+      <div class="add-zone" onclick="">+ Agregar zona</div>
+      <div class="btn-primary">Guardar</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════ S03 — PREFERENCIAS PEDIDOS ════════════════════ -->
+  <div class="screen" id="s03">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header"><div class="back-btn" onclick="showScreen('s01')">‹</div><div class="page-title">Preferencias de pedidos</div></div>
+    <div class="scroll-body" style="padding-top:12px;">
+
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px;">Distancia máxima al punto de recogida</div>
+      <div class="slider-wrap">
+        <div class="slider-row">
+          <span class="slider-min">1 km</span>
+          <input type="range" min="1" max="10" value="3" id="dist-slider" oninput="document.getElementById('dist-val').textContent='Máximo: '+this.value+' km'">
+          <span class="slider-max">10 km</span>
+        </div>
+        <div class="slider-val" id="dist-val">Máximo: 3 km</div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:#fff;margin:14px 0 8px;">Cobro en efectivo (COD)</div>
+      <div class="pref-row">
+        <div class="pref-left"><div class="pref-icon">💵</div><div class="pref-label">Aceptar pedidos COD</div></div>
+        <div class="toggle on" id="cod-toggle" onclick="toggleCOD()"></div>
+      </div>
+      <div class="cod-limit show" id="cod-limit">
+        <div class="cod-limit-inner">
+          <span class="cod-prefix">S/</span>
+          <div class="cod-field">100.00</div>
+          <span style="font-size:12px;color:var(--text-3);">máx. por pedido</span>
+        </div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:#fff;margin:6px 0 8px;">Tipo de pedidos</div>
+      <div class="pref-row">
+        <div class="pref-left"><div class="pref-icon">🍔</div><div class="pref-label">Comida</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-left"><div class="pref-icon">🛍️</div><div class="pref-label">Retail / tiendas</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-left"><div class="pref-icon">💊</div><div class="pref-label">Farmacia</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-left"><div class="pref-icon">📦</div><div class="pref-label">Paquetería</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <div class="btn-primary">Guardar</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════ S04 — HORARIOS DE TRABAJO ════════════════════ -->
+  <div class="screen" id="s04">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header"><div class="back-btn" onclick="showScreen('s01')">‹</div><div class="page-title">Horarios de trabajo</div></div>
+    <div class="scroll-body" style="padding-top:8px;">
+      <div style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);border-radius:12px;padding:11px 13px;margin:8px 0 12px;font-size:13px;color:#93C5FD;line-height:1.5;">ⓘ Configurá tu horario habitual para recordatorios. No bloquea tu disponibilidad manual.</div>
+
+      <!-- Days -->
+      <div id="days-container">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="btn-secondary">Aplicar a todos los días activos</div>
+      <div class="btn-primary">Guardar</div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════ S05 — NOTIFICACIONES ════════════════════ -->
+  <div class="screen" id="s05">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header"><div class="back-btn" onclick="showScreen('s01')">‹</div><div class="page-title">Notificaciones</div></div>
+    <div class="scroll-body" style="padding-top:4px;">
+
+      <div class="section-lbl">Operativas</div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">🛵 Nuevos pedidos<span class="lock-badge">🔒 siempre activo</span></div><div class="notif-sub">Push + vibración</div></div>
+        <div class="toggle on locked"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">📦 Estado del pedido</div><div class="notif-sub">Push</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <div class="section-lbl">Comunicación</div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">💬 Mensajes</div><div class="notif-sub">Push + sonido</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">📞 Llamadas<span class="lock-badge">🔒 siempre activo</span></div><div class="notif-sub">Siempre</div></div>
+        <div class="toggle on locked"></div>
+      </div>
+
+      <div class="section-lbl">Incentivos</div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">🔥 Zonas calientes</div><div class="notif-sub">Push</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">💰 Bonos activados</div><div class="notif-sub">Push</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">🏆 Logros y nivel</div><div class="notif-sub">Push</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <div class="section-lbl">Recordatorios</div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">🕐 Inicio de turno</div><div class="notif-sub">Push</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="notif-row">
+        <div class="notif-info"><div class="notif-title">📋 Calificaciones pendientes</div><div class="notif-sub">Push</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <div class="section-lbl">Cuenta y sistema</div>
+      <div class="notif-row" style="border-bottom:none;">
+        <div class="notif-info"><div class="notif-title">⚠️ Documentos vencidos<span class="lock-badge">🔒 siempre activo</span></div><div class="notif-sub">Push + email</div></div>
+        <div class="toggle on locked"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════ S06 — PRIVACIDAD Y CUENTA ════════════════════ -->
+  <div class="screen" id="s06">
+    <div class="status-bar"><span class="status-time">10:41</span><span class="status-icons">📶 🔋</span></div>
+    <div class="page-header"><div class="back-btn" onclick="showScreen('s01')">‹</div><div class="page-title">Privacidad y cuenta</div></div>
+    <div class="scroll-body" style="padding-top:4px;">
+
+      <div class="section-lbl" style="padding-top:10px;">Mis datos</div>
+      <div class="setting-row"><div class="setting-left"><div class="setting-icon">📥</div><div class="setting-label">Descargar mis datos</div></div><div class="setting-arrow">›</div></div>
+      <div class="setting-row"><div class="setting-left"><div class="setting-icon">🗺️</div><div><div class="setting-label">Historial de rutas</div><div class="setting-sublabel">Conservar: 90 días</div></div></div><div class="setting-arrow">›</div></div>
+
+      <div class="section-lbl">Visibilidad</div>
+      <div class="setting-row">
+        <div class="setting-left"><div class="setting-icon">🏆</div><div class="setting-label">Aparecer en ranking público</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-left"><div class="setting-icon">👤</div><div class="setting-label">Mostrar mi nombre a tiendas</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <div class="section-lbl">Seguridad</div>
+      <div class="setting-row"><div class="setting-left"><div class="setting-icon">👁️</div><div class="setting-label">Sesiones activas</div></div><div class="setting-arrow">›</div></div>
+      <div class="setting-row">
+        <div class="setting-left"><div class="setting-icon">👆</div><div class="setting-label">Autenticación biométrica</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <div class="section-lbl" style="color:var(--error);">Zona de peligro</div>
+      <div class="danger-row" onclick="">
+        <span style="font-size:20px;">⏸️</span>
+        <span class="danger-row-label" style="color:var(--warning);flex:1;margin-left:12px;">Pausar cuenta temporalmente</span>
+        <span style="font-size:18px;color:var(--text-3);">›</span>
+      </div>
+      <div class="danger-row" onclick="toggleSheet('delete-sheet',true)">
+        <span style="font-size:20px;">🗑️</span>
+        <span class="danger-row-label" style="flex:1;margin-left:12px;">Eliminar cuenta</span>
+        <span style="font-size:18px;color:var(--error);">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete account sheet -->
+  <div class="sheet-overlay" id="delete-sheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" style="color:var(--error);">¿Eliminar tu cuenta?</div>
+      <div class="sheet-body">Esta acción tiene un período de gracia de 30 días antes de ejecutarse.</div>
+      <div class="sheet-warn-item"><span>•</span><span>Perderás todo tu historial de entregas</span></div>
+      <div class="sheet-warn-item"><span>•</span><span>Tu saldo disponible será liquidado en 7 días</span></div>
+      <div class="sheet-warn-item"><span>•</span><span>No podrás recuperar tu nivel ni logros</span></div>
+      <div style="margin-top:16px;">
+        <div class="btn-danger" onclick="toggleSheet('delete-sheet',false)">Entiendo, eliminar</div>
+        <div class="btn-ghost" onclick="toggleSheet('delete-sheet',false)">Cancelar</div>
+      </div>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+  // ── Screen nav ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));
+  }
+  function toggleSheet(id,show){document.getElementById(id).classList.toggle('show',show);}
+
+  // ── S02: Zone toggle ──
+  let activeZones = new Set(['Miraflores','San Isidro']);
+  function toggleZone(el, name) {
+    if(activeZones.has(name)){
+      if(activeZones.size===1){alert('Necesitás al menos una zona de cobertura.');return;}
+      activeZones.delete(name);
+      el.classList.replace('active','inactive');
+      const chip=document.getElementById('chip-'+name);
+      if(chip)chip.remove();
+    } else {
+      activeZones.add(name);
+      el.classList.replace('inactive','active');
+      const chips=document.getElementById('zone-chips');
+      const div=document.createElement('div');
+      div.className='zone-chip'; div.id='chip-'+name;
+      div.innerHTML=`<div class="zone-chip-name"><div class="zone-chip-dot"></div>${name}</div><div class="zone-chip-x" onclick="removeZone('${name}')">×</div>`;
+      chips.appendChild(div);
+    }
+    document.getElementById('zone-counter').textContent=`Zonas activas: ${activeZones.size} / 8`;
+  }
+  function removeZone(name) {
+    if(activeZones.size===1){alert('Necesitás al menos una zona de cobertura.');return;}
+    activeZones.delete(name);
+    const chip=document.getElementById('chip-'+name);
+    if(chip)chip.remove();
+    document.querySelectorAll('.zone-poly').forEach(p=>{
+      if(p.textContent===name)p.classList.replace('active','inactive');
+    });
+    document.getElementById('zone-counter').textContent=`Zonas activas: ${activeZones.size} / 8`;
+  }
+
+  // ── S03: COD toggle ──
+  let codOn=true;
+  function toggleCOD(){
+    codOn=!codOn;
+    document.getElementById('cod-toggle').classList.toggle('on',codOn);
+    document.getElementById('cod-limit').classList.toggle('show',codOn);
+  }
+
+  // ── S04: Schedule grid ──
+  const DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const DAY_DEFAULTS={Lunes:true,Martes:true,Miércoles:false,Jueves:true,Viernes:true,Sábado:true,Domingo:false};
+  function buildDays(){
+    const c=document.getElementById('days-container');
+    c.innerHTML=DAYS.map((d,i)=>{
+      const on=DAY_DEFAULTS[d];
+      return `
+        <div class="day-block">
+          <div class="day-header">
+            <div class="day-name">${d}</div>
+            <div class="toggle${on?' on':''}" onclick="toggleDay(this,'tp-${i}')"></div>
+          </div>
+          <div class="time-pickers" id="tp-${i}" style="display:${on?'flex':'none'};">
+            <div class="time-picker-btn"><div class="tp-label">Desde</div><div class="tp-time">09:00</div></div>
+            <div class="time-picker-btn"><div class="tp-label">Hasta</div><div class="tp-time">18:00</div></div>
+          </div>
+          <div class="day-divider"></div>
+        </div>`;
+    }).join('');
+  }
+  function toggleDay(el,tpId){
+    el.classList.toggle('on');
+    const tp=document.getElementById(tpId);
+    tp.style.display=el.classList.contains('on')?'flex':'none';
+  }
+  buildDays();
+</script>
+
+</body>
+</html>

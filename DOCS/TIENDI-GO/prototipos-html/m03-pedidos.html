@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiendi Go — M03 Recepción de Pedidos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:#F97316; --primary-dark:#EA580C; --primary-light:#FFF7ED;
+      --success:#16A34A; --success-light:#DCFCE7;
+      --warning:#D97706; --warning-light:#FEF3C7;
+      --error:#DC2626;   --error-light:#FEE2E2;
+      --info:#2563EB;    --info-light:#DBEAFE;
+      --bg:#F3F4F6; --card:#FFFFFF;
+      --text-1:#111827; --text-2:#6B7280; --text-3:#9CA3AF;
+      --border:#E5E7EB;
+      --radius-sm:8px; --radius-md:12px; --radius-lg:20px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',system-ui,sans-serif;background:#1C1C1E;display:flex;min-height:100vh;color:var(--text-1);}
+
+    /* ── Sidebar ── */
+    .sidebar{width:220px;min-height:100vh;background:#2C2C2E;padding:24px 0;flex-shrink:0;display:flex;flex-direction:column;gap:4px;}
+    .sidebar-header{padding:0 16px 16px;border-bottom:1px solid #3A3A3C;margin-bottom:8px;}
+    .sidebar-logo{font-size:18px;font-weight:800;color:var(--primary);}
+    .sidebar-module{font-size:11px;font-weight:500;color:#8E8E93;text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:#AEAEB2;font-size:13px;font-weight:500;border-left:3px solid transparent;transition:background .15s;}
+    .sidebar-item:hover{background:#3A3A3C;color:#fff;}
+    .sidebar-item.active{background:#3A3A3C;color:#fff;border-left-color:var(--primary);}
+    .sidebar-num{width:22px;height:22px;border-radius:50%;background:#3A3A3C;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#8E8E93;flex-shrink:0;}
+    .sidebar-item.active .sidebar-num{background:var(--primary);color:#fff;}
+    .sidebar-nav{padding:12px 16px 0;margin-top:auto;border-top:1px solid #3A3A3C;}
+    .sidebar-nav a{display:block;color:#8E8E93;font-size:12px;text-decoration:none;padding:6px 0;}
+    .sidebar-nav a:hover{color:var(--primary);}
+
+    /* ── Stage ── */
+    .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:20px;}
+    .stage-label{color:#8E8E93;font-size:13px;font-weight:500;}
+    .phone{width:390px;height:844px;background:var(--bg);border-radius:48px;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 8px 32px rgba(0,0,0,.4);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+    .status-bar{height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;font-size:13px;font-weight:600;flex-shrink:0;z-index:10;}
+    .status-bar.light{color:var(--text-1);}
+    .status-bar.dark{color:#fff;}
+    .screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+    .screen.active{display:flex;}
+    .screen-body{flex:1;overflow-y:auto;scrollbar-width:none;}
+    .screen-body::-webkit-scrollbar{display:none;}
+
+    /* ── Buttons ── */
+    .btn-primary{width:100%;padding:16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-md);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+    .btn-primary:hover{background:var(--primary-dark);}
+    .btn-secondary{width:100%;padding:14px;background:transparent;color:var(--primary);border:2px solid var(--primary);border-radius:var(--radius-md);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+    .btn-ghost{background:none;border:none;color:var(--text-2);font-size:14px;font-weight:600;cursor:pointer;padding:8px;font-family:inherit;}
+    .btn-danger{width:100%;padding:14px;background:var(--error-light);color:var(--error);border:1.5px solid #FCA5A5;border-radius:var(--radius-md);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+
+    /* ── Screen nav ── */
+    .screen-nav{display:flex;align-items:center;padding:12px 16px;gap:12px;flex-shrink:0;background:var(--card);border-bottom:1px solid var(--border);}
+    .back-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text-1);flex-shrink:0;}
+    .nav-title{font-size:17px;font-weight:700;}
+
+    /* ── Map placeholder ── */
+    .map-bg{
+      background: linear-gradient(135deg, #e8f0e9 0%, #d4e6d5 40%, #c5ddc7 100%);
+      position:relative; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .map-grid{
+      position:absolute; inset:0;
+      background-image:
+        linear-gradient(rgba(0,0,0,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,.06) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .map-road-h{position:absolute;left:0;right:0;height:10px;background:rgba(255,255,255,.7);}
+    .map-road-v{position:absolute;top:0;bottom:0;width:10px;background:rgba(255,255,255,.7);}
+    .map-pin{font-size:28px;position:absolute;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+    .map-route{
+      position:absolute;
+      border:3px dashed var(--primary);
+      border-radius:8px;
+      opacity:.6;
+    }
+
+    /* ── Offer card ── */
+    .offer-overlay{
+      position:absolute; inset:0; z-index:20;
+      display:flex; align-items:flex-end;
+      background:linear-gradient(to bottom, transparent 20%, rgba(0,0,0,.4) 60%);
+    }
+    .offer-card{
+      background:var(--card);
+      border-radius:28px 28px 0 0;
+      width:100%;
+      padding:20px 20px 32px;
+      display:flex; flex-direction:column; gap:14px;
+      box-shadow:0 -4px 32px rgba(0,0,0,.15);
+    }
+    .offer-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto;}
+
+    /* Timer */
+    .timer-bar-wrap{display:flex;align-items:center;gap:10px;}
+    .timer-num{font-size:28px;font-weight:800;min-width:44px;font-variant-numeric:tabular-nums;}
+    .timer-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+    .timer-fill{height:100%;border-radius:4px;transition:width .5s linear, background .5s;}
+
+    /* Earnings row */
+    .earnings-row{display:flex;align-items:center;gap:6px;}
+    .earn-total{font-size:28px;font-weight:800;color:var(--text-1);}
+    .earn-badge{background:var(--success-light);color:var(--success);font-size:12px;font-weight:700;padding:4px 10px;border-radius:100px;}
+
+    /* Route info */
+    .route-info{display:flex;flex-direction:column;gap:10px;}
+    .route-row{display:flex;align-items:flex-start;gap:10px;}
+    .route-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px;}
+    .route-icon-store{background:#DBEAFE;}
+    .route-icon-client{background:var(--success-light);}
+    .route-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;}
+    .route-addr{font-size:14px;font-weight:600;color:var(--text-1);}
+    .route-dist{font-size:12px;color:var(--text-2);margin-top:1px;}
+    .route-connector{width:2px;height:16px;background:var(--border);margin-left:13px;}
+
+    /* Action buttons */
+    .offer-actions{display:grid;grid-template-columns:1fr 2fr;gap:10px;}
+    .btn-decline{padding:16px;background:var(--bg);color:var(--text-2);border:1.5px solid var(--border);border-radius:var(--radius-md);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+    .btn-accept{padding:16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-md);font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
+    .btn-accept:hover{background:var(--primary-dark);}
+
+    /* ── Order queue ── */
+    .queue-header{background:var(--card);padding:16px 20px;border-bottom:1px solid var(--border);}
+    .queue-badge{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary-dark);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700;}
+
+    .order-card{
+      background:var(--card);
+      margin:8px 12px 0;
+      border-radius:var(--radius-md);
+      border:1.5px solid var(--border);
+      overflow:hidden;
+      cursor:pointer;
+      transition:border-color .15s;
+    }
+    .order-card:hover{border-color:var(--primary);}
+    .order-card-header{
+      display:flex;align-items:center;gap:12px;
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+    }
+    .order-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .dot-blue{background:#3B82F6;}
+    .dot-orange{background:var(--primary);}
+    .dot-green{background:var(--success);}
+    .order-store-name{font-size:15px;font-weight:700;flex:1;}
+    .order-num{font-size:12px;color:var(--text-3);font-weight:500;}
+    .order-card-body{padding:12px 16px;display:flex;gap:12px;align-items:center;}
+    .order-card-info{flex:1;display:flex;flex-direction:column;gap:4px;}
+    .order-status-label{font-size:12px;font-weight:700;padding:3px 10px;border-radius:100px;}
+    .label-pickup{background:#DBEAFE;color:#1D4ED8;}
+    .label-transit{background:var(--primary-light);color:var(--primary-dark);}
+    .label-delivering{background:var(--success-light);color:var(--success);}
+    .order-addr{font-size:13px;color:var(--text-2);}
+    .order-earn{font-size:16px;font-weight:800;color:var(--text-1);}
+    .order-arrow{font-size:20px;color:var(--text-3);}
+
+    /* Premium banner */
+    .premium-banner{
+      background:linear-gradient(135deg,#1C1C1E,#3A3A3C);
+      margin:8px 12px 0;
+      border-radius:var(--radius-md);
+      padding:14px 16px;
+      display:flex;align-items:center;gap:12px;
+    }
+    .premium-icon{font-size:24px;}
+    .premium-text{font-size:13px;color:#E5E7EB;line-height:1.4;}
+    .premium-text strong{color:#FBBF24;}
+
+    /* ── Order detail ── */
+    .detail-map{height:200px;flex-shrink:0;}
+    .detail-body{flex:1;overflow-y:auto;scrollbar-width:none;}
+    .detail-body::-webkit-scrollbar{display:none;}
+
+    .detail-section{background:var(--card);margin-top:8px;}
+    .section-title{font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;padding:12px 16px 0;}
+
+    .address-block{padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px;}
+    .address-row{display:flex;gap:12px;align-items:flex-start;}
+    .addr-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px;}
+    .addr-icon-store{background:#DBEAFE;}
+    .addr-icon-client{background:var(--success-light);}
+    .addr-title{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;}
+    .addr-text{font-size:14px;font-weight:600;color:var(--text-1);margin-top:2px;line-height:1.4;}
+    .addr-sub{font-size:12px;color:var(--text-2);margin-top:2px;}
+    .addr-connector{width:2px;height:12px;background:var(--border);margin-left:15px;}
+
+    .items-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
+    .item-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .item-row:last-child{border-bottom:none;}
+    .item-qty{width:28px;height:28px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text-1);flex-shrink:0;}
+    .item-name{font-size:14px;font-weight:600;flex:1;color:var(--text-1);}
+    .item-note{font-size:12px;color:var(--text-2);margin-top:2px;}
+    .item-price{font-size:14px;font-weight:700;color:var(--text-2);}
+
+    .instructions-box{margin:0 16px 16px;background:var(--warning-light);border-radius:var(--radius-sm);padding:12px 14px;}
+    .instructions-text{font-size:13px;color:#92400E;line-height:1.5;}
+
+    .earnings-detail{padding:12px 16px 16px;display:flex;flex-direction:column;gap:8px;}
+    .earn-row{display:flex;justify-content:space-between;font-size:14px;color:var(--text-2);}
+    .earn-row.total{font-weight:800;font-size:16px;color:var(--text-1);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;}
+    .earn-row.total span:last-child{color:var(--primary);}
+
+    .detail-footer{padding:16px 20px 32px;background:var(--card);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;flex-shrink:0;}
+
+    /* State tabs */
+    .state-tabs{display:flex;gap:8px;padding:12px 12px 0;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+    .state-tabs::-webkit-scrollbar{display:none;}
+    .state-tab{padding:6px 14px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;border:1.5px solid var(--border);color:var(--text-2);background:var(--card);transition:all .15s;flex-shrink:0;}
+    .state-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">Tiendi Go</div>
+    <div class="sidebar-module">M03 — Pedidos</div>
+  </div>
+  <div class="sidebar-item active" onclick="showScreen('offer', this)">
+    <span class="sidebar-num">1</span> Tarjeta de oferta
+  </div>
+  <div class="sidebar-item" onclick="showScreen('queue', this)">
+    <span class="sidebar-num">2</span> Cola de pedidos
+  </div>
+  <div class="sidebar-item" onclick="showScreen('detail', this)">
+    <span class="sidebar-num">3</span> Detalle del pedido
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html">← Todos los módulos</a>
+  </div>
+</aside>
+
+<!-- STAGE -->
+<main class="stage">
+<div class="phone">
+
+  <!-- ── S01 — Tarjeta de oferta ────────────────────────────────────────── -->
+  <div class="screen active" id="offer">
+    <div class="status-bar dark" style="position:absolute;top:0;left:0;right:0;z-index:30;background:transparent;"></div>
+
+    <!-- Map background -->
+    <div class="map-bg" style="flex:1; position:relative;">
+      <div class="map-grid"></div>
+      <div class="map-road-h" style="top:35%;"></div>
+      <div class="map-road-h" style="top:60%;"></div>
+      <div class="map-road-v" style="left:30%;"></div>
+      <div class="map-road-v" style="left:65%;"></div>
+      <div class="map-pin" style="top:32%; left:27%;">🏪</div>
+      <div class="map-pin" style="top:56%; left:62%;">📍</div>
+      <!-- route dashed line simulated via border -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 390 450">
+        <path d="M 117 155 C 160 155, 160 260, 242 265" stroke="#F97316" stroke-width="3" stroke-dasharray="8 5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div style="position:absolute;top:10%;left:0;right:0;display:flex;justify-content:center;">
+        <div style="background:rgba(0,0,0,.55);color:#fff;padding:8px 16px;border-radius:100px;font-size:13px;font-weight:600;backdrop-filter:blur(4px);">
+          📍 Miraflores, Lima
+        </div>
+      </div>
+
+      <!-- Offer overlay -->
+      <div class="offer-overlay">
+        <div class="offer-card">
+          <div class="offer-handle"></div>
+
+          <!-- Timer -->
+          <div class="timer-bar-wrap">
+            <div class="timer-num" id="timer-num" style="color:var(--success);">18</div>
+            <div class="timer-track">
+              <div class="timer-fill" id="timer-fill" style="width:60%; background:var(--success);"></div>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);font-weight:600;">seg</div>
+          </div>
+
+          <!-- Store & earnings -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;">Pedido de</div>
+              <div style="font-size:20px;font-weight:800;color:var(--text-1);margin-top:2px;">El Buen Sabor</div>
+              <div style="font-size:13px;color:var(--text-2);margin-top:2px;">#PED-001 · 3 ítems</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="earn-total">S/.9.85</div>
+              <div class="earn-badge">+S/.2 propina est.</div>
+            </div>
+          </div>
+
+          <!-- Route -->
+          <div class="route-info">
+            <div class="route-row">
+              <div class="route-icon route-icon-store">🏪</div>
+              <div>
+                <div class="route-label">Recogida</div>
+                <div class="route-addr">Av. Larco 450, Miraflores</div>
+                <div class="route-dist">1.2 km de vos · ~4 min</div>
+              </div>
+            </div>
+            <div class="route-connector"></div>
+            <div class="route-row">
+              <div class="route-icon route-icon-client">📍</div>
+              <div>
+                <div class="route-label">Entrega</div>
+                <div class="route-addr">Calle Los Pinos 234</div>
+                <div class="route-dist">2.8 km total · ~9 min</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="offer-actions">
+            <button class="btn-decline" onclick="declineOffer()">Pasar</button>
+            <button class="btn-accept" onclick="acceptOffer()">✓ Aceptar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S02 — Cola de pedidos ──────────────────────────────────────────── -->
+  <div class="screen" id="queue">
+    <div class="status-bar light" style="background:var(--card);"></div>
+
+    <div class="queue-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:20px;font-weight:800;">Mis pedidos</div>
+        <div class="queue-badge">🚀 2 activos</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-2);">Completá en orden. El siguiente se activa automáticamente.</div>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg); padding-bottom:20px;">
+
+      <!-- Active order 1 — En tránsito -->
+      <div class="order-card" onclick="showScreen('detail', document.querySelectorAll('.sidebar-item')[2])">
+        <div class="order-card-header">
+          <div class="order-status-dot dot-orange"></div>
+          <div class="order-store-name">El Buen Sabor</div>
+          <div class="order-num">#PED-001</div>
+        </div>
+        <div class="order-card-body">
+          <div class="order-card-info">
+            <span class="order-status-label label-transit">En camino al cliente</span>
+            <div class="order-addr" style="margin-top:6px;">📍 Calle Los Pinos 234</div>
+            <div class="order-addr">⏱️ ~6 min</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <div class="order-earn">S/.9.85</div>
+            <div class="order-arrow">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active order 2 — Recogida pendiente -->
+      <div class="order-card" style="opacity:.75;" onclick="showScreen('detail', document.querySelectorAll('.sidebar-item')[2])">
+        <div class="order-card-header" style="background:var(--bg);">
+          <div class="order-status-dot" style="background:var(--text-3);"></div>
+          <div class="order-store-name" style="color:var(--text-2);">Pollería Norte</div>
+          <div class="order-num">#PED-002</div>
+        </div>
+        <div class="order-card-body">
+          <div class="order-card-info">
+            <span class="order-status-label" style="background:var(--bg);color:var(--text-3);">En espera</span>
+            <div class="order-addr" style="margin-top:6px;">🏪 Av. Petit Thouars 100</div>
+            <div class="order-addr" style="color:var(--text-3);">Disponible después del anterior</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <div class="order-earn" style="color:var(--text-2);">S/.7.20</div>
+            <div class="order-arrow">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Premium banner -->
+      <div class="premium-banner">
+        <div class="premium-icon">⚡</div>
+        <div class="premium-text">
+          <strong>Plan Premium activo</strong> — Podés llevar hasta 3 pedidos simultáneos en tu zona.
+        </div>
+      </div>
+
+      <!-- Earnings summary -->
+      <div style="background:var(--card);margin:8px 12px 0;border-radius:var(--radius-md);padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Total en curso</div>
+          <div style="font-size:24px;font-weight:800;color:var(--text-1);margin-top:2px;">S/.17.05</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);text-align:right;line-height:1.6;">
+          2 pedidos<br>4.0 km total
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── S03 — Detalle del pedido ───────────────────────────────────────── -->
+  <div class="screen" id="detail">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('queue', document.querySelectorAll('.sidebar-item')[1])">←</button>
+      <span class="nav-title">Pedido #PED-001</span>
+      <div style="margin-left:auto;">
+        <span style="background:var(--primary-light);color:var(--primary-dark);font-size:12px;font-weight:700;padding:4px 10px;border-radius:100px;">En tránsito</span>
+      </div>
+    </div>
+
+    <!-- State tabs (simula cambios de estado) -->
+    <div class="state-tabs">
+      <div class="state-tab" onclick="setDetailState('asignado')">Asignado</div>
+      <div class="state-tab" onclick="setDetailState('en-camino-tienda')">Yendo a tienda</div>
+      <div class="state-tab active" onclick="setDetailState('recogido')">Recogido</div>
+      <div class="state-tab" onclick="setDetailState('en-camino-cliente')">Yendo al cliente</div>
+      <div class="state-tab" onclick="setDetailState('entregado')">Entregado</div>
+    </div>
+
+    <div class="detail-body">
+
+      <!-- Mini map -->
+      <div class="detail-map map-bg" style="height:180px;">
+        <div class="map-grid"></div>
+        <div class="map-road-h" style="top:40%;"></div>
+        <div class="map-road-v" style="left:40%;"></div>
+        <div class="map-pin" style="top:30%;left:30%;font-size:22px;">🏪</div>
+        <div class="map-pin" style="top:52%;left:56%;font-size:22px;">📍</div>
+        <div class="map-pin" style="top:40%;left:44%;font-size:22px;">🛵</div>
+        <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 390 180">
+          <path d="M 117 60 C 155 60, 155 100, 218 100" stroke="#F97316" stroke-width="3" stroke-dasharray="6 4" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;">
+          📍 1.6 km · ~6 min
+        </div>
+      </div>
+
+      <!-- Addresses -->
+      <div class="detail-section">
+        <div class="section-title">Ruta</div>
+        <div class="address-block">
+          <div class="address-row">
+            <div class="addr-icon addr-icon-store">🏪</div>
+            <div>
+              <div class="addr-title">Tienda · Recogida</div>
+              <div class="addr-text">El Buen Sabor</div>
+              <div class="addr-sub">Av. Larco 450, Miraflores · 1.2 km · ✅ Recogido</div>
+            </div>
+          </div>
+          <div class="addr-connector"></div>
+          <div class="address-row">
+            <div class="addr-icon addr-icon-client">👤</div>
+            <div>
+              <div class="addr-title">Cliente · Entrega</div>
+              <div class="addr-text">Carlos M.</div>
+              <div class="addr-sub">Calle Los Pinos 234, Apt 3B · 2.8 km</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="detail-section">
+        <div class="section-title">Ítems del pedido</div>
+        <div class="items-list">
+          <div class="item-row">
+            <div class="item-qty">2</div>
+            <div style="flex:1;">
+              <div class="item-name">Lomo saltado</div>
+            </div>
+            <div class="item-price">S/.28.00</div>
+          </div>
+          <div class="item-row">
+            <div class="item-qty">1</div>
+            <div style="flex:1;">
+              <div class="item-name">Inka Kola 1L</div>
+              <div class="item-note">Sin hielo</div>
+            </div>
+            <div class="item-price">S/.5.50</div>
+          </div>
+          <div class="item-row">
+            <div class="item-qty">1</div>
+            <div style="flex:1;">
+              <div class="item-name">Arroz con leche</div>
+            </div>
+            <div class="item-price">S/.7.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instructions -->
+      <div class="detail-section" style="padding-bottom:8px;">
+        <div class="section-title">Instrucciones del cliente</div>
+        <div class="instructions-box" style="margin-top:8px;">
+          <div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">⚠️ Nota importante</div>
+          <div class="instructions-text">"Dejar en portería, preguntar por Carlos. Tocar el intercomunicador del Apt 3B si no hay nadie."</div>
+        </div>
+      </div>
+
+      <!-- Earnings -->
+      <div class="detail-section">
+        <div class="section-title">Tu ganancia</div>
+        <div class="earnings-detail">
+          <div class="earn-row"><span>Base</span><span>S/.5.60</span></div>
+          <div class="earn-row"><span>Zona x1.5</span><span>+S/.2.80</span></div>
+          <div class="earn-row"><span>Fee plataforma (15%)</span><span style="color:var(--error);">−S/.1.26</span></div>
+          <div class="earn-row"><span>Bono Oro +10%</span><span style="color:var(--success);">+S/.0.71</span></div>
+          <div class="earn-row"><span>Propina estimada</span><span style="color:var(--success);">+S/.2.00</span></div>
+          <div class="earn-row total"><span>Total estimado</span><span>S/.9.85</span></div>
+        </div>
+      </div>
+
+      <div style="height:16px;"></div>
+    </div>
+
+    <!-- Footer CTA — changes by state -->
+    <div class="detail-footer">
+      <div id="detail-cta-secondary" style="display:none;"></div>
+      <button class="btn-primary" id="detail-cta" onclick="advanceState()">
+        🧭 Navegar a la tienda
+      </button>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-ghost" style="flex:1;border:1.5px solid var(--border);border-radius:var(--radius-md);">💬 Chat</button>
+        <button class="btn-ghost" style="flex:1;border:1.5px solid var(--border);border-radius:var(--radius-md);" onclick="showScreen('offer', document.querySelectorAll('.sidebar-item')[0])">📞 Llamar</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+<div class="stage-label">390 × 844 px — iPhone 14</div>
+</main>
+
+<script>
+  function showScreen(id, sidebarItem) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (sidebarItem) sidebarItem.classList.add('active');
+  }
+
+  /* ── Timer animado ── */
+  let timerVal = 18;
+  const timerNum  = document.getElementById('timer-num');
+  const timerFill = document.getElementById('timer-fill');
+  const colors = { high:'var(--success)', mid:'var(--warning)', low:'var(--error)' };
+
+  function tickTimer() {
+    if (timerVal <= 0) { timerVal = 30; }
+    timerVal--;
+    const pct = (timerVal / 30) * 100;
+    timerNum.textContent  = timerVal;
+    timerFill.style.width = pct + '%';
+    const c = timerVal > 20 ? colors.high : timerVal > 10 ? colors.mid : colors.low;
+    timerNum.style.color  = c;
+    timerFill.style.background = c;
+  }
+  setInterval(tickTimer, 1000);
+
+  function declineOffer() {
+    timerVal = 30;
+  }
+  function acceptOffer() {
+    showScreen('detail', document.querySelectorAll('.sidebar-item')[2]);
+    setDetailState('asignado');
+  }
+
+  /* ── Detail state machine ── */
+  const states = {
+    'asignado':         { label:'Asignado',           cta:'🧭 Navegar a la tienda', next:'en-camino-tienda' },
+    'en-camino-tienda': { label:'Yendo a tienda',     cta:'✅ Llegué a la tienda',  next:'recogido' },
+    'recogido':         { label:'En tránsito',        cta:'🚴 Navegar al cliente',  next:'en-camino-cliente' },
+    'en-camino-cliente':{ label:'En camino al cliente',cta:'📦 Confirmar entrega',  next:'entregado' },
+    'entregado':        { label:'Entregado',          cta:'🎉 Entrega completada',  next:null }
+  };
+
+  let currentState = 'recogido';
+
+  function setDetailState(s) {
+    currentState = s;
+    const st = states[s];
+    document.getElementById('detail-cta').textContent = st.cta;
+    document.getElementById('detail-cta').disabled = s === 'entregado';
+
+    // Update tabs
+    document.querySelectorAll('.state-tab').forEach((tab, i) => {
+      tab.classList.remove('active');
+      const keys = Object.keys(states);
+      if (keys[i] === s) tab.classList.add('active');
+    });
+
+    // Update nav badge
+    const badge = document.querySelector('#detail .screen-nav span');
+    if (badge) badge.textContent = st.label;
+  }
+
+  function advanceState() {
+    const next = states[currentState].next;
+    if (next) setDetailState(next);
+  }
+</script>
+</body>
+</html>

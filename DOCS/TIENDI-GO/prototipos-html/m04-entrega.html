@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiendi Go — M04 Flujo de Entrega</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:#F97316; --primary-dark:#EA580C; --primary-light:#FFF7ED;
+      --success:#16A34A; --success-light:#DCFCE7;
+      --warning:#D97706; --warning-light:#FEF3C7;
+      --error:#DC2626;   --error-light:#FEE2E2;
+      --info:#2563EB;    --info-light:#DBEAFE;
+      --bg:#F3F4F6; --card:#FFFFFF;
+      --text-1:#111827; --text-2:#6B7280; --text-3:#9CA3AF;
+      --border:#E5E7EB;
+      --radius-sm:8px; --radius-md:12px; --radius-lg:20px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',system-ui,sans-serif;background:#1C1C1E;display:flex;min-height:100vh;color:var(--text-1);}
+
+    .sidebar{width:220px;min-height:100vh;background:#2C2C2E;padding:24px 0;flex-shrink:0;display:flex;flex-direction:column;gap:4px;}
+    .sidebar-header{padding:0 16px 16px;border-bottom:1px solid #3A3A3C;margin-bottom:8px;}
+    .sidebar-logo{font-size:18px;font-weight:800;color:var(--primary);}
+    .sidebar-module{font-size:11px;font-weight:500;color:#8E8E93;text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:#AEAEB2;font-size:13px;font-weight:500;border-left:3px solid transparent;transition:background .15s;}
+    .sidebar-item:hover{background:#3A3A3C;color:#fff;}
+    .sidebar-item.active{background:#3A3A3C;color:#fff;border-left-color:var(--primary);}
+    .sidebar-num{width:22px;height:22px;border-radius:50%;background:#3A3A3C;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#8E8E93;flex-shrink:0;}
+    .sidebar-item.active .sidebar-num{background:var(--primary);color:#fff;}
+    .sidebar-nav{padding:12px 16px 0;margin-top:auto;border-top:1px solid #3A3A3C;}
+    .sidebar-nav a{display:block;color:#8E8E93;font-size:12px;text-decoration:none;padding:6px 0;}
+    .sidebar-nav a:hover{color:var(--primary);}
+
+    .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:20px;}
+    .stage-label{color:#8E8E93;font-size:13px;font-weight:500;}
+    .phone{width:390px;height:844px;background:var(--bg);border-radius:48px;box-shadow:0 0 0 12px #2C2C2E,0 0 0 14px #3A3A3C,0 8px 32px rgba(0,0,0,.4);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+    .status-bar{height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;font-size:13px;font-weight:600;flex-shrink:0;}
+    .status-bar.light{color:var(--text-1);}
+    .status-bar.dark{color:#fff;}
+    .screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+    .screen.active{display:flex;}
+    .screen-body{flex:1;overflow-y:auto;scrollbar-width:none;}
+    .screen-body::-webkit-scrollbar{display:none;}
+
+    .btn-primary{width:100%;padding:16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-md);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+    .btn-primary:hover{background:var(--primary-dark);}
+    .btn-primary:disabled{background:var(--text-3);cursor:not-allowed;}
+    .btn-secondary{width:100%;padding:14px;background:transparent;color:var(--primary);border:2px solid var(--primary);border-radius:var(--radius-md);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+    .btn-ghost{background:none;border:none;color:var(--text-2);font-size:14px;font-weight:600;cursor:pointer;padding:8px;font-family:inherit;}
+    .btn-danger{width:100%;padding:14px;background:var(--error-light);color:var(--error);border:1.5px solid #FCA5A5;border-radius:var(--radius-md);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+
+    .screen-nav{display:flex;align-items:center;padding:12px 16px;gap:12px;flex-shrink:0;background:var(--card);border-bottom:1px solid var(--border);}
+    .back-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text-1);flex-shrink:0;}
+    .nav-title{font-size:17px;font-weight:700;}
+    .screen-footer{padding:16px 20px 32px;background:var(--card);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;flex-shrink:0;}
+
+    /* Map */
+    .map-bg{background:linear-gradient(135deg,#e8f0e9 0%,#d4e6d5 40%,#c5ddc7 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+    .map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.06) 1px,transparent 1px);background-size:32px 32px;}
+    .map-road-h{position:absolute;left:0;right:0;height:10px;background:rgba(255,255,255,.7);}
+    .map-road-v{position:absolute;top:0;bottom:0;width:10px;background:rgba(255,255,255,.7);}
+    .map-pin{font-size:28px;position:absolute;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+
+    /* ── S01 Active delivery ── */
+    .delivery-bar{
+      position:absolute;top:58px;left:12px;right:12px;z-index:20;
+      background:var(--card);border-radius:var(--radius-md);padding:12px 16px;
+      box-shadow:0 4px 16px rgba(0,0,0,.12);
+      display:flex;align-items:center;gap:10px;
+    }
+    .delivery-state-pill{padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700;}
+    .pill-transit{background:var(--primary-light);color:var(--primary-dark);}
+    .delivery-card{
+      position:absolute;bottom:0;left:0;right:0;z-index:20;
+      background:var(--card);border-radius:28px 28px 0 0;
+      padding:16px 20px 32px;
+      box-shadow:0 -4px 24px rgba(0,0,0,.12);
+    }
+    .delivery-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px;}
+    .delivery-dest{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;}
+    .dest-icon{width:40px;height:40px;border-radius:50%;background:var(--success-light);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .dest-title{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;}
+    .dest-name{font-size:17px;font-weight:800;color:var(--text-1);margin-top:2px;}
+    .dest-addr{font-size:13px;color:var(--text-2);margin-top:2px;}
+    .dest-eta{margin-left:auto;text-align:right;}
+    .eta-num{font-size:24px;font-weight:800;color:var(--primary);}
+    .eta-label{font-size:11px;color:var(--text-3);font-weight:600;}
+
+    /* Driving banner */
+    .driving-banner{
+      position:absolute;top:0;left:0;right:0;z-index:40;
+      background:rgba(0,0,0,.85);
+      padding:14px 20px;
+      display:flex;align-items:center;gap:12px;
+      backdrop-filter:blur(8px);
+    }
+    .driving-banner-text{font-size:14px;font-weight:700;color:#fff;flex:1;}
+    .driving-banner-sub{font-size:12px;color:#AEAEB2;margin-top:2px;}
+
+    /* ── S02 Pickup checklist ── */
+    .checklist-item{
+      display:flex;align-items:center;gap:14px;
+      padding:16px 20px;border-bottom:1px solid var(--border);
+      cursor:pointer;transition:background .15s;
+    }
+    .checklist-item:hover{background:var(--bg);}
+    .check-box{
+      width:24px;height:24px;border-radius:7px;border:2px solid var(--border);
+      display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+      transition:all .15s;
+    }
+    .check-box.checked{background:var(--success);border-color:var(--success);color:#fff;}
+    .item-info{flex:1;}
+    .item-name-text{font-size:15px;font-weight:600;color:var(--text-1);}
+    .item-qty-text{font-size:12px;color:var(--text-2);margin-top:2px;}
+    .item-checked .item-name-text{text-decoration:line-through;color:var(--text-3);}
+
+    /* ── S03 POD Camera ── */
+    .camera-view{
+      flex:1;background:#000;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;position:relative;overflow:hidden;
+    }
+    .camera-frame{
+      width:280px;height:200px;border:2px solid rgba(255,255,255,.4);
+      border-radius:12px;position:relative;
+    }
+    .camera-corner{position:absolute;width:20px;height:20px;border-color:#fff;border-style:solid;border-width:0;}
+    .corner-tl{top:-2px;left:-2px;border-top-width:3px;border-left-width:3px;border-radius:6px 0 0 0;}
+    .corner-tr{top:-2px;right:-2px;border-top-width:3px;border-right-width:3px;border-radius:0 6px 0 0;}
+    .corner-bl{bottom:-2px;left:-2px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 6px;}
+    .corner-br{bottom:-2px;right:-2px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 6px 0;}
+    .camera-guide{color:rgba(255,255,255,.6);font-size:13px;margin-top:16px;font-weight:500;}
+    .camera-shutter{
+      width:72px;height:72px;border-radius:50%;background:#fff;
+      border:4px solid rgba(255,255,255,.4);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      font-size:28px;transition:transform .15s;
+    }
+    .camera-shutter:hover{transform:scale(.95);}
+    .camera-controls{
+      position:absolute;bottom:0;left:0;right:0;
+      padding:24px;display:flex;align-items:center;justify-content:center;gap:32px;
+    }
+    .cam-side-btn{color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
+    .cam-side-icon{font-size:24px;}
+
+    /* Photo preview */
+    .photo-preview{
+      flex:1;background:#111;display:flex;align-items:center;justify-content:center;position:relative;
+    }
+    .preview-img{
+      width:100%;height:100%;object-fit:cover;
+      background:linear-gradient(135deg,#2d4a2d,#1a3a1a);
+      display:flex;align-items:center;justify-content:center;
+      font-size:64px;
+    }
+    .preview-overlay{
+      position:absolute;inset:0;
+      background:linear-gradient(to bottom,transparent 60%,rgba(0,0,0,.7));
+    }
+    .preview-label{
+      position:absolute;bottom:16px;left:0;right:0;
+      text-align:center;color:#fff;font-size:13px;font-weight:600;
+    }
+
+    /* ── S04 OTP ── */
+    .otp-display{
+      display:flex;gap:10px;justify-content:center;margin:24px 0;
+    }
+    .otp-digit{
+      width:56px;height:68px;border-radius:var(--radius-md);
+      border:2px solid var(--border);background:var(--bg);
+      display:flex;align-items:center;justify-content:center;
+      font-size:32px;font-weight:800;color:var(--text-1);
+      transition:border-color .15s;
+    }
+    .otp-digit.active{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);}
+    .otp-digit.filled{border-color:var(--success);background:var(--success-light);}
+
+    .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px;}
+    .num-key{
+      padding:18px;border:1.5px solid var(--border);border-radius:var(--radius-md);
+      background:var(--card);font-size:22px;font-weight:700;
+      cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      transition:background .1s,transform .1s;user-select:none;
+    }
+    .num-key:active{background:var(--bg);transform:scale(.96);}
+    .num-key-sub{font-size:9px;font-weight:500;color:var(--text-3);letter-spacing:.5px;margin-top:2px;}
+    .num-key.del{font-size:18px;color:var(--text-2);}
+    .num-key.ok{background:var(--primary);color:#fff;border-color:var(--primary);}
+    .num-key.ok:active{background:var(--primary-dark);}
+
+    .attempts-bar{
+      display:flex;gap:6px;justify-content:center;margin-top:8px;
+    }
+    .attempt-dot{width:8px;height:8px;border-radius:50%;background:var(--success);}
+    .attempt-dot.used{background:var(--error);}
+
+    /* ── S05 Signature ── */
+    .sig-canvas-wrap{
+      flex:1;background:var(--bg);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:0;padding:20px;
+    }
+    .sig-canvas{
+      width:100%;flex:1;max-height:300px;
+      background:var(--card);border:2px dashed var(--border);border-radius:var(--radius-md);
+      display:flex;align-items:center;justify-content:center;
+      position:relative;overflow:hidden;cursor:crosshair;
+    }
+    .sig-placeholder{color:var(--text-3);font-size:14px;font-weight:500;pointer-events:none;}
+    .sig-line{
+      position:absolute;bottom:40px;left:24px;right:24px;
+      height:1px;background:var(--border);
+    }
+    .sig-label{position:absolute;bottom:20px;left:0;right:0;text-align:center;font-size:11px;color:var(--text-3);font-weight:500;}
+    /* drawn signature demo */
+    .sig-drawn{position:absolute;inset:0;padding:20px;}
+    .sig-actions{display:flex;gap:12px;margin-top:14px;width:100%;}
+
+    /* ── S06 QR Offline ── */
+    .qr-box{
+      background:var(--card);border-radius:var(--radius-lg);padding:24px;
+      display:flex;flex-direction:column;align-items:center;gap:12px;
+      margin:20px;box-shadow:0 4px 16px rgba(0,0,0,.08);
+    }
+    .qr-code{
+      width:200px;height:200px;background:#fff;border-radius:var(--radius-md);
+      display:flex;align-items:center;justify-content:center;font-size:160px;
+      border:3px solid var(--border);
+    }
+    .qr-hash{font-size:11px;color:var(--text-3);font-family:monospace;word-break:break-all;text-align:center;}
+
+    /* ── S07 Incidente ── */
+    .category-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 16px;}
+    .category-card{
+      border:2px solid var(--border);border-radius:var(--radius-md);
+      padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;
+      cursor:pointer;transition:all .15s;text-align:center;
+    }
+    .category-card:hover,.category-card.active{border-color:var(--error);background:var(--error-light);}
+    .category-icon{font-size:28px;}
+    .category-name{font-size:13px;font-weight:700;color:var(--text-1);}
+    .category-sub{font-size:11px;color:var(--text-2);}
+    .input-field{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:inherit;color:var(--text-1);outline:none;transition:border-color .15s;resize:none;}
+    .input-field:focus{border-color:var(--primary);}
+
+    /* ── S08 Cancelación ── */
+    .reason-item{
+      display:flex;align-items:center;gap:14px;
+      padding:16px 20px;border-bottom:1px solid var(--border);
+      cursor:pointer;transition:background .15s;
+    }
+    .reason-item:hover{background:var(--bg);}
+    .reason-radio{
+      width:22px;height:22px;border-radius:50%;border:2px solid var(--border);
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;
+    }
+    .reason-radio.selected{border-color:var(--primary);background:var(--primary);}
+    .reason-radio.selected::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;}
+    .reason-text{font-size:15px;font-weight:600;color:var(--text-1);flex:1;}
+    .penalty-banner{
+      margin:0 20px 16px;background:var(--error-light);border:1.5px solid #FCA5A5;
+      border-radius:var(--radius-md);padding:14px 16px;display:flex;gap:10px;
+    }
+    .penalty-icon{font-size:20px;flex-shrink:0;}
+    .penalty-text{font-size:13px;color:#991B1B;line-height:1.5;font-weight:500;}
+
+    /* Overlay / bottom sheet */
+    .overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:flex-end;}
+    .overlay.visible{display:flex;}
+    .bottom-sheet{background:var(--card);border-radius:24px 24px 0 0;padding:24px;width:100%;display:flex;flex-direction:column;gap:14px;}
+    .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto;}
+    .sheet-title{font-size:18px;font-weight:800;}
+    .sheet-body{font-size:14px;color:var(--text-2);line-height:1.6;}
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">Tiendi Go</div>
+    <div class="sidebar-module">M04 — Entrega</div>
+  </div>
+  <div class="sidebar-item active" onclick="showScreen('active', this)">
+    <span class="sidebar-num">1</span> Entrega activa
+  </div>
+  <div class="sidebar-item" onclick="showScreen('pickup', this)">
+    <span class="sidebar-num">2</span> Confirmar recogida
+  </div>
+  <div class="sidebar-item" onclick="showScreen('camera', this)">
+    <span class="sidebar-num">3</span> POD — Foto
+  </div>
+  <div class="sidebar-item" onclick="showScreen('otp', this)">
+    <span class="sidebar-num">4</span> POD — OTP
+  </div>
+  <div class="sidebar-item" onclick="showScreen('signature', this)">
+    <span class="sidebar-num">5</span> POD — Firma
+  </div>
+  <div class="sidebar-item" onclick="showScreen('qr', this)">
+    <span class="sidebar-num">6</span> POD — QR offline
+  </div>
+  <div class="sidebar-item" onclick="showScreen('incident', this)">
+    <span class="sidebar-num">7</span> Incidente
+  </div>
+  <div class="sidebar-item" onclick="showScreen('cancel', this)">
+    <span class="sidebar-num">8</span> Cancelación
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html">← Todos los módulos</a>
+  </div>
+</aside>
+
+<!-- STAGE -->
+<main class="stage">
+<div class="phone">
+
+  <!-- ── S01 — Entrega activa ───────────────────────────────────────────── -->
+  <div class="screen active" id="active">
+    <div class="status-bar dark" style="position:absolute;top:0;left:0;right:0;z-index:30;"></div>
+
+    <!-- Driving restriction banner -->
+    <div class="driving-banner" id="driving-banner" style="top:50px;">
+      <div style="font-size:24px;">🛵</div>
+      <div>
+        <div class="driving-banner-text">Estás en movimiento</div>
+        <div class="driving-banner-sub">El teclado está bloqueado por tu seguridad</div>
+      </div>
+      <button onclick="toggleDriving()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Detuve</button>
+    </div>
+
+    <!-- Map -->
+    <div class="map-bg" style="flex:1; position:relative;">
+      <div class="map-grid"></div>
+      <div class="map-road-h" style="top:42%;"></div>
+      <div class="map-road-h" style="top:68%;"></div>
+      <div class="map-road-v" style="left:28%;"></div>
+      <div class="map-road-v" style="left:62%;"></div>
+      <div class="map-pin" style="top:38%;left:24%;">🏪</div>
+      <div class="map-pin" style="top:62%;left:58%;">📍</div>
+      <!-- rider position -->
+      <div style="position:absolute;top:50%;left:43%;transform:translate(-50%,-50%);">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 0 8px rgba(249,115,22,.25);">🛵</div>
+      </div>
+      <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 390 500">
+        <path d="M 93 195 C 165 195, 165 320, 226 318" stroke="#F97316" stroke-width="3" stroke-dasharray="8 5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <!-- ETA bubble -->
+      <div style="position:absolute;top:68px;right:12px;background:var(--card);border-radius:var(--radius-md);padding:10px 14px;box-shadow:0 4px 12px rgba(0,0,0,.15);text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:var(--primary);">8</div>
+        <div style="font-size:10px;color:var(--text-3);font-weight:600;">MIN</div>
+      </div>
+      <!-- Emergency btn -->
+      <div style="position:absolute;top:68px;left:12px;background:var(--card);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.15);cursor:pointer;" onclick="showScreen('incident', document.querySelectorAll('.sidebar-item')[6])">
+        <span style="font-size:20px;">⚠️</span>
+      </div>
+    </div>
+
+    <!-- Bottom delivery card -->
+    <div class="delivery-card">
+      <div class="delivery-handle"></div>
+      <div class="delivery-dest">
+        <div class="dest-icon">👤</div>
+        <div style="flex:1;">
+          <div class="dest-title">Entregando a</div>
+          <div class="dest-name">Carlos M.</div>
+          <div class="dest-addr">Calle Los Pinos 234, Apt 3B</div>
+        </div>
+        <div class="dest-eta">
+          <div class="eta-num">8</div>
+          <div class="eta-label">MIN</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-primary" style="flex:2;" onclick="showScreen('camera', document.querySelectorAll('.sidebar-item')[2])">
+          📦 Confirmar entrega
+        </button>
+        <button style="flex:1;padding:14px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-md);font-size:13px;font-weight:700;cursor:pointer;color:var(--text-1);" onclick="showScreen('cancel', document.querySelectorAll('.sidebar-item')[7])">
+          ✕ Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S02 — Confirmación de recogida ────────────────────────────────── -->
+  <div class="screen" id="pickup">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">←</button>
+      <span class="nav-title">Confirmar recogida</span>
+    </div>
+
+    <div style="background:var(--info-light);padding:14px 20px;display:flex;gap:10px;align-items:flex-start;flex-shrink:0;">
+      <span style="font-size:18px;">🏪</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--info);">El Buen Sabor</div>
+        <div style="font-size:13px;color:#1D4ED8;">Verificá que tenés todos los ítems antes de salir.</div>
+      </div>
+    </div>
+
+    <div class="screen-body" style="background:var(--card);">
+      <div style="padding:12px 20px;font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;">
+        Ítems del pedido #PED-001
+      </div>
+
+      <div class="checklist-item" onclick="toggleItem(this)" id="item1">
+        <div class="check-box">✓</div>
+        <div class="item-info">
+          <div class="item-name-text">Lomo saltado</div>
+          <div class="item-qty-text">× 2 unidades</div>
+        </div>
+      </div>
+      <div class="checklist-item" onclick="toggleItem(this)" id="item2">
+        <div class="check-box">✓</div>
+        <div class="item-info">
+          <div class="item-name-text">Inka Kola 1L</div>
+          <div class="item-qty-text">× 1 · Sin hielo</div>
+        </div>
+      </div>
+      <div class="checklist-item" onclick="toggleItem(this)" id="item3">
+        <div class="check-box"></div>
+        <div class="item-info">
+          <div class="item-name-text">Arroz con leche</div>
+          <div class="item-qty-text">× 1 unidad</div>
+        </div>
+      </div>
+
+      <div style="padding:16px 20px;background:var(--warning-light);margin:16px 20px;border-radius:var(--radius-sm);">
+        <div style="font-size:13px;color:#92400E;font-weight:600;">⚠️ Instrucciones de empaque</div>
+        <div style="font-size:13px;color:#92400E;margin-top:4px;line-height:1.5;">Verificá que los envases están bien sellados y no hay derrames.</div>
+      </div>
+
+      <div style="padding:0 20px;">
+        <button class="btn-secondary" onclick="reportMissing()">Falta un ítem</button>
+      </div>
+    </div>
+
+    <div class="screen-footer">
+      <div id="pickup-progress" style="font-size:13px;color:var(--text-2);text-align:center;">2 de 3 ítems verificados</div>
+      <button class="btn-primary" id="pickup-btn" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">
+        ✅ Recogí el pedido
+      </button>
+    </div>
+  </div>
+
+  <!-- ── S03 — POD Foto ─────────────────────────────────────────────────── -->
+  <div class="screen" id="camera">
+    <div class="status-bar dark" style="background:#000;"></div>
+
+    <div style="background:#000;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <button onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])" style="color:#fff;background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
+      <div style="color:#fff;font-size:14px;font-weight:600;">Foto de entrega</div>
+      <button id="photo-toggle" onclick="togglePhoto()" style="color:var(--primary);background:none;border:none;font-size:13px;font-weight:700;cursor:pointer;">Ver preview</button>
+    </div>
+
+    <!-- Camera view -->
+    <div class="camera-view" id="camera-view">
+      <!-- simulated viewfinder -->
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a2a1a,#0d1a0d);"></div>
+      <div style="position:absolute;inset:0;opacity:.3;background:repeating-linear-gradient(0deg,transparent,transparent 20px,rgba(255,255,255,.03) 20px,rgba(255,255,255,.03) 21px),repeating-linear-gradient(90deg,transparent,transparent 20px,rgba(255,255,255,.03) 20px,rgba(255,255,255,.03) 21px);"></div>
+
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <div class="camera-frame">
+          <div class="camera-corner corner-tl"></div>
+          <div class="camera-corner corner-tr"></div>
+          <div class="camera-corner corner-bl"></div>
+          <div class="camera-corner corner-br"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:13px;">
+            Apuntá a la puerta o buzón
+          </div>
+        </div>
+        <div class="camera-guide">Encuadrá la evidencia de la entrega</div>
+      </div>
+
+      <div class="camera-controls">
+        <div class="cam-side-btn">
+          <div class="cam-side-icon">🔦</div>
+          <div>Flash</div>
+        </div>
+        <div class="camera-shutter" onclick="takePhoto()">📸</div>
+        <div class="cam-side-btn" onclick="showScreen('otp', document.querySelectorAll('.sidebar-item')[3])">
+          <div class="cam-side-icon">🔢</div>
+          <div>OTP</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo preview (hidden initially) -->
+    <div class="photo-preview" id="photo-preview" style="display:none;">
+      <div class="preview-img">🚪</div>
+      <div class="preview-overlay"></div>
+      <div style="position:absolute;top:12px;right:12px;background:var(--success);color:#fff;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:700;">✅ Foto tomada</div>
+      <div class="preview-label">Foto guardada · hace un momento</div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#000;padding:16px 20px 32px;display:flex;flex-direction:column;gap:10px;flex-shrink:0;">
+      <button class="btn-primary" id="photo-confirm-btn" style="display:none;" onclick="showScreen('otp', document.querySelectorAll('.sidebar-item')[3])">
+        Confirmar foto →
+      </button>
+      <button id="photo-retake-btn" style="display:none;width:100%;padding:14px;background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.2);border-radius:var(--radius-md);font-size:15px;font-weight:600;cursor:pointer;" onclick="retakePhoto()">
+        Repetir foto
+      </button>
+      <div id="photo-hint" style="text-align:center;color:rgba(255,255,255,.5);font-size:13px;">
+        Tocá el obturador para tomar la foto
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S04 — POD OTP ──────────────────────────────────────────────────── -->
+  <div class="screen" id="otp">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('camera', document.querySelectorAll('.sidebar-item')[2])">←</button>
+      <span class="nav-title">Código de entrega</span>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg);">
+      <div style="background:var(--card);padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:6px;border-bottom:1px solid var(--border);">
+        <div style="font-size:32px;">🔐</div>
+        <div style="font-size:17px;font-weight:800;text-align:center;">Pedile el código a Carlos</div>
+        <div style="font-size:14px;color:var(--text-2);text-align:center;line-height:1.5;">El cliente recibió un SMS con 4 dígitos al confirmarte en camino.</div>
+
+        <!-- OTP display -->
+        <div class="otp-display" id="otp-display">
+          <div class="otp-digit filled" id="d0">7</div>
+          <div class="otp-digit filled" id="d1">3</div>
+          <div class="otp-digit filled" id="d2">8</div>
+          <div class="otp-digit active"  id="d3"> </div>
+        </div>
+
+        <!-- Attempts -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="attempts-bar">
+            <div class="attempt-dot"></div>
+            <div class="attempt-dot"></div>
+            <div class="attempt-dot"></div>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);">3 intentos restantes</div>
+        </div>
+      </div>
+
+      <!-- Numpad -->
+      <div style="padding:20px 16px;background:var(--card);margin-top:8px;">
+        <div class="numpad">
+          <div class="num-key" onclick="otpPress('1')">1<div class="num-key-sub"></div></div>
+          <div class="num-key" onclick="otpPress('2')">2<div class="num-key-sub">ABC</div></div>
+          <div class="num-key" onclick="otpPress('3')">3<div class="num-key-sub">DEF</div></div>
+          <div class="num-key" onclick="otpPress('4')">4<div class="num-key-sub">GHI</div></div>
+          <div class="num-key" onclick="otpPress('5')">5<div class="num-key-sub">JKL</div></div>
+          <div class="num-key" onclick="otpPress('6')">6<div class="num-key-sub">MNO</div></div>
+          <div class="num-key" onclick="otpPress('7')">7<div class="num-key-sub">PQRS</div></div>
+          <div class="num-key" onclick="otpPress('8')">8<div class="num-key-sub">TUV</div></div>
+          <div class="num-key" onclick="otpPress('9')">9<div class="num-key-sub">WXYZ</div></div>
+          <div class="num-key" style="background:transparent;border-color:transparent;"></div>
+          <div class="num-key" onclick="otpPress('0')">0</div>
+          <div class="num-key del" onclick="otpDel()">⌫</div>
+        </div>
+      </div>
+
+      <div style="padding:16px 20px;text-align:center;">
+        <button onclick="showScreen('signature', document.querySelectorAll('.sidebar-item')[4])" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;">
+          El cliente no tiene el código →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S05 — POD Firma ────────────────────────────────────────────────── -->
+  <div class="screen" id="signature">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('otp', document.querySelectorAll('.sidebar-item')[3])">←</button>
+      <span class="nav-title">Firma del cliente</span>
+    </div>
+
+    <div style="background:var(--info-light);padding:12px 20px;flex-shrink:0;display:flex;gap:10px;align-items:center;">
+      <span style="font-size:16px;">ℹ️</span>
+      <div style="font-size:13px;color:var(--info);line-height:1.4;">Pedile a <strong>Carlos M.</strong> que firme en la pantalla para confirmar la recepción del pedido.</div>
+    </div>
+
+    <div class="sig-canvas-wrap">
+      <div class="sig-canvas" id="sig-canvas" onclick="drawSignature()">
+        <div class="sig-placeholder" id="sig-placeholder">Firma aquí →</div>
+        <div class="sig-line"></div>
+        <div class="sig-label">Firma del receptor</div>
+        <!-- Drawn signature (appears on click) -->
+        <svg id="sig-drawing" style="display:none;position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 340 200">
+          <path d="M 30 140 C 60 100, 80 90, 100 110 C 120 130, 140 80, 160 100 C 180 120, 190 130, 220 110 C 240 95, 260 120, 280 130" stroke="#111827" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 50 155 C 80 150, 120 153, 150 155 C 180 157, 210 152, 240 155" stroke="#111827" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".4"/>
+        </svg>
+      </div>
+
+      <div class="sig-actions">
+        <button class="btn-ghost" style="flex:1;border:1.5px solid var(--border);border-radius:var(--radius-md);" onclick="clearSig()">🗑️ Limpiar</button>
+        <button class="btn-primary" id="sig-confirm-btn" style="flex:2;opacity:.4;" disabled onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">
+          ✅ Confirmar firma
+        </button>
+      </div>
+    </div>
+
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:10px;">
+      <button onclick="showScreen('qr', document.querySelectorAll('.sidebar-item')[5])" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+        Sin señal — usar QR offline →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── S06 — POD QR Offline ───────────────────────────────────────────── -->
+  <div class="screen" id="qr">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('signature', document.querySelectorAll('.sidebar-item')[4])">←</button>
+      <span class="nav-title">QR de entrega</span>
+    </div>
+
+    <div style="background:#FEF3C7;padding:12px 20px;flex-shrink:0;display:flex;gap:10px;align-items:center;">
+      <span style="font-size:18px;">📵</span>
+      <div style="font-size:13px;color:#92400E;font-weight:500;line-height:1.4;">Modo offline activo. Usá este QR — el cliente lo escanea con su app para confirmar la entrega.</div>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg);">
+      <div class="qr-box">
+        <div style="font-size:14px;font-weight:700;color:var(--text-1);">Pedido #PED-001</div>
+        <div style="font-size:12px;color:var(--text-2);">Válido por <span id="qr-countdown" style="font-weight:700;color:var(--error);">4:58</span></div>
+
+        <!-- QR code simulation -->
+        <div class="qr-code">
+          <svg viewBox="0 0 200 200" width="180" height="180">
+            <!-- QR pattern simulation -->
+            <rect width="200" height="200" fill="white"/>
+            <!-- Top-left finder -->
+            <rect x="10" y="10" width="60" height="60" rx="4" fill="#111"/>
+            <rect x="18" y="18" width="44" height="44" rx="2" fill="white"/>
+            <rect x="24" y="24" width="32" height="32" rx="1" fill="#111"/>
+            <!-- Top-right finder -->
+            <rect x="130" y="10" width="60" height="60" rx="4" fill="#111"/>
+            <rect x="138" y="18" width="44" height="44" rx="2" fill="white"/>
+            <rect x="144" y="24" width="32" height="32" rx="1" fill="#111"/>
+            <!-- Bottom-left finder -->
+            <rect x="10" y="130" width="60" height="60" rx="4" fill="#111"/>
+            <rect x="18" y="138" width="44" height="44" rx="2" fill="white"/>
+            <rect x="24" y="144" width="32" height="32" rx="1" fill="#111"/>
+            <!-- Data pattern -->
+            <rect x="80" y="10" width="8" height="8" fill="#111"/>
+            <rect x="96" y="10" width="8" height="8" fill="#111"/>
+            <rect x="112" y="18" width="8" height="8" fill="#111"/>
+            <rect x="80" y="26" width="8" height="8" fill="#111"/>
+            <rect x="80" y="80" width="8" height="8" fill="#111"/>
+            <rect x="96" y="80" width="8" height="8" fill="#111"/>
+            <rect x="112" y="80" width="8" height="8" fill="#111"/>
+            <rect x="128" y="80" width="8" height="8" fill="#111"/>
+            <rect x="80" y="96" width="8" height="8" fill="#111"/>
+            <rect x="96" y="96" width="8" height="8" fill="#111"/>
+            <rect x="128" y="96" width="8" height="8" fill="#111"/>
+            <rect x="80" y="112" width="8" height="8" fill="#111"/>
+            <rect x="112" y="112" width="8" height="8" fill="#111"/>
+            <rect x="128" y="112" width="8" height="8" fill="#111"/>
+            <rect x="144" y="80" width="8" height="8" fill="#111"/>
+            <rect x="160" y="80" width="8" height="8" fill="#111"/>
+            <rect x="176" y="80" width="8" height="8" fill="#111"/>
+            <rect x="144" y="96" width="8" height="8" fill="#111"/>
+            <rect x="176" y="96" width="8" height="8" fill="#111"/>
+            <rect x="160" y="112" width="8" height="8" fill="#111"/>
+            <rect x="80" y="130" width="8" height="8" fill="#111"/>
+            <rect x="96" y="130" width="8" height="8" fill="#111"/>
+            <rect x="112" y="148" width="8" height="8" fill="#111"/>
+            <rect x="128" y="130" width="8" height="8" fill="#111"/>
+            <rect x="144" y="148" width="8" height="8" fill="#111"/>
+            <rect x="160" y="130" width="8" height="8" fill="#111"/>
+            <rect x="176" y="148" width="8" height="8" fill="#111"/>
+            <rect x="80" y="164" width="8" height="8" fill="#111"/>
+            <rect x="96" y="164" width="8" height="8" fill="#111"/>
+            <rect x="160" y="164" width="8" height="8" fill="#111"/>
+            <rect x="80" y="180" width="8" height="8" fill="#111"/>
+            <rect x="128" y="180" width="8" height="8" fill="#111"/>
+            <rect x="176" y="164" width="8" height="8" fill="#111"/>
+          </svg>
+        </div>
+
+        <div class="qr-hash">HMAC: a3f8c2d1e4b7...9f2a</div>
+        <div style="font-size:12px;color:var(--text-2);text-align:center;line-height:1.5;">
+          El cliente escanea con su app Tiendi.<br>No requiere internet.
+        </div>
+      </div>
+
+      <div style="margin:0 20px 20px;background:var(--card);border-radius:var(--radius-md);padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-1);">¿El cliente no tiene la app?</div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.5;">Solicitá al cliente que confirme la entrega con el código impreso en la boleta del pedido.</div>
+        <button class="btn-secondary" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">
+          Marcar como entregado igual
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── S07 — Incidente ────────────────────────────────────────────────── -->
+  <div class="screen" id="incident">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">←</button>
+      <span class="nav-title">Reportar incidente</span>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg);">
+      <div style="background:var(--card);padding:16px 20px 8px;margin-bottom:8px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:12px;">¿Qué ocurrió?</div>
+        <div class="category-grid">
+          <div class="category-card active" onclick="selectCategory(this)">
+            <div class="category-icon">📍</div>
+            <div class="category-name">No encuentro la dirección</div>
+          </div>
+          <div class="category-card" onclick="selectCategory(this)">
+            <div class="category-icon">🚗</div>
+            <div class="category-name">Accidente de tráfico</div>
+          </div>
+          <div class="category-card" onclick="selectCategory(this)">
+            <div class="category-icon">📦</div>
+            <div class="category-name">Pedido dañado</div>
+          </div>
+          <div class="category-card" onclick="selectCategory(this)">
+            <div class="category-icon">🚪</div>
+            <div class="category-name">Cliente no responde</div>
+          </div>
+          <div class="category-card" onclick="selectCategory(this)">
+            <div class="category-icon">🛵</div>
+            <div class="category-name">Problema con mi moto</div>
+          </div>
+          <div class="category-card" onclick="selectCategory(this)">
+            <div class="category-icon">🆘</div>
+            <div class="category-name">Emergencia de seguridad</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--card);padding:16px 20px;margin-bottom:8px;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:14px;font-weight:700;">Descripción (opcional)</div>
+        <textarea class="input-field" rows="3" placeholder="Describí lo que pasó..."></textarea>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;border:2px dashed var(--border);border-radius:var(--radius-md);padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;">
+            <div style="font-size:24px;">📷</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-2);">Adjuntar foto</div>
+          </div>
+          <div style="flex:1;border:2px dashed var(--border);border-radius:var(--radius-md);padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;">
+            <div style="font-size:24px;">📍</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-2);">Mi ubicación</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--error-light);border:1.5px solid #FCA5A5;margin:0 20px;border-radius:var(--radius-md);padding:12px 14px;margin-bottom:20px;">
+        <div style="font-size:13px;color:#991B1B;font-weight:600;">🚨 ¿Es una emergencia?</div>
+        <div style="font-size:13px;color:#991B1B;margin-top:4px;line-height:1.5;">Si estás en peligro, usá el botón de emergencia para contactar a soporte en segundos.</div>
+        <button style="margin-top:8px;background:#DC2626;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">🆘 Emergencia — Contactar ahora</button>
+      </div>
+    </div>
+
+    <div class="screen-footer">
+      <button class="btn-primary" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">
+        Enviar reporte
+      </button>
+    </div>
+  </div>
+
+  <!-- ── S08 — Cancelación ──────────────────────────────────────────────── -->
+  <div class="screen" id="cancel">
+    <div class="status-bar light" style="background:var(--card);"></div>
+    <div class="screen-nav">
+      <button class="back-btn" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">←</button>
+      <span class="nav-title">Cancelar entrega</span>
+    </div>
+
+    <div class="screen-body" style="background:var(--bg);">
+      <div style="background:var(--card);padding:12px 20px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;padding:8px 0;">Motivo de cancelación</div>
+
+        <div class="reason-item" onclick="selectReason(this)">
+          <div class="reason-radio selected"></div>
+          <div class="reason-text">No encuentro la dirección del cliente</div>
+        </div>
+        <div class="reason-item" onclick="selectReason(this)">
+          <div class="reason-radio"></div>
+          <div class="reason-text">El cliente no responde ni abre</div>
+        </div>
+        <div class="reason-item" onclick="selectReason(this)">
+          <div class="reason-radio"></div>
+          <div class="reason-text">Tuve un accidente</div>
+        </div>
+        <div class="reason-item" onclick="selectReason(this)">
+          <div class="reason-radio"></div>
+          <div class="reason-text">Problema con mi vehículo</div>
+        </div>
+        <div class="reason-item" onclick="selectReason(this)">
+          <div class="reason-radio"></div>
+          <div class="reason-text">El pedido está dañado o incompleto</div>
+        </div>
+        <div class="reason-item" style="border-bottom:none;" onclick="selectReason(this)">
+          <div class="reason-radio"></div>
+          <div class="reason-text">Otro motivo</div>
+        </div>
+      </div>
+
+      <!-- Penalty warning -->
+      <div class="penalty-banner">
+        <span class="penalty-icon">⚠️</span>
+        <div class="penalty-text">
+          <strong>Penalización: −20 pts</strong><br>
+          Esta cancelación reduce tu puntuación mensual. Si cancelás más de 3 veces seguidas, podés ser suspendido temporalmente.
+        </div>
+      </div>
+
+      <!-- Sin penalización card -->
+      <div style="background:var(--success-light);border:1.5px solid #86EFAC;margin:0 20px;border-radius:var(--radius-md);padding:12px 14px;margin-bottom:20px;">
+        <div style="font-size:13px;color:var(--success);font-weight:600;">✅ Sin penalización si reportás incidente</div>
+        <div style="font-size:13px;color:var(--success);margin-top:4px;line-height:1.5;">Si tuviste un accidente o emergencia, reportalo primero y la cancelación no afectará tu score.</div>
+        <button onclick="showScreen('incident', document.querySelectorAll('.sidebar-item')[6])" style="margin-top:8px;background:var(--success);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">Reportar incidente →</button>
+      </div>
+    </div>
+
+    <div class="screen-footer">
+      <button class="btn-danger" onclick="confirmCancel()">Sí, cancelar entrega</button>
+      <button class="btn-ghost" onclick="showScreen('active', document.querySelectorAll('.sidebar-item')[0])">Volver a la entrega</button>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+<div class="stage-label">390 × 844 px — iPhone 14</div>
+</main>
+
+<script>
+  function showScreen(id, sidebarItem) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (sidebarItem) sidebarItem.classList.add('active');
+  }
+
+  /* ── Driving banner ── */
+  let isDriving = true;
+  function toggleDriving() {
+    isDriving = !isDriving;
+    document.getElementById('driving-banner').style.display = isDriving ? 'flex' : 'none';
+  }
+
+  /* ── Pickup checklist ── */
+  let checked = new Set([0, 1]);
+  function toggleItem(row) {
+    const box = row.querySelector('.check-box');
+    const idx = Array.from(row.parentElement.querySelectorAll('.checklist-item')).indexOf(row);
+    if (checked.has(idx)) {
+      checked.delete(idx);
+      box.classList.remove('checked');
+      box.textContent = '';
+      row.classList.remove('item-checked');
+    } else {
+      checked.add(idx);
+      box.classList.add('checked');
+      box.textContent = '✓';
+      row.classList.add('item-checked');
+    }
+    const total = row.parentElement.querySelectorAll('.checklist-item').length;
+    document.getElementById('pickup-progress').textContent = checked.size + ' de ' + total + ' ítems verificados';
+    const btn = document.getElementById('pickup-btn');
+    btn.disabled = checked.size < total;
+    btn.style.opacity = checked.size < total ? '.4' : '1';
+  }
+  // Init
+  document.querySelectorAll('.checklist-item').forEach((row, i) => {
+    if (checked.has(i)) { row.querySelector('.check-box').classList.add('checked'); row.querySelector('.check-box').textContent = '✓'; }
+  });
+
+  function reportMissing() { alert('Flujo: seleccionar ítem faltante → notificar tienda → soporte decide continuación'); }
+
+  /* ── Camera ── */
+  let photoTaken = false;
+  function takePhoto() {
+    photoTaken = true;
+    document.getElementById('camera-view').style.display = 'none';
+    document.getElementById('photo-preview').style.display = 'flex';
+    document.getElementById('photo-confirm-btn').style.display = 'block';
+    document.getElementById('photo-retake-btn').style.display = 'block';
+    document.getElementById('photo-hint').style.display = 'none';
+    document.getElementById('photo-toggle').textContent = 'Ver cámara';
+  }
+  function retakePhoto() {
+    photoTaken = false;
+    document.getElementById('camera-view').style.display = 'flex';
+    document.getElementById('photo-preview').style.display = 'none';
+    document.getElementById('photo-confirm-btn').style.display = 'none';
+    document.getElementById('photo-retake-btn').style.display = 'none';
+    document.getElementById('photo-hint').style.display = 'block';
+    document.getElementById('photo-toggle').textContent = 'Ver preview';
+  }
+  function togglePhoto() {
+    if (!photoTaken) { takePhoto(); return; }
+    const cv = document.getElementById('camera-view');
+    const pv = document.getElementById('photo-preview');
+    if (cv.style.display === 'none') { cv.style.display = 'flex'; pv.style.display = 'none'; document.getElementById('photo-toggle').textContent = 'Ver preview'; }
+    else { cv.style.display = 'none'; pv.style.display = 'flex'; document.getElementById('photo-toggle').textContent = 'Ver cámara'; }
+  }
+
+  /* ── OTP ── */
+  let otpVal = ['7','3','8',''];
+  let otpPos = 3;
+  function otpPress(d) {
+    if (otpPos >= 4) return;
+    otpVal[otpPos] = d;
+    const el = document.getElementById('d' + otpPos);
+    el.textContent = d;
+    el.classList.remove('active');
+    el.classList.add('filled');
+    otpPos++;
+    if (otpPos < 4) {
+      document.getElementById('d' + otpPos).classList.add('active');
+    } else {
+      // Correct OTP demo
+      setTimeout(() => { showScreen('signature', document.querySelectorAll('.sidebar-item')[4]); otpReset(); }, 400);
+    }
+  }
+  function otpDel() {
+    if (otpPos === 0) return;
+    if (otpPos === 4) {
+      document.getElementById('d3').classList.add('active');
+    } else {
+      document.getElementById('d' + otpPos).classList.remove('active');
+    }
+    otpPos--;
+    otpVal[otpPos] = '';
+    const el = document.getElementById('d' + otpPos);
+    el.textContent = ' ';
+    el.classList.remove('filled');
+    el.classList.add('active');
+  }
+  function otpReset() { otpVal=['','','','']; otpPos=0; for(let i=0;i<4;i++){const e=document.getElementById('d'+i);e.textContent=' ';e.classList.remove('filled','active');}  document.getElementById('d0').classList.add('active'); }
+
+  /* ── Signature ── */
+  let signed = false;
+  function drawSignature() {
+    if (!signed) {
+      signed = true;
+      document.getElementById('sig-placeholder').style.display = 'none';
+      document.getElementById('sig-drawing').style.display = 'block';
+      const btn = document.getElementById('sig-confirm-btn');
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+  }
+  function clearSig() {
+    signed = false;
+    document.getElementById('sig-placeholder').style.display = 'block';
+    document.getElementById('sig-drawing').style.display = 'none';
+    const btn = document.getElementById('sig-confirm-btn');
+    btn.disabled = true;
+    btn.style.opacity = '.4';
+  }
+
+  /* ── QR countdown ── */
+  let qrSecs = 298;
+  function tickQR() {
+    qrSecs--;
+    if (qrSecs < 0) qrSecs = 299;
+    const m = Math.floor(qrSecs / 60);
+    const s = qrSecs % 60;
+    const el = document.getElementById('qr-countdown');
+    if (el) el.textContent = m + ':' + String(s).padStart(2,'0');
+  }
+  setInterval(tickQR, 1000);
+
+  /* ── Categories ── */
+  function selectCategory(card) {
+    document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+  }
+
+  /* ── Reasons ── */
+  function selectReason(row) {
+    document.querySelectorAll('.reason-radio').forEach(r => r.classList.remove('selected'));
+    row.querySelector('.reason-radio').classList.add('selected');
+  }
+
+  function confirmCancel() { showScreen('active', document.querySelectorAll('.sidebar-item')[0]); }
+</script>
+</body>
+</html>
