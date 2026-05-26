@@ -1,0 +1,44 @@
+{
+  "name": "tiendi-go",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "axios": "^1.16.1",
+    "date-fns": "^4.3.0",
+    "expo": "~56.0.4",
+    "expo-camera": "~56.0.7",
+    "expo-constants": "~56.0.15",
+    "expo-document-picker": "~56.0.4",
+    "expo-linear-gradient": "~56.0.4",
+    "expo-local-authentication": "~56.0.4",
+    "expo-location": "~56.0.13",
+    "expo-notifications": "~56.0.13",
+    "expo-router": "~56.2.6",
+    "expo-secure-store": "~56.0.4",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-hook-form": "^7.76.1",
+    "react-native": "0.85.3",
+    "react-native-gesture-handler": "^2.31.2",
+    "react-native-maps": "^1.27.2",
+    "react-native-mmkv": "^4.3.1",
+    "react-native-reanimated": "^4.3.1",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2",
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}
