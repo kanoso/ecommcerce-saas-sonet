@@ -128,12 +128,8 @@
 
 ---
 
-## Verificación
+## Verificación por categoría
 
-<<<<<<< HEAD
-- [x] `ng build` — compila sin errores
-- [ ] `ng test` — pending
-=======
 Cada componente se extrae a:
 - `nombre.component.html` — el template
 - `nombre.component.scss` — los estilos
@@ -250,7 +246,6 @@ Estos quedan a criterio. Si el template se siente difícil de leer o editar, ext
 - [ ] Revisar que los selectores de los `.scss` no necesiten encapsulación extra (Angular usa `ViewEncapsulation.Emulated` por default, los estilos extraídos funcionan igual que inline)
 
 ---
->>>>>>> origin/master
 
 ## Notas
 
