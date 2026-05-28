@@ -36,7 +36,11 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 ---
 
 > [!IMPORTANT]
-> **Antes de implementar cada módulo**: revisar la sección correspondiente en [[FUNCIONALIDADES]] para entender el detalle completo de reglas de negocio, estados, flujos y restricciones. Este checklist es una guía de avance, no reemplaza la especificación.
+> **Antes de implementar cada módulo**:
+> - Revisar la sección correspondiente en [[FUNCIONALIDADES]] para entender el detalle completo de reglas de negocio, estados, flujos y restricciones.
+> - **Mobile**: revisar el prototipo HTML correspondiente en `DOCS/TIENDI-GO/prototipos-html/` antes de escribir cualquier pantalla. El prototipo es la fuente visual de verdad para layouts, colores y flujos de navegación.
+>
+> Este checklist es una guía de avance, no reemplaza la especificación.
 
 ## MVP — Fase 1
 
@@ -48,14 +52,14 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 ### 🏗️ Setup del proyecto
 
 #### Backend (tiendi-api)
-- [ ] Crear módulo `delivery` en NestJS
-- [ ] Diseñar y migrar esquema de base de datos: `RIDER`, `VEHICLE`, `DELIVERY`, `DELIVERY_EVENT`, `WALLET`, `TRANSACTION`
-- [ ] Configurar Socket.IO para tracking GPS en tiempo real
-- [ ] Configurar BullMQ para la cola de matching de pedidos
-- [ ] Integrar Firebase Admin SDK para FCM
-- [ ] Configurar Twilio Verify para OTP por SMS
-- [ ] Configurar Cloudinary con carpetas privadas (`/riders/documents/`, `/pod/`)
-- [ ] Variables de entorno documentadas y en `.env.example`
+- [x] Crear módulo `delivery` en NestJS (skeleton — endpoints en Módulo 3)
+- [x] Diseñar y migrar esquema de base de datos: `Rider`, `Vehicle`, `Wallet`, `OtpCode`, `Delivery`, `DeliveryEvent`, `Transaction`
+- [x] Configurar Socket.IO para tracking GPS en tiempo real (`TrackingGateway` + `IoAdapter`)
+- [x] Configurar BullMQ para la cola de matching de pedidos (queues: `matching`, `notifications`)
+- [x] Integrar Firebase Admin SDK para FCM (`FirebaseService` — credenciales en `.env`)
+- [x] Configurar Twilio Verify para OTP por SMS (`TwilioService` — real con fallback mock en dev)
+- [x] Configurar Cloudinary con carpetas privadas (`CloudinaryService` — real con fallback mock en dev)
+- [x] Variables de entorno documentadas y en `.env.example`
 
 #### Mobile (React Native + Expo)
 - [x] Inicializar proyecto con `npx create-expo-app --template` + TypeScript strict
@@ -99,7 +103,7 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [x] Configuración de biometría (`expo-local-authentication` + flag en SecureStore)
 - [x] Login biométrico (huella / Face ID)
 - [x] Recuperación de contraseña
-- [ ] Onboarding post-aprobación: tutorial 3 pasos + permisos GPS (bloqueante) + cuenta bancaria (opcional)
+- [x] Onboarding post-aprobación: tutorial 3 pasos + permisos GPS (bloqueante) + cuenta bancaria (opcional)
 - [x] Auth guard en Expo Router: redirige a `(auth)` si no hay token válido
 
 ---
