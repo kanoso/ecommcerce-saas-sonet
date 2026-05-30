@@ -199,15 +199,15 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [x] Cálculo de ruta (Google Directions API) para ruta tienda → cliente
 
 #### Mobile
-- [ ] `MapView` (react-native-maps) en pantalla principal con marcadores de tienda y cliente
-- [ ] Marcador animado de posición del rider con heading
-- [ ] Polyline de ruta activa sobre el mapa
-- [ ] Círculos de geofence visuales (150m tienda, 200m cliente)
+- [x] `MapView` en pantalla principal (`home.tsx`) con marcador rider + `delivery/[id].tsx` con marcadores tienda y cliente
+- [x] Marcador animado de posición del rider con heading — `Animated.timing` sobre rotación (300ms), triángulo indicador de dirección
+- [x] Polyline de ruta activa sobre el mapa — línea punteada rider → destino activo (`delivery/[id].tsx`); ruta completa (Directions API) deferred a Fase 2 (payload no incluye waypoints)
+- [x] Círculos de geofence visuales (150m tienda, 200m cliente) — `Circle` con fill/stroke translúcidos en naranja (tienda) y azul (cliente)
 - [x] Tracking GPS en background con `expo-location` (permiso `Always`) — `expo-task-manager` + `Location.startLocationUpdatesAsync` con foreground service en Android; fallback a `watchPositionAsync` si se deniega permiso background; permiso solicitado en dos pasos (foreground → background)
 - [x] Throttling adaptativo: sin pedido 30s / en tránsito 10s / cerca destino 3s — _idle: sin emisión; transit: 10s; near (≤300m Haversine): 3s; lógica en `emitSample` helper compartido entre task callback y fallback foreground_
 - [ ] Pantalla de solicitud de permisos GPS con explicación clara (antes del onboarding)
-- [ ] Indicador "Señal débil" cuando GPS error > 50m
-- [ ] Deep links de navegación: Google Maps, Waze, Apple Maps con fallback a browser
+- [x] Indicador "Señal débil" cuando GPS error > 50m — banner ámbar en `home.tsx` cuando `accuracy > 50`
+- [x] Deep links de navegación: Google Maps, Waze, Apple Maps con fallback a browser — `src/utils/maps.ts`: ActionSheetIOS en iOS, Alert en Android; fallback a Google Maps si Waze no está instalado
 - [ ] Cola offline: si no hay conexión, los eventos GPS se encolan en MMKV y se sincronizan al reconectar
 
 ---

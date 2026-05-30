@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Circle, Marker, Polyline } from 'react-native-maps';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import { deliveryService } from '@/services/delivery.service';
 import { useDeliveryStore } from '@/stores/delivery.store';
+import { useLocationStore } from '@/stores/location.store';
+import { openWithChoice } from '@/utils/maps';
 import type { DeliveryStatus } from '@/types/delivery.types';
+
+// Geofence radii in metres
+const STORE_GEOFENCE_M = 150;
+const CLIENT_GEOFENCE_M = 200;
+
+// States where rider is heading to / at the store
+const STORE_STATES: DeliveryStatus[] = ['Asignado', 'EnCaminoTienda', 'EnTienda'];
 
 interface NextStep {
   label: string;
@@ -16,15 +26,15 @@ interface NextStep {
 }
 
 const STEPS: Record<DeliveryStatus, NextStep> = {
-  Asignado:        { label: 'Ir a la tienda',            next: 'EnCaminoTienda',  enabled: true },
-  EnCaminoTienda:  { label: 'Llegué a la tienda',        next: 'EnTienda',        enabled: true },
-  EnTienda:        { label: 'Recogí el pedido',          next: 'Recogido',        enabled: true },
-  Recogido:        { label: 'En camino al cliente',      next: 'EnCaminoCliente', enabled: true },
-  EnCaminoCliente: { label: 'Llegué al destino',         next: 'EnDestino',       enabled: true },
-  EnDestino:       { label: 'Entregué el pedido',        next: 'Entregado',       enabled: true },
-  Entregado:       { label: 'Entrega completada',        next: null,              enabled: false },
-  Incidente:       { label: 'Incidente reportado',       next: null,              enabled: false },
-  Cancelado:       { label: 'Entrega cancelada',         next: null,              enabled: false },
+  Asignado:        { label: 'Ir a la tienda',       next: 'EnCaminoTienda',  enabled: true },
+  EnCaminoTienda:  { label: 'Llegué a la tienda',   next: 'EnTienda',        enabled: true },
+  EnTienda:        { label: 'Recogí el pedido',      next: 'Recogido',        enabled: true },
+  Recogido:        { label: 'En camino al cliente',  next: 'EnCaminoCliente', enabled: true },
+  EnCaminoCliente: { label: 'Llegué al destino',     next: 'EnDestino',       enabled: true },
+  EnDestino:       { label: 'Entregué el pedido',    next: 'Entregado',       enabled: true },
+  Entregado:       { label: 'Entrega completada',    next: null,              enabled: false },
+  Incidente:       { label: 'Incidente reportado',   next: null,              enabled: false },
+  Cancelado:       { label: 'Entrega cancelada',     next: null,              enabled: false },
 };
 
 export default function DeliveryScreen() {
@@ -33,6 +43,7 @@ export default function DeliveryScreen() {
   const upsertActiveDelivery = useDeliveryStore((s) => s.upsertActiveDelivery);
   const removeActiveDelivery = useDeliveryStore((s) => s.removeActiveDelivery);
   const setSelectedDeliveryId = useDeliveryStore((s) => s.setSelectedDeliveryId);
+  const coords = useLocationStore((s) => s.coords);
   const [advancing, setAdvancing] = useState(false);
 
   useEffect(() => {
@@ -40,7 +51,6 @@ export default function DeliveryScreen() {
     return () => setSelectedDeliveryId(null);
   }, [id]);
 
-  // Handle server-driven cancellation: delivery removed from store while screen is open
   useEffect(() => {
     if (!delivery && id) {
       router.replace('/(app)/home');
@@ -59,13 +69,23 @@ export default function DeliveryScreen() {
   }
 
   const step = STEPS[delivery.status];
+  const targetIsStore = STORE_STATES.includes(delivery.status);
+  const target = targetIsStore ? delivery.store : delivery.client;
+
+  // Map region: center on target with some padding
+  const mapRegion = {
+    latitude: target.lat,
+    longitude: target.lng,
+    latitudeDelta: 0.015,
+    longitudeDelta: 0.015,
+  };
 
   const onAdvance = async () => {
     if (!step.enabled || !step.next || advancing) return;
     const prev = delivery.status;
     const next = step.next;
     setAdvancing(true);
-    upsertActiveDelivery({ ...delivery, status: next }); // optimistic
+    upsertActiveDelivery({ ...delivery, status: next });
     try {
       const updated = await deliveryService.updateStatus(delivery.id, next);
       upsertActiveDelivery(updated);
@@ -74,64 +94,109 @@ export default function DeliveryScreen() {
         router.replace('/(app)/home');
       }
     } catch {
-      upsertActiveDelivery({ ...delivery, status: prev }); // rollback
+      upsertActiveDelivery({ ...delivery, status: prev });
       Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo actualizar el estado. Intentá de nuevo.' });
     } finally {
       setAdvancing(false);
     }
   };
 
-  const openMaps = (lat: number, lng: number) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
-    Linking.openURL(url).catch(() => {});
+  const onOpenMaps = () => {
+    openWithChoice({ lat: target.lat, lng: target.lng, label: target.name });
   };
 
-  const targetIsStore =
-    delivery.status === 'Asignado' ||
-    delivery.status === 'EnCaminoTienda' ||
-    delivery.status === 'EnTienda';
-
-  const target = targetIsStore ? delivery.store : delivery.client;
+  // Polyline: rider → target (straight line — server route not in delivery payload)
+  const polylineCoords =
+    coords
+      ? [
+          { latitude: coords.lat, longitude: coords.lng },
+          { latitude: target.lat, longitude: target.lng },
+        ]
+      : [];
 
   return (
-    <SafeAreaView style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Entrega #{delivery.id.slice(0, 8)}</Text>
-        <View style={[styles.badge, { backgroundColor: Colors.card }]}>
-          <Text style={styles.badgeText}>{delivery.status}</Text>
-        </View>
+    <SafeAreaView style={styles.root} edges={['top']}>
+      {/* ── Map ── */}
+      <View style={styles.mapContainer}>
+        <MapView style={styles.map} region={mapRegion}>
+          {/* Rider */}
+          {coords ? (
+            <Marker
+              coordinate={{ latitude: coords.lat, longitude: coords.lng }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              flat
+              rotation={coords.heading ?? 0}
+            >
+              <View style={styles.riderDot} />
+            </Marker>
+          ) : null}
+
+          {/* Store marker + geofence */}
+          <Marker
+            coordinate={{ latitude: delivery.store.lat, longitude: delivery.store.lng }}
+            pinColor={Colors.primary}
+            title={delivery.store.name}
+            description="Tienda"
+          />
+          <Circle
+            center={{ latitude: delivery.store.lat, longitude: delivery.store.lng }}
+            radius={STORE_GEOFENCE_M}
+            strokeColor={Colors.primary + '80'}
+            fillColor={Colors.primary + '18'}
+            strokeWidth={1}
+          />
+
+          {/* Client marker + geofence */}
+          <Marker
+            coordinate={{ latitude: delivery.client.lat, longitude: delivery.client.lng }}
+            pinColor={Colors.info}
+            title={delivery.client.name}
+            description="Cliente"
+          />
+          <Circle
+            center={{ latitude: delivery.client.lat, longitude: delivery.client.lng }}
+            radius={CLIENT_GEOFENCE_M}
+            strokeColor={Colors.info + '80'}
+            fillColor={Colors.info + '18'}
+            strokeWidth={1}
+          />
+
+          {/* Route line rider → active target */}
+          {polylineCoords.length === 2 ? (
+            <Polyline
+              coordinates={polylineCoords}
+              strokeColor={Colors.info}
+              strokeWidth={3}
+              lineDashPattern={[8, 4]}
+            />
+          ) : null}
+        </MapView>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>{targetIsStore ? 'Tienda' : 'Cliente'}</Text>
-        <Text style={styles.sectionName}>{target.name}</Text>
-        <Text style={styles.sectionAddress}>{target.address}</Text>
-        <Pressable onPress={() => openMaps(target.lat, target.lng)}>
-          <Text style={styles.link}>Abrir en Maps</Text>
+      {/* ── Info cards ── */}
+      <View style={styles.cards}>
+        <View style={styles.row}>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>{targetIsStore ? 'Tienda' : 'Cliente'}</Text>
+            <Text style={styles.cardName} numberOfLines={1}>{target.name}</Text>
+            <Text style={styles.cardSub} numberOfLines={1}>{target.address}</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Comisión</Text>
+            <Text style={[styles.cardName, { color: Colors.success }]}>${delivery.commission}</Text>
+            <Text style={styles.cardSub}>
+              {delivery.paymentMethod === 'cash' ? 'Efectivo' : 'Digital'}
+              {delivery.cashAmount ? ` · $${delivery.cashAmount}` : ''}
+            </Text>
+          </View>
+        </View>
+
+        <Pressable style={styles.mapsBtn} onPress={onOpenMaps}>
+          <Text style={styles.mapsBtnText}>Navegar →</Text>
         </Pressable>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Detalle del pedido</Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaItem}>{delivery.items.length} ítems</Text>
-          <Text style={styles.metaItem}>
-            {delivery.paymentMethod === 'cash' ? 'Efectivo' : 'Digital'}
-            {delivery.cashAmount ? ` $${delivery.cashAmount}` : ''}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Zona cliente</Text>
-        <Text style={styles.sectionName}>{delivery.client.address}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Comisión estimada</Text>
-        <Text style={styles.commission}>${delivery.commission}</Text>
-      </View>
-
+      {/* ── CTA ── */}
       <View style={styles.cta}>
         <Button
           label={step.label}
@@ -146,86 +211,43 @@ export default function DeliveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
+  root:         { flex: 1, backgroundColor: Colors.bg },
+  empty:        { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.lg },
+  emptyText:    { color: Colors.text2, fontSize: 14 },
+
+  mapContainer: { height: 260 },
+  map:          { flex: 1 },
+
+  riderDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.info,
+    borderWidth: 3,
+    borderColor: Colors.white,
+  },
+
+  cards: { padding: Spacing.md, gap: Spacing.sm },
+  row:   { flexDirection: 'row', gap: Spacing.sm },
+
+  card: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    gap: 2,
   },
-  empty: {
-    flex: 1,
+  cardLabel: { color: Colors.text2, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  cardName:  { color: Colors.text, fontSize: 15, fontWeight: '700' },
+  cardSub:   { color: Colors.text2, fontSize: 12 },
+
+  mapsBtn: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-    padding: Spacing.lg,
   },
-  emptyText: {
-    color: Colors.text2,
-    fontSize: 14,
-  },
-  header: {
-    padding: Spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomColor: Colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  title: {
-    color: Colors.text,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.sm,
-  },
-  badgeText: {
-    color: Colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  section: {
-    padding: Spacing.lg,
-    gap: Spacing.xs,
-    borderBottomColor: Colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  sectionLabel: {
-    color: Colors.text2,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    fontWeight: '700',
-  },
-  sectionName: {
-    color: Colors.text,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  sectionAddress: {
-    color: Colors.text2,
-    fontSize: 14,
-  },
-  link: {
-    color: Colors.info,
-    fontSize: 14,
-    marginTop: Spacing.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.xs,
-  },
-  metaItem: {
-    color: Colors.text2,
-    fontSize: 14,
-  },
-  commission: {
-    color: Colors.success,
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  cta: {
-    padding: Spacing.lg,
-    marginTop: 'auto',
-  },
+  mapsBtnText: { color: Colors.info, fontSize: 14, fontWeight: '700' },
+
+  cta: { padding: Spacing.lg, marginTop: 'auto' },
 });
