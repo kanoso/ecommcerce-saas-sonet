@@ -10,6 +10,13 @@ export async function getSocket(): Promise<Socket> {
 
   const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
 
+  if (socket) {
+    // Singleton exists but is disconnected — update auth token and reconnect in place
+    (socket.auth as { token: string | null }).token = token;
+    socket.connect();
+    return socket;
+  }
+
   socket = io(process.env.EXPO_PUBLIC_WS_URL ?? 'http://localhost:3000', {
     auth: { token },
     transports: ['websocket'],
@@ -25,4 +32,10 @@ export async function getSocket(): Promise<Socket> {
 export function disconnectSocket(): void {
   socket?.disconnect();
   socket = null;
+}
+
+export function reconnectWithToken(newToken: string): void {
+  if (!socket) return;
+  (socket.auth as { token: string }).token = newToken;
+  socket.disconnect().connect();
 }

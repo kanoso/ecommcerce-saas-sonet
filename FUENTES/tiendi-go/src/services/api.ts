@@ -31,11 +31,21 @@ api.interceptors.response.use(
       const { data } = await axios.post(`${original.baseURL}/auth/refresh`, { refreshToken: refresh });
       await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.accessToken);
       original.headers.Authorization = `Bearer ${data.accessToken}`;
+      // Import lazily to avoid circular dependency at module evaluation time
+      const { reconnectWithToken } = await import('./socket');
+      reconnectWithToken(data.accessToken);
       return api(original);
     } catch {
       await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
       await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-      // TODO: redirect to login via router
+      // Atomic reset — single setState call prevents subscribers observing partial state
+      const { useAuthStore } = await import('@/stores/auth.store');
+      useAuthStore.setState({
+        accessToken: null,
+        rider: null,
+        isAuthenticated: false,
+        forceLogout: true,
+      });
       return Promise.reject(error);
     }
   }

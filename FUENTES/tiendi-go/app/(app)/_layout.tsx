@@ -1,6 +1,11 @@
 import { Tabs } from 'expo-router';
+import { useDeliverySocket } from '@/hooks/useDeliverySocket';
+import { useLocationTracker } from '@/hooks/useLocationTracker';
 
 export default function AppLayout() {
+  useDeliverySocket();
+  useLocationTracker();
+
   return (
     <Tabs
       screenOptions={{
@@ -16,6 +21,7 @@ export default function AppLayout() {
       <Tabs.Screen name="settings" options={{ title: 'Config' }} />
       <Tabs.Screen name="profile-edit" options={{ href: null }} />
       <Tabs.Screen name="vehicles" options={{ href: null }} />
+      <Tabs.Screen name="delivery" options={{ href: null }} />
     </Tabs>
   );
 }

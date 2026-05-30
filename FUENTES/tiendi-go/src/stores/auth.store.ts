@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '@/services/api';
+import { disconnectSocket } from '@/services/socket';
 import type { Rider } from '@/types/rider.types';
 
 interface AuthState {
@@ -8,10 +9,13 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  forceLogout: boolean;
   setTokens: (access: string, refresh: string) => Promise<void>;
   setRider: (rider: Rider) => void;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  setForceLogout: (value: boolean) => void;
+  clearForceLogout: () => void;
 }
 
 const ACCESS_TOKEN_KEY = 'tiendigo_access_token';
@@ -22,11 +26,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   isAuthenticated: false,
   isLoading: true,
+  forceLogout: false,
 
   setTokens: async (access, refresh) => {
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, access);
     await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refresh);
-    set({ accessToken: access, isAuthenticated: true });
+    set({ accessToken: access, isAuthenticated: true, forceLogout: false });
   },
 
   setRider: (rider) => set({ rider }),
@@ -34,6 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    disconnectSocket();
     set({ rider: null, accessToken: null, isAuthenticated: false });
   },
 
@@ -53,4 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false });
     }
   },
+
+  setForceLogout: (forceLogout) => set({ forceLogout }),
+  clearForceLogout: () => set({ forceLogout: false }),
 }));

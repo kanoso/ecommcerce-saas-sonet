@@ -1,71 +1,95 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { createMMKV } from 'react-native-mmkv';
+import type { DeliveryStatus, DeliveryOffer, ActiveDelivery } from '@/types/delivery.types';
 
-type DeliveryStatus =
-  | 'Asignado'
-  | 'EnCaminoTienda'
-  | 'EnTienda'
-  | 'Recogido'
-  | 'EnCaminoCliente'
-  | 'EnDestino'
-  | 'Entregado'
-  | 'Incidente'
-  | 'Cancelado';
+export type { DeliveryStatus, DeliveryOffer, ActiveDelivery };
 
-interface DeliveryOffer {
-  deliveryId: string;
-  storeName: string;
-  storeAddress: string;
-  storeDistance: number;
-  clientZone: string;
-  totalDistance: number;
-  estimatedTime: number;
-  estimatedCommission: number;
-  itemCount: number;
-  paymentMethod: 'cash' | 'digital';
-  specialInstructions: string | null;
-}
+const storage = createMMKV({ id: 'tiendigo-mmkv' });
 
-interface ActiveDelivery {
-  id: string;
-  status: DeliveryStatus;
-  store: { name: string; address: string; lat: number; lng: number; phone: string };
-  client: { name: string; address: string; lat: number; lng: number; phone: string };
-  items: Array<{ name: string; quantity: number; variant?: string }>;
-  paymentMethod: 'cash' | 'digital';
-  cashAmount?: number;
-  commission: number;
-}
+const mmkvStorage: StateStorage = {
+  getItem: (name) => storage.getString(name) ?? null,
+  setItem: (name, value) => storage.set(name, value),
+  removeItem: (name) => storage.remove(name),
+};
 
 interface DeliveryState {
   offer: DeliveryOffer | null;
+  offerExpiresAt: number | null;
   activeDeliveries: ActiveDelivery[];
+  selectedDeliveryId: string | null;
+
   setOffer: (offer: DeliveryOffer | null) => void;
+  setOfferWithExpiry: (offer: DeliveryOffer, expiresAt: number) => void;
+  clearOffer: () => void;
   addDelivery: (delivery: ActiveDelivery) => void;
+  upsertActiveDelivery: (delivery: ActiveDelivery) => void;
   updateDeliveryStatus: (id: string, status: DeliveryStatus) => void;
   removeDelivery: (id: string) => void;
+  removeActiveDelivery: (id: string) => void;
+  setActiveDeliveries: (list: ActiveDelivery[]) => void;
+  setSelectedDeliveryId: (id: string | null) => void;
   clearAll: () => void;
 }
 
-export const useDeliveryStore = create<DeliveryState>((set) => ({
-  offer: null,
-  activeDeliveries: [],
+export const useDeliveryStore = create<DeliveryState>()(
+  persist(
+    (set) => ({
+      offer: null,
+      offerExpiresAt: null,
+      activeDeliveries: [],
+      selectedDeliveryId: null,
 
-  setOffer: (offer) => set({ offer }),
+      setOffer: (offer) =>
+        set({ offer, offerExpiresAt: offer ? Date.now() + 30_000 : null }),
 
-  addDelivery: (delivery) =>
-    set((state) => ({ activeDeliveries: [...state.activeDeliveries, delivery] })),
+      setOfferWithExpiry: (offer, expiresAt) =>
+        set({ offer, offerExpiresAt: expiresAt }),
 
-  updateDeliveryStatus: (id, status) =>
-    set((state) => ({
-      activeDeliveries: state.activeDeliveries.map((d) =>
-        d.id === id ? { ...d, status } : d
-      ),
-    })),
+      clearOffer: () => set({ offer: null, offerExpiresAt: null }),
 
-  removeDelivery: (id) =>
-    set((state) => ({
-      activeDeliveries: state.activeDeliveries.filter((d) => d.id !== id),
-    })),
+      addDelivery: (delivery) =>
+        set((s) => ({ activeDeliveries: [...s.activeDeliveries, delivery] })),
 
-  clearAll: () => set({ offer: null, activeDeliveries: [] }),
-}));
+      upsertActiveDelivery: (delivery) =>
+        set((s) => {
+          const exists = s.activeDeliveries.some((d) => d.id === delivery.id);
+          return {
+            activeDeliveries: exists
+              ? s.activeDeliveries.map((d) => (d.id === delivery.id ? delivery : d))
+              : [...s.activeDeliveries, delivery],
+          };
+        }),
+
+      updateDeliveryStatus: (id, status) =>
+        set((s) => ({
+          activeDeliveries: s.activeDeliveries.map((d) =>
+            d.id === id ? { ...d, status } : d
+          ),
+        })),
+
+      removeDelivery: (id) =>
+        set((s) => ({
+          activeDeliveries: s.activeDeliveries.filter((d) => d.id !== id),
+        })),
+
+      removeActiveDelivery: (id) =>
+        set((s) => ({
+          activeDeliveries: s.activeDeliveries.filter((d) => d.id !== id),
+        })),
+
+      setActiveDeliveries: (list) => set({ activeDeliveries: list }),
+
+      setSelectedDeliveryId: (id) => set({ selectedDeliveryId: id }),
+
+      clearAll: () =>
+        set({ offer: null, offerExpiresAt: null, activeDeliveries: [], selectedDeliveryId: null }),
+    }),
+    {
+      name: 'delivery-store-v1',
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 1,
+      partialize: (state) => ({ activeDeliveries: state.activeDeliveries }),
+    }
+  )
+);
