@@ -10,7 +10,12 @@ import { deliveryService } from '@/services/delivery.service';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { useLocationStore } from '@/stores/location.store';
 import { openWithChoice } from '@/utils/maps';
-import type { DeliveryStatus } from '@/types/delivery.types';
+import { haversineMeters } from '@/utils/geo';
+import { IncidentModal } from '@/components/delivery/IncidentModal';
+import { CancelModal } from '@/components/delivery/CancelModal';
+import { PickupModal } from '@/components/delivery/PickupModal';
+import { PodModal } from '@/components/delivery/PodModal';
+import type { ActiveDelivery, DeliveryStatus } from '@/types/delivery.types';
 
 // Geofence radii in metres
 const STORE_GEOFENCE_M = 150;
@@ -45,6 +50,10 @@ export default function DeliveryScreen() {
   const setSelectedDeliveryId = useDeliveryStore((s) => s.setSelectedDeliveryId);
   const coords = useLocationStore((s) => s.coords);
   const [advancing, setAdvancing] = useState(false);
+  const [incidentModalVisible, setIncidentModalVisible] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [pickupModalVisible, setPickupModalVisible] = useState(false);
+  const [podModalVisible, setPodModalVisible] = useState(false);
 
   useEffect(() => {
     if (id) setSelectedDeliveryId(id);
@@ -69,6 +78,16 @@ export default function DeliveryScreen() {
   }
 
   const step = STEPS[delivery.status];
+  const isTerminal =
+    delivery.status === 'Entregado' ||
+    delivery.status === 'Incidente' ||
+    delivery.status === 'Cancelado';
+
+  const onModalSuccess = () => {
+    removeActiveDelivery(delivery.id);
+    router.replace('/(app)/home');
+  };
+
   const targetIsStore = STORE_STATES.includes(delivery.status);
   const target = targetIsStore ? delivery.store : delivery.client;
 
@@ -80,8 +99,33 @@ export default function DeliveryScreen() {
     longitudeDelta: 0.015,
   };
 
+  const warnIfOutsideGeofence = (targetLat: number, targetLng: number, radiusM: number) => {
+    if (!coords) return;
+    const dist = haversineMeters(coords.lat, coords.lng, targetLat, targetLng);
+    if (dist > radiusM) {
+      Toast.show({
+        type: 'info',
+        text1: 'Fuera del área',
+        text2: `Estás a ${Math.round(dist)} m del punto de ${radiusM === STORE_GEOFENCE_M ? 'retiro' : 'entrega'}.`,
+      });
+    }
+  };
+
   const onAdvance = async () => {
     if (!step.enabled || !step.next || advancing) return;
+
+    if (delivery.status === 'EnTienda') {
+      warnIfOutsideGeofence(delivery.store.lat, delivery.store.lng, STORE_GEOFENCE_M);
+      setPickupModalVisible(true);
+      return;
+    }
+
+    if (delivery.status === 'EnDestino') {
+      warnIfOutsideGeofence(delivery.client.lat, delivery.client.lng, CLIENT_GEOFENCE_M);
+      setPodModalVisible(true);
+      return;
+    }
+
     const prev = delivery.status;
     const next = step.next;
     setAdvancing(true);
@@ -99,6 +143,17 @@ export default function DeliveryScreen() {
     } finally {
       setAdvancing(false);
     }
+  };
+
+  const onPickupSuccess = (updated: ActiveDelivery) => {
+    upsertActiveDelivery(updated);
+    setPickupModalVisible(false);
+  };
+
+  const onPodSuccess = () => {
+    removeActiveDelivery(delivery.id);
+    setPodModalVisible(false);
+    router.replace('/(app)/home');
   };
 
   const onOpenMaps = () => {
@@ -205,7 +260,63 @@ export default function DeliveryScreen() {
           disabled={!step.enabled || advancing}
           loading={advancing}
         />
+
+        {!isTerminal && (
+          <View style={styles.secondaryActions}>
+            <Pressable
+              onPress={() => setIncidentModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Reportar incidente"
+              hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            >
+              <Text style={styles.secondaryLink}>Reportar incidente</Text>
+            </Pressable>
+            <Text style={styles.secondaryDot}>·</Text>
+            <Pressable
+              onPress={() => setCancelModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancelar entrega"
+              hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            >
+              <Text style={[styles.secondaryLink, styles.secondaryDanger]}>Cancelar entrega</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
+
+      <IncidentModal
+        visible={incidentModalVisible}
+        deliveryId={delivery.id}
+        onClose={() => setIncidentModalVisible(false)}
+        onSuccess={() => {
+          setIncidentModalVisible(false);
+          onModalSuccess();
+        }}
+      />
+      <CancelModal
+        visible={cancelModalVisible}
+        deliveryId={delivery.id}
+        status={delivery.status}
+        onClose={() => setCancelModalVisible(false)}
+        onSuccess={() => {
+          setCancelModalVisible(false);
+          onModalSuccess();
+        }}
+      />
+
+      <PickupModal
+        visible={pickupModalVisible}
+        deliveryId={delivery.id}
+        onClose={() => setPickupModalVisible(false)}
+        onSuccess={onPickupSuccess}
+      />
+
+      <PodModal
+        visible={podModalVisible}
+        deliveryId={delivery.id}
+        onClose={() => setPodModalVisible(false)}
+        onSuccess={onPodSuccess}
+      />
     </SafeAreaView>
   );
 }
@@ -250,4 +361,27 @@ const styles = StyleSheet.create({
   mapsBtnText: { color: Colors.info, fontSize: 14, fontWeight: '700' },
 
   cta: { padding: Spacing.lg, marginTop: 'auto' },
+
+  secondaryActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  secondaryLink: {
+    color: Colors.text2,
+    fontSize: 13,
+    fontWeight: '500',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  secondaryDanger: {
+    color: Colors.error,
+  },
+  secondaryDot: {
+    color: Colors.text2,
+    fontSize: 14,
+  },
 });

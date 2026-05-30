@@ -1,5 +1,12 @@
 import { api } from './api';
-import type { ActiveDelivery, DeliveryStatus } from '@/types/delivery.types';
+import type {
+  ActiveDelivery,
+  DeliveryStatus,
+  ReportIncidentPayload,
+  CancelDeliveryPayload,
+  PickupPayload,
+  PodPayload,
+} from '@/types/delivery.types';
 
 export const deliveryService = {
   async acceptOffer(deliveryId: string): Promise<ActiveDelivery> {
@@ -19,5 +26,22 @@ export const deliveryService = {
   async getActiveDeliveries(): Promise<ActiveDelivery[]> {
     const { data } = await api.get<ActiveDelivery[]>('/deliveries/active');
     return data;
+  },
+
+  async reportIncident(deliveryId: string, payload: ReportIncidentPayload): Promise<void> {
+    await api.post(`/deliveries/${deliveryId}/incident`, payload);
+  },
+
+  async cancelDelivery(deliveryId: string, payload: CancelDeliveryPayload): Promise<void> {
+    await api.post(`/deliveries/${deliveryId}/cancel`, payload);
+  },
+
+  async pickup(deliveryId: string, payload: PickupPayload): Promise<ActiveDelivery> {
+    const { data } = await api.post<ActiveDelivery>(`/deliveries/${deliveryId}/pickup`, payload);
+    return data;
+  },
+
+  async complete(deliveryId: string, payload: PodPayload): Promise<void> {
+    await api.post(`/deliveries/${deliveryId}/complete`, payload);
   },
 };

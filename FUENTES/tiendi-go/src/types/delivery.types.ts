@@ -34,3 +34,46 @@ export interface ActiveDelivery {
   cashAmount?: number;
   commission: number;
 }
+
+export type IncidentType =
+  | 'ACCIDENT'
+  | 'PACKAGE_DAMAGED'
+  | 'CUSTOMER_NOT_HOME'
+  | 'ADDRESS_NOT_FOUND'
+  | 'SECURITY_RISK'
+  | 'OTHER';
+
+export type CancelReason =
+  | 'RIDER_UNAVAILABLE'
+  | 'VEHICLE_ISSUE'
+  | 'PACKAGE_NOT_READY'
+  | 'CUSTOMER_CANCELLED'
+  | 'OTHER';
+
+export const INCIDENT_TYPES_REQUIRING_PHOTO: readonly IncidentType[] = [
+  'ACCIDENT',
+  'PACKAGE_DAMAGED',
+  'SECURITY_RISK',
+];
+
+export interface ReportIncidentPayload {
+  type: IncidentType;
+  description: string;
+  evidenceUrl?: string;
+}
+
+export interface CancelDeliveryPayload {
+  reason: CancelReason;
+  notes?: string;
+}
+
+export interface PickupPayload {
+  code: string;
+  method: 'qr' | 'manual';
+}
+
+export interface PodPayload {
+  otpCode: string;
+  photoUrl?: string;
+  note?: string;
+}
