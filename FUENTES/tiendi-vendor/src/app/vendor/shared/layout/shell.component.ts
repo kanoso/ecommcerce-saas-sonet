@@ -9,12 +9,15 @@ import { Router, RouterOutlet } from '@angular/router';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { Theme } from '@tiendi/chat';
 import { TopbarComponent } from './topbar.component';
 import { SidebarComponent } from './sidebar.component';
 import { MobileShellComponent } from './mobile-shell.component';
 import { AuthStore } from '../../core/services/auth.store';
 import { StoreConfigStore } from '../../features/store-config/store-config.store';
 import { NotificationsStore } from '../../features/notifications/notifications.store';
+import { VendorChatAdapter } from '../../features/chat';
+import { ChatWidgetComponent } from '../../features/chat/chat-widget.component';
 
 const ROLE_LABELS: Record<string, string> = {
   STORE_OWNER: 'Dueño',
@@ -27,13 +30,15 @@ const ROLE_LABELS: Record<string, string> = {
   selector: 'td-shell',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, TopbarComponent, SidebarComponent, MobileShellComponent],
+  imports: [RouterOutlet, TopbarComponent, SidebarComponent, MobileShellComponent, ChatWidgetComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
 export class ShellComponent implements OnInit {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly authStore = inject(AuthStore);
+  protected readonly chatAdapter = inject(VendorChatAdapter);
+  protected readonly Theme = Theme;
   private readonly storeConfigStore = inject(StoreConfigStore);
   private readonly notificationsStore = inject(NotificationsStore);
   private readonly router = inject(Router);
@@ -49,6 +54,7 @@ export class ShellComponent implements OnInit {
   isMobile = toSignal(this.isMobile$, { initialValue: false });
   isTablet = toSignal(this.isTablet$, { initialValue: false });
 
+  protected readonly currentUserId = computed(() => this.authStore.currentUser()?.id ?? null);
   userRole = computed(() => this.authStore.currentUser()?.role ?? 'CASHIER');
   storeName = computed(() => this.storeConfigStore.info().name || 'Mi Tienda');
   userName = computed(() => this.authStore.currentUser()?.name ?? '');
