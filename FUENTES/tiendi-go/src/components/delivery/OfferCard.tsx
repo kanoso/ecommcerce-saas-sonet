@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -75,7 +76,7 @@ export function OfferCard() {
       router.push(`/delivery/${delivery.id}` as never);
     } catch {
       setActing('idle');
-      Alert.alert('Error', 'No se pudo aceptar el pedido. Intentá de nuevo.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo aceptar el pedido. Intentá de nuevo.' });
     }
   };
 

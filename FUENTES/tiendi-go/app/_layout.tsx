@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { router, Slot } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import { Colors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -35,6 +36,7 @@ export default function RootLayout() {
           <Slot />
         )}
       </SafeAreaProvider>
+      <Toast />
     </GestureHandlerRootView>
   );
 }

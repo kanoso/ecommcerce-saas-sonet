@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -40,7 +41,7 @@ export default function HomeScreen() {
       await ridersService.setOperationalStatus(next);
       setRider({ ...rider, operationalStatus: next });
     } catch {
-      Alert.alert('Error', 'No se pudo cambiar el estado. Intentá de nuevo.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo cambiar el estado. Intentá de nuevo.' });
     } finally {
       setToggling(false);
     }

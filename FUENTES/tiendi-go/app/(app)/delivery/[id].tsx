@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -74,7 +75,7 @@ export default function DeliveryScreen() {
       }
     } catch {
       upsertActiveDelivery({ ...delivery, status: prev }); // rollback
-      Alert.alert('Error', 'No se pudo actualizar el estado. Intentá de nuevo.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo actualizar el estado. Intentá de nuevo.' });
     } finally {
       setAdvancing(false);
     }

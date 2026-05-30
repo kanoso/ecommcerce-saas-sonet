@@ -1,10 +1,13 @@
+import '@/tasks/location.task'; // registers TaskManager.defineTask before router mounts (FR-1, TS-1.1)
 import { Tabs } from 'expo-router';
 import { useDeliverySocket } from '@/hooks/useDeliverySocket';
 import { useLocationTracker } from '@/hooks/useLocationTracker';
+import { useNotificationSetup } from '@/hooks/useNotificationSetup';
 
 export default function AppLayout() {
   useDeliverySocket();
   useLocationTracker();
+  useNotificationSetup();
 
   return (
     <Tabs

@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tiendi.go",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
+        "UIBackgroundModes": ["location"],
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Tiendi Go necesita tu ubicación para asignarte pedidos y mostrar tu posición a la tienda y al cliente durante la entrega.",
         "NSLocationAlwaysUsageDescription": "Tiendi Go rastrea tu ubicación en segundo plano mientras estés Online para que puedas recibir pedidos.",
         "NSLocationWhenInUseUsageDescription": "Tiendi Go usa tu ubicación para mostrarte pedidos cercanos.",
@@ -21,6 +23,7 @@
     },
     "android": {
       "package": "com.tiendi.go",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#F97316",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -72,7 +75,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#F97316",
           "defaultChannel": "default",
-          "sounds": ["./assets/sounds/offer.wav"]
+          "sounds": ["./assets/sounds/offer.wav"],
+          "enableBackgroundRemoteNotifications": true
         }
       ],
       [

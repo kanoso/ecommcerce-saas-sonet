@@ -3,10 +3,19 @@ import * as Location from 'expo-location';
 import { useAuthStore } from '@/stores/auth.store';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { useLocationStore } from '@/stores/location.store';
-import { getSocket } from '@/services/socket';
+import { LOCATION_TRACKING_TASK, emitSample } from '@/tasks/location.task';
 
-const EMIT_INTERVAL_MS = 10_000;
-
+/**
+ * Controller hook: manages location permissions, starts/stops the OS
+ * background task, and provides a foreground-only fallback when background
+ * permission is denied.
+ *
+ * All throttling + emission logic lives in `emitSample` (location.task.ts).
+ * This hook contains ONLY lifecycle coordination — no business logic.
+ *
+ * Gate (ADR-6): tracking starts only when the rider is ONLINE and has at
+ * least one active delivery. Stops immediately when either condition flips.
+ */
 export function useLocationTracker(): void {
   const operationalStatus = useAuthStore((s) => s.rider?.operationalStatus ?? 'OFFLINE');
   const activeCount = useDeliveryStore((s) => s.activeDeliveries.length);
@@ -14,53 +23,77 @@ export function useLocationTracker(): void {
 
   useEffect(() => {
     if (!shouldTrack) {
+      // Stop background task and mark inactive when gate flips off
+      Location.stopLocationUpdatesAsync(LOCATION_TRACKING_TASK).catch(() => {});
+      useLocationStore.getState().setBackgroundTaskActive(false);
       useLocationStore.getState().setTracking(false);
       return;
     }
 
     let cancelled = false;
-    let subscription: Location.LocationSubscription | null = null;
-    let lastEmittedAt = 0;
+    let foregroundSub: Location.LocationSubscription | null = null;
 
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted' || cancelled) return;
+      // Step 1 — Foreground permission (required first — platform requirement)
+      const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+      if (fgStatus !== 'granted' || cancelled) {
+        // TS-2.3: foreground denied → no tracking at all
+        return;
+      }
 
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5_000,
-          distanceInterval: 10,
-        },
-        async (loc) => {
-          const coords = {
-            lat: loc.coords.latitude,
-            lng: loc.coords.longitude,
-            heading: loc.coords.heading ?? null,
-            speed: loc.coords.speed ?? null,
-            accuracy: loc.coords.accuracy ?? null,
-          };
-          useLocationStore.getState().setCoords(coords);
+      // Step 2 — Background permission
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
 
-          const now = Date.now();
-          if (now - lastEmittedAt >= EMIT_INTERVAL_MS) {
-            lastEmittedAt = now;
-            const socket = await getSocket();
-            if (socket.connected) {
-              socket.emit('location:update', { lat: coords.lat, lng: coords.lng, heading: coords.heading });
-            }
+      if (bgStatus === 'granted') {
+        // TS-2.1: both granted → OS-managed background task
+        const alreadyRunning = await Location.hasStartedLocationUpdatesAsync(LOCATION_TRACKING_TASK);
+        if (!alreadyRunning && !cancelled) {
+          // TS-3.3: idempotent start — only call if not already running
+          await Location.startLocationUpdatesAsync(LOCATION_TRACKING_TASK, {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 3000,
+            distanceInterval: 0,
+            showsBackgroundLocationIndicator: true,
+            pausesUpdatesAutomatically: false,
+            foregroundService: {
+              notificationTitle: 'Tiendi Go',
+              notificationBody: 'Seguimiento de entrega activo',
+              notificationColor: '#F97316',
+            },
+          });
+          if (!cancelled) {
+            useLocationStore.getState().setBackgroundTaskActive(true);
+            useLocationStore.getState().setTracking(true);
           }
         }
-      );
-
-      if (!cancelled) {
-        useLocationStore.getState().setTracking(true);
+      } else {
+        // TS-2.2: background denied → foreground watchPositionAsync fallback (ADR-5)
+        if (!cancelled) {
+          foregroundSub = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.High,
+              timeInterval: 3000,
+              distanceInterval: 0,
+            },
+            (loc) => {
+              // Reuse emitSample — identical throttle + payload as background path (TS-8.1)
+              emitSample(loc);
+            },
+          );
+          if (!cancelled) {
+            useLocationStore.getState().setTracking(true);
+          }
+        }
       }
     })();
 
     return () => {
       cancelled = true;
-      subscription?.remove();
+      // Stop foreground subscription if active
+      foregroundSub?.remove();
+      // Stop OS background task (no-op if not running)
+      Location.stopLocationUpdatesAsync(LOCATION_TRACKING_TASK).catch(() => {});
+      useLocationStore.getState().setBackgroundTaskActive(false);
       useLocationStore.getState().setTracking(false);
     };
   }, [shouldTrack]);

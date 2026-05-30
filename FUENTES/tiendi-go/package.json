@@ -17,6 +17,7 @@
     "expo-router": "~56.2.6",
     "expo-secure-store": "~56.0.4",
     "expo-status-bar": "~56.0.4",
+    "expo-task-manager": "~56.0.16",
     "react": "19.2.3",
     "react-hook-form": "^7.76.1",
     "react-native": "0.85.3",
@@ -26,6 +27,7 @@
     "react-native-reanimated": "^4.3.1",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.25.2",
+    "react-native-toast-message": "^2.3.3",
     "socket.io-client": "^4.8.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.13"

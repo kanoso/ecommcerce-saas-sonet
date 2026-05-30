@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '@/services/api';
 import { disconnectSocket } from '@/services/socket';
+import { ridersService } from '@/services/riders.service';
 import type { Rider } from '@/types/rider.types';
 
 interface AuthState {
@@ -39,6 +40,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    // Fire-and-forget: clear FCM token server-side so pushes stop after logout (FR-5, TS-5.1, TS-5.2).
+    ridersService.updateFcmToken(null).catch(() => undefined);
     disconnectSocket();
     set({ rider: null, accessToken: null, isAuthenticated: false });
   },

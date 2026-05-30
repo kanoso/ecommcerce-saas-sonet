@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Firebase credentials — source from Firebase console; add via EAS secret or local dev only
+google-services.json
+GoogleService-Info.plist

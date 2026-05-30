@@ -40,4 +40,14 @@ export const ridersService = {
     const { data } = await api.get<Vehicle[]>('/riders/me/vehicles');
     return data;
   },
+
+  /**
+   * Registers or clears the FCM/APN push token for the current rider.
+   * Pass null on logout to prevent the server from sending pushes to a
+   * signed-out device. The call is idempotent — safe to repeat on every
+   * authenticated launch.
+   */
+  async updateFcmToken(token: string | null): Promise<void> {
+    await api.patch('/riders/me/fcm-token', { token });
+  },
 };
