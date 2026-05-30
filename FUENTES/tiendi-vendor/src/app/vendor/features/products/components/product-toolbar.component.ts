@@ -4,7 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { ProductFilters } from '../products.store';
+import { Category, ProductFilters } from '../products.store';
 
 @Component({
   selector: 'td-product-toolbar',
@@ -16,6 +16,7 @@ import { ProductFilters } from '../products.store';
 export class ProductToolbarComponent {
   filters = input.required<ProductFilters>();
   viewMode = input.required<string>();
+  categories = input<Category[]>([]);
 
   filtersChange = output<Partial<ProductFilters>>();
   viewModeChange = output<string>();

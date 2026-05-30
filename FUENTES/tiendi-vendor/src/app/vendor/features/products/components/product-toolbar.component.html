@@ -18,12 +18,9 @@
     aria-label="Filtrar por categoría"
   >
     <option value="">Todas las categorías</option>
-    <option value="cat1">Abarrotes</option>
-    <option value="cat2">Lácteos</option>
-    <option value="cat3">Bebidas</option>
-    <option value="cat4">Snacks</option>
-    <option value="cat5">Limpieza</option>
-    <option value="cat6">Panadería</option>
+    @for (cat of categories(); track cat.id) {
+      <option [value]="cat.id">{{ cat.name }}</option>
+    }
   </select>
 
   <select
@@ -63,10 +60,6 @@
     <button class="toolbar__btn toolbar__btn--secondary" (click)="importCsv.emit()" type="button">
       <span class="material-icons-outlined">upload_file</span>
       Importar CSV
-    </button>
-    <button class="toolbar__btn toolbar__btn--primary" (click)="newProduct.emit()" type="button">
-      <span class="material-icons-outlined">add</span>
-      Nuevo producto
     </button>
   </div>
 </div>

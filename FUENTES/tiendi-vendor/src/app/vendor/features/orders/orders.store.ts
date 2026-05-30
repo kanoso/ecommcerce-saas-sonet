@@ -148,7 +148,8 @@ export const OrdersStore = signalStore(
       }
 
       if (filters.paymentMethod) {
-        result = result.filter((o) => o.paymentMethod === filters.paymentMethod);
+        const pm = filters.paymentMethod.toUpperCase();
+        result = result.filter((o) => o.paymentMethod.toUpperCase() === pm);
       }
 
       if (filters.deliveryType) {

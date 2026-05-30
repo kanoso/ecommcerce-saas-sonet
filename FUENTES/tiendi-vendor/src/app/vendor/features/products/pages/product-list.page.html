@@ -54,6 +54,7 @@
       <td-product-toolbar
         [filters]="store.filters()"
         [viewMode]="viewMode()"
+        [categories]="store.categories()"
         (filtersChange)="store.setFilters($event)"
         (viewModeChange)="onViewModeChange($event)"
         (newProduct)="goNew()"

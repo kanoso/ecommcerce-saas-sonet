@@ -4,13 +4,12 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { Order } from '../orders.store';
 
 @Component({
   selector: 'td-order-items-list',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-items-list.component.html',
   styleUrl: './order-items-list.component.scss',
