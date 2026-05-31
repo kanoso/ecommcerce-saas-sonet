@@ -50,4 +50,28 @@ export const ridersService = {
   async updateFcmToken(token: string | null): Promise<void> {
     await api.patch('/riders/me/fcm-token', { token });
   },
+
+  async updatePreferences(data: NonNullable<Rider['preferences']>): Promise<void> {
+    await api.patch('/riders/me/preferences', data);
+  },
+
+  async updateSchedule(data: NonNullable<Rider['schedule']>): Promise<void> {
+    await api.patch('/riders/me/schedule', data);
+  },
+
+  async updateNotificationPreferences(data: NonNullable<Rider['notificationPreferences']>): Promise<void> {
+    await api.patch('/riders/me/notifications', data);
+  },
+
+  async logoutAllDevices(): Promise<void> {
+    await api.post('/auth/logout-all', {});
+  },
+
+  async requestDataExport(): Promise<void> {
+    await api.post('/riders/me/data-export', {});
+  },
+
+  async deleteAccount(): Promise<void> {
+    await api.delete('/riders/me');
+  },
 };

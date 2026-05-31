@@ -52,4 +52,17 @@ export interface Rider {
   };
   documentType?: string;
   documentNumber?: string;
+  preferences?: {
+    acceptCashOrders: boolean;
+    acceptDigitalOrders: boolean;
+    maxRadiusKm: number;
+    acceptMultiOrder: boolean;
+  } | null;
+  schedule?: Record<string, { start: string; end: string } | null> | null;
+  notificationPreferences?: {
+    newOffers: boolean;
+    deliveryUpdates: boolean;
+    earnings: boolean;
+    promotions: boolean;
+  } | null;
 }
