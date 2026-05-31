@@ -8,7 +8,7 @@
 //   - getDevicePushTokenAsync() returns { type: 'fcm'|'apn', data: string }
 
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -16,20 +16,31 @@ import { useAuthStore } from '@/stores/auth.store';
 import { ridersService } from '@/services/riders.service';
 import type { NotificationPayloadData } from '@/types/notification.types';
 
-// Foreground handler: suppress the OS banner so we can show our own in-app Toast.
-// shouldShowBanner and shouldShowList are the v56 keys (legacy shouldShowAlert removed).
+// Android notification channel IDs — must match the channelId the backend sends in FCM payload.
+export const CHANNEL_OFFERS = 'offers';
+export const CHANNEL_DEFAULT = 'default';
+
+// Three short bursts — attention-grabbing but not annoying.
+const OFFER_VIBRATION_MS = [0, 350, 100, 350, 100, 350];
+
+// Foreground handler: category-aware.
+//   delivery-offer → play sound (offer.wav defined in the channel) + suppress OS banner
+//   everything else → no sound, no banner; we show Toast instead
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: false,
-    shouldShowList: false,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as Partial<NotificationPayloadData> | undefined;
+    const isOffer = data?.type === 'delivery-offer';
+    return {
+      shouldShowBanner: false,
+      shouldShowList: false,
+      shouldPlaySound: isOffer,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 /**
  * Maps a notification type to a react-native-toast-message type.
- * Default is 'info'.
  */
 function toastTypeFor(type?: string): 'success' | 'info' | 'error' {
   if (type === 'delivery-incident') return 'error';
@@ -54,13 +65,14 @@ function navigateFromData(data: unknown): void {
  *
  * Lifecycle:
  *   1. Request permission
- *   2. Fetch raw FCM/APN token (getDevicePushTokenAsync — NOT getExpoPushTokenAsync)
- *   3. Register token with backend (fire-and-forget, idempotent)
- *   4. Subscribe to token rotation (addPushTokenListener)
- *   5. Handle cold-start tap (getLastNotificationResponse — synchronous, v56)
- *   6. Subscribe foreground received → Toast
- *   7. Subscribe background/quit tap → router.push
- *   8. Cleanup on unmount
+ *   2. Set up Android notification channels (offers / default)
+ *   3. Fetch raw FCM/APN token (getDevicePushTokenAsync — NOT getExpoPushTokenAsync)
+ *   4. Register token with backend (fire-and-forget, idempotent)
+ *   5. Subscribe to token rotation (addPushTokenListener)
+ *   6. Handle cold-start tap (getLastNotificationResponse — synchronous, v56)
+ *   7. Subscribe foreground received → vibrate (offers) + Toast
+ *   8. Subscribe background/quit tap → router.push
+ *   9. Cleanup on unmount
  */
 export function useNotificationSetup(): void {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -70,18 +82,19 @@ export function useNotificationSetup(): void {
 
     let cancelled = false;
 
-    // Subscriptions declared outside the IIFE so cleanup can always reach them.
     let receivedSub: Notifications.EventSubscription | null = null;
     let responseSub: Notifications.EventSubscription | null = null;
     let tokenSub: Notifications.EventSubscription | null = null;
 
-    // Steps 6–7 are attached synchronously (outside the async IIFE) so they
-    // are always active even if the async portion fails.
-
-    // Step 6: Foreground notification → Toast only, never navigate (FR-3).
+    // Step 7: Foreground notification — vibrate for offers, always show Toast.
     receivedSub = Notifications.addNotificationReceivedListener((notification) => {
       const content = notification.request.content;
       const data = content.data as Partial<NotificationPayloadData> | undefined;
+
+      if (data?.type === 'delivery-offer') {
+        Vibration.vibrate(OFFER_VIBRATION_MS);
+      }
+
       Toast.show({
         type: toastTypeFor(data?.type),
         text1: content.title ?? 'Tiendi Go',
@@ -89,7 +102,7 @@ export function useNotificationSetup(): void {
       });
     });
 
-    // Step 7: Background / quit tap → navigate (FR-4).
+    // Step 8: Background / quit tap → navigate.
     responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
       navigateFromData(response.notification.request.content.data);
     });
@@ -106,40 +119,48 @@ export function useNotificationSetup(): void {
         granted = status === 'granted';
       }
 
-      // TS-1.1: denied → bail, no token fetch, no crash.
       if (!granted || cancelled) return;
 
-      // Android 13+: channel must exist before getDevicePushTokenAsync is called.
+      // Step 2: Android notification channels.
+      // The backend must send channelId: 'offers' for delivery-offer pushes.
+      // All other pushes default to 'default'.
       if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.HIGH,
+        await Notifications.setNotificationChannelAsync(CHANNEL_OFFERS, {
+          name: 'Nuevas ofertas',
+          importance: Notifications.AndroidImportance.MAX,
           sound: 'offer.wav',
+          vibrationPattern: OFFER_VIBRATION_MS,
+          enableVibrate: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          bypassDnd: true,
+        });
+        await Notifications.setNotificationChannelAsync(CHANNEL_DEFAULT, {
+          name: 'Actualizaciones',
+          importance: Notifications.AndroidImportance.DEFAULT,
         });
       }
 
       if (cancelled) return;
 
-      // Step 2: Raw FCM/APN token — never Expo push token (ADR-1, FR-2).
+      // Step 3: Raw FCM/APN token.
       const deviceToken = await Notifications.getDevicePushTokenAsync();
       if (cancelled || !deviceToken?.data) return;
 
-      // Step 3: Register with backend — idempotent, fire-and-forget (TS-2.1, TS-2.2, TS-2.3).
+      // Step 4: Register with backend — idempotent, fire-and-forget.
       try {
         await ridersService.updateFcmToken(deviceToken.data);
       } catch {
-        // Silent fail: next authenticated launch will retry. No user-visible error.
+        // Silent fail: next authenticated launch will retry.
       }
 
       if (cancelled) return;
 
-      // Step 4: Token rotation listener.
+      // Step 5: Token rotation listener.
       tokenSub = Notifications.addPushTokenListener((next) => {
         ridersService.updateFcmToken(next.data).catch(() => undefined);
       });
 
-      // Step 5: Cold-start tap (ADR-5).
-      // getLastNotificationResponseAsync is deprecated in v56 — use synchronous getter.
+      // Step 6: Cold-start tap.
       const lastResponse = Notifications.getLastNotificationResponse();
       if (lastResponse?.notification?.request?.content?.data) {
         navigateFromData(lastResponse.notification.request.content.data);
