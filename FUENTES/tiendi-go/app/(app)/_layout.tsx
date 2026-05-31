@@ -30,6 +30,8 @@ export default function AppLayout() {
       <Tabs.Screen name="settings-schedule" options={{ href: null }} />
       <Tabs.Screen name="settings-notifications" options={{ href: null }} />
       <Tabs.Screen name="settings-account" options={{ href: null }} />
+      <Tabs.Screen name="vehicle-change-request" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -15,6 +15,7 @@ import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@/stores/auth.store';
 import { ridersService } from '@/services/riders.service';
 import type { NotificationPayloadData } from '@/types/notification.types';
+import { addInboxNotification } from '@/stores/notification-inbox.store';
 
 // Android notification channel IDs — must match the channelId the backend sends in FCM payload.
 export const CHANNEL_OFFERS = 'offers';
@@ -99,6 +100,13 @@ export function useNotificationSetup(): void {
         type: toastTypeFor(data?.type),
         text1: content.title ?? 'Tiendi Go',
         text2: content.body ?? undefined,
+      });
+
+      addInboxNotification({
+        type: data?.type ?? 'generic',
+        title: content.title ?? 'Tiendi Go',
+        body: content.body ?? '',
+        route: data?.route,
       });
     });
 

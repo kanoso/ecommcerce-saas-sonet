@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View, Pressable } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLocationStore } from '@/stores/location.store';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { ridersService } from '@/services/riders.service';
 import { OfferCard } from '@/components/delivery/OfferCard';
+import { getUnreadCount } from '@/stores/notification-inbox.store';
 
 const WEAK_SIGNAL_THRESHOLD_M = 50;
 
@@ -18,6 +20,14 @@ export default function HomeScreen() {
   const coords = useLocationStore((s) => s.coords);
   const offer = useDeliveryStore((s) => s.offer);
   const [toggling, setToggling] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(() => getUnreadCount());
+
+  // Re-check unread count each time the home screen gains focus.
+  useFocusEffect(
+    useCallback(() => {
+      setUnreadCount(getUnreadCount());
+    }, []),
+  );
 
   // Animate heading rotation for the rider marker
   const headingAnim = useRef(new Animated.Value(0)).current;
@@ -98,6 +108,22 @@ export default function HomeScreen() {
       </Pressable>
 
       {offer ? <OfferCard /> : null}
+
+      {/* Bell button — absolute, above the map, top-left of the toggle area */}
+      <Pressable
+        style={styles.bellBtn}
+        onPress={() => router.push('/(app)/notifications')}
+        accessibilityRole="button"
+        accessibilityLabel={
+          unreadCount > 0
+            ? `Notificaciones, ${unreadCount} sin leer`
+            : 'Notificaciones'
+        }
+        hitSlop={8}
+      >
+        <Text style={styles.bellIcon}>🔔</Text>
+        {unreadCount > 0 ? <View style={styles.bellBadge} /> : null}
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -142,6 +168,31 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: Colors.info,
+  },
+
+  bellBtn: {
+    position: 'absolute',
+    top: Spacing.md + 40,
+    left: Spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+  },
+  bellIcon: { fontSize: 22 },
+  bellBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: Colors.bg,
   },
 
   toggle: {
