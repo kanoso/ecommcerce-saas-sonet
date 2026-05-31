@@ -25,6 +25,7 @@ export default function AppLayout() {
       <Tabs.Screen name="profile-edit" options={{ href: null }} />
       <Tabs.Screen name="vehicles" options={{ href: null }} />
       <Tabs.Screen name="delivery" options={{ href: null }} />
+      <Tabs.Screen name="support" options={{ href: null }} />
     </Tabs>
   );
 }
