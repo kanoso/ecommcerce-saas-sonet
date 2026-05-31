@@ -243,7 +243,7 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [ ] Pantalla de solicitud de permisos GPS con explicación clara (antes del onboarding)
 - [x] Indicador "Señal débil" cuando GPS error > 50m — banner ámbar en `home.tsx` cuando `accuracy > 50`
 - [x] Deep links de navegación: Google Maps, Waze, Apple Maps con fallback a browser — `src/utils/maps.ts`: ActionSheetIOS en iOS, Alert en Android; fallback a Google Maps si Waze no está instalado
-- [ ] Cola offline: si no hay conexión, los eventos GPS se encolan en MMKV y se sincronizan al reconectar
+- [x] Cola offline: si no hay conexión, los eventos GPS se encolan en MMKV y se sincronizan al reconectar — _`src/stores/gps-queue.store.ts` (FIFO, cap 500, MMKV `tiendigo-gps-queue`); flush en reconexión (NetInfo) y foreground (AppState); `@react-native-community/netinfo` requiere EAS rebuild_
 
 ---
 
@@ -285,14 +285,14 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 #### Mobile
 - [ ] Pantalla de zonas de cobertura con `MapView` interactivo (dibujar radio o polígono)
 - [ ] Selector de zona activa (si tiene más de una)
-- [ ] Preferencias de pedidos: método de pago, radio, tipo de vehículo, multi-pedido
-- [ ] Horarios de trabajo por día con franjas horarias
-- [ ] Preferencias de notificaciones con toggle por tipo
-- [ ] Selector de tema (claro / oscuro / sistema)
-- [ ] Privacidad: compartir ubicación entre pedidos (toggle)
-- [ ] Descargar mis datos (GDPR)
-- [ ] Eliminar cuenta (confirmación en 2 pasos con anonimización)
-- [ ] Cerrar sesión en todos los dispositivos
+- [x] Preferencias de pedidos: método de pago, radio, multi-pedido — `settings-preferences.tsx`
+- [x] Horarios de trabajo por día con franjas horarias — `settings-schedule.tsx` (HH:MM + validación regex)
+- [x] Preferencias de notificaciones con toggle por tipo — `settings-notifications.tsx` (auto-save debounce 800ms)
+- [x] Selector de tema (claro / oscuro / sistema) — `settings-account.tsx` (MMKV `theme_preference`; Claro = próximamente)
+- [x] Privacidad: compartir ubicación entre pedidos (toggle) — `settings-account.tsx` (MMKV `privacy_share_location`)
+- [x] Descargar mis datos (GDPR) — `settings-account.tsx` (`requestDataExport()` → email)
+- [x] Eliminar cuenta (confirmación en 2 pasos con anonimización) — `settings-account.tsx`
+- [x] Cerrar sesión en todos los dispositivos — `settings.tsx` (Alert confirm + `logoutAllDevices()`)
 
 ---
 
