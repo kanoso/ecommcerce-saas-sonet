@@ -164,8 +164,8 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [x] Edición de campos libres (avatarUrl URL, coverageZone)
 - [x] Solicitud de cambios con re-validación (nombre, teléfono, email → pendiente admin)
 - [x] Pantalla de vehículos con tipo, placa, estado activo
-- [ ] Estado "En Pausa" con countdown visible y botón de reanudar (requiere Cron backend)
-- [ ] Solicitud de cambio de vehículo con upload de documentos
+- [x] Estado "En Pausa" con countdown visible y botón de reanudar — `profile.tsx` + `pauseStartedAt` + 4h expiry
+- [x] Solicitud de cambio de vehículo con upload de documentos — `vehicle-change-request.tsx` (CameraView + Cloudinary)
 - [ ] Métricas completas: pedidos del mes (Módulo 8), nivel de puntuación (Módulo 13)
 
 ---
