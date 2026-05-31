@@ -1,12 +1,31 @@
 import { useState } from 'react';
-import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radius, Spacing } from '@/constants/theme';
 
-type PermissionState = 'idle' | 'requesting' | 'denied';
+type PermissionState = 'idle' | 'requesting' | 'foreground-only' | 'denied';
+
+const FEATURES = [
+  { icon: '📦', text: 'Recibir pedidos cercanos a tu posición actual' },
+  { icon: '🗺️', text: 'Navegar hacia la tienda y el cliente en tiempo real' },
+  { icon: '⚡', text: 'Mantener el tracking activo mientras hacés entregas' },
+];
+
+const STEPS = [
+  {
+    number: '1',
+    title: 'Ubicación mientras usás la app',
+    description: 'Necesaria para ver el mapa y recibir pedidos.',
+  },
+  {
+    number: '2',
+    title: 'Ubicación en segundo plano',
+    description: 'Necesaria para el tracking activo durante entregas.',
+  },
+];
 
 export default function GpsPermissionScreen() {
   const router = useRouter();
@@ -23,7 +42,8 @@ export default function GpsPermissionScreen() {
 
     const background = await Location.requestBackgroundPermissionsAsync();
     if (background.status !== 'granted') {
-      setPermissionState('denied');
+      // Background denied — app still works in foreground-only mode (ADR-5)
+      setPermissionState('foreground-only');
       return;
     }
 
@@ -36,92 +56,218 @@ export default function GpsPermissionScreen() {
     });
   };
 
+  const handleContinueForegroundOnly = () => {
+    router.replace('/(onboarding)/bank-account');
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
           <Text style={styles.emoji}>📍</Text>
-          <Text style={styles.title}>Necesitamos tu ubicación</Text>
-          <Text style={styles.body}>
-            Para recibir pedidos cercanos, necesitamos acceso a tu ubicación en todo momento. Sin este permiso no podés
-            usar la app.
+          <Text style={styles.title}>Habilitá tu ubicación</Text>
+          <Text style={styles.subtitle}>
+            Para que podás trabajar, necesitamos acceso a tu ubicación. El sistema usará tu posición
+            solamente durante las entregas activas.
           </Text>
+        </View>
 
-          {permissionState === 'denied' && (
-            <View style={styles.errorCard}>
-              <Text style={styles.errorText}>
-                Permiso denegado. Por favor habilitá la ubicación en la configuración de tu teléfono.
-              </Text>
+        {/* Why we need it */}
+        <View style={styles.featuresCard}>
+          <Text style={styles.cardTitle}>¿Para qué la usamos?</Text>
+          {FEATURES.map((f, i) => (
+            <View key={i} style={styles.featureRow}>
+              <Text style={styles.featureIcon}>{f.icon}</Text>
+              <Text style={styles.featureText}>{f.text}</Text>
             </View>
-          )}
+          ))}
         </View>
 
-        <View style={styles.footer}>
-          {permissionState === 'denied' ? (
-            <Button label="Abrir configuración" onPress={handleOpenSettings} />
-          ) : (
-            <Button
-              label="Conceder permiso"
-              onPress={handleRequestPermission}
-              loading={permissionState === 'requesting'}
-            />
-          )}
+        {/* Two-step process */}
+        <View style={styles.stepsCard}>
+          <Text style={styles.cardTitle}>El sistema va a pedir dos permisos</Text>
+          {STEPS.map((s, i) => (
+            <View key={i} style={[styles.stepRow, i < STEPS.length - 1 && styles.stepRowBorder]}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNumber}>{s.number}</Text>
+              </View>
+              <View style={styles.stepText}>
+                <Text style={styles.stepTitle}>{s.title}</Text>
+                <Text style={styles.stepDesc}>{s.description}</Text>
+              </View>
+            </View>
+          ))}
         </View>
+
+        {/* Foreground-only warning */}
+        {permissionState === 'foreground-only' && (
+          <View style={styles.warningCard}>
+            <Text style={styles.warningTitle}>⚠️ Permiso parcial</Text>
+            <Text style={styles.warningBody}>
+              Solo concediste ubicación mientras usás la app. El tracking en segundo plano no
+              estará disponible — podés habilitarlo más tarde desde Configuración del teléfono.
+            </Text>
+          </View>
+        )}
+
+        {/* Foreground denied — hard block */}
+        {permissionState === 'denied' && (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorTitle}>❌ Permiso denegado</Text>
+            <Text style={styles.errorBody}>
+              Sin acceso a la ubicación no podés recibir pedidos. Habilitá el permiso en
+              Configuración → Tiendi Go → Ubicación.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Footer CTA */}
+      <View style={styles.footer}>
+        {permissionState === 'idle' || permissionState === 'requesting' ? (
+          <Button
+            label="Habilitar ubicación"
+            onPress={handleRequestPermission}
+            loading={permissionState === 'requesting'}
+          />
+        ) : permissionState === 'foreground-only' ? (
+          <>
+            <Button label="Continuar así" onPress={handleContinueForegroundOnly} />
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenSettings}>
+              <Text style={styles.secondaryBtnText}>Habilitar en Configuración</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          // denied
+          <Button label="Abrir Configuración" onPress={handleOpenSettings} />
+        )}
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  container: {
-    flex: 1,
+  safe: { flex: 1, backgroundColor: Colors.bg },
+
+  scroll: { flex: 1 },
+  scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xxl,
-    paddingBottom: Spacing.xl,
-    justifyContent: 'space-between',
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    gap: Spacing.lg,
   },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 80,
-    marginBottom: Spacing.xl,
-  },
+
+  header: { alignItems: 'center', gap: Spacing.md },
+  emoji: { fontSize: 72 },
   title: {
     fontSize: 28,
     fontWeight: '800',
     color: Colors.text,
     textAlign: 'center',
-    marginBottom: Spacing.xl,
     letterSpacing: -0.5,
   },
-  body: {
-    fontSize: 16,
+  subtitle: {
+    fontSize: 15,
     color: Colors.text2,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: Spacing.lg,
+    lineHeight: 22,
   },
-  errorCard: {
+
+  featuresCard: {
     backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: Spacing.lg,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.text2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+  },
+  featureIcon: { fontSize: 20, width: 28, textAlign: 'center' },
+  featureText: { flex: 1, fontSize: 14, color: Colors.text, lineHeight: 20 },
+
+  stepsCard: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  stepRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  stepBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  stepNumber: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  stepText: { flex: 1, gap: 2 },
+  stepTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  stepDesc: { fontSize: 13, color: Colors.text2, lineHeight: 18 },
+
+  warningCard: {
+    backgroundColor: '#451A03',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+    gap: Spacing.xs,
+  },
+  warningTitle: { fontSize: 14, fontWeight: '700', color: '#FCD34D' },
+  warningBody: { fontSize: 13, color: '#FDE68A', lineHeight: 20 },
+
+  errorCard: {
+    backgroundColor: '#1F0A0A',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
     borderLeftWidth: 3,
     borderLeftColor: Colors.error,
-    width: '100%',
+    gap: Spacing.xs,
   },
-  errorText: {
-    fontSize: 14,
-    color: Colors.error,
-    lineHeight: 20,
-  },
+  errorTitle: { fontSize: 14, fontWeight: '700', color: Colors.error },
+  errorBody: { fontSize: 13, color: '#FCA5A5', lineHeight: 20 },
+
   footer: {
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+
+  secondaryBtn: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 });

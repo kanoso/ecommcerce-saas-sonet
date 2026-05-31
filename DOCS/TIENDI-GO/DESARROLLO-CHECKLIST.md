@@ -166,7 +166,7 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [x] Pantalla de vehículos con tipo, placa, estado activo
 - [x] Estado "En Pausa" con countdown visible y botón de reanudar — `profile.tsx` + `pauseStartedAt` + 4h expiry
 - [x] Solicitud de cambio de vehículo con upload de documentos — `vehicle-change-request.tsx` (CameraView + Cloudinary)
-- [ ] Métricas completas: pedidos del mes (Módulo 8), nivel de puntuación (Módulo 13)
+- [x] Métricas completas: totalEarned (COP), ratingCount y nivel (Oro/Plata/Bronce via `computeLevel`) implementados — _pedidos del mes deferred a Módulo 8 (requiere `GET /riders/me/deliveries`)_
 
 ---
 
@@ -240,7 +240,7 @@ Decisiones de producto que deben estar resueltas **antes de escribir una sola l�
 - [x] Círculos de geofence visuales (150m tienda, 200m cliente) — `Circle` con fill/stroke translúcidos en naranja (tienda) y azul (cliente)
 - [x] Tracking GPS en background con `expo-location` (permiso `Always`) — `expo-task-manager` + `Location.startLocationUpdatesAsync` con foreground service en Android; fallback a `watchPositionAsync` si se deniega permiso background; permiso solicitado en dos pasos (foreground → background)
 - [x] Throttling adaptativo: sin pedido 30s / en tránsito 10s / cerca destino 3s — _idle: sin emisión; transit: 10s; near (≤300m Haversine): 3s; lógica en `emitSample` helper compartido entre task callback y fallback foreground_
-- [ ] Pantalla de solicitud de permisos GPS con explicación clara (antes del onboarding)
+- [x] Pantalla de solicitud de permisos GPS con explicación clara — `(onboarding)/gps-permission.tsx`; explica los 2 pasos (foreground → background); foreground-only mode permite continuar con advertencia
 - [x] Indicador "Señal débil" cuando GPS error > 50m — banner ámbar en `home.tsx` cuando `accuracy > 50`
 - [x] Deep links de navegación: Google Maps, Waze, Apple Maps con fallback a browser — `src/utils/maps.ts`: ActionSheetIOS en iOS, Alert en Android; fallback a Google Maps si Waze no está instalado
 - [x] Cola offline: si no hay conexión, los eventos GPS se encolan en MMKV y se sincronizan al reconectar — _`src/stores/gps-queue.store.ts` (FIFO, cap 500, MMKV `tiendigo-gps-queue`); flush en reconexión (NetInfo) y foreground (AppState); `@react-native-community/netinfo` requiere EAS rebuild_
