@@ -20,6 +20,14 @@ export interface Vehicle {
   active: boolean;
 }
 
+export interface VehicleChangeRequestPayload {
+  vehicleType: Vehicle['type'];
+  plate: string;
+  brand?: string;
+  color?: string;
+  documentUrls: string[];
+}
+
 export interface Rider {
   id: string;
   email: string;
@@ -37,10 +45,12 @@ export interface Rider {
   pendingUpdate: Record<string, string> | null;
   pendingUpdateStatus: PendingUpdateStatus | null;
   vehicles?: Vehicle[];
+  pauseStartedAt?: string | null;
   wallet?: {
     balance: number;
     cashOnHand: number;
     pending: number;
+    totalEarned?: number;
   } | null;
   user?: {
     id: string;

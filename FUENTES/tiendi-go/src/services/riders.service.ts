@@ -1,5 +1,13 @@
 import { api } from './api';
-import type { OperationalStatus, Rider, Vehicle } from '@/types/rider.types';
+import type { OperationalStatus, Rider, Vehicle, VehicleChangeRequestPayload } from '@/types/rider.types';
+
+export interface VehicleChangeRequestDto {
+  vehicleType: 'Motocicleta' | 'Automovil' | 'Bicicleta' | 'APie';
+  plate: string;
+  brand?: string;
+  color?: string;
+  documentUrls: string[];
+}
 
 export interface UpdateProfileData {
   avatarUrl?: string;
@@ -73,5 +81,25 @@ export const ridersService = {
 
   async deleteAccount(): Promise<void> {
     await api.delete('/riders/me');
+  },
+
+  async createVehicleChangeRequest(payload: VehicleChangeRequestPayload): Promise<void> {
+    await api.post('/riders/me/vehicle-change-request', payload);
+  },
+
+  async requestVehicleChange(dto: VehicleChangeRequestDto): Promise<void> {
+    try {
+      await api.post('/riders/me/vehicle-change-request', dto);
+    } catch (e: unknown) {
+      if (
+        e != null &&
+        typeof e === 'object' &&
+        'response' in e &&
+        (e as { response?: { status?: number } }).response?.status === 409
+      ) {
+        throw new Error('Ya tenés una solicitud pendiente.');
+      }
+      throw e;
+    }
   },
 };

@@ -100,6 +100,19 @@ export default function VehiclesScreen() {
           ))}
         </ScrollView>
       )}
+
+      {!loading && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.changeVehicleBtn}
+            onPress={() => router.push('/(app)/vehicle-change-request')}
+            accessibilityRole="button"
+            accessibilityLabel="Solicitar cambio de vehículo"
+          >
+            <Text style={styles.changeVehicleBtnText}>Solicitar cambio de vehículo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -225,5 +238,25 @@ const styles = StyleSheet.create({
   vehicleDetail: {
     fontSize: 13,
     color: Colors.text2,
+  },
+
+  footer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.bg,
+  },
+  changeVehicleBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  changeVehicleBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.primary,
   },
 });
