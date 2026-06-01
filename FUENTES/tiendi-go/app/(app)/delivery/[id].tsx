@@ -170,7 +170,7 @@ export default function DeliveryScreen() {
       : [];
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView testID="delivery-screen" style={styles.root} edges={['top']}>
       {/* ── Map ── */}
       <View style={styles.mapContainer}>
         <MapView style={styles.map} region={mapRegion}>
@@ -253,7 +253,14 @@ export default function DeliveryScreen() {
 
       {/* ── CTA ── */}
       <View style={styles.cta}>
+        {delivery.status === 'EnCaminoCliente' ? (
+          <View testID="status-en-camino-cliente" style={styles.statusIndicator} />
+        ) : null}
         <Button
+          testID={
+            delivery.status === 'EnTienda' ? 'pickup-btn' :
+            delivery.status === 'EnDestino' ? 'pod-btn' : undefined
+          }
           label={step.label}
           variant="primary"
           onPress={onAdvance}
@@ -279,6 +286,19 @@ export default function DeliveryScreen() {
               hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
             >
               <Text style={[styles.secondaryLink, styles.secondaryDanger]}>Cancelar entrega</Text>
+            </Pressable>
+            <Text style={styles.secondaryDot}>·</Text>
+            <Pressable
+              onPress={() =>
+                router.push(
+                  `/(app)/support/new-ticket?emergency=true&deliveryId=${delivery.id}`,
+                )
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Botón de emergencia"
+              hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            >
+              <Text style={[styles.secondaryLink, styles.secondaryDanger]}>Emergencia</Text>
             </Pressable>
           </View>
         )}
@@ -360,7 +380,8 @@ const styles = StyleSheet.create({
   },
   mapsBtnText: { color: Colors.info, fontSize: 14, fontWeight: '700' },
 
-  cta: { padding: Spacing.lg, marginTop: 'auto' },
+  cta:             { padding: Spacing.lg, marginTop: 'auto' },
+  statusIndicator: { position: 'absolute', width: 0, height: 0 },
 
   secondaryActions: {
     flexDirection: 'row',

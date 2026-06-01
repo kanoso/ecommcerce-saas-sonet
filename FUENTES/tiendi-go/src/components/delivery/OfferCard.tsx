@@ -91,11 +91,11 @@ export function OfferCard() {
   };
 
   return (
-    <View style={styles.overlay}>
+    <View testID="offer-card" style={styles.overlay}>
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.store}>{offer.storeName}</Text>
-          <Text style={styles.countdown}>{secondsLeft}s</Text>
+          <Text testID="offer-timer" style={styles.countdown}>{secondsLeft}s</Text>
         </View>
 
         <View style={styles.barTrack}>
@@ -133,6 +133,7 @@ export function OfferCard() {
             style={styles.actionBtn}
           />
           <Button
+            testID="accept-offer-btn"
             label="Aceptar"
             variant="primary"
             onPress={onAccept}

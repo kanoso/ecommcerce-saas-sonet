@@ -76,7 +76,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView testID="home-screen" style={styles.root} edges={['top']}>
       {isWeakSignal ? (
         <View style={styles.weakSignalBanner}>
           <Text style={styles.weakSignalText}>⚠ Señal GPS débil</Text>
@@ -100,12 +100,14 @@ export default function HomeScreen() {
       </MapView>
 
       <Pressable
+        testID="go-online-btn"
         style={[styles.toggle, isOnline ? styles.toggleOn : styles.toggleOff]}
         onPress={toggleStatus}
         disabled={toggling}
       >
         <Text style={styles.toggleLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
       </Pressable>
+      {isOnline ? <View testID="status-online" style={styles.onlineIndicator} /> : null}
 
       {offer ? <OfferCard /> : null}
 
@@ -203,7 +205,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radius.full,
   },
-  toggleOn:    { backgroundColor: Colors.success },
-  toggleOff:   { backgroundColor: Colors.card },
-  toggleLabel: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  toggleOn:        { backgroundColor: Colors.success },
+  toggleOff:       { backgroundColor: Colors.card },
+  toggleLabel:     { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  onlineIndicator: { position: 'absolute', width: 0, height: 0 },
 });

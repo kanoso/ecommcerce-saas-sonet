@@ -182,6 +182,7 @@ export function PodModal({ visible, deliveryId, onClose, onSuccess }: PodModalPr
           <View style={styles.otpSection}>
             <Text style={styles.fieldLabel}>Código de confirmación del cliente *</Text>
             <TextInput
+              testID="pod-otp-input"
               style={styles.otpInput}
               value={state.otpCode}
               onChangeText={(v) => update({ otpCode: v.replace(/[^0-9]/g, '').slice(0, 6), error: null })}
@@ -206,9 +207,10 @@ export function PodModal({ visible, deliveryId, onClose, onSuccess }: PodModalPr
             textAlignVertical="top"
           />
 
-          {state.error ? <Text style={styles.errorText}>{state.error}</Text> : null}
+          {state.error ? <Text testID="pod-error-msg" style={styles.errorText}>{state.error}</Text> : null}
 
           <TouchableOpacity
+            testID="confirm-pod-btn"
             style={[styles.submitBtn, state.step === 'submitting' && styles.btnDisabled]}
             onPress={handleSubmit}
             disabled={state.step === 'submitting'}

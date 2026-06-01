@@ -71,6 +71,7 @@ export default function LoginScreen() {
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
+                  testID="email-input"
                   label="Email"
                   placeholder="tu@email.com"
                   keyboardType="email-address"
@@ -88,6 +89,7 @@ export default function LoginScreen() {
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
+                  testID="password-input"
                   label="Contraseña"
                   placeholder="••••••••"
                   secure
@@ -102,6 +104,7 @@ export default function LoginScreen() {
             {apiError ? <Text style={styles.apiError}>{apiError}</Text> : null}
 
             <Button
+              testID="login-btn"
               label="Iniciar sesión"
               onPress={handleSubmit(onSubmit)}
               loading={isSubmitting}
