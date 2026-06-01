@@ -1,0 +1,29 @@
+:host { display: block; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 20px; }
+
+.card__title { font-size: 15px; font-weight: 600; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+
+.empty-state { text-align: center; padding: 32px; color: var(--text-muted); font-size: 14px; }
+
+.docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+
+.doc-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+
+.doc-card a { display: block; }
+
+.doc-image { width: 100%; height: 140px; object-fit: cover; display: block; transition: opacity 0.15s; }
+
+.doc-image:hover { opacity: 0.85; }
+
+.doc-footer { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.doc-type { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+
+.doc-status { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+.doc-status--pending { background: #FEF3C7; color: #92400E; }
+
+.doc-status--approved { background: #D1FAE5; color: #065F46; }
+
+.doc-status--rejected { background: #FEE2E2; color: #991B1B; }

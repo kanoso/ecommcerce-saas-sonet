@@ -1,0 +1,41 @@
+@if (rider(); as r) {
+  <section class="card">
+    <h3 class="card__title">Información del repartidor</h3>
+
+    <div class="info-grid">
+      <div class="info-field">
+        <span class="info-label">Nombre completo</span>
+        <span class="info-value">{{ r.user.firstName }} {{ r.user.lastName }}</span>
+      </div>
+
+      <div class="info-field">
+        <span class="info-label">Email</span>
+        <span class="info-value">{{ r.user.email }}</span>
+      </div>
+
+      <div class="info-field">
+        <span class="info-label">Teléfono</span>
+        <span class="info-value">{{ r.user.phone ?? '—' }}</span>
+      </div>
+
+      <div class="info-field">
+        <span class="info-label">Tipo de vehículo</span>
+        <span class="info-value">{{ r.vehicles[0]?.type ?? '—' }}</span>
+      </div>
+
+      <div class="info-field">
+        <span class="info-label">Estado</span>
+        <span [class]="getStatusClass(r.status)">
+          {{ getStatusLabel(r.status) }}
+        </span>
+      </div>
+    </div>
+
+    @if (r.rejectionReason) {
+      <div class="rejection-block">
+        <span class="rejection-label">Motivo de rechazo</span>
+        <p class="rejection-text">{{ r.rejectionReason }}</p>
+      </div>
+    }
+  </section>
+}

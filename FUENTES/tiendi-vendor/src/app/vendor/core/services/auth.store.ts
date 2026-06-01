@@ -32,6 +32,7 @@ export const AuthStore = signalStore(
       const role = user()?.role;
       return role != null && vendorRoles.includes(role);
     }),
+    isSuperAdmin: computed(() => user()?.role === 'SUPER_ADMIN'),
   })),
   withMethods((store) => {
     const http = inject(HttpClient);

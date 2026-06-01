@@ -24,6 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
   MANAGER: 'Gerente',
   CASHIER: 'Cajero/a',
   WAREHOUSE: 'Depósito',
+  SUPER_ADMIN: 'Super Admin',
 };
 
 @Component({
@@ -67,6 +68,11 @@ export class ShellComponent implements OnInit {
     this.authStore.fetchMe();
     this.storeConfigStore.loadStore();
     this.notificationsStore.loadAll();
+
+    // SUPER_ADMIN has no dashboard — redirect to riders panel on first load
+    if (this.authStore.isSuperAdmin() && this.router.url === '/vendor/dashboard') {
+      void this.router.navigate(['/vendor/riders']);
+    }
   }
 
   onMenuToggle(): void {

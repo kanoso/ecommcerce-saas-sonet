@@ -23,6 +23,7 @@ export const VENDOR_ROUTES: Routes = [
     children: [
       {
         path: 'dashboard',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE'])],
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard.page').then((c) => c.DashboardPage),
       },
@@ -116,6 +117,11 @@ export const VENDOR_ROUTES: Routes = [
         path: 'legal/complaints',
         loadComponent: () =>
           import('./features/legal/pages/complaints.page').then((c) => c.ComplaintsPage),
+      },
+      {
+        path: 'riders',
+        loadChildren: () =>
+          import('./features/riders/riders.routes').then((m) => m.RIDERS_ROUTES),
       },
     ], // end ShellComponent children
   }, // end ShellComponent route

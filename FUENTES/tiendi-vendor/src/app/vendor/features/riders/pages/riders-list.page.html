@@ -1,0 +1,58 @@
+<div class="riders-page">
+  <div class="toolbar">
+    <div>
+      <h1 class="toolbar__title">Repartidores</h1>
+      <p class="toolbar__sub">Gestión y aprobación de repartidores</p>
+    </div>
+    <div class="filter-bar">
+      <label for="status-filter" class="visually-hidden">Filtrar por estado</label>
+      <select
+        id="status-filter"
+        class="form-select"
+        (change)="onStatusChange($event)"
+      >
+        @for (opt of statusOptions; track opt.value) {
+          <option [value]="opt.value ?? ''" [selected]="store.statusFilter() === opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <td-riders-table
+    [riders]="store.riders()"
+    [isLoading]="store.isLoading()"
+    (review)="onReview($event)"
+  />
+
+  @if (!store.isLoading() && store.total() > 0) {
+    <nav class="pagination" aria-label="Paginación">
+      <span class="pagination__info">
+        Página {{ store.page() }} de {{ store.totalPages() }}
+      </span>
+      <div class="pagination__btns">
+        <button
+          class="btn btn--sm"
+          type="button"
+          [disabled]="store.page() <= 1"
+          (click)="goToPrevPage()"
+          aria-label="Página anterior"
+        >
+          Anterior
+        </button>
+        <button
+          class="btn btn--sm"
+          type="button"
+          [disabled]="store.page() >= store.totalPages()"
+          (click)="goToNextPage()"
+          aria-label="Página siguiente"
+        >
+          Siguiente
+        </button>
+      </div>
+    </nav>
+  }
+
+  @if (store.error()) {
+    <p class="error-banner" role="alert">{{ store.error() }}</p>
+  }
+</div>

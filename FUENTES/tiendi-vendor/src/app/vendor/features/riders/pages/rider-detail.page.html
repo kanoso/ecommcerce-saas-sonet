@@ -1,0 +1,78 @@
+<div class="riders-page">
+  <div class="detail-header">
+    <button class="btn btn--ghost btn--sm" type="button" (click)="goBack()">
+      ← Volver a repartidores
+    </button>
+    <h1 class="detail-title">Detalle del repartidor</h1>
+  </div>
+
+  @if (store.isLoading()) {
+    <div class="loading-state">
+      <td-skeleton width="100%" height="200px" />
+      <td-skeleton width="100%" height="300px" />
+    </div>
+  } @else if (store.selectedRider(); as rider) {
+    <div class="detail-layout">
+      <td-rider-info [rider]="rider" />
+
+      <td-rider-documents [documents]="rider.documents" />
+
+      <section class="actions-card">
+        <h2 class="actions-card__title">Decisión</h2>
+
+        <div class="actions-row">
+          <button
+            class="btn btn--primary"
+            type="button"
+            [disabled]="store.isActing()"
+            (click)="onApprove()"
+          >
+            Aprobar
+          </button>
+
+          <button
+            class="btn btn--danger-outline"
+            type="button"
+            [disabled]="store.isActing()"
+            (click)="onToggleRejectForm()"
+          >
+            {{ showRejectForm() ? 'Cancelar rechazo' : 'Rechazar' }}
+          </button>
+        </div>
+
+        @if (showRejectForm()) {
+          <div class="reject-form">
+            <label for="reject-reason" class="form-label">
+              Motivo de rechazo <span class="required">*</span>
+            </label>
+            <textarea
+              id="reject-reason"
+              class="form-textarea"
+              rows="4"
+              maxlength="500"
+              placeholder="Describe el motivo del rechazo (máx. 500 caracteres)"
+              [value]="rejectReason()"
+              (input)="onReasonInput($event)"
+            ></textarea>
+            <p class="char-count">{{ rejectReason().length }}/500</p>
+
+            <button
+              class="btn btn--danger-outline"
+              type="button"
+              [disabled]="isRejectSubmitDisabled"
+              (click)="onConfirmReject()"
+            >
+              Confirmar rechazo
+            </button>
+          </div>
+        }
+      </section>
+
+      @if (store.error()) {
+        <p class="error-banner" role="alert">{{ store.error() }}</p>
+      }
+    </div>
+  } @else {
+    <div class="empty-state">No se pudo cargar el repartidor.</div>
+  }
+</div>

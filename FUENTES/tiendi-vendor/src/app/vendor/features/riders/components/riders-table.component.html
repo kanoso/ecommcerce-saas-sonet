@@ -1,0 +1,67 @@
+<div class="card">
+  <div class="table-wrap">
+    @if (isLoading()) {
+      <table class="riders-table" aria-busy="true" aria-label="Cargando repartidores">
+        <thead>
+          <tr>
+            <th>Nombre completo</th>
+            <th>Estado</th>
+            <th>Tipo vehículo</th>
+            <th>Fecha registro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of skeletonRows; track s) {
+            <tr>
+              <td><td-skeleton width="160px" /></td>
+              <td><td-skeleton width="100px" /></td>
+              <td><td-skeleton width="100px" /></td>
+              <td><td-skeleton width="100px" /></td>
+              <td><td-skeleton width="80px" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (riders().length === 0) {
+      <div class="empty-state">
+        <p>No se encontraron repartidores para este filtro.</p>
+      </div>
+    } @else {
+      <table class="riders-table" aria-label="Lista de repartidores">
+        <thead>
+          <tr>
+            <th>Nombre completo</th>
+            <th>Estado</th>
+            <th>Tipo vehículo</th>
+            <th>Fecha registro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (rider of riders(); track rider.id) {
+            <tr class="tr-link" (click)="onReview(rider.id)">
+              <td>
+                <div class="rider-cell">
+                  <div class="avatar">{{ rider.firstName[0] }}{{ rider.lastName[0] }}</div>
+                  <div>
+                    <div class="rider-name">{{ rider.firstName }} {{ rider.lastName }}</div>
+                    <div class="rider-email">{{ rider.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span [class]="getStatusClass(rider.status)">{{ getStatusLabel(rider.status) }}</span></td>
+              <td>{{ rider.vehicleType ?? '—' }}</td>
+              <td>{{ formatDate(rider.createdAt) }}</td>
+              <td>
+                <button class="btn btn--ghost btn--sm" type="button" (click)="$event.stopPropagation(); onReview(rider.id)">
+                  Revisar
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

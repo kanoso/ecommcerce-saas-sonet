@@ -1,0 +1,28 @@
+<section class="card">
+  <h3 class="card__title">Documentos adjuntos</h3>
+
+  @if (documents().length === 0) {
+    <div class="empty-state">No se han subido documentos.</div>
+  } @else {
+    <div class="docs-grid">
+      @for (doc of documents(); track doc.id) {
+        <div class="doc-card">
+          <a [href]="doc.url" target="_blank" rel="noopener noreferrer">
+            <img
+              [src]="doc.url"
+              [alt]="getDocTypeLabel(doc.type)"
+              class="doc-image"
+              loading="lazy"
+            />
+          </a>
+          <div class="doc-footer">
+            <span class="doc-type">{{ getDocTypeLabel(doc.type) }}</span>
+            <span [class]="getDocStatusClass(doc.status)">
+              {{ getDocStatusLabel(doc.status) }}
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>

@@ -6,6 +6,7 @@ import { AuthStore } from '../services/auth.store';
  * Protects all /vendor routes.
  * - Unauthenticated users → redirect /
  * - CUSTOMER role → redirect /
+ * - SUPER_ADMIN → allowed through (has its own feature-level guards)
  * - Incomplete onboarding → redirect /vendor/setup
  */
 export const vendorGuard: CanActivateFn = () => {
@@ -16,7 +17,8 @@ export const vendorGuard: CanActivateFn = () => {
     return router.createUrlTree(['/']);
   }
 
-  if (!auth.isVendor()) {
+  const role = auth.currentUser()?.role;
+  if (role !== 'SUPER_ADMIN' && !auth.isVendor()) {
     return router.createUrlTree(['/']);
   }
 

@@ -28,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Staff',             icon: 'manage_accounts',  route: '/vendor/staff',        roles: ['STORE_OWNER'] },
   { label: 'Facturación y Legal', icon: 'receipt',        route: '/vendor/legal',        roles: ['STORE_OWNER', 'MANAGER'] },
   { label: 'Plan y Suscripción',  icon: 'credit_card',    route: '/vendor/subscription', roles: ['STORE_OWNER'] },
+  { label: 'Repartidores',        icon: 'person_pin',     route: '/vendor/riders',       roles: ['SUPER_ADMIN'] },
 ];
 
 @Component({

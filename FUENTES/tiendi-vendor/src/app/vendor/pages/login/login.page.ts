@@ -36,14 +36,16 @@ export class LoginPage implements OnInit {
   constructor() {
     effect(() => {
       if (this.authStore.isAuthenticated()) {
-        void this.router.navigate(['/vendor/dashboard']);
+        const dest = this.authStore.isSuperAdmin() ? '/vendor/riders' : '/vendor/dashboard';
+        void this.router.navigate([dest]);
       }
     });
   }
 
   ngOnInit(): void {
     if (this.authStore.isAuthenticated()) {
-      void this.router.navigate(['/vendor/dashboard']);
+      const dest = this.authStore.isSuperAdmin() ? '/vendor/riders' : '/vendor/dashboard';
+      void this.router.navigate([dest]);
     }
   }
 

@@ -1,7 +1,8 @@
 import { computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { signalStore, withState, withMethods, withComputed, patchState } from '@ngrx/signals';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { AuthStore } from '../../core/services/auth.store';
 
@@ -100,11 +101,11 @@ export const AnalyticsStore = signalStore(
       const qs = buildParams(period, customRange);
 
       forkJoin({
-        summary:     http.get<AnalyticsSummary>(`${base}/analytics/summary?${qs}`),
-        salesChart:  http.get<SalesChartData>(`${base}/analytics/sales-chart?${qs}`),
-        topProducts: http.get<TopProduct[]>(`${base}/analytics/top-products?${qs}`),
-        categories:  http.get<CategoryData[]>(`${base}/analytics/categories?${qs}`),
-        hourly:      http.get<HourlyData[]>(`${base}/analytics/hourly?${qs}`),
+        summary:     http.get<AnalyticsSummary>(`${base}/analytics/summary?${qs}`).pipe(catchError(() => of(null))),
+        salesChart:  http.get<SalesChartData>(`${base}/analytics/sales-chart?${qs}`).pipe(catchError(() => of(null))),
+        topProducts: http.get<TopProduct[]>(`${base}/analytics/top-products?${qs}`).pipe(catchError(() => of([]))),
+        categories:  http.get<CategoryData[]>(`${base}/analytics/categories?${qs}`).pipe(catchError(() => of([]))),
+        hourly:      http.get<HourlyData[]>(`${base}/analytics/hourly?${qs}`).pipe(catchError(() => of([]))),
       }).subscribe({
         next: ({ summary, salesChart, topProducts, categories, hourly }) => {
           patchState(store, {
