@@ -21,19 +21,19 @@ export const authService = {
   },
 
   async registerStep1(payload: Omit<RegisterStep1FormData, 'confirmPassword'>): Promise<void> {
-    await api.post('/auth/register/step1', payload);
+    await api.post('/riders/register/step1', payload);
   },
 
   async verifyOtp(phone: string, code: string): Promise<void> {
-    await api.post('/auth/verify-otp', { phone, code });
+    await api.post('/riders/register/verify-otp', { phone, code });
   },
 
   async registerStep2(payload: RegisterStep2FormData): Promise<void> {
-    await api.post('/auth/register/step2', payload);
+    await api.post('/riders/register/step2', payload);
   },
 
   async registerStep3(formData: FormData): Promise<void> {
-    await api.post('/auth/register/step3', formData, {
+    await api.post('/riders/register/step3', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

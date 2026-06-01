@@ -12,6 +12,14 @@ import { authService } from '@/services/auth.service';
 
 type DocKey = 'licencia' | 'soat' | 'antecedentes' | 'tarjeta';
 
+// Maps UI doc keys to the multipart field names expected by POST /riders/register/step3
+const DOC_KEY_TO_FIELD: Record<DocKey, string> = {
+  licencia: 'license',
+  soat: 'soat',
+  antecedentes: 'backgroundCheck',
+  tarjeta: 'vehicleRegistration',
+};
+
 interface DocSlotConfig {
   key: DocKey;
   label: string;
@@ -98,7 +106,11 @@ export default function Step3DocumentsScreen() {
           const filename = uri.split('/').pop() ?? `${slot.key}.jpg`;
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : 'image/jpeg';
-          formData.append(slot.key, { uri, name: filename, type } as unknown as Blob);
+          // Simple vehicles send a single photo under the 'vehiclePhoto' field
+          const fieldName = isSimple && slot.key === 'licencia'
+            ? 'vehiclePhoto'
+            : DOC_KEY_TO_FIELD[slot.key];
+          formData.append(fieldName, { uri, name: filename, type } as unknown as Blob);
         }
       });
       await authService.registerStep3(formData);
