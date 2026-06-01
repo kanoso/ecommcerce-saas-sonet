@@ -37,6 +37,7 @@ const stubUser = {
 const stubAuthStore = {
   currentUser: signal(stubUser),
   isAuthenticated: signal(true),
+  isSuperAdmin: signal(false),
   loadFromStorage: () => {},
   fetchMe: () => {},
   logout: () => {},

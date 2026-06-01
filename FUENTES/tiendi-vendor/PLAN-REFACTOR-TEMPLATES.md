@@ -179,9 +179,9 @@
 
 - [x] `ng build` — compila sin errores (budget warning preexistente, 529 kB > 400 kB)
 - [x] `ng lint` — sin warnings ni errores
-- [ ] `ng test` — pendiente verificación completa
-- [ ] Revisar imports en `.ts` tras extracción (componentes hijos deben estar en `imports`)
-- [ ] Confirmar que los estilos `.scss` no necesiten ajuste de encapsulación
+- [x] `ng test` — 25/25 pasando (3 fallas corregidas: `isSuperAdmin` faltante en stub, test boilerplate "Hello" eliminado, `RouterLink` faltante en topbar)
+- [x] Revisar imports en `.ts` tras extracción — único gap encontrado: `RouterLink` en `topbar.component.ts`, corregido
+- [x] Confirmar estilos `.scss` — único `::ng-deep` en `form-field.component.scss` es intencional (necesario para estilar `<ng-content>` proyectado); sin otros problemas de encapsulación
 
 ---
 

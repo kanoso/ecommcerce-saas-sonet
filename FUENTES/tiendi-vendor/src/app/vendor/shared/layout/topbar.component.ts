@@ -5,6 +5,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AvatarComponent } from '../ui/atoms/avatar.component';
 import { BadgeComponent } from '../ui/atoms/badge.component';
 
@@ -12,7 +13,7 @@ import { BadgeComponent } from '../ui/atoms/badge.component';
   selector: 'td-topbar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AvatarComponent, BadgeComponent],
+  imports: [RouterLink, AvatarComponent, BadgeComponent],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
 })
