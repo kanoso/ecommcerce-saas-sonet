@@ -7,6 +7,7 @@ import {
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+import { CHAT_CONFIG } from '@tiendi/chat';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './vendor/core/interceptors/auth.interceptor';
@@ -15,6 +16,7 @@ import { errorInterceptor } from './vendor/core/interceptors/error.interceptor';
 import { loadingInterceptor } from './vendor/core/interceptors/loading.interceptor';
 import { retryInterceptor } from './vendor/core/interceptors/retry.interceptor';
 import { AuthStore } from './vendor/core/services/auth.store';
+import { environment } from '../environments/environment';
 
 /**
  * Application configuration for the Angular bootstrap.
@@ -41,6 +43,10 @@ export const appConfig: ApplicationConfig = {
         return () => auth.loadFromStorage();
       },
       multi: true,
+    },
+    {
+      provide: CHAT_CONFIG,
+      useValue: { apiBaseUrl: environment.apiUrl },
     },
   ],
 };

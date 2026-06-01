@@ -86,3 +86,20 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── @tiendi/chat — Tailwind 4 compatibility ──────────────── */
+/* PrimeFlex .border-round does not exist in Tailwind 4; the library
+   uses it on the toggle button to produce a circle shape. */
+.border-round {
+  border-radius: 50%;
+}
+
+/* ── @tiendi/chat — mobile bottom-nav clearance ───────────── */
+/* The library root is position:fixed;bottom:0. On handset viewports
+   the bottom nav is 64px tall (+ safe-area-inset-bottom on notched
+   devices), so the chat toggle must sit above it. */
+@media (max-width: 767px) {
+  .ng-chat-tiendi {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
