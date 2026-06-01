@@ -214,8 +214,8 @@ export const CHAT_CONFIG = new InjectionToken<ChatConfig>('CHAT_CONFIG', {
 - [x] Agregar `"@tiendi/chat"` a `tiendi-vendor/package.json` (`file:` dep desde dist)
 - [x] Implementar `VendorChatAdapter extends ChatAdapter` en `src/app/vendor/features/chat/`
   - [x] `listFriends()` → GET /stores/{storeId}/customers?limit=100, mapea a `ParticipantResponse[]`
-  - [ ] `sendMessage()` → POST /stores/{storeId}/conversations/{customerId}/messages — pendiente wiring
-  - [ ] `getMessageHistory()` → GET /stores/{storeId}/conversations/{customerId}/messages — pendiente wiring
+  - [x] `sendMessage()` → POST /stores/{storeId}/conversations/{customerId}/messages — implementado en commit 7736738
+  - [x] `getMessageHistory()` → GET /stores/{storeId}/conversations/{customerId}/messages — implementado en commit 7736738
 - [x] Proveer `CHAT_CONFIG.apiBaseUrl` en `app.config.ts` — agregado `{ provide: CHAT_CONFIG, useValue: { apiBaseUrl: environment.apiUrl } }` en tiendi-vendor; `apiBaseUrl` agregado a `ChatConfig` interface + rebuild de la library
 - [x] Integrar `NgChatTiendi` en el shell via `ChatWidgetComponent` wrapper
 - [x] Tests: 11 unit tests adapter + 2 smoke tests shell — 13/13 ✅
