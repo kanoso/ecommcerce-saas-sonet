@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { createMMKV } from 'react-native-mmkv';
 import type { DeliveryStatus, DeliveryOffer, ActiveDelivery } from '@/types/delivery.types';
+import { clearForDelivery } from '@/stores/gps-queue.store';
 
 export type { DeliveryStatus, DeliveryOffer, ActiveDelivery };
 
@@ -10,7 +11,7 @@ const storage = createMMKV({ id: 'tiendigo-mmkv' });
 const mmkvStorage: StateStorage = {
   getItem: (name) => storage.getString(name) ?? null,
   setItem: (name, value) => storage.set(name, value),
-  removeItem: (name) => storage.remove(name),
+  removeItem: (name) => storage.delete(name),
 };
 
 interface DeliveryState {
@@ -73,10 +74,12 @@ export const useDeliveryStore = create<DeliveryState>()(
           activeDeliveries: s.activeDeliveries.filter((d) => d.id !== id),
         })),
 
-      removeActiveDelivery: (id) =>
+      removeActiveDelivery: (id) => {
+        clearForDelivery(id);
         set((s) => ({
           activeDeliveries: s.activeDeliveries.filter((d) => d.id !== id),
-        })),
+        }));
+      },
 
       setActiveDeliveries: (list) => set({ activeDeliveries: list }),
 
