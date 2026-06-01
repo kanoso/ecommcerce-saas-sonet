@@ -42,12 +42,12 @@ export default function SettingsScreen() {
 
   function handleLogoutAllDevices() {
     Alert.alert(
-      'Cerrar sesión en todos los dispositivos',
-      '¿Estás seguro? Vas a cerrar sesión en todos los dispositivos donde tenés la app abierta.',
+      'Cerrar sesión en este dispositivo',
+      '¿Estás seguro que querés cerrar sesión?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Cerrar todas las sesiones',
+          text: 'Cerrar sesión',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -83,9 +83,7 @@ export default function SettingsScreen() {
           <Divider />
           <Row
             label="Zonas de cobertura"
-            onPress={() =>
-              Alert.alert('Próximamente', 'Esta función estará disponible pronto.')
-            }
+            onPress={() => router.push('/(app)/settings-coverage-zones')}
           />
         </View>
 
@@ -110,7 +108,7 @@ export default function SettingsScreen() {
           />
           <Divider />
           <Row
-            label="Cerrar sesión en todos los dispositivos"
+            label="Cerrar sesión en este dispositivo"
             onPress={handleLogoutAllDevices}
             hideChevron
           />

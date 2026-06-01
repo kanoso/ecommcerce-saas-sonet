@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MMKV } from 'react-native-mmkv';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { getSettingsStorage } from '@/utils/settings-storage';
 import { ridersService } from '@/services/riders.service';
 import { useAuthStore } from '@/stores/auth.store';
-
-const storage = new MMKV({ id: 'settings' });
 
 type ThemeOption = 'system' | 'dark' | 'light';
 
@@ -29,16 +27,16 @@ export default function SettingsAccountScreen() {
   const logout = useAuthStore((s) => s.logout);
 
   const [shareLocation, setShareLocation] = useState<boolean>(
-    storage.getBoolean('privacy_share_location') ?? true,
+    getSettingsStorage().getBoolean('privacy_share_location') ?? true,
   );
   const [theme, setTheme] = useState<ThemeOption>(
-    (storage.getString('theme_preference') as ThemeOption | undefined) ?? 'system',
+    (getSettingsStorage().getString('theme_preference') as ThemeOption | undefined) ?? 'system',
   );
   const [exportLoading, setExportLoading] = useState(false);
 
   function handleShareLocationToggle(value: boolean) {
     setShareLocation(value);
-    storage.set('privacy_share_location', value);
+    getSettingsStorage().set('privacy_share_location', value);
   }
 
   function handleThemeSelect(value: ThemeOption) {
@@ -47,7 +45,7 @@ export default function SettingsAccountScreen() {
       return;
     }
     setTheme(value);
-    storage.set('theme_preference', value);
+    getSettingsStorage().set('theme_preference', value);
   }
 
   async function handleDataExport() {

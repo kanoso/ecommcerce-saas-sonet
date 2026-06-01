@@ -1,5 +1,29 @@
 import { api } from './api';
-import type { OperationalStatus, Rider, Vehicle, VehicleChangeRequestPayload } from '@/types/rider.types';
+import type { CoverageZone, OperationalStatus, Rider, Vehicle } from '@/types/rider.types';
+
+/**
+ * Maps the mobile Preferences shape to the canonical API DTO.
+ *
+ * Mobile stores separate boolean flags (acceptCashOrders / acceptDigitalOrders).
+ * The API expects a collapsed paymentMethod enum (CASH | DIGITAL | BOTH).
+ * maxRadiusKm is clamped to the API-accepted range of 1–10.
+ */
+function mapPreferencesToApi(prefs: NonNullable<Rider['preferences']>) {
+  const paymentMethod: 'CASH' | 'DIGITAL' | 'BOTH' =
+    prefs.acceptCashOrders && prefs.acceptDigitalOrders
+      ? 'BOTH'
+      : prefs.acceptCashOrders
+        ? 'CASH'
+        : prefs.acceptDigitalOrders
+          ? 'DIGITAL'
+          : 'BOTH'; // both false → safe default; API requires a valid enum value
+
+  return {
+    paymentMethod,
+    acceptanceRadiusKm: Math.min(10, Math.max(1, prefs.maxRadiusKm)),
+    multiOrder: prefs.acceptMultiOrder,
+  };
+}
 
 export interface VehicleChangeRequestDto {
   vehicleType: 'Motocicleta' | 'Automovil' | 'Bicicleta' | 'APie';
@@ -60,7 +84,11 @@ export const ridersService = {
   },
 
   async updatePreferences(data: NonNullable<Rider['preferences']>): Promise<void> {
-    await api.patch('/riders/me/preferences', data);
+    await api.patch('/riders/me/preferences', mapPreferencesToApi(data));
+  },
+
+  async updateCoverageZones(zones: CoverageZone[]): Promise<void> {
+    await api.patch('/riders/me/coverage-zones', zones);
   },
 
   async updateSchedule(data: NonNullable<Rider['schedule']>): Promise<void> {
@@ -83,9 +111,6 @@ export const ridersService = {
     await api.delete('/riders/me');
   },
 
-  async createVehicleChangeRequest(payload: VehicleChangeRequestPayload): Promise<void> {
-    await api.post('/riders/me/vehicle-change-request', payload);
-  },
 
   async requestVehicleChange(dto: VehicleChangeRequestDto): Promise<void> {
     try {

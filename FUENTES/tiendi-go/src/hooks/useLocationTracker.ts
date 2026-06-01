@@ -4,6 +4,8 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { useLocationStore } from '@/stores/location.store';
 import { LOCATION_TRACKING_TASK, emitSample } from '@/tasks/location.task';
+import { useOfflineGpsFlush } from '@/hooks/useOfflineGpsFlush';
+import { getSettingsStorage } from '@/utils/settings-storage';
 
 /**
  * Controller hook: manages location permissions, starts/stops the OS
@@ -17,9 +19,16 @@ import { LOCATION_TRACKING_TASK, emitSample } from '@/tasks/location.task';
  * least one active delivery. Stops immediately when either condition flips.
  */
 export function useLocationTracker(): void {
+  // Mount the offline flush hook unconditionally — it manages its own guard and subscriptions
+  useOfflineGpsFlush();
+
   const operationalStatus = useAuthStore((s) => s.rider?.operationalStatus ?? 'OFFLINE');
   const activeCount = useDeliveryStore((s) => s.activeDeliveries.length);
-  const shouldTrack = operationalStatus === 'ONLINE' && activeCount > 0;
+
+  // Privacy gate (FR-6.1–FR-6.4): synchronous MMKV read, default true.
+  // Read once per render; reactive updates require hook re-mount (acceptable for MVP).
+  const shareLocation = getSettingsStorage().getBoolean('privacy_share_location') ?? true;
+  const shouldTrack = operationalStatus === 'ONLINE' && activeCount > 0 && shareLocation;
 
   useEffect(() => {
     if (!shouldTrack) {

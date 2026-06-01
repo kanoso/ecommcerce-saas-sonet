@@ -1,3 +1,16 @@
+export type CoverageZone =
+  | {
+      type: 'radius';
+      center: { lat: number; lng: number };
+      radiusKm: number;
+      isActive: boolean;
+    }
+  | {
+      type: 'polygon';
+      points: Array<{ lat: number; lng: number }>;
+      isActive: boolean;
+    };
+
 export type RiderStatus =
   | 'PENDING_DOCUMENTS'
   | 'UNDER_REVIEW'
@@ -42,6 +55,7 @@ export interface Rider {
   avatarUrl: string | null;
   operationalStatus: OperationalStatus;
   coverageZone?: string | null;
+  coverageZones?: CoverageZone[] | null;
   pendingUpdate: Record<string, string> | null;
   pendingUpdateStatus: PendingUpdateStatus | null;
   vehicles?: Vehicle[];

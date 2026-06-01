@@ -13,6 +13,7 @@ interface AuthState {
   forceLogout: boolean;
   setTokens: (access: string, refresh: string) => Promise<void>;
   setRider: (rider: Rider) => void;
+  refreshProfile: () => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
   setForceLogout: (value: boolean) => void;
@@ -36,6 +37,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setRider: (rider) => set({ rider }),
+
+  refreshProfile: async () => {
+    const { data } = await api.get<Rider>('/riders/me');
+    set({ rider: data });
+  },
 
   logout: async () => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
