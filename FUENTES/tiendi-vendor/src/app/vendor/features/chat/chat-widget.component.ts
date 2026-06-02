@@ -1,55 +1,20 @@
-/**
- * Thin wrapper that dynamically instantiates NgChatTiendi from @tiendi/chat.
- *
- * This wrapper exists to isolate the Angular version brand mismatch between
- * the tiendi-chat library (compiled with Angular 20) and tiendi-vendor (Angular 21).
- * Using ViewContainerRef.createComponent() + ComponentRef.setInput() bypasses
- * template strict-type-checking of InputSignal brands while still rendering
- * the library component correctly at runtime.
- */
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ComponentRef,
-  effect,
-  inject,
-  input,
-  OnInit,
-  ViewContainerRef,
-} from '@angular/core';
-import { NgChatTiendi, Theme, ChatAdapter } from '@tiendi/chat';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChatAdapter, Theme } from '@tiendi/chat';
 
+/**
+ * Stub — disabled until @tiendi/chat is rebuilt targeting Angular 21.
+ * Do NOT add NgChatTiendi to imports here — it was compiled with Angular 20
+ * and causes NG0203 (EnvironmentInjector injection context failure) when linked
+ * by the Angular 21 compiler. Use ViewContainerRef.createComponent() when re-enabling.
+ */
 @Component({
   selector: 'td-chat-widget',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: '',
 })
-export class ChatWidgetComponent implements OnInit {
+export class ChatWidgetComponent {
   readonly adapter = input<ChatAdapter | null>(null);
   readonly userId = input<string | null>(null);
   readonly theme = input<Theme>(Theme.Light);
-
-  private readonly vcr = inject(ViewContainerRef);
-  private chatRef: ComponentRef<NgChatTiendi> | null = null;
-
-  ngOnInit(): void {
-    this.chatRef = this.vcr.createComponent(NgChatTiendi);
-    this.setInputs();
-  }
-
-  constructor() {
-    // Re-propagate reactive input changes after init
-    effect(() => {
-      if (!this.chatRef) return;
-      this.setInputs();
-    });
-  }
-
-  private setInputs(): void {
-    if (!this.chatRef) return;
-    this.chatRef.setInput('adapter', this.adapter());
-    this.chatRef.setInput('userId', this.userId());
-    this.chatRef.setInput('theme', this.theme());
-  }
 }

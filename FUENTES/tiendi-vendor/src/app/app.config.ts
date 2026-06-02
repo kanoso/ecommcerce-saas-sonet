@@ -7,8 +7,6 @@ import {
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
-import { CHAT_CONFIG } from '@tiendi/chat';
-
 import { routes } from './app.routes';
 import { authInterceptor } from './vendor/core/interceptors/auth.interceptor';
 import { storeIdInterceptor } from './vendor/core/interceptors/store-id.interceptor';
@@ -43,10 +41,6 @@ export const appConfig: ApplicationConfig = {
         return () => auth.loadFromStorage();
       },
       multi: true,
-    },
-    {
-      provide: CHAT_CONFIG,
-      useValue: { apiBaseUrl: environment.apiUrl },
     },
   ],
 };

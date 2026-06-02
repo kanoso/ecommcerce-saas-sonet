@@ -61,7 +61,7 @@ function toLibMessage(msg: ApiMessage, customerId: string, currentUserId: string
   return m;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly authStore = inject(AuthStore);
