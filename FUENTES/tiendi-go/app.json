@@ -13,7 +13,9 @@
       "bundleIdentifier": "com.tiendi.go",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "UIBackgroundModes": ["location"],
+        "UIBackgroundModes": [
+          "location"
+        ],
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Tiendi Go necesita tu ubicación para asignarte pedidos y mostrar tu posición a la tienda y al cliente durante la entrega.",
         "NSLocationAlwaysUsageDescription": "Tiendi Go rastrea tu ubicación en segundo plano mientras estés Online para que puedas recibir pedidos.",
         "NSLocationWhenInUseUsageDescription": "Tiendi Go usa tu ubicación para mostrarte pedidos cercanos.",
@@ -41,11 +43,12 @@
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
+          "apiKey": "AIzaSyDHk3r2823tPzYW6wC9X8v_raDC7h6g3qY"
         }
       }
     },
@@ -75,7 +78,9 @@
           "icon": "./assets/notification-icon.png",
           "color": "#F97316",
           "defaultChannel": "default",
-          "sounds": ["./assets/sounds/offer.wav"],
+          "sounds": [
+            "./assets/sounds/offer.wav"
+          ],
           "enableBackgroundRemoteNotifications": true
         }
       ],
@@ -89,6 +94,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3d4dc245-6ab9-4853-be82-09a29a49485c"
+      }
+    },
+    "owner": "tiendi"
   }
 }
