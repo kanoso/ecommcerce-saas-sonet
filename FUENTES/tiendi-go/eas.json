@@ -17,16 +17,16 @@
       "android": {
         "buildType": "apk"
       },
+      "prebuildCommand": "npx expo prebuild --no-install && sed -i 's|services.gradle.org/distributions|downloads.gradle-dn.com/distributions|' android/gradle/wrapper/gradle-wrapper.properties && node scripts/patch-expo-modules-core.js",
       "cache": {
-        "key": "gradle-8.13-v1",
+        "key": "gradle-8.13-cdn-v2",
         "paths": [
           "~/.gradle/wrapper/dists",
           "~/.gradle/caches"
         ]
       },
       "env": {
-        "APP_ENV": "preview",
-        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
+        "APP_ENV": "preview"
       }
     },
     "production": {
