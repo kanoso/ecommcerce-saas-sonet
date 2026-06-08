@@ -17,7 +17,7 @@
       "android": {
         "buildType": "apk"
       },
-      "prebuildCommand": "npx expo prebuild --no-install && node scripts/patch-expo-modules-core.js",
+      "prebuildCommand": "sh scripts/eas-prebuild.sh",
       "cache": {
         "key": "gradle-8.13-cdn-v2",
         "paths": [
