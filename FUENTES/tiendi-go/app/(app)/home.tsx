@@ -55,8 +55,8 @@ export default function HomeScreen() {
         longitudeDelta: 0.02,
       }
     : {
-        latitude: -34.6037,
-        longitude: -58.3816,
+        latitude: -12.0464,
+        longitude: -77.0428,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       };
