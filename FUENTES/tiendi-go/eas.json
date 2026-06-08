@@ -17,8 +17,16 @@
       "android": {
         "buildType": "apk"
       },
+      "cache": {
+        "key": "gradle-8.13-v1",
+        "paths": [
+          "~/.gradle/wrapper/dists",
+          "~/.gradle/caches"
+        ]
+      },
       "env": {
-        "APP_ENV": "preview"
+        "APP_ENV": "preview",
+        "GRADLE_OPTS": "-Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
       }
     },
     "production": {
