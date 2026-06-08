@@ -2,7 +2,33 @@ const { withDangerousMod } = require('expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
-// Patch: expo-modules-core build.gradle uses getByName() for worklets tasks,
+// Patch 1: Expo SDK 56 template sets distributionUrl to downloads.gradle-dn.com
+// which fails DNS resolution on some EAS build workers. Revert to the official
+// services.gradle.org URL and increase networkTimeout from 10s to 60s so the
+// download has enough time on congested workers.
+const withGradleWrapperFix = (config) =>
+  withDangerousMod(config, [
+    'android',
+    (config) => {
+      const wrapperProps = path.join(
+        config.modRequest.platformProjectRoot,
+        'gradle',
+        'wrapper',
+        'gradle-wrapper.properties'
+      );
+      if (!fs.existsSync(wrapperProps)) return config;
+
+      let content = fs.readFileSync(wrapperProps, 'utf8');
+      content = content
+        .replace(/downloads\.gradle-dn\.com\/distributions/g, 'services.gradle.org/distributions')
+        .replace(/networkTimeout=\d+/, 'networkTimeout=60000');
+      fs.writeFileSync(wrapperProps, content, 'utf8');
+      console.log('[app.plugin] Gradle wrapper: CDN → services.gradle.org, timeout → 60s');
+      return config;
+    },
+  ]);
+
+// Patch 2: expo-modules-core build.gradle uses getByName() for worklets tasks,
 // which throws when react-native-worklets 0.8.x uses Prefab and does not produce
 // mergeDebugNativeLibs/mergeReleaseNativeLibs. Switch to findByName() with null
 // checks so the build continues gracefully when those tasks are absent.
@@ -49,4 +75,8 @@ const withWorkletsTaskFix = (config) =>
     },
   ]);
 
-module.exports = withWorkletsTaskFix;
+module.exports = (config) => {
+  config = withGradleWrapperFix(config);
+  config = withWorkletsTaskFix(config);
+  return config;
+};
