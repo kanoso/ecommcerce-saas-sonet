@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { ridersService } from '@/services/riders.service';
 import { useAuthStore } from '@/stores/auth.store';
 import type { OperationalStatus, Rider, Vehicle } from '@/types/rider.types';
+import { computeLevel } from '@/utils/level';
 
 type StatusOption = { key: OperationalStatus; label: string };
 
@@ -44,6 +46,8 @@ export default function ProfileScreen() {
   const [rider, setRider] = useState<Rider | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [pauseRemaining, setPauseRemaining] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     ridersService
@@ -52,6 +56,40 @@ export default function ProfileScreen() {
       .catch(() => null)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    const pauseStartedAt = rider?.pauseStartedAt;
+    if (rider?.operationalStatus !== 'ON_BREAK' || !pauseStartedAt) {
+      setPauseRemaining(0);
+      return;
+    }
+
+    // MUST stay in sync with tiendi-api riders-jobs.service.ts (4h ON_BREAK limit)
+    const PAUSE_LIMIT_SECONDS = 4 * 60 * 60;
+    const computeRemaining = () =>
+      Math.max(
+        0,
+        PAUSE_LIMIT_SECONDS -
+          Math.floor((Date.now() - new Date(pauseStartedAt).getTime()) / 1000),
+      );
+
+    setPauseRemaining(computeRemaining());
+    intervalRef.current = setInterval(() => {
+      setPauseRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [rider?.operationalStatus, rider?.pauseStartedAt]);
 
   const handleStatusChange = async (status: OperationalStatus) => {
     if (!rider || rider.status !== 'ACTIVE') return;
@@ -201,6 +239,30 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Pause countdown — visible only when ON_BREAK */}
+        {operationalStatus === 'ON_BREAK' && rider?.pauseStartedAt != null && (
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionHeader}>Pausa activa</Text>
+            <View style={styles.pauseCard}>
+              <View style={styles.pauseCountdownRow}>
+                <Text style={styles.pauseLabel}>Pasás a no disponible en</Text>
+                <Text style={[styles.pauseTime, pauseRemaining < 300 && styles.pauseTimeUrgent]}>
+                  {`${String(Math.floor(pauseRemaining / 60)).padStart(2, '0')}:${String(pauseRemaining % 60).padStart(2, '0')}`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.resumeBtn, pauseRemaining === 0 && styles.resumeBtnDisabled]}
+                onPress={() => handleStatusChange('ONLINE')}
+                disabled={statusLoading || pauseRemaining === 0}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: pauseRemaining === 0 }}
+              >
+                <Text style={styles.resumeBtnText}>Reanudar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Datos personales */}
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionHeader}>Datos personales</Text>
@@ -258,7 +320,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           {activeVehicle ? (
-            <View style={[styles.sectionRow, styles.sectionRowLast]}>
+            <View style={styles.sectionRow}>
               <Text style={styles.vehicleIcon}>
                 {activeVehicle.type === 'Motocicleta'
                   ? '🏍️'
@@ -277,10 +339,19 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={[styles.sectionRow, styles.sectionRowLast]}>
+            <View style={styles.sectionRow}>
               <Text style={styles.rowValue}>Sin vehículo registrado</Text>
             </View>
           )}
+          <Pressable
+            style={[styles.sectionRow, styles.sectionRowLast]}
+            onPress={() => router.push('/(app)/vehicle-change-request')}
+            accessibilityRole="button"
+          >
+            <View style={styles.sectionRowInner}>
+              <Text style={styles.changeVehicleLink}>Cambiar vehículo →</Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* Métricas */}
@@ -294,12 +365,32 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </View>
-          <View style={[styles.sectionRow, styles.sectionRowLast]}>
+          <View style={styles.sectionRow}>
             <View style={styles.sectionRowInner}>
-              <Text style={styles.rowLabel}>Nivel</Text>
-              <Text style={styles.rowValue}>Bronce</Text>
+              <Text style={styles.rowLabel}>Entregas calificadas</Text>
+              <Text style={styles.rowValue}>{rider?.ratingCount ?? 0} entregas calificadas</Text>
             </View>
           </View>
+          {rider?.wallet?.totalEarned != null && (
+            <View style={styles.sectionRow}>
+              <View style={styles.sectionRowInner}>
+                <Text style={styles.rowLabel}>Total ganado</Text>
+                <Text style={styles.rowValue}>
+                  {'$' + rider.wallet.totalEarned.toLocaleString('es-CO')}
+                </Text>
+              </View>
+            </View>
+          )}
+          {computeLevel(rider?.ratingAvg ?? 0, rider?.ratingCount ?? 0) != null && (
+            <View style={[styles.sectionRow, styles.sectionRowLast]}>
+              <View style={styles.sectionRowInner}>
+                <Text style={styles.rowLabel}>Nivel</Text>
+                <Text style={styles.rowValue}>
+                  {computeLevel(rider?.ratingAvg ?? 0, rider?.ratingCount ?? 0)}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Configuración */}
@@ -545,5 +636,58 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.error,
+  },
+
+  // Pause countdown
+  pauseCard: {
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.card2,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  pauseCountdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pauseLabel: {
+    fontSize: 13,
+    color: Colors.text2,
+    fontWeight: '500',
+    flex: 1,
+  },
+  pauseTime: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.warning,
+    fontVariant: ['tabular-nums'],
+  },
+  pauseTimeUrgent: {
+    color: Colors.error,
+  },
+  resumeBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  resumeBtnDisabled: {
+    opacity: 0.4,
+  },
+  resumeBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+
+  // Change vehicle link
+  changeVehicleLink: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });
