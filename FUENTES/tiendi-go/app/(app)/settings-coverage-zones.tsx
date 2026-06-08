@@ -92,7 +92,7 @@ export default function SettingsCoverageZonesScreen() {
       await ridersService.updateCoverageZones([zone]);
       await refreshProfile();
       Toast.show({ type: 'success', text1: 'Zona guardada' });
-      router.back();
+      router.replace('/(app)/settings');
     } catch {
       Toast.show({
         type: 'error',
@@ -120,7 +120,7 @@ export default function SettingsCoverageZonesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(app)/settings')}
           accessibilityRole="button"
           accessibilityLabel="Volver"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

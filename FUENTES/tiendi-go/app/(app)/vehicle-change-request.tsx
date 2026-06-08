@@ -101,7 +101,7 @@ export default function VehicleChangeRequestScreen() {
         const url = await uploadPhoto(uri);
         documentUrls.push(url);
       }
-      await ridersService.createVehicleChangeRequest({
+      await ridersService.requestVehicleChange({
         vehicleType,
         plate: plate.trim(),
         brand: brand.trim() || undefined,
@@ -113,7 +113,7 @@ export default function VehicleChangeRequestScreen() {
         text1: 'Solicitud enviada',
         text2: 'Revisaremos tu solicitud y te avisaremos.',
       });
-      router.back();
+      router.replace('/(app)/profile');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'No se pudo enviar la solicitud.';
       if (msg === 'Ya tenés una solicitud pendiente.') {
@@ -170,7 +170,7 @@ export default function VehicleChangeRequestScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.replace('/(app)/profile')} style={styles.backButton}>
             <Text style={styles.backText}>‹ Volver</Text>
           </TouchableOpacity>
           <Text style={styles.screenTitle}>Solicitar cambio de vehículo</Text>

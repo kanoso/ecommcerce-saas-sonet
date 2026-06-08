@@ -136,7 +136,7 @@ export default function SettingsScheduleScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(app)/settings')}
           accessibilityRole="button"
           accessibilityLabel="Volver"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

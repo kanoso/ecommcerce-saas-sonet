@@ -71,7 +71,7 @@ export default function DeliveryScreen() {
       <SafeAreaView style={styles.root}>
         <View style={styles.empty}>
           <Text style={styles.emptyText}>Cargando entrega…</Text>
-          <Button label="Volver" variant="secondary" onPress={() => router.back()} />
+          <Button label="Volver" variant="secondary" onPress={() => router.replace('/(app)/home')} />
         </View>
       </SafeAreaView>
     );

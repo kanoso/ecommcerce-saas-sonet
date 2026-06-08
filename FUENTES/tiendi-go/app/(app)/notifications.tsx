@@ -118,7 +118,7 @@ export default function NotificationsScreen() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(app)/home')}
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel="Volver"

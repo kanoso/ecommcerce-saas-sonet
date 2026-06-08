@@ -45,7 +45,7 @@ export default function VehiclesScreen() {
       <View style={styles.nav}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(app)/profile')}
           accessibilityLabel="Volver"
         >
           <Text style={styles.backBtnText}>←</Text>
