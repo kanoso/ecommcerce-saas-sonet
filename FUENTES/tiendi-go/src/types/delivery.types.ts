@@ -70,6 +70,7 @@ export interface CancelDeliveryPayload {
 export interface PickupPayload {
   code: string;
   method: 'qr' | 'manual';
+  photoUrl?: string;
 }
 
 export interface PodPayload {

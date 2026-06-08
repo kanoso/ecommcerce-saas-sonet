@@ -4,6 +4,7 @@ import { useDeliveryStore } from '@/stores/delivery.store';
 import { useLocationStore } from '@/stores/location.store';
 import { getSocket } from '@/services/socket';
 import { api } from '@/services/api';
+import { enqueueGpsSample } from '@/stores/gps-queue.store';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -80,16 +81,22 @@ export function emitSample(loc: Location.LocationObject): void {
     .catch(() => {});
 
   // REST persistence — /delivery/:id/gps-update (FR-5, TS-5.3)
+  // capturedAt is fixed at emission time so queued entries preserve original capture order
+  const capturedAt = new Date(loc.timestamp).toISOString();
+  const deliveryId = delivery.id;
+
   api
-    .post(`/delivery/${delivery.id}/gps-update`, {
+    .post(`/delivery/${deliveryId}/gps-update`, {
       lat,
       lng,
       accuracy,
       heading,
       speed,
-      capturedAt: new Date(loc.timestamp).toISOString(),
+      capturedAt,
     })
-    .catch(() => {});
+    .catch(() => {
+      enqueueGpsSample({ deliveryId, lat, lng, accuracy, heading, speed, capturedAt });
+    });
 }
 
 // ─── Task registration — MUST be at module scope (FR-1, TS-1.1) ──────────────

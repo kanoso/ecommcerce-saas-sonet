@@ -90,7 +90,9 @@
           "faceIDPermission": "Tiendi Go usa Face ID para que puedas iniciar sesión rápidamente."
         }
       ],
-      "react-native-maps"
+      ["react-native-maps", {
+        "androidGoogleMapsApiKey": "AIzaSyDHk3r2823tPzYW6wC9X8v_raDC7h6g3qY"
+      }]
     ],
     "experiments": {
       "typedRoutes": true
