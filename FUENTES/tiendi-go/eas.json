@@ -17,7 +17,7 @@
       "android": {
         "buildType": "apk"
       },
-      "prebuildCommand": "sh scripts/eas-prebuild.sh",
+      "prebuildCommand": "prebuild --no-install",
       "cache": {
         "key": "gradle-8.13-cdn-v2",
         "paths": [
