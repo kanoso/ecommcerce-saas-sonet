@@ -2,31 +2,7 @@ const { withDangerousMod } = require('expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
-// Patch 1: Redirect Gradle wrapper download to CDN mirror to avoid the
-// 10-second timeout that hits services.gradle.org on EAS build workers.
-const withGradleCdnMirror = (config) =>
-  withDangerousMod(config, [
-    'android',
-    (config) => {
-      const wrapperProps = path.join(
-        config.modRequest.platformProjectRoot,
-        'gradle',
-        'wrapper',
-        'gradle-wrapper.properties'
-      );
-      if (fs.existsSync(wrapperProps)) {
-        const patched = fs.readFileSync(wrapperProps, 'utf8').replace(
-          /services\.gradle\.org\/distributions/g,
-          'downloads.gradle-dn.com/distributions'
-        );
-        fs.writeFileSync(wrapperProps, patched, 'utf8');
-        console.log('[app.plugin] Gradle wrapper URL → CDN mirror');
-      }
-      return config;
-    },
-  ]);
-
-// Patch 2: expo-modules-core build.gradle uses getByName() for worklets tasks,
+// Patch: expo-modules-core build.gradle uses getByName() for worklets tasks,
 // which throws when react-native-worklets 0.8.x uses Prefab and does not produce
 // mergeDebugNativeLibs/mergeReleaseNativeLibs. Switch to findByName() with null
 // checks so the build continues gracefully when those tasks are absent.
@@ -73,8 +49,4 @@ const withWorkletsTaskFix = (config) =>
     },
   ]);
 
-module.exports = (config) => {
-  config = withGradleCdnMirror(config);
-  config = withWorkletsTaskFix(config);
-  return config;
-};
+module.exports = withWorkletsTaskFix;
