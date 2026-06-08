@@ -17,7 +17,7 @@
       "android": {
         "buildType": "apk"
       },
-      "prebuildCommand": "npx expo prebuild --no-install && sed -i 's|services.gradle.org/distributions|downloads.gradle-dn.com/distributions|' android/gradle/wrapper/gradle-wrapper.properties && node scripts/patch-expo-modules-core.js",
+      "prebuildCommand": "npx expo prebuild --no-install && node scripts/patch-expo-modules-core.js",
       "cache": {
         "key": "gradle-8.13-cdn-v2",
         "paths": [
