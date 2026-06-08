@@ -31,11 +31,15 @@ export default function BankAccountScreen() {
       if (rider) {
         setRider({ ...rider, status: 'ACTIVE' });
       }
-    } catch {
-      Alert.alert('Aviso', 'No pudimos confirmar tu cuenta en el servidor, pero podés continuar.');
-    } finally {
       setIsLoading(false);
       router.replace('/(app)/home');
+    } catch {
+      setIsLoading(false);
+      Alert.alert(
+        'Aviso',
+        'No pudimos confirmar tu cuenta en el servidor, pero podés continuar.',
+        [{ text: 'Continuar', onPress: () => router.replace('/(app)/home') }],
+      );
     }
   };
 
