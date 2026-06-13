@@ -216,7 +216,7 @@ export const CHAT_CONFIG = new InjectionToken<ChatConfig>('CHAT_CONFIG', {
   - [x] `listFriends()` → GET /stores/{storeId}/customers?limit=100, mapea a `ParticipantResponse[]`
   - [x] `sendMessage()` → POST /stores/{storeId}/conversations/{customerId}/messages — implementado en commit 7736738
   - [x] `getMessageHistory()` → GET /stores/{storeId}/conversations/{customerId}/messages — implementado en commit 7736738
-- [x] Proveer `CHAT_CONFIG.apiBaseUrl` en `app.config.ts` — agregado `{ provide: CHAT_CONFIG, useValue: { apiBaseUrl: environment.apiUrl } }` en tiendi-vendor; `apiBaseUrl` agregado a `ChatConfig` interface + rebuild de la library
+- [x] Agregar `apiBaseUrl` a `ChatConfig` interface + rebuild de la library — **NOTA:** `provide: CHAT_CONFIG` NO se registra en `app.config.ts` (incompatibilidad Angular 20↔21: `InjectionToken._desc` es protected, `inject(CHAT_CONFIG)` falla en compile-time cross-library). El `VendorChatAdapter` usa `environment.apiUrl` directamente como workaround.
 - [x] Integrar `NgChatTiendi` en el shell via `ChatWidgetComponent` wrapper
 - [x] Tests: 11 unit tests adapter + 2 smoke tests shell — 13/13 ✅
 
