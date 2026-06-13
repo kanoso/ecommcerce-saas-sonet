@@ -19,7 +19,7 @@
       },
       "prebuildCommand": "prebuild --no-install",
       "cache": {
-        "key": "gradle-8.13-cdn-v1",
+        "key": "gradle-8.13-cdn-v3",
         "paths": [
           "~/.gradle/wrapper/dists",
           "~/.gradle/caches"

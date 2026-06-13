@@ -9,8 +9,6 @@ let _instance: MMKV | null = null;
  * Lazy singleton so the native bridge is never called at module-load time.
  * This keeps Jest imports clean and prevents duplicate-instance warnings when
  * multiple modules import this file at the top level.
- *
- * MMKV v4 uses createMMKV() factory — `new MMKV()` is no longer valid.
  */
 export function getSettingsStorage(): MMKV {
   if (_instance === null) {
