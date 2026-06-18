@@ -215,8 +215,13 @@ export const OrdersStore = signalStore(
       patchState(store, { orders, selectedOrder });
     }
 
-    function revertOptimistic(snapshot: Order[]): void {
-      patchState(store, { orders: snapshot, isUpdating: false });
+    function revertOptimistic(snapshot: Order[], selectedSnapshot: Order | null): void {
+      patchState(store, { orders: snapshot, selectedOrder: selectedSnapshot, isUpdating: false });
+    }
+
+    function resolveOrder(id: string): Order | undefined {
+      return store.orders().find((o) => o.id === id)
+        ?? (store.selectedOrder()?.id === id ? store.selectedOrder()! : undefined);
     }
 
     function buildOptimisticHistory(order: Order, newStatus: OrderStatus): Partial<Order> {
@@ -261,7 +266,8 @@ export const OrdersStore = signalStore(
 
       async confirmOrder(id: string): Promise<void> {
         const snapshot = store.orders();
-        const order = snapshot.find((o) => o.id === id);
+        const selectedSnapshot = store.selectedOrder();
+        const order = resolveOrder(id);
         if (!order) return;
         applyOptimistic(id, buildOptimisticHistory(order, 'CONFIRMED'));
         patchState(store, { isUpdating: true });
@@ -269,14 +275,15 @@ export const OrdersStore = signalStore(
           await firstValueFrom(http.put(`${API}/orders/${id}/confirm`, {}));
           patchState(store, { isUpdating: false });
         } catch {
-          revertOptimistic(snapshot);
+          revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al confirmar el pedido.' });
         }
       },
 
       async dispatchOrder(id: string): Promise<void> {
         const snapshot = store.orders();
-        const order = snapshot.find((o) => o.id === id);
+        const selectedSnapshot = store.selectedOrder();
+        const order = resolveOrder(id);
         if (!order) return;
         applyOptimistic(id, buildOptimisticHistory(order, 'DISPATCHED'));
         patchState(store, { isUpdating: true });
@@ -284,14 +291,15 @@ export const OrdersStore = signalStore(
           await firstValueFrom(http.put(`${API}/orders/${id}/dispatch`, {}));
           patchState(store, { isUpdating: false });
         } catch {
-          revertOptimistic(snapshot);
+          revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al despachar el pedido.' });
         }
       },
 
       async deliverOrder(id: string): Promise<void> {
         const snapshot = store.orders();
-        const order = snapshot.find((o) => o.id === id);
+        const selectedSnapshot = store.selectedOrder();
+        const order = resolveOrder(id);
         if (!order) return;
         applyOptimistic(id, buildOptimisticHistory(order, 'DELIVERED'));
         patchState(store, { isUpdating: true });
@@ -299,14 +307,15 @@ export const OrdersStore = signalStore(
           await firstValueFrom(http.put(`${API}/orders/${id}/deliver`, {}));
           patchState(store, { isUpdating: false });
         } catch {
-          revertOptimistic(snapshot);
+          revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al marcar como entregado.' });
         }
       },
 
       async rejectOrder(id: string, reason: string): Promise<void> {
         const snapshot = store.orders();
-        const order = snapshot.find((o) => o.id === id);
+        const selectedSnapshot = store.selectedOrder();
+        const order = resolveOrder(id);
         if (!order) return;
         applyOptimistic(id, {
           ...buildOptimisticHistory(order, 'REJECTED'),
@@ -317,7 +326,7 @@ export const OrdersStore = signalStore(
           await firstValueFrom(http.put(`${API}/orders/${id}/reject`, { reason }));
           patchState(store, { isUpdating: false });
         } catch {
-          revertOptimistic(snapshot);
+          revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al rechazar el pedido.' });
         }
       },
