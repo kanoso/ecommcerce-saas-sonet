@@ -64,10 +64,6 @@ export class ShellComponent implements OnInit {
     this.storeConfigStore.loadStore();
     this.notificationsStore.loadAll();
 
-    // SUPER_ADMIN has no dashboard — redirect to riders panel on first load
-    if (this.authStore.isSuperAdmin() && this.router.url === '/vendor/dashboard') {
-      void this.router.navigate(['/vendor/riders']);
-    }
   }
 
   onMenuToggle(): void {

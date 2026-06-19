@@ -18,17 +18,17 @@ export interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',         icon: 'dashboard',        route: '/vendor/dashboard',    roles: ['STORE_OWNER', 'MANAGER', 'CASHIER'] },
-  { label: 'Pedidos',           icon: 'receipt_long',     route: '/vendor/orders',       roles: ['STORE_OWNER', 'MANAGER', 'CASHIER'] },
-  { label: 'Productos',         icon: 'inventory_2',      route: '/vendor/products',     roles: ['STORE_OWNER', 'MANAGER', 'WAREHOUSE'] },
-  { label: 'Mi Tienda',         icon: 'store',            route: '/vendor/store',        roles: ['STORE_OWNER', 'MANAGER'] },
-  { label: 'Analytics',         icon: 'bar_chart',        route: '/vendor/analytics',    roles: ['STORE_OWNER', 'MANAGER'] },
-  { label: 'Clientes',          icon: 'group',            route: '/vendor/customers',    roles: ['STORE_OWNER', 'MANAGER'] },
-  { label: 'Notificaciones',    icon: 'notifications',    route: '/vendor/notifications',roles: ['STORE_OWNER', 'MANAGER', 'CASHIER'] },
-  { label: 'Staff',             icon: 'manage_accounts',  route: '/vendor/staff',        roles: ['STORE_OWNER'] },
-  { label: 'Facturación y Legal', icon: 'receipt',        route: '/vendor/legal',        roles: ['STORE_OWNER', 'MANAGER'] },
-  { label: 'Plan y Suscripción',  icon: 'credit_card',    route: '/vendor/subscription', roles: ['STORE_OWNER'] },
-  { label: 'Repartidores',        icon: 'person_pin',     route: '/vendor/riders',       roles: ['SUPER_ADMIN'] },
+  { label: 'Dashboard',           icon: 'dashboard',        route: '/vendor/dashboard',    roles: ['STORE_OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'] },
+  { label: 'Pedidos',             icon: 'receipt_long',     route: '/vendor/orders',       roles: ['STORE_OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'] },
+  { label: 'Productos',           icon: 'inventory_2',      route: '/vendor/products',     roles: ['STORE_OWNER', 'MANAGER', 'WAREHOUSE', 'SUPER_ADMIN'] },
+  { label: 'Mi Tienda',           icon: 'store',            route: '/vendor/store',        roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
+  { label: 'Analytics',           icon: 'bar_chart',        route: '/vendor/analytics',    roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
+  { label: 'Clientes',            icon: 'group',            route: '/vendor/customers',    roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
+  { label: 'Notificaciones',      icon: 'notifications',    route: '/vendor/notifications',roles: ['STORE_OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'] },
+  { label: 'Staff',               icon: 'manage_accounts',  route: '/vendor/staff',        roles: ['STORE_OWNER', 'SUPER_ADMIN'] },
+  { label: 'Facturación y Legal', icon: 'receipt',          route: '/vendor/legal',        roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
+  { label: 'Plan y Suscripción',  icon: 'credit_card',      route: '/vendor/subscription', roles: ['STORE_OWNER', 'SUPER_ADMIN'] },
+  { label: 'Repartidores',        icon: 'person_pin',       route: '/vendor/riders',       roles: ['SUPER_ADMIN'] },
 ];
 
 @Component({

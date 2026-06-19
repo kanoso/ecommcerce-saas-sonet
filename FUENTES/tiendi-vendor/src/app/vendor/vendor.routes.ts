@@ -23,7 +23,7 @@ export const VENDOR_ROUTES: Routes = [
     children: [
       {
         path: 'dashboard',
-        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard.page').then((c) => c.DashboardPage),
       },
@@ -64,19 +64,19 @@ export const VENDOR_ROUTES: Routes = [
       },
       {
         path: 'analytics',
-        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/analytics/pages/analytics.page').then((c) => c.AnalyticsPage),
       },
       {
         path: 'customers',
-        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/customers/pages/customers-list.page').then((c) => c.CustomersListPage),
       },
       {
         path: 'customers/:id',
-        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/customers/pages/customer-detail.page').then((c) => c.CustomerDetailPage),
       },
@@ -87,19 +87,19 @@ export const VENDOR_ROUTES: Routes = [
       },
       {
         path: 'staff',
-        canActivate: [roleGuard(['STORE_OWNER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/staff/pages/staff-list.page').then((c) => c.StaffListPage),
       },
       {
         path: 'staff/invite',
-        canActivate: [roleGuard(['STORE_OWNER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/staff/pages/staff-invite.page').then((c) => c.StaffInvitePage),
       },
       {
         path: 'subscription',
-        canActivate: [roleGuard(['STORE_OWNER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/subscription/pages/subscription.page').then((c) => c.SubscriptionPage),
       },
