@@ -32,6 +32,12 @@ export interface StatusHistoryEntry {
   at: string;
 }
 
+export interface AssignedRider {
+  id: string;
+  name: string;
+  phone: string | null;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -50,6 +56,7 @@ export interface Order {
   statusHistory: StatusHistoryEntry[];
   rejectionReason: string | null;
   createdAt: string;
+  rider: AssignedRider | null;
 }
 
 export interface OrderFilters {
@@ -129,6 +136,17 @@ function mapOrder(raw: Record<string, unknown>): Order {
     ],
     rejectionReason: (raw['rejectionReason'] as string | null) ?? null,
     createdAt:       (raw['createdAt'] as string | undefined) ?? new Date().toISOString(),
+    rider: (() => {
+      const delivery = raw['delivery'] as Record<string, unknown> | null | undefined;
+      const riderRaw = delivery?.['rider'] as Record<string, unknown> | null | undefined;
+      if (!riderRaw) return null;
+      const user = riderRaw['user'] as Record<string, unknown> | null | undefined;
+      return {
+        id: riderRaw['id'] as string,
+        name: `${user?.['firstName'] ?? ''} ${user?.['lastName'] ?? ''}`.trim(),
+        phone: (user?.['phone'] as string | null) ?? null,
+      };
+    })(),
   };
 }
 

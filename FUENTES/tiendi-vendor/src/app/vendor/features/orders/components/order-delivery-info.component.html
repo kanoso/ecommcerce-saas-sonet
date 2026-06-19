@@ -13,6 +13,29 @@
           Ver en mapa
         </button>
       </div>
+
+      @if (order().rider) {
+        <div class="rider">
+          <span class="material-symbols-rounded rider__icon" aria-hidden="true">directions_bike</span>
+          <div class="rider__info">
+            <span class="rider__label">Repartidor asignado</span>
+            <span class="rider__name">{{ order().rider!.name }}</span>
+            @if (order().rider!.phone) {
+              <a class="rider__phone" [href]="'tel:' + order().rider!.phone">
+                {{ order().rider!.phone }}
+              </a>
+            }
+          </div>
+        </div>
+      } @else if (order().status === 'DISPATCHED') {
+        <div class="rider rider--searching">
+          <span class="material-symbols-rounded rider__icon" aria-hidden="true">directions_bike</span>
+          <div class="rider__info">
+            <span class="rider__label">Repartidor</span>
+            <span class="rider__name rider__name--searching">Buscando repartidor...</span>
+          </div>
+        </div>
+      }
     </div>
   } @else {
     <div class="pickup">
