@@ -29,31 +29,37 @@ export const VENDOR_ROUTES: Routes = [
       },
       {
         path: 'orders',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE'])],
         loadComponent: () =>
           import('./features/orders/pages/order-list.page').then((c) => c.OrderListPage),
       },
       {
         path: 'orders/:id',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE'])],
         loadComponent: () =>
           import('./features/orders/pages/order-detail.page').then((c) => c.OrderDetailPage),
       },
       {
         path: 'products',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'WAREHOUSE'])],
         loadComponent: () =>
           import('./features/products/pages/product-list.page').then((c) => c.ProductListPage),
       },
       {
         path: 'products/new',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
         loadComponent: () =>
           import('./features/products/pages/product-form.page').then((c) => c.ProductFormPage),
       },
       {
         path: 'products/import',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
         loadComponent: () =>
           import('./features/products/pages/product-import.page').then((c) => c.ProductImportPage),
       },
       {
         path: 'products/:id/edit',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
         loadComponent: () =>
           import('./features/products/pages/product-form.page').then((c) => c.ProductFormPage),
       },
@@ -99,7 +105,7 @@ export const VENDOR_ROUTES: Routes = [
       },
       {
         path: 'store-riders',
-        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
         loadComponent: () =>
           import('./features/store-riders/pages/store-riders-list.page').then(
             (c) => c.StoreRidersListPage

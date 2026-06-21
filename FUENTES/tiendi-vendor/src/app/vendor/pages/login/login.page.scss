@@ -154,27 +154,61 @@
 .login__hint-title {
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 6px;
+  margin: 0 0 8px;
 }
 
-.login__hint-list {
-  list-style: none;
-  margin: 0 0 6px;
-  padding: 0;
+.login__hint-sub {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.login__hint-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.login__hint-card {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  color: var(--text-secondary);
+  gap: 2px;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  user-select: text;
+
+  &:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 15%, transparent);
+  }
 }
 
-.login__hint-list code {
+.login__hint-role {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.login__hint-email {
+  font-size: 11px;
+  color: var(--text);
   font-family: monospace;
-  color: var(--primary-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.login__hint-pwd {
-  color: var(--text-secondary);
-  margin: 0;
+.login__hint-pass {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
 }
 
 @media (max-width: 480px) {

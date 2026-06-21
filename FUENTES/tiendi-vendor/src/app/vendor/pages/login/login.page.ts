@@ -28,6 +28,15 @@ export class LoginPage implements OnInit {
 
   loginError: string | null = null;
 
+  readonly testUsers = [
+    { email: 'hector@tiendi.app',  password: 'Tiendi2024!', role: 'STORE_OWNER' },
+    { email: 'carlos@tiendi.app',  password: 'Test123!',    role: 'STORE_OWNER' },
+    { email: 'maria@tiendi.app',   password: 'Test123!',    role: 'MANAGER'     },
+    { email: 'juan@tiendi.app',    password: 'Test123!',    role: 'CASHIER'     },
+    { email: 'rosa@tiendi.app',    password: 'Test123!',    role: 'WAREHOUSE'   },
+    { email: 'admin@tiendi.app',   password: 'Admin2024!',  role: 'SUPER_ADMIN' },
+  ];
+
   form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
@@ -47,6 +56,11 @@ export class LoginPage implements OnInit {
       const dest = this.authStore.isSuperAdmin() ? '/vendor/riders' : '/vendor/dashboard';
       void this.router.navigate([dest]);
     }
+  }
+
+  fillAs(user: { email: string; password: string }): void {
+    this.form.setValue({ email: user.email, password: user.password });
+    this.loginError = null;
   }
 
   async onSubmit(): Promise<void> {

@@ -60,14 +60,17 @@
     </form>
 
     <div class="login__hint">
-      <p class="login__hint-title">🧪 Usuarios de prueba:</p>
-      <ul class="login__hint-list">
-        <li><code>carlos&#64;tiendi.app</code> — STORE_OWNER</li>
-        <li><code>maria&#64;tiendi.app</code> — MANAGER</li>
-        <li><code>juan&#64;tiendi.app</code> — CASHIER</li>
-        <li><code>rosa&#64;tiendi.app</code> — WAREHOUSE</li>
-      </ul>
-      <p class="login__hint-pwd">Password: cualquiera</p>
+      <p class="login__hint-title">🧪 Usuarios de prueba <span class="login__hint-sub">(clic para autocompletar)</span></p>
+      <div class="login__hint-grid">
+        @for (u of testUsers; track u.email) {
+          <div class="login__hint-card" (click)="fillAs(u)" role="button" tabindex="0"
+               (keydown.enter)="fillAs(u)" (keydown.space)="fillAs(u)">
+            <span class="login__hint-role">{{ u.role }}</span>
+            <span class="login__hint-email" (click)="$event.stopPropagation()">{{ u.email }}</span>
+            <span class="login__hint-pass" (click)="$event.stopPropagation()">{{ u.password }}</span>
+          </div>
+        }
+      </div>
     </div>
   </div>
 </div>

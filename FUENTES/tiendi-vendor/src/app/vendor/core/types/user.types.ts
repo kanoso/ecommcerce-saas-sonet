@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: Role;
   storeId: string | null;
+  storeRole: string | null;
   avatar: string | null;
 }
 
@@ -24,6 +25,7 @@ export interface ApiAuthResponse {
     name: string;
     role: string;
     storeId: string | null;
+    storeRole?: string | null;
     avatarUrl?: string | null;
   };
 }

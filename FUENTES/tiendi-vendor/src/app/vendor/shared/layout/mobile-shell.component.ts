@@ -11,6 +11,7 @@ import { BottomNavComponent } from './bottom-nav.component';
 import { DrawerComponent } from '../ui/organisms/drawer.component';
 import { SidebarComponent } from './sidebar.component';
 import { AuthStore } from '../../core/services/auth.store';
+import type { Role } from '../../core/types';
 import { NotificationsStore } from '../../features/notifications/notifications.store';
 
 @Component({
@@ -28,7 +29,11 @@ export class MobileShellComponent {
 
   moreDrawerOpen = signal(false);
 
-  userRole = computed(() => this.authStore.currentUser()?.role ?? 'CASHIER');
+  userRole = computed(() => {
+    const u = this.authStore.currentUser();
+    if (!u) return 'CASHIER' as const;
+    return (u.role === 'EMPLOYEE' && u.storeRole ? u.storeRole : u.role) as Role;
+  });
   storeName = computed(() => this.authStore.currentUser()?.name ?? 'Mi Tienda');
   unreadCount = this.notificationsStore.unreadCount;
 

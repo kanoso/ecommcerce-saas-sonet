@@ -13,6 +13,7 @@ import { TopbarComponent } from './topbar.component';
 import { SidebarComponent } from './sidebar.component';
 import { MobileShellComponent } from './mobile-shell.component';
 import { AuthStore } from '../../core/services/auth.store';
+import type { Role } from '../../core/types';
 import { StoreConfigStore } from '../../features/store-config/store-config.store';
 import { NotificationsStore } from '../../features/notifications/notifications.store';
 
@@ -51,7 +52,11 @@ export class ShellComponent implements OnInit {
   isTablet = toSignal(this.isTablet$, { initialValue: false });
 
   protected readonly currentUserId = computed(() => this.authStore.currentUser()?.id ?? null);
-  userRole = computed(() => this.authStore.currentUser()?.role ?? 'CASHIER');
+  userRole = computed(() => {
+    const u = this.authStore.currentUser();
+    if (!u) return 'CASHIER' as const;
+    return (u.role === 'EMPLOYEE' && u.storeRole ? u.storeRole : u.role) as Role;
+  });
   storeName = computed(() => this.storeConfigStore.info().name || 'Mi Tienda');
   userName = computed(() => this.authStore.currentUser()?.name ?? '');
   userEmail = computed(() => this.authStore.currentUser()?.email ?? '');

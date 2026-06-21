@@ -29,8 +29,10 @@ export const AuthStore = signalStore(
     currentUser: computed(() => user()),
     isVendor: computed(() => {
       const vendorRoles: Role[] = ['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE'];
-      const role = user()?.role;
-      return role != null && vendorRoles.includes(role);
+      const u = user();
+      if (!u) return false;
+      const effectiveRole = u.role === 'EMPLOYEE' && u.storeRole ? u.storeRole as Role : u.role;
+      return vendorRoles.includes(effectiveRole);
     }),
     isSuperAdmin: computed(() => user()?.role === 'SUPER_ADMIN'),
   })),
@@ -83,6 +85,7 @@ export const AuthStore = signalStore(
               email: raw.user.email,
               role: raw.user.role as Role,
               storeId: raw.user.storeId ?? null,
+              storeRole: raw.user.storeRole ?? null,
               avatar: raw.user.avatarUrl ?? null,
             },
           };
@@ -117,6 +120,7 @@ export const AuthStore = signalStore(
             email: raw.email,
             role: raw.role as Role,
             storeId: raw.storeId ?? null,
+            storeRole: raw.storeRole ?? null,
             avatar: raw.avatarUrl ?? null,
           };
           patchState(store, { user: updatedUser });

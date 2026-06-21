@@ -15,12 +15,16 @@ export function roleGuard(roles: Role[]): CanActivateFn {
     const auth = inject(AuthStore);
     const ui = inject(UiStore);
     const user = auth.currentUser();
+    if (!user) {
+      ui.addToast({ message: 'No tenés permiso para acceder a esta sección', type: 'error' });
+      return false;
+    }
 
-    if (!user || !roles.includes(user.role)) {
-      ui.addToast({
-        message: 'No tenés permiso para acceder a esta sección',
-        type: 'error',
-      });
+    const effectiveRole: Role =
+      user.role === 'EMPLOYEE' && user.storeRole ? (user.storeRole as Role) : user.role;
+
+    if (!roles.includes(effectiveRole)) {
+      ui.addToast({ message: 'No tenés permiso para acceder a esta sección', type: 'error' });
       return false;
     }
 
