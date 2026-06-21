@@ -1,0 +1,104 @@
+<div class="riders-page">
+
+  @if (!hasStoreId()) {
+    <td-empty-state
+      icon="store"
+      title="Sin tienda seleccionada"
+      message="Seleccioná una tienda para ver sus repartidores."
+    />
+  } @else {
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar__info">
+      <h2 class="toolbar__title">Mis Repartidores</h2>
+      @if (store.hasRiders()) {
+        <span class="toolbar__sub">
+          {{ store.riders().length }} repartidor{{ store.riders().length !== 1 ? 'es' : '' }} vinculado{{ store.riders().length !== 1 ? 's' : '' }}
+        </span>
+      }
+    </div>
+    <td-button
+      label="Invitar repartidor"
+      icon="person_add"
+      variant="primary"
+      (clicked)="openInvite()"
+    />
+  </div>
+
+  <!-- Loading state -->
+  @if (store.isLoading()) {
+    <div class="loading" role="status" aria-live="polite">
+      <span>Cargando repartidores...</span>
+    </div>
+  } @else if (store.error()) {
+    <!-- Error state -->
+    <div class="error-banner" role="alert">
+      <p class="error-banner__text">{{ store.error() }}</p>
+      <td-button
+        label="Reintentar"
+        variant="ghost"
+        size="sm"
+        (clicked)="store.loadRiders()"
+      />
+    </div>
+  } @else {
+    <!-- Rider list -->
+    @if (store.hasRiders()) {
+      <div class="riders-grid">
+        @for (rider of store.riders(); track rider.id) {
+          <app-rider-card
+            [rider]="rider"
+            (statusChange)="onStatusChange($event)"
+            (remove)="onRemove($event)"
+          />
+        }
+      </div>
+    } @else {
+      <!-- Empty state -->
+      <td-empty-state
+        icon="delivery_dining"
+        title="No tenés repartidores vinculados"
+        message="Invitá un repartidor por número de teléfono para que pueda recibir pedidos de tu tienda."
+        actionLabel="Invitar repartidor"
+        (action)="openInvite()"
+      />
+    }
+  }
+
+  <!-- Invite dialog -->
+  <app-invite-rider-dialog
+    [visible]="inviteOpen()"
+    [isSaving]="store.isActing()"
+    (submitted)="onInviteSubmit($event)"
+    (closed)="closeInvite()"
+  />
+
+  <!-- Confirm remove dialog -->
+  <td-dialog
+    title="Quitar repartidor"
+    size="sm"
+    [visible]="!!confirmRemove()"
+    (closed)="cancelRemove()"
+  >
+    <p class="confirm-text">
+      ¿Confirmás que querés quitar a <strong>{{ confirmRemove()?.name }}</strong> de tu tienda?
+    </p>
+    <div slot="footer" class="dialog-footer">
+      <td-button
+        label="Cancelar"
+        variant="ghost"
+        (clicked)="cancelRemove()"
+      />
+      <td-button
+        label="Quitar"
+        variant="danger"
+        [loading]="store.isActing()"
+        (clicked)="confirmRemoveYes()"
+      />
+    </div>
+  </td-dialog>
+
+  } <!-- end @else hasStoreId -->
+
+</div>

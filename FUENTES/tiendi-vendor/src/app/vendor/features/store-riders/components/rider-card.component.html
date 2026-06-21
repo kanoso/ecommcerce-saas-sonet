@@ -1,0 +1,62 @@
+<div class="rider-card">
+  <!-- Left: avatar + info -->
+  <div class="rider-card__info">
+    <td-avatar
+      [name]="rider().name"
+      [imageUrl]="rider().avatarUrl"
+      size="md"
+    />
+    <div class="rider-card__meta">
+      <span class="rider-card__name">{{ rider().name }}</span>
+      @if (rider().phone) {
+        <span class="rider-card__phone">{{ rider().phone }}</span>
+      }
+      @if (operationalLabel()) {
+        <span class="rider-card__operational" aria-label="Estado operativo: {{ operationalLabel() }}">
+          {{ operationalLabel() }}
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- Right: status tag + actions -->
+  <div class="rider-card__actions">
+    <td-tag [variant]="tagVariant()" [label]="tagLabel()" />
+
+    @if (rider().trustStatus === 'PENDING') {
+      <span class="rider-card__waiting" aria-label="Esperando que el repartidor acepte la invitación">
+        Esperando aceptación...
+      </span>
+    }
+
+    @if (rider().trustStatus === 'ACTIVE') {
+      <td-button
+        label="Suspender"
+        variant="ghost"
+        size="sm"
+        (clicked)="onSuspend()"
+      />
+      <td-button
+        label="Quitar"
+        variant="danger"
+        size="sm"
+        (clicked)="onRemove()"
+      />
+    }
+
+    @if (rider().trustStatus === 'SUSPENDED') {
+      <td-button
+        label="Activar"
+        variant="secondary"
+        size="sm"
+        (clicked)="onActivate()"
+      />
+      <td-button
+        label="Quitar"
+        variant="danger"
+        size="sm"
+        (clicked)="onRemove()"
+      />
+    }
+  </div>
+</div>

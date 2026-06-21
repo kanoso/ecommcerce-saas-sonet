@@ -26,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Clientes',            icon: 'group',            route: '/vendor/customers',    roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
   { label: 'Notificaciones',      icon: 'notifications',    route: '/vendor/notifications',roles: ['STORE_OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'] },
   { label: 'Staff',               icon: 'manage_accounts',  route: '/vendor/staff',        roles: ['STORE_OWNER', 'SUPER_ADMIN'] },
+  { label: 'Mis Repartidores',    icon: 'delivery_dining',  route: '/vendor/store-riders', roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
   { label: 'Facturación y Legal', icon: 'receipt',          route: '/vendor/legal',        roles: ['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'] },
   { label: 'Plan y Suscripción',  icon: 'credit_card',      route: '/vendor/subscription', roles: ['STORE_OWNER', 'SUPER_ADMIN'] },
   { label: 'Repartidores',        icon: 'person_pin',       route: '/vendor/riders',       roles: ['SUPER_ADMIN'] },

@@ -98,6 +98,14 @@ export const VENDOR_ROUTES: Routes = [
           import('./features/staff/pages/staff-invite.page').then((c) => c.StaffInvitePage),
       },
       {
+        path: 'store-riders',
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'])],
+        loadComponent: () =>
+          import('./features/store-riders/pages/store-riders-list.page').then(
+            (c) => c.StoreRidersListPage
+          ),
+      },
+      {
         path: 'subscription',
         canActivate: [roleGuard(['STORE_OWNER', 'SUPER_ADMIN'])],
         loadComponent: () =>

@@ -1,0 +1,42 @@
+<td-dialog
+  title="Invitar repartidor"
+  size="sm"
+  [visible]="visible()"
+  (closed)="onClose()"
+>
+  <form [formGroup]="form" class="invite-form" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label class="form-label" for="rider-phone">
+        Número de teléfono <span class="req" aria-hidden="true">*</span>
+      </label>
+      <input
+        id="rider-phone"
+        class="form-input"
+        type="tel"
+        formControlName="phone"
+        placeholder="+54 11 1234 5678"
+        autocomplete="tel"
+        aria-describedby="rider-phone-error"
+      />
+      @if (form.controls['phone'].invalid && form.controls['phone'].touched) {
+        <span id="rider-phone-error" class="form-error" role="alert">
+          Ingresá un número de teléfono válido.
+        </span>
+      }
+    </div>
+  </form>
+
+  <div slot="footer" class="invite-footer">
+    <td-button
+      label="Cancelar"
+      variant="ghost"
+      (clicked)="onClose()"
+    />
+    <td-button
+      label="Enviar invitación"
+      variant="primary"
+      [loading]="isSaving()"
+      (clicked)="onSubmit()"
+    />
+  </div>
+</td-dialog>

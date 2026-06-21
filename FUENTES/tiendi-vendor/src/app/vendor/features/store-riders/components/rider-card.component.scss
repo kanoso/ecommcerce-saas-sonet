@@ -1,0 +1,58 @@
+.rider-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rider-card__info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rider-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rider-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rider-card__phone {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.rider-card__operational {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rider-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.rider-card__waiting {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
