@@ -9,6 +9,7 @@ export type NotificationType =
   | 'rider-status'
   | 'withdrawal'
   | 'cash-pending'
+  | 'store-invite'
   | 'generic';
 
 export interface NotificationPayloadData {

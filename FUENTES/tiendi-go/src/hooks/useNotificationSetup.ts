@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { ridersService } from '@/services/riders.service';
 import type { NotificationPayloadData } from '@/types/notification.types';
 import { addInboxNotification } from '@/stores/notification-inbox.store';
+import { useStoreInvitationStore } from '@/stores/store-invitation.store';
 
 // Android notification channel IDs — must match the channelId the backend sends in FCM payload.
 export const CHANNEL_OFFERS = 'offers';
@@ -94,6 +95,16 @@ export function useNotificationSetup(): void {
 
       if (data?.type === 'delivery-offer') {
         Vibration.vibrate(OFFER_VIBRATION_MS);
+      }
+
+      // Store invitation — set state and suppress default toast/inbox entry.
+      if (data?.type === 'store-invite' && data.storeId && data.storeName) {
+        useStoreInvitationStore.getState().setInvitation({
+          storeId: String(data.storeId),
+          storeName: String(data.storeName),
+          storeLogoUrl: data.storeLogoUrl ? String(data.storeLogoUrl) : null,
+        });
+        return;
       }
 
       Toast.show({

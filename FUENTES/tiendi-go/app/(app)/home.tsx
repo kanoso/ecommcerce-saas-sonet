@@ -10,7 +10,9 @@ import { useLocationStore } from '@/stores/location.store';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { ridersService } from '@/services/riders.service';
 import { OfferCard } from '@/components/delivery/OfferCard';
+import { InviteCard } from '@/components/store/InviteCard';
 import { getUnreadCount } from '@/stores/notification-inbox.store';
+import { useStoreInvitationStore } from '@/stores/store-invitation.store';
 
 const WEAK_SIGNAL_THRESHOLD_M = 50;
 
@@ -19,6 +21,7 @@ export default function HomeScreen() {
   const setRider = useAuthStore((s) => s.setRider);
   const coords = useLocationStore((s) => s.coords);
   const offer = useDeliveryStore((s) => s.offer);
+  const invitation = useStoreInvitationStore((s) => s.invitation);
   const [toggling, setToggling] = useState(false);
   const [unreadCount, setUnreadCount] = useState(() => getUnreadCount());
 
@@ -110,6 +113,7 @@ export default function HomeScreen() {
       {isOnline ? <View testID="status-online" style={styles.onlineIndicator} /> : null}
 
       {offer ? <OfferCard /> : null}
+      {invitation && !offer ? <InviteCard /> : null}
 
       {/* Bell button — absolute, above the map, top-left of the toggle area */}
       <Pressable
