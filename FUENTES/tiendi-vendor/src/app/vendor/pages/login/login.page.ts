@@ -34,6 +34,7 @@ export class LoginPage implements OnInit {
     { email: 'maria@tiendi.app',   password: 'Test123!',    role: 'MANAGER'     },
     { email: 'juan@tiendi.app',    password: 'Test123!',    role: 'CASHIER'     },
     { email: 'rosa@tiendi.app',    password: 'Test123!',    role: 'WAREHOUSE'   },
+    { email: 'pedro@tiendi.app',   password: 'Test123!',    role: 'RIDER'       },
     { email: 'admin@tiendi.app',   password: 'Admin2024!',  role: 'SUPER_ADMIN' },
   ];
 
