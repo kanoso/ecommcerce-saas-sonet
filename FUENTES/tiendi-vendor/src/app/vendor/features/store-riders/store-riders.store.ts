@@ -22,6 +22,18 @@ export interface StoreRider {
   operationalStatus: OperationalStatus | null;
 }
 
+export interface RiderSearchResult {
+  id: string;
+  user: {
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    avatarUrl: string | null;
+  };
+  operationalStatus: string | null;
+  ratingAvg: number | null;
+}
+
 // Raw DTO from the API
 interface TrustedRiderDto {
   id: string;
@@ -42,6 +54,11 @@ interface StoreRidersState {
   isLoading: boolean;
   isActing: boolean;
   error: string | null;
+  // Search state
+  searchQuery: string;
+  searchResults: RiderSearchResult[];
+  searchLoading: boolean;
+  searchError: string | null;
 }
 
 const initialState: StoreRidersState = {
@@ -49,6 +66,11 @@ const initialState: StoreRidersState = {
   isLoading: false,
   isActing: false,
   error: null,
+  // Search initial state
+  searchQuery: '',
+  searchResults: [],
+  searchLoading: false,
+  searchError: null,
 };
 
 // --- DTO → ViewModel mapping ---
@@ -79,6 +101,17 @@ function inviteErrorMessage(err: unknown): string {
   }
 }
 
+function inviteByIdErrorMessage(err: unknown): string {
+  const httpErr = err as { status?: number; error?: { message?: string } };
+  switch (httpErr?.status) {
+    case 403: return 'No tenés permisos para esta tienda.';
+    case 404: return 'No se encontró el repartidor.';
+    case 409: return 'Este repartidor ya está vinculado a tu tienda.';
+    case 422: return 'El repartidor aún no está aprobado en la plataforma.';
+    default:  return httpErr?.error?.message ?? 'No se pudo enviar la invitación.';
+  }
+}
+
 // --- Store ---
 
 export const StoreRidersStore = signalStore(
@@ -95,6 +128,10 @@ export const StoreRidersStore = signalStore(
     const http      = inject(HttpClient);
     const authStore = inject(AuthStore);
     const ui        = inject(UiStore);
+
+    // Debounce handle for searchRiders — closure var.
+    // Note: this is acceptable in a root store (singleton); no memory leak risk.
+    let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     function sid(): string {
       return authStore.currentUser()?.storeId ?? '';
@@ -113,6 +150,23 @@ export const StoreRidersStore = signalStore(
       } catch {
         patchState(store, { isLoading: false, error: 'No se pudo cargar la lista de repartidores.' });
       }
+    }
+
+    async function fetchSearchResults(storeId: string, q?: string, limit = 10): Promise<RiderSearchResult[]> {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (q !== undefined && q !== '') params.set('q', q);
+      const result = await firstValueFrom(
+        http.get<{ data: RiderSearchResult[]; total: number }>(
+          `${API}/stores/${storeId}/riders/search?${params}`
+        )
+      );
+      return result.data;
+    }
+
+    async function httpInviteById(storeId: string, riderId: string): Promise<void> {
+      await firstValueFrom(
+        http.post<void>(`${API}/stores/${storeId}/riders/invite-by-id`, { riderId })
+      );
     }
 
     return {
@@ -170,6 +224,41 @@ export const StoreRidersStore = signalStore(
         } catch {
           patchState(store, { isActing: false });
           ui.addToast({ message: 'No se pudo quitar el repartidor.', type: 'error' });
+        }
+      },
+
+      // --- Search methods ---
+
+      searchRiders(q: string): void {
+        patchState(store, { searchQuery: q });
+        if (searchTimer) clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          const storeId = sid();
+          if (!storeId) return;
+          patchState(store, { searchLoading: true, searchError: null });
+          fetchSearchResults(storeId, q).then((results) => {
+            patchState(store, { searchResults: results, searchLoading: false });
+          }).catch(() => {
+            patchState(store, { searchLoading: false, searchError: 'No se pudo buscar repartidores.' });
+            ui.addToast({ message: 'No se pudo buscar repartidores.', type: 'error' });
+          });
+        }, 300);
+      },
+
+      async inviteRiderById(riderId: string): Promise<void> {
+        const storeId = sid();
+        if (!storeId) return;
+        patchState(store, { isActing: true });
+        try {
+          await httpInviteById(storeId, riderId);
+          ui.addToast({ message: 'Invitación enviada.', type: 'success' });
+          patchState(store, { isActing: false });
+          await fetchRiders(storeId);
+        } catch (err: unknown) {
+          patchState(store, { isActing: false });
+          const msg = inviteByIdErrorMessage(err);
+          ui.addToast({ message: msg, type: 'error' });
+          throw err; // rethrow so dialog stays open
         }
       },
     };

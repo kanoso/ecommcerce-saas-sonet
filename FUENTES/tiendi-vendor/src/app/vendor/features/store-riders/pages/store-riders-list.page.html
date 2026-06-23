@@ -69,8 +69,6 @@
   <!-- Invite dialog -->
   <app-invite-rider-dialog
     [visible]="inviteOpen()"
-    [isSaving]="store.isActing()"
-    (submitted)="onInviteSubmit($event)"
     (closed)="closeInvite()"
   />
 

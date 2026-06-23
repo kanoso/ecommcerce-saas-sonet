@@ -44,11 +44,6 @@ export class StoreRidersListPage implements OnInit {
   openInvite(): void  { this.inviteOpen.set(true); }
   closeInvite(): void { this.inviteOpen.set(false); }
 
-  onInviteSubmit(phone: string): void {
-    this.store.inviteRider(phone);
-    this.closeInvite();
-  }
-
   onStatusChange(event: { rider: StoreRider; status: TrustStatus }): void {
     this.store.updateStatus(event.rider.id, event.status as 'ACTIVE' | 'SUSPENDED');
   }

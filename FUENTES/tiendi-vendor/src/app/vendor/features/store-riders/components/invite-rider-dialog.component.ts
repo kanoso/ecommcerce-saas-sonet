@@ -5,50 +5,78 @@ import {
   input,
   OnChanges,
   output,
+  signal,
   SimpleChanges,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { StoreRidersStore, RiderSearchResult } from '../store-riders.store';
 import { DialogComponent } from '../../../shared/ui/organisms/dialog.component';
 import { ButtonComponent } from '../../../shared/ui/atoms/button.component';
+import { AvatarComponent } from '../../../shared/ui/atoms/avatar.component';
 
 @Component({
   selector: 'app-invite-rider-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, ButtonComponent, ReactiveFormsModule],
+  imports: [DialogComponent, ButtonComponent, AvatarComponent],
   templateUrl: './invite-rider-dialog.component.html',
   styleUrl: './invite-rider-dialog.component.scss',
 })
 export class InviteRiderDialogComponent implements OnChanges {
-  visible  = input<boolean>(false);
-  isSaving = input<boolean>(false);
+  visible = input<boolean>(false);
 
-  submitted = output<string>();
-  closed    = output<void>();
+  closed = output<void>();
 
-  private readonly fb = inject(FormBuilder);
+  protected readonly store = inject(StoreRidersStore);
 
-  form = this.fb.nonNullable.group({
-    phone: ['', [Validators.required, Validators.pattern(/^[0-9+\s\-]{6,}$/)]],
-  });
+  protected selectedRider = signal<RiderSearchResult | null>(null);
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Reset form when dialog closes
-    if (changes['visible'] && !changes['visible'].currentValue) {
-      this.form.reset();
+    if (changes['visible']) {
+      if (changes['visible'].currentValue === true) {
+        // Dialog just opened — trigger initial search
+        this.store.searchRiders('');
+      } else {
+        // Dialog closing — reset local selection
+        this.selectedRider.set(null);
+      }
     }
   }
 
-  onSubmit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    this.submitted.emit(this.form.getRawValue().phone);
+  protected onSearch(event: Event): void {
+    const q = (event.target as HTMLInputElement).value;
+    this.store.searchRiders(q);
   }
 
-  onClose(): void {
-    this.form.reset();
+  protected selectRider(rider: RiderSearchResult): void {
+    this.selectedRider.set(rider);
+  }
+
+  protected async onConfirm(): Promise<void> {
+    const rider = this.selectedRider();
+    if (!rider) return;
+    try {
+      await this.store.inviteRiderById(rider.id);
+      this.onClose(); // store already shows success toast
+    } catch {
+      // Error toast already shown by store — dialog stays open
+    }
+  }
+
+  protected onClose(): void {
+    this.selectedRider.set(null);
     this.closed.emit();
+  }
+
+  protected riderFullName(rider: RiderSearchResult): string {
+    return `${rider.user.firstName} ${rider.user.lastName}`.trim();
+  }
+
+  protected operationalLabel(status: string | null): string {
+    switch (status) {
+      case 'ONLINE':   return 'En línea';
+      case 'OFFLINE':  return 'Desconectado';
+      case 'ON_BREAK': return 'En descanso';
+      default:         return '';
+    }
   }
 }

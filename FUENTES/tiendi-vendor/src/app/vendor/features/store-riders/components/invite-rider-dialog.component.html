@@ -4,39 +4,88 @@
   [visible]="visible()"
   (closed)="onClose()"
 >
-  <form [formGroup]="form" class="invite-form" (ngSubmit)="onSubmit()">
-    <div class="form-group">
-      <label class="form-label" for="rider-phone">
-        Número de teléfono <span class="req" aria-hidden="true">*</span>
-      </label>
+  <!-- Search input — always visible when no rider is selected -->
+  @if (!selectedRider()) {
+    <div class="search-section">
       <input
-        id="rider-phone"
-        class="form-input"
-        type="tel"
-        formControlName="phone"
-        placeholder="+54 11 1234 5678"
-        autocomplete="tel"
-        aria-describedby="rider-phone-error"
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre o teléfono..."
+        autocomplete="off"
+        (input)="onSearch($event)"
       />
-      @if (form.controls['phone'].invalid && form.controls['phone'].touched) {
-        <span id="rider-phone-error" class="form-error" role="alert">
-          Ingresá un número de teléfono válido.
-        </span>
+
+      <!-- Loading state -->
+      @if (store.searchLoading()) {
+        <div class="search-loading" role="status" aria-live="polite">
+          <span>Buscando repartidores...</span>
+        </div>
+      } @else if (store.searchError()) {
+        <!-- Error state -->
+        <div class="search-error" role="alert">
+          <span>{{ store.searchError() }}</span>
+        </div>
+      } @else {
+        <!-- Results list -->
+        <ul class="results-list" role="list">
+          @for (rider of store.searchResults(); track rider.id) {
+            <li class="result-item">
+              <button class="result-btn" type="button" (click)="selectRider(rider)">
+                <td-avatar
+                  [name]="riderFullName(rider)"
+                  [imageUrl]="rider.user.avatarUrl"
+                  size="sm"
+                />
+                <div class="result-info">
+                  <span class="result-name">{{ riderFullName(rider) }}</span>
+                  @if (rider.user.phone) {
+                    <span class="result-phone">{{ rider.user.phone }}</span>
+                  }
+                  @if (operationalLabel(rider.operationalStatus)) {
+                    <span class="result-status">{{ operationalLabel(rider.operationalStatus) }}</span>
+                  }
+                  @if (rider.ratingAvg !== null) {
+                    <span class="result-rating">★ {{ rider.ratingAvg!.toFixed(1) }}</span>
+                  }
+                </div>
+              </button>
+            </li>
+          } @empty {
+            <li class="results-empty">
+              <span>No se encontraron repartidores disponibles.</span>
+            </li>
+          }
+        </ul>
       }
     </div>
-  </form>
+  } @else {
+    <!-- Confirmation panel -->
+    <div class="confirm-section">
+      <p class="confirm-text">
+        ¿Invitar a <strong>{{ riderFullName(selectedRider()!) }}</strong>?
+      </p>
+    </div>
+  }
 
-  <div slot="footer" class="invite-footer">
-    <td-button
-      label="Cancelar"
-      variant="ghost"
-      (clicked)="onClose()"
-    />
-    <td-button
-      label="Enviar invitación"
-      variant="primary"
-      [loading]="isSaving()"
-      (clicked)="onSubmit()"
-    />
+  <div slot="footer" class="dialog-footer">
+    @if (!selectedRider()) {
+      <td-button
+        label="Cancelar"
+        variant="ghost"
+        (clicked)="onClose()"
+      />
+    } @else {
+      <td-button
+        label="Volver"
+        variant="ghost"
+        (clicked)="selectedRider.set(null)"
+      />
+      <td-button
+        label="Confirmar invitación"
+        variant="primary"
+        [loading]="store.isActing()"
+        (clicked)="onConfirm()"
+      />
+    }
   </div>
 </td-dialog>
