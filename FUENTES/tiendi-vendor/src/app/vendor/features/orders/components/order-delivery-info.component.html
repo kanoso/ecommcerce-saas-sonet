@@ -35,6 +35,14 @@
             <span class="rider__name rider__name--searching">Buscando repartidor...</span>
           </div>
         </div>
+      } @else if (order().status === 'DELIVERED') {
+        <div class="rider rider--unassigned">
+          <span class="material-symbols-rounded rider__icon" aria-hidden="true">directions_bike</span>
+          <div class="rider__info">
+            <span class="rider__label">Repartidor</span>
+            <span class="rider__name rider__name--unassigned">Sin repartidor asignado</span>
+          </div>
+        </div>
       }
     </div>
   } @else {
