@@ -55,7 +55,7 @@ aliases:
 - [x] `PUT /orders/:id/reject` → rechazar con `{ reason }` en body; backend valida min 10 chars
 - [x] `statusHistory` y `rejectionReason` agregados al schema de Prisma; backend los persiste en cada transición
 - [ ] Validar transiciones inválidas → backend no tiene guard de estado aún (pendiente)
-- [ ] Correr flujo 2 E2E (`flujo2-operacion-diaria.spec.ts`) contra API real
+- [x] Correr flujo 2 E2E (`flujo2-operacion-diaria.spec.ts`) contra API real — ✅ 6/6 pasaron (2026-06-26)
 
 > **Schema Prisma — campos agregados a `Order`:** `rejectionReason String?`, `statusHistory Json?`.
 > **Acción requerida:** incluir en la próxima migración.
@@ -185,7 +185,7 @@ aliases:
 - [x] Lighthouse (2026-05-04): Accessibility 100% ✅, Best Practices 100% ✅, Performance 52% ⚠️ (dev server, en build producción sube por minificación/compresión)
 - [ ] Pruebas de carga básica (100 pedidos concurrentes)
 - [ ] Security review OWASP Top 10
-- [ ] Configurar Sentry (sin PII)
+- [x] Configurar Sentry (sin PII) — ✅ 2026-06-26: `instrument.ts` en api y vendor, `SentryExceptionFilter` en api, `SentryErrorHandler` en vendor. Activo al setear `SENTRY_DSN` en `.env` (api) y `sentryDsn` en `environment.prod.ts` (vendor).
 - [ ] Configurar PostHog con eventos clave
 - [x] `npm run lint` → 0 warnings (2026-05-01) — tiendi-vendor + tiendi-api
 - [x] `npm run build` → bundle sin errores en producción (2026-05-04) — advertencia de budget únicamente (529 kB, 29 kB arriba del warning de 500 kB, dentro del límite de error de 600 kB)
