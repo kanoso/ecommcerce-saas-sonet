@@ -1,0 +1,129 @@
+<td-dialog
+  title="Asignar repartidor"
+  size="sm"
+  [visible]="visible()"
+  (closed)="onClose()"
+>
+  @if (!selectedRider()) {
+
+    <div class="tabs">
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'trusted'"
+        type="button"
+        (click)="switchTab('trusted')"
+      >
+        <span class="material-symbols-rounded">verified_user</span>
+        De confianza
+        @if (store.trusted().length > 0) {
+          <span class="tab-badge">{{ store.trusted().length }}</span>
+        }
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'nearby'"
+        type="button"
+        (click)="switchTab('nearby')"
+      >
+        <span class="material-symbols-rounded">near_me</span>
+        Cercanos
+        @if (store.nearby().length > 0) {
+          <span class="tab-badge">{{ store.nearby().length }}</span>
+        }
+      </button>
+    </div>
+
+    <div class="search-wrap">
+      <span class="material-symbols-rounded search-icon">search</span>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre..."
+        [ngModel]="nameFilter()"
+        (ngModelChange)="nameFilter.set($event)"
+      />
+    </div>
+
+    @if (activeTab() === 'trusted') {
+      @if (store.loadingTrusted()) {
+        <div class="loading-state"><td-spinner size="md" /></div>
+      } @else if (store.error()) {
+        <div class="error-state" role="alert">
+          <span class="material-symbols-rounded">error</span>
+          <span>{{ store.error() }}</span>
+        </div>
+      } @else if (filteredTrusted().length > 0) {
+        @for (rider of filteredTrusted(); track rider.riderId) {
+          <button class="rider-row" type="button" (click)="selectRider(rider)">
+            <td-avatar [name]="rider.displayName" size="sm" />
+            <div class="rider-info">
+              <span class="rider-name">{{ rider.displayName }}</span>
+              <span class="rider-meta">{{ formatEta(rider.eta) }} · {{ rider.operationalStatus }}</span>
+            </div>
+            <span class="material-symbols-rounded arrow" aria-hidden="true">chevron_right</span>
+          </button>
+        }
+      } @else if (store.trustedLoaded()) {
+        <div class="empty-state">
+          <span class="material-symbols-rounded">person_off</span>
+          <span>{{ nameFilter() ? 'Sin resultados para "' + nameFilter() + '"' : 'No hay repartidores de confianza disponibles' }}</span>
+        </div>
+      }
+    }
+
+    @if (activeTab() === 'nearby') {
+      @if (store.loadingNearby()) {
+        <div class="loading-state"><td-spinner size="md" /></div>
+      } @else if (store.error()) {
+        <div class="error-state" role="alert">
+          <span class="material-symbols-rounded">error</span>
+          <span>{{ store.error() }}</span>
+        </div>
+      } @else if (filteredNearby().length > 0) {
+        @for (rider of filteredNearby(); track rider.riderId) {
+          <button class="rider-row" type="button" (click)="selectRider(rider)">
+            <td-avatar [name]="rider.displayName" size="sm" />
+            <div class="rider-info">
+              <span class="rider-name">{{ rider.displayName }}</span>
+              <span class="rider-meta">{{ formatEta(rider.eta) }} · {{ rider.operationalStatus }}</span>
+            </div>
+            <span class="material-symbols-rounded arrow" aria-hidden="true">chevron_right</span>
+          </button>
+        }
+      } @else if (store.nearbyLoaded()) {
+        <div class="empty-state">
+          <span class="material-symbols-rounded">person_off</span>
+          <span>{{ nameFilter() ? 'Sin resultados para "' + nameFilter() + '"' : 'No hay repartidores cercanos disponibles' }}</span>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span class="material-symbols-rounded">near_me</span>
+          <span>Cambiá a esta pestaña para cargar repartidores cercanos</span>
+        </div>
+      }
+    }
+
+  } @else {
+
+    <div class="confirm-panel">
+      <td-avatar [name]="selectedRider()!.displayName" size="lg" />
+      <p class="confirm-name">{{ selectedRider()!.displayName }}</p>
+      <p class="confirm-eta">Llega en {{ formatEta(selectedRider()!.eta) }}</p>
+    </div>
+
+  }
+
+  <div slot="footer" class="dialog-footer">
+    @if (!selectedRider()) {
+      <td-button label="Cancelar" variant="ghost" (clicked)="onClose()" />
+    } @else {
+      <td-button label="Volver" variant="ghost" (clicked)="back()" />
+      <td-button
+        label="Confirmar asignación"
+        variant="primary"
+        [loading]="store.assigning()"
+        (clicked)="confirm()"
+      />
+    }
+  </div>
+</td-dialog>
