@@ -20,6 +20,8 @@ Implementación de la sección "Mis Repartidores" en tiendi-vendor y el flujo de
 
 ## Estado actual
 
+> **Última actualización:** 2026-06-26 — Feature completa ✅
+
 | Pieza | Estado |
 |---|---|
 | Modelo `TrustedRider` en DB (PENDING / ACTIVE / SUSPENDED / REVOKED) | ✅ existe |
@@ -27,9 +29,10 @@ Implementación de la sección "Mis Repartidores" en tiendi-vendor y el flujo de
 | Matching Phase 2: cualquier rider disponible si Phase 1 falla (radio 10 km) | ✅ existe |
 | `OfferCard` en tiendi-go con accept/reject + timer 30 s | ✅ existe |
 | Rider asignado visible en detalle de pedido (tiendi-vendor) | ✅ implementado |
-| API endpoints para que la tienda gestione sus riders | ❌ no existe |
-| UI "Mis Repartidores" en tiendi-vendor | ❌ no existe |
-| Pantalla de invitaciones en tiendi-go | ❌ no existe |
+| Actualización en tiempo real al aceptar/rechazar oferta (tiendi-vendor) | ✅ implementado |
+| API endpoints para que la tienda gestione sus riders | ✅ implementado (PR 1) |
+| UI "Mis Repartidores" en tiendi-vendor | ✅ implementado (PR 2) |
+| Pantalla de invitaciones en tiendi-go | ✅ implementado (PR 3) |
 
 ---
 
@@ -56,11 +59,11 @@ Implementación de la sección "Mis Repartidores" en tiendi-vendor y el flujo de
 
 ---
 
-## PR 1 — Backend (tiendi-api)
+## PR 1 — Backend (tiendi-api) ✅ COMPLETO
 
 ### Módulo: `store-riders`
 
-Crear módulo `src/modules/store-riders/` con controller, service y DTOs.
+Módulo `src/modules/store-riders/` implementado con controller, service y DTOs.
 
 ### Endpoints
 
@@ -123,29 +126,28 @@ export class RespondInvitationDto {
 
 ---
 
-## PR 2 — tiendi-vendor (Angular 21)
+## PR 2 — tiendi-vendor (Angular 21) ✅ COMPLETO
 
-### Ruta
+### Ruta implementada
 
-Opción A (recomendada): tab nueva dentro de `/vendor/staff`
-- Sidebar ya tiene "Staff" → agregar tab "Repartidores" dentro del mismo módulo
-- Mantiene la navegación agrupada bajo "Equipo"
+Opción B elegida: ruta separada `/vendor/store-riders`
 
-Opción B: ruta separada `/vendor/store-riders`
-- Más espacio para la UI, más fácil de expandir
-
-### Estructura de archivos
+### Estructura de archivos (implementada)
 
 ```
 src/app/vendor/features/store-riders/
-  store-riders.routes.ts
-  store-riders.store.ts          ← NgRx Signals
+  store-riders.store.ts               ← NgRx Signals (signalStore, providedIn: root)
+  pages/
+    store-riders-list.page.ts         ← container
+    store-riders-list.page.html
+    store-riders-list.page.scss
   components/
-    store-riders-page.component.ts
-    store-riders-page.component.html
-    store-riders-page.component.scss
-    rider-card.component.ts      ← card individual: foto, nombre, teléfono, status, acciones
-    add-rider-dialog.component.ts ← input de teléfono + botón Invitar
+    rider-card.component.ts           ← card individual con acciones
+    rider-card.component.html
+    rider-card.component.scss
+    invite-rider-dialog.component.ts  ← búsqueda por nombre + invite-by-id
+    invite-rider-dialog.component.html
+    invite-rider-dialog.component.scss
 ```
 
 ### `StoreRidersStore`
@@ -224,7 +226,7 @@ Agregar en `sidebar.component.ts` (roles: STORE_OWNER, MANAGER):
 
 ---
 
-## PR 3 — tiendi-go (Expo / React Native)
+## PR 3 — tiendi-go (Expo / React Native) ✅ COMPLETO — 27/27 tests
 
 ### Pantalla nueva: `RiderInvitationsScreen`
 
@@ -275,15 +277,13 @@ if (notification.data?.type === 'STORE_INVITE') {
 
 ---
 
-## Secuencia de entrega
+## Secuencia de entrega ✅ COMPLETADA
 
 ```
-PR 1 → tiendi-api: módulo store-riders (endpoints GET/POST/DELETE/PATCH + invitaciones rider)
-PR 2 → tiendi-vendor: UI "Mis Repartidores" (lista + invitar + suspender + quitar)
-PR 3 → tiendi-go: pantalla de invitaciones (StoreInviteCard + hook + FCM routing)
+PR 1 ✅ → tiendi-api: módulo store-riders (endpoints GET/POST/DELETE/PATCH + invitaciones rider)
+PR 2 ✅ → tiendi-vendor: UI "Mis Repartidores" (lista + invite con búsqueda + suspender + quitar)
+PR 3 ✅ → tiendi-go: pantalla de invitaciones (StoreInviteCard + hook + FCM routing) — 27/27 tests
 ```
-
-Cada PR es independiente y desplegable por separado. El PR 2 puede desarrollarse en paralelo con PR 1 usando datos mock.
 
 ---
 

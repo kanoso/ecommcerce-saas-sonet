@@ -1,9 +1,11 @@
 import {
   APP_INITIALIZER,
   ApplicationConfig,
+  ErrorHandler,
   inject,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
+import { SentryAppErrorHandler } from './vendor/core/services/sentry-error-handler';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
@@ -22,6 +24,7 @@ import { environment } from '../environments/environment';
  */
 export const appConfig: ApplicationConfig = {
   providers: [
+    { provide: ErrorHandler, useClass: SentryAppErrorHandler },
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(
