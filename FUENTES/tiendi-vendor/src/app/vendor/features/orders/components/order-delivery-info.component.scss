@@ -155,3 +155,43 @@
 }
 
 .rider--unassigned { opacity: 0.6; }
+
+.rider__name--pending {
+  color: var(--text-secondary);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.rider--pending {
+  align-items: center;
+}
+
+.assign-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 6px 12px;
+  background: #9c27b0;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+
+  .material-symbols-rounded {
+    font-size: 16px;
+  }
+
+  &:hover {
+    background: #7b1fa2;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #9c27b0;
+    outline-offset: 2px;
+  }
+}
