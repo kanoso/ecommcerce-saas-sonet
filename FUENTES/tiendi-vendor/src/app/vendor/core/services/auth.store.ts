@@ -1,6 +1,7 @@
 import { computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { AnalyticsService } from './analytics.service';
 import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
 import { firstValueFrom } from 'rxjs';
 import { ApiAuthResponse, AuthSession, Role, User } from '../types';
@@ -39,6 +40,7 @@ export const AuthStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const router = inject(Router);
+    const analytics = inject(AnalyticsService);
 
     function persistSession(session: AuthSession): void {
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -96,6 +98,8 @@ export const AuthStore = signalStore(
             isLoading: false,
           });
           persistSession(session);
+          analytics.identify(session.user.id, { role: session.user.role });
+          analytics.capture('vendor_login');
         } catch (err) {
           patchState(store, { isLoading: false });
           throw err;
@@ -159,6 +163,8 @@ export const AuthStore = signalStore(
         if (token) {
           http.post(`${API_BASE}/auth/logout`, {}).subscribe();
         }
+        analytics.capture('vendor_logout');
+        analytics.reset();
         patchState(store, {
           user: null,
           token: null,

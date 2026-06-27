@@ -4,6 +4,7 @@ import { signalStore, withState, withMethods, withComputed, patchState } from '@
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthStore } from '../../core/services/auth.store';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 const API = environment.apiUrl;
 
@@ -49,6 +50,7 @@ export const StaffStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const authStore = inject(AuthStore);
+    const analytics = inject(AnalyticsService);
 
     function storeId(): string {
       return authStore.currentUser()?.storeId ?? '';
@@ -89,6 +91,7 @@ export const StaffStore = signalStore(
             usedSlots: store.usedSlots() + 1,
             isSaving: false,
           });
+          analytics.capture('staff_invited', { role });
           showSuccess(`Invitación enviada a ${email}`);
         } catch (err: unknown) {
           const httpErr = err as { error?: { message?: string }; status?: number };

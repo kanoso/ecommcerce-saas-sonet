@@ -16,6 +16,7 @@ import { errorInterceptor } from './vendor/core/interceptors/error.interceptor';
 import { loadingInterceptor } from './vendor/core/interceptors/loading.interceptor';
 import { retryInterceptor } from './vendor/core/interceptors/retry.interceptor';
 import { AuthStore } from './vendor/core/services/auth.store';
+import { AnalyticsService } from './vendor/core/services/analytics.service';
 import { environment } from '../environments/environment';
 
 /**
@@ -42,6 +43,14 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => {
         const auth = inject(AuthStore);
         return () => auth.loadFromStorage();
+      },
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const analytics = inject(AnalyticsService);
+        return () => analytics.init();
       },
       multi: true,
     },

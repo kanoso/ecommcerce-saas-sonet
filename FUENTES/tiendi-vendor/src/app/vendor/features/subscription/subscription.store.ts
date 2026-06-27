@@ -4,6 +4,7 @@ import { signalStore, withState, withMethods, withComputed, patchState } from '@
 import { forkJoin, firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthStore } from '../../core/services/auth.store';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 const API = environment.apiUrl;
 
@@ -135,6 +136,7 @@ export const SubscriptionStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const authStore = inject(AuthStore);
+    const analytics = inject(AnalyticsService);
 
     function storeId(): string {
       return authStore.currentUser()?.storeId ?? '';
@@ -199,6 +201,7 @@ export const SubscriptionStore = signalStore(
             })
           );
           patchState(store, { subscription: updated, isSaving: false });
+          analytics.capture('plan_changed', { planId });
           showSuccess('Plan actualizado correctamente');
         } catch (err: unknown) {
           patchState(store, { isSaving: false, error: err instanceof Error ? err.message : 'Error al cambiar plan' });

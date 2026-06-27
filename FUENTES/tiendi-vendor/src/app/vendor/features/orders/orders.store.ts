@@ -10,6 +10,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthStore } from '../../core/services/auth.store';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 export type OrderStatus =
   | 'PENDING'
@@ -220,6 +221,7 @@ export const OrdersStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const authStore = inject(AuthStore);
+    const analytics = inject(AnalyticsService);
 
     function storeId(): string {
       return authStore.currentUser()?.storeId ?? '';
@@ -292,6 +294,7 @@ export const OrdersStore = signalStore(
         try {
           await firstValueFrom(http.put(`${API}/orders/${id}/confirm`, {}));
           patchState(store, { isUpdating: false });
+          analytics.capture('order_confirmed', { orderId: id });
         } catch {
           revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al confirmar el pedido.' });
@@ -308,6 +311,7 @@ export const OrdersStore = signalStore(
         try {
           await firstValueFrom(http.put(`${API}/orders/${id}/dispatch`, {}));
           patchState(store, { isUpdating: false });
+          analytics.capture('order_dispatched', { orderId: id });
         } catch {
           revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al despachar el pedido.' });
@@ -324,6 +328,7 @@ export const OrdersStore = signalStore(
         try {
           await firstValueFrom(http.put(`${API}/orders/${id}/deliver`, {}));
           patchState(store, { isUpdating: false });
+          analytics.capture('order_delivered', { orderId: id });
         } catch {
           revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al marcar como entregado.' });
@@ -343,6 +348,7 @@ export const OrdersStore = signalStore(
         try {
           await firstValueFrom(http.put(`${API}/orders/${id}/reject`, { reason }));
           patchState(store, { isUpdating: false });
+          analytics.capture('order_rejected', { orderId: id });
         } catch {
           revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al rechazar el pedido.' });

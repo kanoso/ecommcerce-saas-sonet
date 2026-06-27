@@ -10,6 +10,7 @@ import {
 import { forkJoin } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthStore } from '../../core/services/auth.store';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 export interface Product {
   id: string;
@@ -133,6 +134,7 @@ export const ProductsStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const authStore = inject(AuthStore);
+    const analytics = inject(AnalyticsService);
 
     function storeId(): string {
       return authStore.currentUser()?.storeId ?? '';
@@ -175,8 +177,10 @@ export const ProductsStore = signalStore(
           featured: data.featured,
         };
         http.post<Record<string, unknown>>(`${API}/stores/${storeId()}/products`, payload).subscribe({
-          next: (created) =>
-            patchState(store, { products: [...store.products(), mapProduct(created)], isSaving: false }),
+          next: (created) => {
+            patchState(store, { products: [...store.products(), mapProduct(created)], isSaving: false });
+            analytics.capture('product_created');
+          },
           error: (err) =>
             patchState(store, { isSaving: false, error: err.message ?? 'Error al crear producto' }),
         });
@@ -212,8 +216,10 @@ export const ProductsStore = signalStore(
 
       deleteProduct(id: string): void {
         http.delete(`${API}/products/${id}`).subscribe({
-          next: () =>
-            patchState(store, { products: store.products().filter((p) => p.id !== id) }),
+          next: () => {
+            patchState(store, { products: store.products().filter((p) => p.id !== id) });
+            analytics.capture('product_deleted', { productId: id });
+          },
           error: (err) =>
             patchState(store, { error: err.message ?? 'Error al eliminar producto' }),
         });

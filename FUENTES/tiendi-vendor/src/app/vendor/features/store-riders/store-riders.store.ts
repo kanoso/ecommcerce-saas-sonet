@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthStore } from '../../core/services/auth.store';
 import { UiStore } from '../../core/services/ui.store';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 const API = environment.apiUrl;
 
@@ -128,6 +129,7 @@ export const StoreRidersStore = signalStore(
     const http      = inject(HttpClient);
     const authStore = inject(AuthStore);
     const ui        = inject(UiStore);
+    const analytics = inject(AnalyticsService);
 
     // Debounce handle for searchRiders — closure var.
     // Note: this is acceptable in a root store (singleton); no memory leak risk.
@@ -185,6 +187,7 @@ export const StoreRidersStore = signalStore(
             http.post(`${API}/stores/${storeId}/riders/invite`, { phone })
           );
           ui.addToast({ message: 'Invitación enviada.', type: 'success' });
+          analytics.capture('rider_invited');
           patchState(store, { isActing: false });
           await fetchRiders(storeId);
         } catch (err: unknown) {
