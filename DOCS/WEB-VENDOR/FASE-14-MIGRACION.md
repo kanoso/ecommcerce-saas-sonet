@@ -183,10 +183,10 @@ aliases:
 - [x] Correr TODOS los E2E (`flujo1` al `flujo5` + `a11y.spec.ts`) contra API real — ✅ 26/33 pasaron (79%). 7 fallos por datos de seed incompletos (sin órdenes ni usuarios con roles distintos al owner), no por bugs.
 - [x] Correr auditoría axe-core → 0 violaciones críticas/serias — ✅ 10 pantallas auditadas, todas limpias
 - [x] Lighthouse (2026-05-04): Accessibility 100% ✅, Best Practices 100% ✅, Performance 52% ⚠️ (dev server, en build producción sube por minificación/compresión)
-- [ ] Pruebas de carga básica (100 pedidos concurrentes)
+- [x] Pruebas de carga básica (100 pedidos concurrentes) — ✅ 2026-06-27: k6, 100 VUs, 100/100 órdenes creadas, 0 errores. p95 POST /orders = 1.41s (threshold < 3s). El `$transaction` de Prisma manejó stock concurrente sin race conditions. Scripts: `npm run load:setup && npm run load:run`.
 - [ ] Security review OWASP Top 10
 - [x] Configurar Sentry (sin PII) — ✅ 2026-06-26: `instrument.ts` en api y vendor, `SentryExceptionFilter` en api, `SentryErrorHandler` en vendor. Activo al setear `SENTRY_DSN` en `.env` (api) y `sentryDsn` en `environment.prod.ts` (vendor).
-- [ ] Configurar PostHog con eventos clave
+- [x] Configurar PostHog con eventos clave — ✅ 2026-06-27: `AnalyticsService` en vendor y web, inicializado vía `APP_INITIALIZER`. Eventos: vendor_login/logout, order_confirmed/dispatched/delivered/rejected, product_created/deleted, staff_invited, rider_invited, plan_changed (vendor); web_login/register/logout, add_to_cart, order_placed (web).
 - [x] `npm run lint` → 0 warnings (2026-05-01) — tiendi-vendor + tiendi-api
 - [x] `npm run build` → bundle sin errores en producción (2026-05-04) — advertencia de budget únicamente (529 kB, 29 kB arriba del warning de 500 kB, dentro del límite de error de 600 kB)
 
