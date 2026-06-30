@@ -29,4 +29,7 @@
   </div>
 }
 
-<!-- chat widget disabled: @tiendi/chat requires rebuild targeting Angular 21 -->
+<td-chat-widget
+  [adapter]="chatAdapter"
+  [userId]="currentUserId()"
+/>
