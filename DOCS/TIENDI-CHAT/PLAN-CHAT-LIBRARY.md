@@ -2,7 +2,7 @@
 
 **Objetivo:** Extraer el módulo de chat de `tiendi-web` como una Angular Library reutilizable (`@tiendi/chat`), consumible por `tiendi-web` y `tiendi-vendor`, sin exportar deuda técnica.
 
-**Stack:** Angular 20 · npm workspaces · SSR-safe · InjectionToken para config
+**Stack:** Angular 21 (tiendi-web y tiendi-vendor alineados) · npm workspaces · SSR-safe · InjectionToken para config
 
 ---
 
@@ -170,7 +170,7 @@ export const CHAT_CONFIG = new InjectionToken<ChatConfig>('CHAT_CONFIG', {
 - [x] Crear `ChatConfig` interface
 - [x] Crear `CHAT_CONFIG` InjectionToken (con factory opcional)
 - [x] `ChatNotificationService` consume `CHAT_CONFIG` para URLs de audio e ícono
-- [x] `ChatService` consume `CHAT_CONFIG.apiBaseUrl` para WebSocket/HTTP — aclaración: la library sigue el patron ChatAdapter; los HTTP/WS calls van por el adapter (VendorChatAdapter usa `environment.apiUrl`). `apiBaseUrl` fue agregado a `ChatConfig` para consumo futuro interno de la library. Inyección directa del token cross-library es inviable por incompatibilidad Angular 20↔21 (`InjectionToken._desc` protected).
+- [x] HTTP/WS van por el adapter (patrón ChatAdapter): `VendorChatAdapter` usa `environment.apiUrl` directamente — es código de app, conoce su propio backend. La library no hace HTTP. `apiBaseUrl` NO existe en `ChatConfig` (se quitó por ser código muerto: ningún consumidor interno lo usaba). `CHAT_CONFIG` solo expone `audioSource` y `browserNotificationIconSource`.
 
 ### 3.3 — Build y validación
 
@@ -216,7 +216,7 @@ export const CHAT_CONFIG = new InjectionToken<ChatConfig>('CHAT_CONFIG', {
   - [x] `listFriends()` → GET /stores/{storeId}/customers?limit=100, mapea a `ParticipantResponse[]`
   - [x] `sendMessage()` → POST /stores/{storeId}/conversations/{customerId}/messages — implementado en commit 7736738
   - [x] `getMessageHistory()` → GET /stores/{storeId}/conversations/{customerId}/messages — implementado en commit 7736738
-- [x] Agregar `apiBaseUrl` a `ChatConfig` interface + rebuild de la library — **NOTA:** `provide: CHAT_CONFIG` NO se registra en `app.config.ts` (incompatibilidad Angular 20↔21: `InjectionToken._desc` es protected, `inject(CHAT_CONFIG)` falla en compile-time cross-library). El `VendorChatAdapter` usa `environment.apiUrl` directamente como workaround.
+- [x] `VendorChatAdapter` usa `environment.apiUrl` directamente — patrón correcto: el adapter es código de app y conoce su propio backend. `CHAT_CONFIG` queda reservado para config que la library sí consume (audio/ícono de notificaciones). Con tiendi-web y tiendi-vendor ambos en Angular 21, `provide: CHAT_CONFIG` cross-library ya es viable si en el futuro se quiere customizar esos assets.
 - [x] Integrar `NgChatTiendi` en el shell via `ChatWidgetComponent` wrapper
 - [x] Tests: 11 unit tests adapter + 2 smoke tests shell — 13/13 ✅
 
