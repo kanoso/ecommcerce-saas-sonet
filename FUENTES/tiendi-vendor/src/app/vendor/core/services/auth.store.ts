@@ -89,6 +89,10 @@ export const AuthStore = signalStore(
               storeId: raw.user.storeId ?? null,
               storeRole: raw.user.storeRole ?? null,
               avatar: raw.user.avatarUrl ?? null,
+              firstName: raw.user.firstName ?? '',
+              lastName: raw.user.lastName ?? '',
+              phone: raw.user.phone ?? null,
+              createdAt: raw.user.createdAt ?? null,
             },
           };
           patchState(store, {
@@ -126,6 +130,10 @@ export const AuthStore = signalStore(
             storeId: raw.storeId ?? null,
             storeRole: raw.storeRole ?? null,
             avatar: raw.avatarUrl ?? null,
+            firstName: raw.firstName ?? '',
+            lastName: raw.lastName ?? '',
+            phone: raw.phone ?? null,
+            createdAt: raw.createdAt ?? null,
           };
           patchState(store, { user: updatedUser });
           const refreshToken = store.refreshToken();
@@ -135,6 +143,39 @@ export const AuthStore = signalStore(
         } catch {
           // Silently fail — user data from localStorage is still valid
         }
+      },
+
+      /**
+       * Actualiza campos de perfil del usuario autenticado via PATCH /auth/me.
+       * Llama patchState + persistSession para mantener coherencia entre memoria y localStorage.
+       * Lanza el error al caller (la pagina) para que maneje UI de error.
+       * @param dto - Campos opcionales: firstName, lastName, phone, avatarUrl
+       * @returns Usuario actualizado
+       */
+      async updateMe(dto: Partial<{ firstName: string; lastName: string; phone: string | null; avatarUrl: string | null }>): Promise<User> {
+        const raw = await firstValueFrom(
+          http.patch<ApiAuthResponse['user']>(`${API_BASE}/auth/me`, dto),
+        );
+        const updatedUser: User = {
+          id: raw.id,
+          name: raw.name,
+          email: raw.email,
+          role: raw.role as Role,
+          storeId: raw.storeId ?? null,
+          storeRole: raw.storeRole ?? null,
+          avatar: raw.avatarUrl ?? null,
+          firstName: raw.firstName ?? '',
+          lastName: raw.lastName ?? '',
+          phone: raw.phone ?? null,
+          createdAt: raw.createdAt ?? null,
+        };
+        patchState(store, { user: updatedUser });
+        const token = store.token();
+        const refreshToken = store.refreshToken();
+        if (token && refreshToken) {
+          persistSession({ token, refreshToken, user: updatedUser });
+        }
+        return updatedUser;
       },
 
       async doRefreshToken(): Promise<void> {

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { onboardingGuard } from './core/guards/onboarding.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { VendorChatAdapter } from './features/chat';
 
 /**
  * Vendor feature routes (protected by vendorGuard).
@@ -18,6 +19,7 @@ export const VENDOR_ROUTES: Routes = [
   // All authenticated routes use ShellComponent as layout parent
   {
     path: '',
+    providers: [VendorChatAdapter],
     loadComponent: () =>
       import('./shared/layout/shell.component').then((c) => c.ShellComponent),
     children: [
@@ -105,7 +107,7 @@ export const VENDOR_ROUTES: Routes = [
       },
       {
         path: 'store-riders',
-        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER'])],
+        canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'SUPER_ADMIN'])],
         loadComponent: () =>
           import('./features/store-riders/pages/store-riders-list.page').then(
             (c) => c.StoreRidersListPage
@@ -136,6 +138,11 @@ export const VENDOR_ROUTES: Routes = [
         path: 'riders',
         loadChildren: () =>
           import('./features/riders/riders.routes').then((m) => m.RIDERS_ROUTES),
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/pages/profile.page').then((c) => c.ProfilePage),
       },
     ], // end ShellComponent children
   }, // end ShellComponent route

@@ -16,6 +16,8 @@ import { AuthStore } from '../../core/services/auth.store';
 import type { Role } from '../../core/types';
 import { StoreConfigStore } from '../../features/store-config/store-config.store';
 import { NotificationsStore } from '../../features/notifications/notifications.store';
+import { ChatWidgetComponent } from '../../features/chat/chat-widget.component';
+import { VendorChatAdapter } from '../../features/chat';
 
 const ROLE_LABELS: Record<string, string> = {
   STORE_OWNER: 'Dueño',
@@ -29,7 +31,7 @@ const ROLE_LABELS: Record<string, string> = {
   selector: 'td-shell',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, TopbarComponent, SidebarComponent, MobileShellComponent],
+  imports: [RouterOutlet, TopbarComponent, SidebarComponent, MobileShellComponent, ChatWidgetComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
@@ -39,6 +41,7 @@ export class ShellComponent implements OnInit {
   private readonly storeConfigStore = inject(StoreConfigStore);
   private readonly notificationsStore = inject(NotificationsStore);
   private readonly router = inject(Router);
+  protected readonly chatAdapter = inject(VendorChatAdapter);
 
   private readonly isMobile$ = this.breakpointObserver
     .observe([Breakpoints.Handset])
@@ -84,7 +87,7 @@ export class ShellComponent implements OnInit {
   }
 
   onProfile(): void {
-    void this.router.navigate(['/vendor/store']);
+    void this.router.navigate(['/vendor/profile']);
   }
 
   onLogout(): void {

@@ -8,6 +8,10 @@ export interface User {
   storeId: string | null;
   storeRole: string | null;
   avatar: string | null;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  createdAt: string | null;
 }
 
 export interface AuthSession {
@@ -27,5 +31,9 @@ export interface ApiAuthResponse {
     storeId: string | null;
     storeRole?: string | null;
     avatarUrl?: string | null;
+    firstName?: string;
+    lastName?: string;
+    phone?: string | null;
+    createdAt?: string | null;
   };
 }

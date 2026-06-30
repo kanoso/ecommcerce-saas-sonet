@@ -1,0 +1,161 @@
+<div class="profile">
+
+  <!-- Read-only account header (VP-03) -->
+  <div class="profile__header">
+    <h1 class="profile__title">Mi Perfil</h1>
+    <p class="profile__subtitle">Gestiona tu información de cuenta</p>
+  </div>
+
+  <div class="profile__info-card">
+    <div class="profile__info-row">
+      <span class="profile__info-label">Correo electrónico</span>
+      <span class="profile__info-value">{{ currentUser()?.email }}</span>
+    </div>
+    <div class="profile__info-row">
+      <span class="profile__info-label">Rol</span>
+      <span class="profile__info-value profile__role-badge">{{ roleLabel() }}</span>
+    </div>
+    @if (formattedCreatedAt()) {
+      <div class="profile__info-row">
+        <span class="profile__info-label">Miembro desde</span>
+        <span class="profile__info-value">{{ formattedCreatedAt() }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Editable form (VP-04) -->
+  <form
+    class="profile__form"
+    [formGroup]="form"
+    (ngSubmit)="onSubmit()"
+    novalidate
+    aria-label="Formulario de perfil"
+  >
+    <h2 class="profile__section-title">Información personal</h2>
+
+    <div class="profile__field">
+      <label class="profile__label" for="firstName">Nombre <span aria-hidden="true">*</span></label>
+      <input
+        id="firstName"
+        class="profile__input"
+        [class.profile__input--error]="form.controls.firstName.invalid && form.controls.firstName.touched"
+        type="text"
+        formControlName="firstName"
+        autocomplete="given-name"
+        aria-required="true"
+        [attr.aria-describedby]="form.controls.firstName.invalid && form.controls.firstName.touched ? 'firstName-error' : null"
+      />
+      @if (form.controls.firstName.invalid && form.controls.firstName.touched) {
+        <span id="firstName-error" class="profile__field-error" role="alert">
+          @if (form.controls.firstName.hasError('required')) {
+            El nombre es requerido.
+          } @else if (form.controls.firstName.hasError('minlength')) {
+            El nombre debe tener al menos 2 caracteres.
+          }
+        </span>
+      }
+    </div>
+
+    <div class="profile__field">
+      <label class="profile__label" for="lastName">Apellido <span aria-hidden="true">*</span></label>
+      <input
+        id="lastName"
+        class="profile__input"
+        [class.profile__input--error]="form.controls.lastName.invalid && form.controls.lastName.touched"
+        type="text"
+        formControlName="lastName"
+        autocomplete="family-name"
+        aria-required="true"
+        [attr.aria-describedby]="form.controls.lastName.invalid && form.controls.lastName.touched ? 'lastName-error' : null"
+      />
+      @if (form.controls.lastName.invalid && form.controls.lastName.touched) {
+        <span id="lastName-error" class="profile__field-error" role="alert">
+          @if (form.controls.lastName.hasError('required')) {
+            El apellido es requerido.
+          } @else if (form.controls.lastName.hasError('minlength')) {
+            El apellido debe tener al menos 2 caracteres.
+          }
+        </span>
+      }
+    </div>
+
+    <div class="profile__field">
+      <label class="profile__label" for="phone">Teléfono <span class="profile__optional">(opcional)</span></label>
+      <input
+        id="phone"
+        class="profile__input"
+        [class.profile__input--error]="form.controls.phone.invalid && form.controls.phone.touched"
+        type="tel"
+        formControlName="phone"
+        autocomplete="tel"
+        placeholder="+51999888777"
+        [attr.aria-describedby]="form.controls.phone.invalid && form.controls.phone.touched ? 'phone-error' : 'phone-hint'"
+      />
+      <span id="phone-hint" class="profile__hint">Formato E.164. Deja vacío para borrar.</span>
+      @if (form.controls.phone.invalid && form.controls.phone.touched) {
+        <span id="phone-error" class="profile__field-error" role="alert">
+          El teléfono debe estar en formato E.164 (ej. +51999888777).
+        </span>
+      }
+    </div>
+
+    <div class="profile__field">
+      <label class="profile__label" for="avatarUrl">URL de avatar <span class="profile__optional">(opcional)</span></label>
+      <input
+        id="avatarUrl"
+        class="profile__input"
+        [class.profile__input--error]="form.controls.avatarUrl.invalid && form.controls.avatarUrl.touched"
+        type="url"
+        formControlName="avatarUrl"
+        autocomplete="photo"
+        placeholder="https://ejemplo.com/mi-foto.jpg"
+        [attr.aria-describedby]="form.controls.avatarUrl.invalid && form.controls.avatarUrl.touched ? 'avatar-error' : 'avatar-hint'"
+      />
+      <span id="avatar-hint" class="profile__hint">URL de imagen pública. Deja vacío para borrar.</span>
+      @if (form.controls.avatarUrl.invalid && form.controls.avatarUrl.touched) {
+        <span id="avatar-error" class="profile__field-error" role="alert">
+          La URL del avatar no es válida.
+        </span>
+      }
+    </div>
+
+    <!-- ARIA live region for save feedback (VP-09, VP-11) -->
+    <div aria-live="polite" aria-atomic="true" class="sr-only">
+      @if (saveOk()) { Perfil guardado correctamente. }
+      @if (saveError()) { Error: {{ saveError() }} }
+    </div>
+
+    @if (saveError()) {
+      <div class="profile__error" role="alert">
+        <span class="material-icons-outlined" style="font-size:18px">error_outline</span>
+        {{ saveError() }}
+      </div>
+    }
+
+    <div class="profile__actions">
+      <button
+        class="profile__submit"
+        type="submit"
+        [disabled]="isSaving()"
+        [attr.aria-busy]="isSaving()"
+        aria-label="Guardar cambios de perfil"
+      >
+        @if (isSaving()) {
+          <span class="material-icons-outlined profile__spinner" aria-hidden="true">sync</span>
+          Guardando...
+        } @else {
+          Guardar cambios
+        }
+      </button>
+    </div>
+  </form>
+
+</div>
+
+<!-- Success toast (VP-07, VP-10) -->
+@if (saveOk()) {
+  <div class="profile__toast" role="status" aria-live="assertive">
+    <span class="material-icons-outlined" style="font-size:18px">check_circle</span>
+    Perfil actualizado correctamente
+  </div>
+}

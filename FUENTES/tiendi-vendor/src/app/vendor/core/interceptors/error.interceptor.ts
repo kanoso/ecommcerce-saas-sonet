@@ -21,6 +21,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         if (req.url.includes('/auth/')) {
+          ui.addToast({ message: 'Tu sesión expiró. Iniciá sesión nuevamente.', type: 'error' });
           auth.logout();
           return throwError(() => error);
         }
@@ -29,6 +30,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           pendingRefresh$ = from(auth.doRefreshToken()).pipe(
             catchError((refreshError) => {
               pendingRefresh$ = null;
+              ui.addToast({ message: 'Tu sesión expiró. Iniciá sesión nuevamente.', type: 'error' });
               auth.logout();
               return throwError(() => refreshError);
             }),
