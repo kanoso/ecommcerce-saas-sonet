@@ -54,7 +54,7 @@ aliases:
 - [x] `PUT /orders/:id/deliver` → marcar entregado (alias de `/complete` en backend)
 - [x] `PUT /orders/:id/reject` → rechazar con `{ reason }` en body; backend valida min 10 chars
 - [x] `statusHistory` y `rejectionReason` agregados al schema de Prisma; backend los persiste en cada transición
-- [ ] Validar transiciones inválidas → backend no tiene guard de estado aún (pendiente)
+- [x] Validar transiciones inválidas → ✅ 2026-06-30: `ALLOWED_TRANSITIONS` map en `orders.service.ts`, lanza `BadRequestException` en transición inválida. 16 unit tests (5 válidas + 11 inválidas), todos pasan.
 - [x] Correr flujo 2 E2E (`flujo2-operacion-diaria.spec.ts`) contra API real — ✅ 6/6 pasaron (2026-06-26)
 
 > **Schema Prisma — campos agregados a `Order`:** `rejectionReason String?`, `statusHistory Json?`.
@@ -184,7 +184,7 @@ aliases:
 - [x] Correr auditoría axe-core → 0 violaciones críticas/serias — ✅ 10 pantallas auditadas, todas limpias
 - [x] Lighthouse (2026-05-04): Accessibility 100% ✅, Best Practices 100% ✅, Performance 52% ⚠️ (dev server, en build producción sube por minificación/compresión)
 - [x] Pruebas de carga básica (100 pedidos concurrentes) — ✅ 2026-06-27: k6, 100 VUs, 100/100 órdenes creadas, 0 errores. p95 POST /orders = 1.41s (threshold < 3s). El `$transaction` de Prisma manejó stock concurrente sin race conditions. Scripts: `npm run load:setup && npm run load:run`.
-- [ ] Security review OWASP Top 10
+- [x] Security review OWASP Top 10 — ✅ 2026-06-30: Quick wins aplicados: C2 JWT blacklist check (Redis, passReqToCallback), H2/M5 IDOR fix en orders (employee cross-store), H3 rate limiting global (@nestjs/throttler, 60 req/min) + límites estrictos en auth endpoints, H5 /metrics protegido por METRICS_SECRET, H6 WebSocket join-vendor-room requiere JWT válido + pertenencia a tienda, M2 helmet() para HTTP security headers, M3 token removido de logs de reset-password, M6 crypto.randomBytes reemplaza Math.random en orderNumber. Commit: d381b0d. Items diferidos (mayor esfuerzo): C1 WS CORS *, H1 JWT en localStorage→httpOnly cookies, H4 logoutAll stateless, M1 Sentry DSN en bundle, M4 Redis sin auth.
 - [x] Configurar Sentry (sin PII) — ✅ 2026-06-26: `instrument.ts` en api y vendor, `SentryExceptionFilter` en api, `SentryErrorHandler` en vendor. Activo al setear `SENTRY_DSN` en `.env` (api) y `sentryDsn` en `environment.prod.ts` (vendor).
 - [x] Configurar PostHog con eventos clave — ✅ 2026-06-27: `AnalyticsService` en vendor y web, inicializado vía `APP_INITIALIZER`. Eventos: vendor_login/logout, order_confirmed/dispatched/delivered/rejected, product_created/deleted, staff_invited, rider_invited, plan_changed (vendor); web_login/register/logout, add_to_cart, order_placed (web).
 - [x] `npm run lint` → 0 warnings (2026-05-01) — tiendi-vendor + tiendi-api
