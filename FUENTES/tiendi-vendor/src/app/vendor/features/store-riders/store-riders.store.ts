@@ -94,11 +94,11 @@ function inviteErrorMessage(err: unknown): string {
   const httpErr = err as { status?: number; error?: { message?: string } };
   switch (httpErr?.status) {
     case 400: return 'El número de teléfono no es válido.';
-    case 403: return 'No tenés permisos para esta tienda.';
-    case 404: return 'No se encontró un repartidor con ese teléfono.';
-    case 409: return 'Este repartidor ya está vinculado a tu tienda.';
-    case 422: return 'El repartidor aún no está aprobado en la plataforma.';
-    default:  return httpErr?.error?.message ?? 'No se pudo enviar la invitación.';
+    case 403: return 'No tenés permiso para realizar esta acción.';
+    case 404: return 'No se encontró el repartidor.';
+    case 409: return 'Este repartidor ya está vinculado a la tienda.';
+    case 422: return 'El repartidor no está activo en la plataforma.';
+    default:  return 'Ocurrió un error al invitar al repartidor.';
   }
 }
 
