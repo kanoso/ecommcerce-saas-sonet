@@ -35,6 +35,7 @@ const STATUS_CLASSES: Record<string, string> = {
 export class RecentOrdersWidgetComponent {
   orders = input.required<DashboardOrder[]>();
   isLoading = input<boolean>(false);
+  isMobile = input<boolean>(false);
 
   orderClick = output<string>();
 

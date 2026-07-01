@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { OrdersStore, OrderStatus } from '../orders.store';
+import { LayoutService } from '../../../shared/layout/layout.service';
 import { OrderFiltersComponent } from '../components/order-filters.component';
 import { OrderStatusTabsComponent } from '../components/order-status-tabs.component';
 import { OrderListTableComponent } from '../components/order-list-table.component';
@@ -25,6 +26,7 @@ import { OrderListTableComponent } from '../components/order-list-table.componen
 })
 export class OrderListPage implements OnInit, OnDestroy {
   protected readonly store = inject(OrdersStore);
+  protected readonly isMobile = inject(LayoutService).isMobile;
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private refreshInterval: ReturnType<typeof setInterval> | null = null;

@@ -4,6 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
+
 import { Order } from '../orders.store';
 import { SkeletonComponent } from '../../../shared/ui/atoms/skeleton.component';
 import { EmptyStateComponent } from '../../../shared/ui/molecules/empty-state.component';
@@ -57,6 +58,7 @@ const STATUS_CSS: Record<string, string> = {
 export class OrderListTableComponent {
   orders = input.required<Order[]>();
   isLoading = input<boolean>(false);
+  isMobile = input<boolean>(false);
 
   orderClick = output<string>();
   quickAction = output<{ orderId: string; action: string }>();

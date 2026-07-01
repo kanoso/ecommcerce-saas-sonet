@@ -6,21 +6,55 @@
 
   <div class="widget__body">
     @if (isLoading()) {
-      <table class="orders-table" aria-busy="true">
-        <tbody>
+      @if (isMobile()) {
+        <div class="cards">
           @for (row of skeletonRows; track $index) {
-            <tr>
-              <td><td-skeleton variant="line" width="80px" /></td>
-              <td><td-skeleton variant="line" width="120px" /></td>
-              <td><td-skeleton variant="line" width="60px" /></td>
-              <td><td-skeleton variant="line" width="80px" /></td>
-              <td><td-skeleton variant="circle" width="28px" height="28px" /></td>
-            </tr>
+            <div class="card card--skeleton">
+              <td-skeleton width="100px" />
+              <td-skeleton width="160px" />
+              <td-skeleton width="80px" />
+            </div>
           }
-        </tbody>
-      </table>
+        </div>
+      } @else {
+        <table class="orders-table" aria-busy="true">
+          <tbody>
+            @for (row of skeletonRows; track $index) {
+              <tr>
+                <td><td-skeleton variant="line" width="80px" /></td>
+                <td><td-skeleton variant="line" width="120px" /></td>
+                <td><td-skeleton variant="line" width="60px" /></td>
+                <td><td-skeleton variant="line" width="80px" /></td>
+                <td><td-skeleton variant="circle" width="28px" height="28px" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     } @else if (orders().length === 0) {
       <p class="widget__empty">Sin pedidos aún</p>
+    } @else if (isMobile()) {
+      <div class="cards" role="list" aria-label="Pedidos recientes">
+        @for (order of orders(); track order.id) {
+          <div class="card" role="listitem">
+            <div class="card__header">
+              <span class="orders-table__number">{{ order.orderNumber }}</span>
+              <span class="tag {{ statusClass(order.status) }}">{{ statusLabel(order.status) }}</span>
+            </div>
+            <div class="card__row">
+              <span class="card__customer">{{ order.customerName }}</span>
+              <span class="orders-table__total">S/ {{ order.total.toFixed(2) }}</span>
+            </div>
+            <div class="card__actions">
+              <button
+                class="orders-table__btn"
+                (click)="orderClick.emit(order.id)"
+                [attr.aria-label]="'Ver pedido ' + order.orderNumber"
+              >Ver →</button>
+            </div>
+          </div>
+        }
+      </div>
     } @else {
       <table class="orders-table">
         <thead>
