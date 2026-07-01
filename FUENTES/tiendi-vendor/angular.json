@@ -75,6 +75,11 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": ["@tiendi/chat"]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "tiendi-vendor:build:production"

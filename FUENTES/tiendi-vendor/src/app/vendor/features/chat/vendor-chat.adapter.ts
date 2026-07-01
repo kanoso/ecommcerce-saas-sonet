@@ -93,6 +93,28 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
     return response;
   }
 
+  /** Resolve the real display name for a chat-only customer and refresh the list. */
+  private fetchCustomerName(customerId: string): void {
+    const storeId = this.authStore.currentUser()?.storeId;
+    if (!storeId) return;
+    this.http
+      .get<{ id: string; name: string }>(
+        `${environment.apiUrl}/stores/${storeId}/customers/${customerId}`,
+      )
+      .subscribe({
+        next: (c) => {
+          const response = this.participants.get(customerId);
+          if (response && c.name) {
+            response.participant.displayName = c.name;
+            this.onFriendsListChanged([...this.participants.values()]);
+          }
+        },
+        error: () => {
+          /* keep the 'Cliente' fallback */
+        },
+      });
+  }
+
   constructor() {
     super();
     // Connect socket as soon as storeId is available (even if chat panel is closed).
@@ -165,20 +187,12 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
 
       const joinStore = () => {
         const storeId = this.authStore.currentUser()?.storeId;
-        console.log('[VendorChat] joinStore called, storeId:', storeId);
-        if (storeId) {
-          this.socket!.emit('chat:joinStore', { storeId });
-          console.log('[VendorChat] chat:joinStore emitted for storeId:', storeId);
-        }
+        if (storeId) this.socket!.emit('chat:joinStore', { storeId });
       };
-      this.socket.on('connect', () => {
-        console.log('[VendorChat] socket connected, socketId:', this.socket?.id);
-        joinStore();
-      });
+      this.socket.on('connect', joinStore);
       if (this.socket.connected) joinStore();
 
       this.socket.on('message.new', (payload: ApiMessage) => {
-        console.log('[VendorChat] message.new received:', payload);
         if (payload.senderType !== 'CUSTOMER') return;
 
         const customerId =
@@ -195,13 +209,18 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
           response = this.buildParticipantResponse(customerId, 'Cliente');
           this.participants.set(customerId, response);
           this.onFriendsListChanged([...this.participants.values()]);
+          this.fetchCustomerName(customerId);
         }
 
         const currentUserId = this.authStore.currentUser()?.id ?? '';
-        this.onMessageReceived(
-          response.participant,
-          toLibMessage(payload, customerId, currentUserId),
-        );
+        try {
+          this.onMessageReceived(
+            response.participant,
+            toLibMessage(payload, customerId, currentUserId),
+          );
+        } catch (e) {
+          console.error('[VendorChat] onMessageReceived threw', e);
+        }
       });
     }
     return this.socket;
