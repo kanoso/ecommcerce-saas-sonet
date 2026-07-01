@@ -131,12 +131,36 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
     if (!this.socket) {
       const baseUrl = environment.apiUrl.replace(/\/api\/v1$/, '');
       this.socket = this.socketFactory(`${baseUrl}/chat`);
+
+      const joinStore = () => {
+        const storeId = this.authStore.currentUser()?.storeId;
+        if (storeId) this.socket!.emit('chat:joinStore', { storeId });
+      };
+      this.socket.on('connect', joinStore);
+      if (this.socket.connected) joinStore();
+
       this.socket.on('message.new', (payload: ApiMessage) => {
         if (payload.senderType !== 'CUSTOMER') return;
-        const customerId = this.conversationMap.get(payload.conversationId);
-        if (!customerId) return;
-        const participant = this.participantsCache.get(customerId);
-        if (!participant) return;
+
+        let customerId = this.conversationMap.get(payload.conversationId);
+        if (!customerId) {
+          customerId = payload.senderId;
+          this.conversationMap.set(payload.conversationId, customerId);
+        }
+
+        let participant = this.participantsCache.get(customerId);
+        if (!participant) {
+          participant = {
+            participantType: ChatParticipantType.User,
+            id: customerId,
+            displayName: 'Cliente',
+            status: ChatParticipantStatus.Online,
+            avatar: null,
+            ordernum: '',
+          };
+          this.participantsCache.set(customerId, participant);
+        }
+
         const currentUserId = this.authStore.currentUser()?.id ?? '';
         this.onMessageReceived(participant, toLibMessage(payload, customerId, currentUserId));
       });
