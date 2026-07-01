@@ -29,8 +29,10 @@
   </div>
 }
 
-<td-chat-widget
-  [adapter]="chatAdapter"
-  [userId]="currentUserId()"
-  [isMobile]="isMobile()"
-/>
+@if (currentUserId()) {
+  <td-chat-widget
+    [adapter]="chatAdapter"
+    [userId]="currentUserId()"
+    [isMobile]="isMobile()"
+  />
+}
