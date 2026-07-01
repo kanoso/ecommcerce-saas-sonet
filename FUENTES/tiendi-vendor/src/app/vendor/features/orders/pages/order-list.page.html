@@ -21,6 +21,7 @@
   <td-order-list-table
     [orders]="store.filteredOrders()"
     [isLoading]="store.isLoading()"
+    [isMobile]="isMobile()"
     (orderClick)="navigateToDetail($event)"
     (quickAction)="handleQuickAction($event)"
   />

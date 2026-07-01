@@ -1,149 +1,251 @@
 <div class="table-wrapper">
-  @if (isLoading()) {
-    <table class="table" aria-busy="true" aria-label="Cargando pedidos">
-      <thead>
-        <tr>
-          <th>N° Pedido</th>
-          <th>Cliente</th>
-          <th>Fecha</th>
-          <th>Productos</th>
-          <th>Total</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (s of skeletonRows; track s) {
-          <tr>
-            <td><td-skeleton width="100px" /></td>
-            <td><td-skeleton width="140px" /></td>
-            <td><td-skeleton width="80px" /></td>
-            <td><td-skeleton width="80px" /></td>
-            <td><td-skeleton width="60px" /></td>
-            <td><td-skeleton width="90px" /></td>
-            <td><td-skeleton width="120px" /></td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  } @else if (orders().length === 0) {
-    <td-empty-state
-      title="Sin pedidos"
-      message="No hay pedidos que coincidan con los filtros seleccionados."
-      icon="receipt_long"
-    />
-  } @else {
-    <table class="table" aria-label="Lista de pedidos">
-      <thead>
-        <tr>
-          <th scope="col">N° Pedido</th>
-          <th scope="col">Cliente</th>
-          <th scope="col">Fecha</th>
-          <th scope="col">Productos</th>
-          <th scope="col">Total</th>
-          <th scope="col">Estado</th>
-          <th scope="col">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (order of orders(); track order.id) {
-          <tr class="table__row">
-            <td class="table__order-number">
-              <span class="order-number">{{ order.orderNumber }}</span>
-              <span class="delivery-type">{{ order.deliveryType === 'DELIVERY' ? 'Delivery' : 'Recojo' }}</span>
-            </td>
-            <td>
-              <div class="customer-cell">
-                <div class="customer-cell__avatar" [attr.aria-label]="'Avatar de ' + order.customerName">
-                  {{ getInitials(order.customerName) }}
-                </div>
-                <div class="customer-cell__info">
-                  <span class="customer-cell__name">{{ order.customerName }}</span>
-                  <span class="customer-cell__phone">{{ order.customerPhone }}</span>
-                </div>
-              </div>
-            </td>
-            <td class="table__date">
-              <span class="date-day">{{ formatDay(order.createdAt) }}</span>
-              <span class="date-time">{{ formatTime(order.createdAt) }}</span>
-            </td>
-            <td>
-              <span class="products-count">
-                {{ order.items.length }} producto{{ order.items.length !== 1 ? 's' : '' }}
-              </span>
-            </td>
-            <td>
-              <span class="total">S/ {{ order.total.toFixed(2) }}</span>
-            </td>
-            <td>
-              <span [className]="getStatusClass(order.status)">
-                {{ getStatusLabel(order.status) }}
-              </span>
-            </td>
-            <td>
-              <div class="actions">
-                <button
-                  class="btn btn-ghost btn-sm"
-                  type="button"
-                  (click)="orderClick.emit(order.id)"
-                  [attr.aria-label]="'Ver detalle del pedido ' + order.orderNumber"
-                >
-                  Ver detalle
-                </button>
-                @switch (order.status) {
-                  @case ('PENDING') {
-                    <button
-                      class="btn btn-secondary btn-sm"
-                      type="button"
-                      (click)="quickAction.emit({ orderId: order.id, action: 'confirm' })"
-                      [attr.aria-label]="'Confirmar pedido ' + order.orderNumber"
-                    >
-                      Confirmar
-                    </button>
-                  }
-                  @case ('CONFIRMED') {
-                    <button
-                      class="btn btn-secondary btn-sm"
-                      type="button"
-                      (click)="quickAction.emit({ orderId: order.id, action: 'dispatch' })"
-                      [attr.aria-label]="'Despachar pedido ' + order.orderNumber"
-                    >
-                      Despachar
-                    </button>
-                  }
-                  @case ('DISPATCHED') {
-                    <button
-                      class="btn btn-secondary btn-sm"
-                      type="button"
-                      (click)="quickAction.emit({ orderId: order.id, action: 'deliver' })"
-                      [attr.aria-label]="'Marcar como entregado ' + order.orderNumber"
-                    >
-                      Entregado
-                    </button>
-                  }
-                }
-              </div>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+  @if (isMobile()) {
 
-    <div class="pagination" aria-label="Paginación">
-      <span class="pagination__info">
-        Mostrando {{ orders().length }} de {{ orders().length }} pedidos
-      </span>
-      <div class="pagination__buttons">
-        <button class="pagination__btn" type="button" disabled aria-label="Página anterior">
-          &#8249;
-        </button>
-        <button class="pagination__btn pagination__btn--active" type="button" aria-current="page">
-          1
-        </button>
-        <button class="pagination__btn" type="button" aria-label="Página siguiente">
-          &#8250;
-        </button>
+    <!-- MOBILE: stacked cards -->
+    @if (isLoading()) {
+      <div class="cards">
+        @for (s of skeletonRows; track s) {
+          <div class="card card--skeleton">
+            <td-skeleton width="120px" />
+            <td-skeleton width="180px" />
+            <td-skeleton width="100px" />
+            <td-skeleton width="90px" />
+          </div>
+        }
       </div>
-    </div>
+    } @else if (orders().length === 0) {
+      <td-empty-state
+        title="Sin pedidos"
+        message="No hay pedidos que coincidan con los filtros seleccionados."
+        icon="receipt_long"
+      />
+    } @else {
+      <div class="cards" role="list" aria-label="Lista de pedidos">
+        @for (order of orders(); track order.id) {
+          <div class="card" role="listitem">
+            <div class="card__header">
+              <div>
+                <span class="order-number">{{ order.orderNumber }}</span>
+                <span class="delivery-type">{{ order.deliveryType === 'DELIVERY' ? 'Delivery' : 'Recojo' }}</span>
+              </div>
+              <span [className]="getStatusClass(order.status)">{{ getStatusLabel(order.status) }}</span>
+            </div>
+
+            <div class="card__customer">
+              <div class="customer-cell__avatar" [attr.aria-label]="'Avatar de ' + order.customerName">
+                {{ getInitials(order.customerName) }}
+              </div>
+              <div class="customer-cell__info">
+                <span class="customer-cell__name">{{ order.customerName }}</span>
+                <span class="customer-cell__phone">{{ order.customerPhone }}</span>
+              </div>
+            </div>
+
+            <div class="card__meta">
+              <span class="date-day">{{ formatDay(order.createdAt) }}, {{ formatTime(order.createdAt) }}</span>
+              <span class="separator">·</span>
+              <span class="products-count">{{ order.items.length }} prod.</span>
+              <span class="separator">·</span>
+              <span class="total">S/ {{ order.total.toFixed(2) }}</span>
+            </div>
+
+            <div class="card__actions">
+              <button
+                class="btn btn-ghost btn-sm"
+                type="button"
+                (click)="orderClick.emit(order.id)"
+                [attr.aria-label]="'Ver detalle del pedido ' + order.orderNumber"
+              >
+                Ver detalle
+              </button>
+              @switch (order.status) {
+                @case ('PENDING') {
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    type="button"
+                    (click)="quickAction.emit({ orderId: order.id, action: 'confirm' })"
+                    [attr.aria-label]="'Confirmar pedido ' + order.orderNumber"
+                  >
+                    Confirmar
+                  </button>
+                }
+                @case ('CONFIRMED') {
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    type="button"
+                    (click)="quickAction.emit({ orderId: order.id, action: 'dispatch' })"
+                    [attr.aria-label]="'Despachar pedido ' + order.orderNumber"
+                  >
+                    Despachar
+                  </button>
+                }
+                @case ('DISPATCHED') {
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    type="button"
+                    (click)="quickAction.emit({ orderId: order.id, action: 'deliver' })"
+                    [attr.aria-label]="'Marcar como entregado ' + order.orderNumber"
+                  >
+                    Entregado
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  } @else {
+
+    <!-- DESKTOP: table -->
+    @if (isLoading()) {
+      <table class="table" aria-busy="true" aria-label="Cargando pedidos">
+        <thead>
+          <tr>
+            <th>N° Pedido</th>
+            <th>Cliente</th>
+            <th>Fecha</th>
+            <th>Productos</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of skeletonRows; track s) {
+            <tr>
+              <td><td-skeleton width="100px" /></td>
+              <td><td-skeleton width="140px" /></td>
+              <td><td-skeleton width="80px" /></td>
+              <td><td-skeleton width="80px" /></td>
+              <td><td-skeleton width="60px" /></td>
+              <td><td-skeleton width="90px" /></td>
+              <td><td-skeleton width="120px" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (orders().length === 0) {
+      <td-empty-state
+        title="Sin pedidos"
+        message="No hay pedidos que coincidan con los filtros seleccionados."
+        icon="receipt_long"
+      />
+    } @else {
+      <table class="table" aria-label="Lista de pedidos">
+        <thead>
+          <tr>
+            <th scope="col">N° Pedido</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Productos</th>
+            <th scope="col">Total</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.id) {
+            <tr class="table__row">
+              <td class="table__order-number">
+                <span class="order-number">{{ order.orderNumber }}</span>
+                <span class="delivery-type">{{ order.deliveryType === 'DELIVERY' ? 'Delivery' : 'Recojo' }}</span>
+              </td>
+              <td>
+                <div class="customer-cell">
+                  <div class="customer-cell__avatar" [attr.aria-label]="'Avatar de ' + order.customerName">
+                    {{ getInitials(order.customerName) }}
+                  </div>
+                  <div class="customer-cell__info">
+                    <span class="customer-cell__name">{{ order.customerName }}</span>
+                    <span class="customer-cell__phone">{{ order.customerPhone }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="table__date">
+                <span class="date-day">{{ formatDay(order.createdAt) }}</span>
+                <span class="date-time">{{ formatTime(order.createdAt) }}</span>
+              </td>
+              <td>
+                <span class="products-count">
+                  {{ order.items.length }} producto{{ order.items.length !== 1 ? 's' : '' }}
+                </span>
+              </td>
+              <td>
+                <span class="total">S/ {{ order.total.toFixed(2) }}</span>
+              </td>
+              <td>
+                <span [className]="getStatusClass(order.status)">
+                  {{ getStatusLabel(order.status) }}
+                </span>
+              </td>
+              <td>
+                <div class="actions">
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    (click)="orderClick.emit(order.id)"
+                    [attr.aria-label]="'Ver detalle del pedido ' + order.orderNumber"
+                  >
+                    Ver detalle
+                  </button>
+                  @switch (order.status) {
+                    @case ('PENDING') {
+                      <button
+                        class="btn btn-secondary btn-sm"
+                        type="button"
+                        (click)="quickAction.emit({ orderId: order.id, action: 'confirm' })"
+                        [attr.aria-label]="'Confirmar pedido ' + order.orderNumber"
+                      >
+                        Confirmar
+                      </button>
+                    }
+                    @case ('CONFIRMED') {
+                      <button
+                        class="btn btn-secondary btn-sm"
+                        type="button"
+                        (click)="quickAction.emit({ orderId: order.id, action: 'dispatch' })"
+                        [attr.aria-label]="'Despachar pedido ' + order.orderNumber"
+                      >
+                        Despachar
+                      </button>
+                    }
+                    @case ('DISPATCHED') {
+                      <button
+                        class="btn btn-secondary btn-sm"
+                        type="button"
+                        (click)="quickAction.emit({ orderId: order.id, action: 'deliver' })"
+                        [attr.aria-label]="'Marcar como entregado ' + order.orderNumber"
+                      >
+                        Entregado
+                      </button>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <div class="pagination" aria-label="Paginación">
+        <span class="pagination__info">
+          Mostrando {{ orders().length }} de {{ orders().length }} pedidos
+        </span>
+        <div class="pagination__buttons">
+          <button class="pagination__btn" type="button" disabled aria-label="Página anterior">
+            &#8249;
+          </button>
+          <button class="pagination__btn pagination__btn--active" type="button" aria-current="page">
+            1
+          </button>
+          <button class="pagination__btn" type="button" aria-label="Página siguiente">
+            &#8250;
+          </button>
+        </div>
+      </div>
+    }
+
   }
 </div>

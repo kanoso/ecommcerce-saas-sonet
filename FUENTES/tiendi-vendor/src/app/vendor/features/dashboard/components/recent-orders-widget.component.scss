@@ -113,3 +113,47 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ─── Mobile cards ─── */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+}
+
+.card {
+  background: var(--card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card--skeleton {
+  gap: 10px;
+}
+
+.card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.card__customer {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.card__actions {
+  display: flex;
+  justify-content: flex-end;
+}

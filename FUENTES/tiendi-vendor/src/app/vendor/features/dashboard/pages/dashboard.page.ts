@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { AuthStore } from '../../../core/services/auth.store';
 import { DashboardStore } from '../dashboard.store';
 import { StoreConfigStore } from '../../store-config/store-config.store';
+import { LayoutService } from '../../../shared/layout/layout.service';
 import { ChecklistItem, WelcomeChecklistComponent } from '../../../shared/ui/molecules/welcome-checklist.component';
 import { DashboardGreetingComponent } from '../components/dashboard-greeting.component';
 import { DashboardKpiGridComponent } from '../components/dashboard-kpi-grid.component';
@@ -33,6 +34,7 @@ import { LowStockWidgetComponent } from '../components/low-stock-widget.componen
 })
 export class DashboardPage implements OnInit {
   protected readonly store = inject(DashboardStore);
+  protected readonly isMobile = inject(LayoutService).isMobile;
   private readonly authStore = inject(AuthStore);
   private readonly storeConfigStore = inject(StoreConfigStore);
   private readonly router = inject(Router);

@@ -11,6 +11,7 @@ import { ChatAdapter, NgChatTiendi, Theme } from '@tiendi/chat';
       [adapter]="adapter()"
       [userId]="userId()"
       [theme]="theme()"
+      [isViewportOnMobileEnabled]="isMobile()"
     />
   `,
 })
@@ -18,4 +19,5 @@ export class ChatWidgetComponent {
   readonly adapter = input<ChatAdapter | null>(null);
   readonly userId = input<string | number | null>(null);
   readonly theme = input<Theme>(Theme.Light);
+  readonly isMobile = input<boolean>(false);
 }
