@@ -1,4 +1,4 @@
-import { inject, Injectable, InjectionToken, OnDestroy } from '@angular/core';
+import { effect, inject, Injectable, InjectionToken, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
@@ -71,6 +71,16 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
   private readonly participantsCache = new Map<string, IChatParticipant>();
   private readonly conversationMap = new Map<string, string>(); // conversationId → customerId
 
+  constructor() {
+    super();
+    // Connect socket as soon as storeId is available (even if chat panel is closed).
+    // The 'connect' handler in ensureSocket() will emit chat:joinStore on connect/reconnect.
+    effect(() => {
+      const storeId = this.authStore.currentUser()?.storeId;
+      if (storeId) this.ensureSocket();
+    });
+  }
+
   listFriends(): Observable<ParticipantResponse[]> {
     const storeId = this.authStore.currentUser()?.storeId;
     if (!storeId) return of([]);
@@ -134,12 +144,20 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
 
       const joinStore = () => {
         const storeId = this.authStore.currentUser()?.storeId;
-        if (storeId) this.socket!.emit('chat:joinStore', { storeId });
+        console.log('[VendorChat] joinStore called, storeId:', storeId);
+        if (storeId) {
+          this.socket!.emit('chat:joinStore', { storeId });
+          console.log('[VendorChat] chat:joinStore emitted for storeId:', storeId);
+        }
       };
-      this.socket.on('connect', joinStore);
+      this.socket.on('connect', () => {
+        console.log('[VendorChat] socket connected, socketId:', this.socket?.id);
+        joinStore();
+      });
       if (this.socket.connected) joinStore();
 
       this.socket.on('message.new', (payload: ApiMessage) => {
+        console.log('[VendorChat] message.new received:', payload);
         if (payload.senderType !== 'CUSTOMER') return;
 
         let customerId = this.conversationMap.get(payload.conversationId);
