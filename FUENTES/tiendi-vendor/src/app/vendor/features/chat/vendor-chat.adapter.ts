@@ -14,8 +14,13 @@ import {
 } from '@tiendi/chat';
 import type { IChatParticipant } from '@tiendi/chat';
 import { AuthStore } from '../../core/services/auth.store';
-import { Customer } from '../customers/customers.store';
 import { environment } from '../../../../environments/environment';
+
+interface ConversationSummary {
+  customerId: string;
+  customerName: string;
+  lastMessageAt: string;
+}
 
 interface ApiMessage {
   id: string;
@@ -33,26 +38,6 @@ export const CHAT_SOCKET_FACTORY = new InjectionToken<(url: string) => Socket>(
   'CHAT_SOCKET_FACTORY',
   { factory: () => (url: string) => io(url) },
 );
-
-function toParticipant(c: Customer): IChatParticipant {
-  return {
-    participantType: ChatParticipantType.User,
-    id: c.id,
-    displayName: c.name,
-    status: ChatParticipantStatus.Online,
-    avatar: null,
-    ordernum: '',
-  };
-}
-
-function toParticipantResponse(c: Customer): ParticipantResponse {
-  const metadata = new ParticipantMetadata();
-  metadata.totalUnreadMessages = 0;
-  const response = new ParticipantResponse();
-  response.participant = toParticipant(c);
-  response.metadata = metadata;
-  return response;
-}
 
 function toLibMessage(msg: ApiMessage, customerId: string, currentUserId: string): Message {
   const m = new Message();
@@ -128,15 +113,25 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
   listFriends(): Observable<ParticipantResponse[]> {
     const storeId = this.authStore.currentUser()?.storeId;
     if (!storeId) return of([]);
+    // The message panel lists conversations (anyone who has chatted), not just
+    // customers who placed orders. Chat-only customers must appear here too.
     return this.http
-      .get<{ data: Customer[]; meta: { total: number; totalPages: number } }>(
-        `${environment.apiUrl}/stores/${storeId}/customers?limit=100`,
+      .get<{ data: ConversationSummary[] }>(
+        `${environment.apiUrl}/stores/${storeId}/conversations`,
       )
       .pipe(
         map((res) => {
-          res.data.map(toParticipantResponse).forEach((r) =>
-            this.participants.set(String(r.participant.id), r),
-          );
+          res.data.forEach((c) => {
+            const existing = this.participants.get(c.customerId);
+            if (existing) {
+              existing.participant.displayName = c.customerName;
+            } else {
+              this.participants.set(
+                c.customerId,
+                this.buildParticipantResponse(c.customerId, c.customerName),
+              );
+            }
+          });
           return [...this.participants.values()];
         }),
       );
