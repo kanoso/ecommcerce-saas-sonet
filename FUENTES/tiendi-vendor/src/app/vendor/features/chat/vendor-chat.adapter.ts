@@ -24,6 +24,9 @@ interface ApiMessage {
   senderType: 'VENDOR' | 'CUSTOMER';
   content: string;
   createdAt: string;
+  // Present on socket 'message.new' payloads: the id the conversation is keyed
+  // by. Use this (not senderId) to key the participant and fetch history.
+  customerId?: string;
 }
 
 export const CHAT_SOCKET_FACTORY = new InjectionToken<(url: string) => Socket>(
@@ -68,8 +71,27 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
   private readonly socketFactory = inject(CHAT_SOCKET_FACTORY);
 
   private socket: Socket | null = null;
-  private readonly participantsCache = new Map<string, IChatParticipant>();
+  // id → ParticipantResponse. Seeded by listFriends (customers who ordered) and
+  // extended live when a chat-only customer (no orders) sends a message.
+  private readonly participants = new Map<string, ParticipantResponse>();
   private readonly conversationMap = new Map<string, string>(); // conversationId → customerId
+
+  private buildParticipantResponse(id: string, displayName: string): ParticipantResponse {
+    const participant: IChatParticipant = {
+      participantType: ChatParticipantType.User,
+      id,
+      displayName,
+      status: ChatParticipantStatus.Online,
+      avatar: null,
+      ordernum: '',
+    };
+    const metadata = new ParticipantMetadata();
+    metadata.totalUnreadMessages = 0;
+    const response = new ParticipantResponse();
+    response.participant = participant;
+    response.metadata = metadata;
+    return response;
+  }
 
   constructor() {
     super();
@@ -90,11 +112,10 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
       )
       .pipe(
         map((res) => {
-          const responses = res.data.map(toParticipantResponse);
-          responses.forEach((r) =>
-            this.participantsCache.set(String(r.participant.id), r.participant),
+          res.data.map(toParticipantResponse).forEach((r) =>
+            this.participants.set(String(r.participant.id), r),
           );
-          return responses;
+          return [...this.participants.values()];
         }),
       );
   }
@@ -160,27 +181,27 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
         console.log('[VendorChat] message.new received:', payload);
         if (payload.senderType !== 'CUSTOMER') return;
 
-        let customerId = this.conversationMap.get(payload.conversationId);
-        if (!customerId) {
-          customerId = payload.senderId;
-          this.conversationMap.set(payload.conversationId, customerId);
-        }
+        const customerId =
+          payload.customerId ??
+          this.conversationMap.get(payload.conversationId) ??
+          payload.senderId;
+        this.conversationMap.set(payload.conversationId, customerId);
 
-        let participant = this.participantsCache.get(customerId);
-        if (!participant) {
-          participant = {
-            participantType: ChatParticipantType.User,
-            id: customerId,
-            displayName: 'Cliente',
-            status: ChatParticipantStatus.Online,
-            avatar: null,
-            ordernum: '',
-          };
-          this.participantsCache.set(customerId, participant);
+        // Ensure the sender is in the participants list. A chat-only customer
+        // (no orders) is absent from listFriends, so add them and push the
+        // updated list so a conversation row appears in the vendor UI.
+        let response = this.participants.get(customerId);
+        if (!response) {
+          response = this.buildParticipantResponse(customerId, 'Cliente');
+          this.participants.set(customerId, response);
+          this.onFriendsListChanged([...this.participants.values()]);
         }
 
         const currentUserId = this.authStore.currentUser()?.id ?? '';
-        this.onMessageReceived(participant, toLibMessage(payload, customerId, currentUserId));
+        this.onMessageReceived(
+          response.participant,
+          toLibMessage(payload, customerId, currentUserId),
+        );
       });
     }
     return this.socket;
