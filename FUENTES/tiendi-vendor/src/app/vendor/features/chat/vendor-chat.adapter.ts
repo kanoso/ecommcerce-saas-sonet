@@ -20,6 +20,7 @@ interface ConversationSummary {
   customerId: string;
   customerName: string;
   lastMessageAt: string;
+  lastMessageContent: string | null;
 }
 
 interface ApiMessage {
@@ -61,14 +62,14 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
   private readonly participants = new Map<string, ParticipantResponse>();
   private readonly conversationMap = new Map<string, string>(); // conversationId → customerId
 
-  private buildParticipantResponse(id: string, displayName: string): ParticipantResponse {
+  private buildParticipantResponse(id: string, displayName: string, subtitle = ''): ParticipantResponse {
     const participant: IChatParticipant = {
       participantType: ChatParticipantType.User,
       id,
       displayName,
       status: ChatParticipantStatus.Online,
       avatar: null,
-      ordernum: '',
+      subtitle,
     };
     const metadata = new ParticipantMetadata();
     metadata.totalUnreadMessages = 0;
@@ -122,13 +123,15 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
       .pipe(
         map((res) => {
           res.data.forEach((c) => {
+            const subtitle = c.lastMessageContent ?? '';
             const existing = this.participants.get(c.customerId);
             if (existing) {
               existing.participant.displayName = c.customerName;
+              existing.participant.subtitle = subtitle;
             } else {
               this.participants.set(
                 c.customerId,
-                this.buildParticipantResponse(c.customerId, c.customerName),
+                this.buildParticipantResponse(c.customerId, c.customerName, subtitle),
               );
             }
           });
