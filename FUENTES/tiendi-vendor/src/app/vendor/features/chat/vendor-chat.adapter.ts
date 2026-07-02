@@ -208,14 +208,10 @@ export class VendorChatAdapter extends ChatAdapter implements OnDestroy {
         }
 
         const currentUserId = this.authStore.currentUser()?.id ?? '';
-        try {
-          this.onMessageReceived(
-            response.participant,
-            toLibMessage(payload, customerId, currentUserId),
-          );
-        } catch (e) {
-          console.error('[VendorChat] onMessageReceived threw', e);
-        }
+        this.onMessageReceived(
+          response.participant,
+          toLibMessage(payload, customerId, currentUserId),
+        );
       });
     }
     return this.socket;
