@@ -1,0 +1,27 @@
+# Local AI runtime state
+.atl/
+.tokensave/
+
+# Tooling scratch output
+.playwright-mcp/
+FUENTES/.playwright-mcp/
+
+# Editor
+.idea/
+FUENTES/tiendi-go/.idea/
+
+# Test output
+FUENTES/tiendi-go/coverage/
+
+# Debug screenshots. Anchored, not recursive: a bare `*.png` would swallow
+# real image assets inside FUENTES/tiendi-go, which is a plain directory here
+# rather than a submodule and therefore reachable by this file.
+/*.png
+/FUENTES/*.png
+
+# Sibling checkouts that carry their own .git. Tracking them from here would
+# record bare gitlinks with no matching .gitmodules entry, producing a commit
+# that cannot be cloned. Register them as real submodules before removing these.
+FUENTES/tiendi-kipu/
+FUENTES/tiendi-vendor-refactor/
+tiendi-vendor-fase14/

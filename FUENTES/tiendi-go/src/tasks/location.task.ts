@@ -5,6 +5,7 @@ import { useLocationStore } from '@/stores/location.store';
 import { getSocket } from '@/services/socket';
 import { api } from '@/services/api';
 import { enqueueGpsSample } from '@/stores/gps-queue.store';
+import { toMapPoint } from '@/utils/delivery-map';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -62,9 +63,17 @@ export function emitSample(loc: Location.LocationObject): void {
 
   const delivery = activeDeliveries[0];
 
-  // Adaptive throttle: compute distance, select mode, apply gate
-  const dist = haversineMeters(lat, lng, delivery.client.lat, delivery.client.lng);
-  const mode: 'near' | 'transit' = dist <= NEAR_THRESHOLD_M ? 'near' : 'transit';
+  // Adaptive throttle: compute distance, select mode, apply gate.
+  //
+  // The customer has no coordinates in the schema, so this distance is usually
+  // unknowable. Without a fix on the destination we cannot claim the rider is near
+  // it, and the slower transit cadence is the safe read: it costs battery and server
+  // writes, never a missed arrival.
+  const destination = toMapPoint(delivery.client);
+  const dist = destination
+    ? haversineMeters(lat, lng, destination.latitude, destination.longitude)
+    : null;
+  const mode: 'near' | 'transit' = dist !== null && dist <= NEAR_THRESHOLD_M ? 'near' : 'transit';
   const throttleMs = mode === 'near' ? NEAR_THROTTLE_MS : TRANSIT_THROTTLE_MS;
 
   // Update mode on every sample so UI indicators don't lag behind throttle gate

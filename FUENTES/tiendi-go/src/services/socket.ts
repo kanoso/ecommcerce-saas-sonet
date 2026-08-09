@@ -3,6 +3,26 @@ import * as SecureStore from 'expo-secure-store';
 
 const ACCESS_TOKEN_KEY = 'tiendigo_access_token';
 
+/**
+ * The API's rider/delivery gateway lives on this namespace (`TrackingGateway`).
+ * It is part of the server contract, not environment configuration, so it lives
+ * here rather than in `EXPO_PUBLIC_WS_URL` — that variable says WHERE the server
+ * is, this says WHICH namespace we speak.
+ *
+ * Connecting without it lands on the root namespace `/`, which socket.io always
+ * accepts even with no gateway attached: the connection looks healthy and every
+ * server-pushed event (`order:offer`, `delivery:update`, …) is silently dropped.
+ */
+const WS_NAMESPACE = '/tracking';
+
+/** Strips a trailing slash and a namespace suffix so the join can never double up. */
+function resolveNamespaceUrl(base: string | undefined): string {
+  const host = (base ?? 'http://localhost:3000')
+    .replace(/\/+$/, '')
+    .replace(new RegExp(`${WS_NAMESPACE}$`), '');
+  return `${host}${WS_NAMESPACE}`;
+}
+
 let socket: Socket | null = null;
 
 export async function getSocket(): Promise<Socket> {
@@ -17,7 +37,7 @@ export async function getSocket(): Promise<Socket> {
     return socket;
   }
 
-  socket = io(process.env.EXPO_PUBLIC_WS_URL ?? 'http://localhost:3000', {
+  socket = io(resolveNamespaceUrl(process.env.EXPO_PUBLIC_WS_URL), {
     auth: { token },
     transports: ['websocket'],
     reconnection: true,

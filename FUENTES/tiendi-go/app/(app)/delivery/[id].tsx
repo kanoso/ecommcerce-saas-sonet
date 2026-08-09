@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { deliveryService } from '@/services/delivery.service';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { useLocationStore } from '@/stores/location.store';
-import { openWithChoice } from '@/utils/maps';
+import { openWithChoice, toNavTarget } from '@/utils/maps';
+import { resolveRegion, toMapPoint, type MapPoint } from '@/utils/delivery-map';
 import { haversineMeters } from '@/utils/geo';
 import { IncidentModal } from '@/components/delivery/IncidentModal';
 import { CancelModal } from '@/components/delivery/CancelModal';
@@ -91,17 +92,23 @@ export default function DeliveryScreen() {
   const targetIsStore = STORE_STATES.includes(delivery.status);
   const target = targetIsStore ? delivery.store : delivery.client;
 
-  // Map region: center on target with some padding
-  const mapRegion = {
-    latitude: target.lat,
-    longitude: target.lng,
-    latitudeDelta: 0.015,
-    longitudeDelta: 0.015,
-  };
+  const storePoint = toMapPoint(delivery.store);
+  const clientPoint = toMapPoint(delivery.client);
+  const targetPoint = targetIsStore ? storePoint : clientPoint;
+  const riderPoint: MapPoint | null = coords
+    ? { latitude: coords.lat, longitude: coords.lng }
+    : null;
 
-  const warnIfOutsideGeofence = (targetLat: number, targetLng: number, radiusM: number) => {
-    if (!coords) return;
-    const dist = haversineMeters(coords.lat, coords.lng, targetLat, targetLng);
+  // Centre on the target, then on whatever else is known. The customer has no
+  // coordinates in the schema, so past pickup the fallbacks are the normal path.
+  const mapRegion = resolveRegion([targetPoint, storePoint, riderPoint]);
+
+  const warnIfOutsideGeofence = (point: MapPoint | null, radiusM: number) => {
+    // No rider fix or no target point means there is no distance to compare. Staying
+    // silent is right: a geofence warning we cannot compute must not become one we
+    // invent.
+    if (!coords || !point) return;
+    const dist = haversineMeters(coords.lat, coords.lng, point.latitude, point.longitude);
     if (dist > radiusM) {
       Toast.show({
         type: 'info',
@@ -115,13 +122,13 @@ export default function DeliveryScreen() {
     if (!step.enabled || !step.next || advancing) return;
 
     if (delivery.status === 'EnTienda') {
-      warnIfOutsideGeofence(delivery.store.lat, delivery.store.lng, STORE_GEOFENCE_M);
+      warnIfOutsideGeofence(storePoint, STORE_GEOFENCE_M);
       setPickupModalVisible(true);
       return;
     }
 
     if (delivery.status === 'EnDestino') {
-      warnIfOutsideGeofence(delivery.client.lat, delivery.client.lng, CLIENT_GEOFENCE_M);
+      warnIfOutsideGeofence(clientPoint, CLIENT_GEOFENCE_M);
       setPodModalVisible(true);
       return;
     }
@@ -156,18 +163,17 @@ export default function DeliveryScreen() {
     router.replace('/(app)/home');
   };
 
+  // Coordinates when the target has them, otherwise a search for the address the
+  // courier was given. Null means neither exists and there is nothing to navigate to.
+  const navTarget = toNavTarget(target);
+
   const onOpenMaps = () => {
-    openWithChoice({ lat: target.lat, lng: target.lng, label: target.name });
+    if (!navTarget) return;
+    openWithChoice(navTarget);
   };
 
   // Polyline: rider → target (straight line — server route not in delivery payload)
-  const polylineCoords =
-    coords
-      ? [
-          { latitude: coords.lat, longitude: coords.lng },
-          { latitude: target.lat, longitude: target.lng },
-        ]
-      : [];
+  const polylineCoords = riderPoint && targetPoint ? [riderPoint, targetPoint] : [];
 
   return (
     <SafeAreaView testID="delivery-screen" style={styles.root} edges={['top']}>
@@ -187,34 +193,44 @@ export default function DeliveryScreen() {
           ) : null}
 
           {/* Store marker + geofence */}
-          <Marker
-            coordinate={{ latitude: delivery.store.lat, longitude: delivery.store.lng }}
-            pinColor={Colors.primary}
-            title={delivery.store.name}
-            description="Tienda"
-          />
-          <Circle
-            center={{ latitude: delivery.store.lat, longitude: delivery.store.lng }}
-            radius={STORE_GEOFENCE_M}
-            strokeColor={Colors.primary + '80'}
-            fillColor={Colors.primary + '18'}
-            strokeWidth={1}
-          />
+          {storePoint ? (
+            <>
+              <Marker
+                coordinate={storePoint}
+                pinColor={Colors.primary}
+                title={delivery.store.name}
+                description="Tienda"
+              />
+              <Circle
+                center={storePoint}
+                radius={STORE_GEOFENCE_M}
+                strokeColor={Colors.primary + '80'}
+                fillColor={Colors.primary + '18'}
+                strokeWidth={1}
+              />
+            </>
+          ) : null}
 
-          {/* Client marker + geofence */}
-          <Marker
-            coordinate={{ latitude: delivery.client.lat, longitude: delivery.client.lng }}
-            pinColor={Colors.info}
-            title={delivery.client.name}
-            description="Cliente"
-          />
-          <Circle
-            center={{ latitude: delivery.client.lat, longitude: delivery.client.lng }}
-            radius={CLIENT_GEOFENCE_M}
-            strokeColor={Colors.info + '80'}
-            fillColor={Colors.info + '18'}
-            strokeWidth={1}
-          />
+          {/* Client marker + geofence — absent until the schema stores customer
+              coordinates; the address card and the maps search carry the destination
+              in the meantime. */}
+          {clientPoint ? (
+            <>
+              <Marker
+                coordinate={clientPoint}
+                pinColor={Colors.info}
+                title={delivery.client.name}
+                description="Cliente"
+              />
+              <Circle
+                center={clientPoint}
+                radius={CLIENT_GEOFENCE_M}
+                strokeColor={Colors.info + '80'}
+                fillColor={Colors.info + '18'}
+                strokeWidth={1}
+              />
+            </>
+          ) : null}
 
           {/* Route line rider → active target */}
           {polylineCoords.length === 2 ? (
@@ -234,11 +250,15 @@ export default function DeliveryScreen() {
           <View style={styles.card}>
             <Text style={styles.cardLabel}>{targetIsStore ? 'Tienda' : 'Cliente'}</Text>
             <Text style={styles.cardName} numberOfLines={1}>{target.name}</Text>
-            <Text style={styles.cardSub} numberOfLines={1}>{target.address}</Text>
+            <Text style={styles.cardSub} numberOfLines={1}>
+              {target.address ?? 'Sin dirección registrada'}
+            </Text>
           </View>
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Comisión</Text>
-            <Text style={[styles.cardName, { color: Colors.success }]}>${delivery.commission}</Text>
+            <Text style={[styles.cardName, { color: Colors.success }]}>
+              {delivery.commission === null ? '—' : `$${delivery.commission}`}
+            </Text>
             <Text style={styles.cardSub}>
               {delivery.paymentMethod === 'cash' ? 'Efectivo' : 'Digital'}
               {delivery.cashAmount ? ` · $${delivery.cashAmount}` : ''}
@@ -246,8 +266,14 @@ export default function DeliveryScreen() {
           </View>
         </View>
 
-        <Pressable style={styles.mapsBtn} onPress={onOpenMaps}>
-          <Text style={styles.mapsBtnText}>Navegar →</Text>
+        <Pressable
+          style={[styles.mapsBtn, !navTarget && styles.mapsBtnDisabled]}
+          onPress={onOpenMaps}
+          disabled={!navTarget}
+        >
+          <Text style={styles.mapsBtnText}>
+            {navTarget ? 'Navegar →' : 'Sin destino para navegar'}
+          </Text>
         </Pressable>
       </View>
 
@@ -378,6 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     alignItems: 'center',
   },
+  mapsBtnDisabled: { opacity: 0.4 },
   mapsBtnText: { color: Colors.info, fontSize: 14, fontWeight: '700' },
 
   cta:             { padding: Spacing.lg, marginTop: 'auto' },

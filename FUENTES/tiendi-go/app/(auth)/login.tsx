@@ -11,6 +11,15 @@ import { loginSchema, type LoginFormData } from '@/schemas/auth.schemas';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
 
+const TEST_RIDERS = [
+  { name: 'Pedro Quispe', email: 'pedro@tiendi.app', password: 'Test123!' },
+  { name: 'Carlos Mamani', email: 'carlos.rider@tiendi.app', password: 'Test123!' },
+  { name: 'Sofía Huanca', email: 'sofia@tiendi.app', password: 'Test123!' },
+  { name: 'Miguel Quispe', email: 'miguel.rider@tiendi.app', password: 'Test123!' },
+  { name: 'Raúl Mendoza', email: 'raul.rider@tiendi.app', password: 'Test123!' },
+  { name: 'Carmen Ramos', email: 'carmen@tiendi.app', password: 'Test123!' },
+];
+
 export default function LoginScreen() {
   const router = useRouter();
   const { setTokens, setRider } = useAuthStore();
@@ -20,11 +29,18 @@ export default function LoginScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  const fillAs = (user: { email: string; password: string }) => {
+    setValue('email', user.email);
+    setValue('password', user.password);
+    setApiError('');
+  };
 
   useEffect(() => {
     authService.isBiometricEnabled().then(setBiometricAvailable);
@@ -126,6 +142,25 @@ export default function LoginScreen() {
               <Text style={styles.registerLink}>Crear cuenta</Text>
             </Text>
           </TouchableOpacity>
+
+          {__DEV__ && (
+            <View style={styles.testHint}>
+              <Text style={styles.testHintTitle}>🧪 Riders de prueba</Text>
+              <Text style={styles.testHintSub}>(tocá para autocompletar)</Text>
+              <View style={styles.testHintGrid}>
+                {TEST_RIDERS.map((rider) => (
+                  <TouchableOpacity
+                    key={rider.email}
+                    style={styles.testHintCard}
+                    onPress={() => fillAs(rider)}
+                  >
+                    <Text style={styles.testHintName}>{rider.name}</Text>
+                    <Text style={styles.testHintEmail}>{rider.email}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -192,5 +227,41 @@ const styles = StyleSheet.create({
   registerLink: {
     color: Colors.primary,
     fontWeight: '600',
+  },
+  testHint: {
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  testHintTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text2,
+  },
+  testHintSub: {
+    fontSize: 12,
+    color: Colors.text2,
+    marginBottom: 8,
+  },
+  testHintGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  testHintCard: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.card2,
+  },
+  testHintName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  testHintEmail: {
+    fontSize: 11,
+    color: Colors.text2,
   },
 });
