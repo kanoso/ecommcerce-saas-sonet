@@ -958,28 +958,31 @@ sequenceDiagram
     APP->>APP: Activa botón "Confirmar recogida"
     R->>APP: Toca "Confirmar recogida"
 
-    APP->>R: Opciones de verificación
+    APP->>R: Opciones de verificación (UI)
     alt QR disponible en la tienda
         R->>APP: Escanea QR del pedido
-        APP->>API: POST /deliveries/{id}/pickup { method: "qr", code }
-        API->>API: Valida que el QR corresponde al pedido
     else Sin QR — código verbal
         T->>R: Comunica código de 4 dígitos verbalmente
         R->>APP: Ingresa código manual
-        APP->>API: POST /deliveries/{id}/pickup { method: "code", code }
-        API->>API: Valida código contra el pedido
     end
 
-    alt Verificación exitosa
-        APP->>R: Solicita foto opcional del paquete
-        R->>APP: Captura foto (o omite)
-        APP->>API: Sube foto a Cloudinary (acceso privado)
-        API->>T: WS: Pedido recogido — repartidor en camino al cliente
-        API->>APP: Estado → Recogido
-    else Código incorrecto
+    APP->>R: Solicita foto opcional del paquete
+    R->>APP: Captura foto (o omite)
+    APP->>API: POST /deliveries/{id}/pickup { code, photoUrl? }
+    Note over APP,API: La API no distingue QR de código manual — ambos viajan como "code" en la misma request, junto con la foto
+
+    alt Código correcto
+        API->>API: Sube foto a Cloudinary (si vino) · status → PICKED_UP
+        API->>T: WS delivery:status-changed (PICKED_UP)
+        API->>APP: 200 — Estado → Recogido
+    else Código incorrecto (intento 1 o 2)
+        API->>API: Incrementa pickupAttempts
         API->>APP: 422 — Código no coincide
         APP->>R: "Código incorrecto. Pedí el código nuevamente a la tienda."
-        Note over R: Puede reintentar hasta 3 veces
+    else Código incorrecto (3er intento)
+        API->>API: pickupAttempts > 3 → status → INCIDENT
+        API->>T: WS delivery:incident
+        API->>APP: 422 — Pedido escalado a incidente
     end
 ```
 
