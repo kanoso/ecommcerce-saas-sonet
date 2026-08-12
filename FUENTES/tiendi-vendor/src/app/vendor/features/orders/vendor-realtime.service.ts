@@ -23,12 +23,16 @@ export class VendorRealtimeService implements OnDestroy {
 
     const baseUrl = environment.apiUrl.replace(/\/api\/v1$/, '');
     this.socket = io(`${baseUrl}/tracking`, {
-      auth: { userId: this.authStore.currentUser()?.id },
+      auth: { token: this.authStore.token() },
       transports: ['websocket'],
     });
 
     this.socket.on('connect', () => {
       this.socket?.emit('join-vendor-room', { storeId });
+    });
+
+    this.socket.on('error', (err: { message?: string }) => {
+      console.error('VendorRealtimeService: join-vendor-room failed', err?.message);
     });
 
     this.socket.on('vendor:rider-accepted', (data: VendorRiderEvent) => {
