@@ -11,6 +11,7 @@ import { useDeliveryStore } from '@/stores/delivery.store';
 import { useLocationStore } from '@/stores/location.store';
 import { openWithChoice, toNavTarget } from '@/utils/maps';
 import { resolveRegion, toMapPoint, type MapPoint } from '@/utils/delivery-map';
+import { resolveResumeState } from '@/utils/delivery-resume';
 import { haversineMeters } from '@/utils/geo';
 import { IncidentModal } from '@/components/delivery/IncidentModal';
 import { CancelModal } from '@/components/delivery/CancelModal';
@@ -24,6 +25,16 @@ const CLIENT_GEOFENCE_M = 200;
 
 // States where rider is heading to / at the store
 const STORE_STATES: DeliveryStatus[] = ['Asignado', 'EnCaminoTienda', 'EnTienda'];
+
+/**
+ * How long the screen waits for the delivery to appear before treating it as gone.
+ *
+ * Two async sources fill `activeDeliveries`, and this screen can now be opened before
+ * either has run: MMKV rehydration, and the socket's `connect` handler refetching
+ * `GET /deliveries/me/active`. The second is a network round trip on a phone that may
+ * have just woken up, which is what this budget is sized for.
+ */
+const RESUME_GRACE_MS = 8_000;
 
 interface NextStep {
   label: string;
@@ -61,17 +72,35 @@ export default function DeliveryScreen() {
     return () => setSelectedDeliveryId(null);
   }, [id]);
 
+  // Absence only becomes a verdict once the grace period is over. Redirecting on the
+  // first render instead is what made a delivery opened from the home list bounce
+  // straight back to the list the rider had just tapped.
+  const [graceElapsed, setGraceElapsed] = useState(false);
   useEffect(() => {
-    if (!delivery && id) {
-      router.replace('/(app)/home');
-    }
-  }, [delivery]);
+    setGraceElapsed(false);
+    const timer = setTimeout(() => setGraceElapsed(true), RESUME_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [id]);
+
+  const resumeState = resolveResumeState(delivery, graceElapsed);
+
+  useEffect(() => {
+    if (resumeState !== 'missing') return;
+    Toast.show({
+      type: 'error',
+      text1: 'Entrega no disponible',
+      text2: 'No pudimos cargar esta entrega. Revisá tu conexión.',
+    });
+    router.replace('/(app)/home');
+  }, [resumeState]);
 
   if (!delivery) {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Cargando entrega…</Text>
+          <Text style={styles.emptyText}>
+            {resumeState === 'loading' ? 'Cargando entrega…' : 'Entrega no disponible'}
+          </Text>
           <Button label="Volver" variant="secondary" onPress={() => router.replace('/(app)/home')} />
         </View>
       </SafeAreaView>

@@ -10,6 +10,7 @@ import { useLocationStore } from '@/stores/location.store';
 import { useDeliveryStore } from '@/stores/delivery.store';
 import { ridersService } from '@/services/riders.service';
 import { OfferCard } from '@/components/delivery/OfferCard';
+import { ActiveDeliveriesList } from '@/components/delivery/ActiveDeliveriesList';
 import { InviteCard } from '@/components/store/InviteCard';
 import { getUnreadCount } from '@/stores/notification-inbox.store';
 import { useStoreInvitationStore } from '@/stores/store-invitation.store';
@@ -112,8 +113,12 @@ export default function HomeScreen() {
       </Pressable>
       {isOnline ? <View testID="status-online" style={styles.onlineIndicator} /> : null}
 
+      {/* All three occupy the bottom of the screen, so only one shows at a time.
+          The offer wins: it auto-rejects in 30 seconds, while the list below it
+          stays reachable for as long as the delivery is in progress. */}
       {offer ? <OfferCard /> : null}
       {invitation && !offer ? <InviteCard /> : null}
+      {!offer && !invitation ? <ActiveDeliveriesList /> : null}
 
       {/* Bell button — absolute, above the map, top-left of the toggle area */}
       <Pressable
