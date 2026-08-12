@@ -8,7 +8,7 @@
 //   - getDevicePushTokenAsync() returns { type: 'fcm'|'apn', data: string }
 
 import { useEffect } from 'react';
-import { Platform, Vibration } from 'react-native';
+import { AppState, Platform, Vibration, type AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -25,19 +25,39 @@ export const CHANNEL_DEFAULT = 'default';
 // Three short bursts — attention-grabbing but not annoying.
 const OFFER_VIBRATION_MS = [0, 350, 100, 350, 100, 350];
 
-// Foreground handler: category-aware.
-//   delivery-offer → play sound (offer.wav defined in the channel) + suppress OS banner
-//   everything else → no sound, no banner; we show Toast instead
+/**
+ * Decides how a notification should be displayed based on its type and
+ * whether there is currently a visible screen.
+ *
+ * `AppState.currentState === 'active'` means a screen is mounted and can
+ * render the in-app Toast, so we suppress the native banner to avoid a
+ * duplicate. Any other state (background, inactive — including a foreground
+ * service such as delivery-location-tracking keeping the JS process alive
+ * with no visible screen) has nowhere to render a Toast, so the OS must
+ * show the banner/tray entry instead.
+ */
+export function resolveNotificationBehavior(
+  data: Partial<NotificationPayloadData> | undefined,
+  appState: AppStateStatus,
+): Notifications.NotificationBehavior {
+  const isForegroundVisible = appState === 'active';
+  const isOffer = data?.type === 'delivery-offer';
+  return {
+    shouldShowBanner: !isForegroundVisible,
+    shouldShowList: !isForegroundVisible,
+    shouldPlaySound: isOffer,
+    shouldSetBadge: false,
+  };
+}
+
+// Foreground handler: category- and visibility-aware.
+//   screen visible  → suppress OS banner, in-app Toast handles it (see below)
+//   screen not visible → let the OS show the banner/tray entry (no Toast host exists)
+//   delivery-offer  → always plays sound (offer.wav defined in the channel)
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const data = notification.request.content.data as Partial<NotificationPayloadData> | undefined;
-    const isOffer = data?.type === 'delivery-offer';
-    return {
-      shouldShowBanner: false,
-      shouldShowList: false,
-      shouldPlaySound: isOffer,
-      shouldSetBadge: false,
-    };
+    return resolveNotificationBehavior(data, AppState.currentState);
   },
 });
 
