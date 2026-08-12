@@ -393,6 +393,23 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Actividad */}
+        <View style={styles.sectionBlock}>
+          <Text style={styles.sectionHeader}>Actividad</Text>
+          <TouchableOpacity
+            style={[styles.sectionRow, styles.sectionRowLast]}
+            onPress={() => router.push('/(app)/delivery-history')}
+            accessibilityRole="button"
+            accessibilityLabel="Ver historial de entregas"
+          >
+            <View style={styles.sectionRowInner}>
+              <Text style={styles.rowLabel}>Historial de entregas</Text>
+              <Text style={styles.rowValue}>Entregas, cancelaciones y devoluciones</Text>
+            </View>
+            <Text style={styles.rowArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Configuración */}
         <View style={[styles.sectionBlock, styles.sectionBlockLast]}>
           <Text style={styles.sectionHeader}>Configuración</Text>

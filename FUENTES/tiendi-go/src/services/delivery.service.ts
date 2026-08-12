@@ -1,5 +1,6 @@
 import { api } from './api';
 import { toActiveDelivery, type RiderDeliveryWire } from './delivery.mapper';
+import { toHistoryPage, type DeliveryHistoryPage } from '@/utils/delivery-history';
 import type {
   ActiveDelivery,
   DeliveryStatus,
@@ -71,6 +72,21 @@ export const deliveryService = {
   async getActiveDeliveries(): Promise<ActiveDelivery[]> {
     const { data } = await api.get<RiderDeliveryWire | null>('/deliveries/me/active');
     return data ? [toActiveDelivery(data)] : [];
+  },
+
+  /**
+   * One page of the rider's finished deliveries, newest first.
+   *
+   * `limit` is left to the API's own default rather than sent from here — the server
+   * caps it at 50 anyway, and a page size the client picks is a number that has to be
+   * kept in sync across two repositories for no benefit.
+   *
+   * The mapping happens here, not in the screen, for the same reason
+   * `getActiveDeliveries` maps: wire shapes should not escape this layer.
+   */
+  async getHistory(page: number): Promise<DeliveryHistoryPage> {
+    const { data } = await api.get('/deliveries/me/history', { params: { page } });
+    return toHistoryPage(data, new Date());
   },
 
   async reportIncident(deliveryId: string, payload: ReportIncidentPayload): Promise<void> {
