@@ -39,11 +39,13 @@
     "@primeuix/themes": "^2.0.3",
     "@sentry/angular": "^10.61.0",
     "@tiendi/chat": "file:../tiendi-web/dist/ng-chat-tiendi",
+    "@types/qrcode": "^1.5.6",
     "chart.js": "^4.5.1",
     "ng2-charts": "^10.0.0",
     "posthog-js": "^1.395.0",
     "primeicons": "^7.0.0",
     "primeng": "^21.1.6",
+    "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.3",
     "tslib": "^2.3.0"

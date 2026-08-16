@@ -10,6 +10,11 @@ export interface VendorRiderEvent {
   reason?: string;
 }
 
+export interface VendorDeliveryStatusEvent {
+  deliveryId: string;
+  status: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class VendorRealtimeService implements OnDestroy {
   private socket: Socket | null = null;
@@ -17,6 +22,7 @@ export class VendorRealtimeService implements OnDestroy {
 
   readonly riderAccepted$ = new Subject<VendorRiderEvent>();
   readonly riderRejected$ = new Subject<VendorRiderEvent>();
+  readonly deliveryStatus$ = new Subject<VendorDeliveryStatusEvent>();
 
   connect(storeId: string): void {
     if (this.socket?.connected) return;
@@ -41,6 +47,10 @@ export class VendorRealtimeService implements OnDestroy {
 
     this.socket.on('vendor:rider-rejected', (data: VendorRiderEvent) => {
       this.riderRejected$.next(data);
+    });
+
+    this.socket.on('vendor:delivery-status', (data: VendorDeliveryStatusEvent) => {
+      this.deliveryStatus$.next(data);
     });
   }
 

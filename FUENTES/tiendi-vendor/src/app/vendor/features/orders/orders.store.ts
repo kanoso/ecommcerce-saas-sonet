@@ -58,6 +58,9 @@ export interface Order {
   rejectionReason: string | null;
   createdAt: string;
   rider: AssignedRider | null;
+  pickupCode: string | null;
+  deliveryId: string | null;
+  deliveryStatus: string | null;
 }
 
 export interface OrderFilters {
@@ -147,6 +150,21 @@ function mapOrder(raw: Record<string, unknown>): Order {
         name: `${user?.['firstName'] ?? ''} ${user?.['lastName'] ?? ''}`.trim(),
         phone: (user?.['phone'] as string | null) ?? null,
       };
+    })(),
+    pickupCode: (() => {
+      const delivery = raw['delivery'] as Record<string, unknown> | null | undefined;
+      const code = delivery?.['pickupCode'];
+      return typeof code === 'string' ? code : null;
+    })(),
+    deliveryId: (() => {
+      const delivery = raw['delivery'] as Record<string, unknown> | null | undefined;
+      const id = delivery?.['id'];
+      return typeof id === 'string' ? id : null;
+    })(),
+    deliveryStatus: (() => {
+      const delivery = raw['delivery'] as Record<string, unknown> | null | undefined;
+      const status = delivery?.['status'];
+      return typeof status === 'string' ? status : null;
     })(),
   };
 }
@@ -254,6 +272,21 @@ export const OrdersStore = signalStore(
       };
     }
 
+    async function refreshOrder(id: string): Promise<void> {
+      try {
+        const raw = await firstValueFrom(
+          http.get<Record<string, unknown>>(`${API}/orders/${id}`)
+        );
+        const fresh = mapOrder(raw);
+        patchState(store, {
+          orders: store.orders().map((o) => (o.id === id ? fresh : o)),
+          selectedOrder: store.selectedOrder()?.id === id ? fresh : store.selectedOrder(),
+        });
+      } catch {
+        // Refresh is best-effort; never break the dispatch flow on failure.
+      }
+    }
+
     return {
       async loadOrders(): Promise<void> {
         patchState(store, { isLoading: true, error: null });
@@ -310,6 +343,7 @@ export const OrdersStore = signalStore(
         patchState(store, { isUpdating: true });
         try {
           await firstValueFrom(http.put(`${API}/orders/${id}/dispatch`, {}));
+          await refreshOrder(id);
           patchState(store, { isUpdating: false });
           analytics.capture('order_dispatched', { orderId: id });
         } catch {
@@ -353,6 +387,25 @@ export const OrdersStore = signalStore(
           revertOptimistic(snapshot, selectedSnapshot);
           patchState(store, { error: 'Error al rechazar el pedido.' });
         }
+      },
+
+      applyDeliveryStatus(deliveryId: string, status: string): void {
+        const patch = (o: Order): Order => {
+          if (o.deliveryId !== deliveryId) return o;
+          const next: Order = { ...o, deliveryStatus: status };
+          if (status === 'DELIVERED' && o.status !== 'DELIVERED') {
+            next.status = 'DELIVERED';
+            next.statusHistory = [
+              ...o.statusHistory,
+              { status: 'DELIVERED', at: new Date().toISOString() },
+            ];
+          }
+          return next;
+        };
+        const orders = store.orders().map(patch);
+        const sel = store.selectedOrder();
+        const selectedOrder = sel ? patch(sel) : sel;
+        patchState(store, { orders, selectedOrder });
       },
 
       setActiveTab(tab: OrderStatus | 'ALL'): void {

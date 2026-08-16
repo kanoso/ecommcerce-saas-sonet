@@ -64,6 +64,50 @@
           </div>
         </div>
       }
+
+      @if (order().deliveryStatus) {
+        <div class="delivery-status" role="region" aria-label="Estado de la entrega">
+          <div class="delivery-status__badge" [class.delivery-status__badge--terminal]="!isDeliveryInProgress()">
+            <span class="material-symbols-rounded" aria-hidden="true">local_shipping</span>
+            <span>{{ deliveryStatusLabel() }}</span>
+          </div>
+
+          @if (isDeliveryInProgress()) {
+            <ol class="delivery-status__timeline">
+              @for (step of deliveryFlow; track step; let i = $index) {
+                <li
+                  class="delivery-status__step"
+                  [class.delivery-status__step--done]="i < deliveryFlowIndex()"
+                  [class.delivery-status__step--current]="i === deliveryFlowIndex()"
+                >
+                  <span class="delivery-status__dot" aria-hidden="true"></span>
+                  <span class="delivery-status__label">{{ deliveryStatusLabels[step] }}</span>
+                </li>
+              }
+            </ol>
+          }
+        </div>
+      }
+
+      @if (order().status === 'DISPATCHED' && order().pickupCode) {
+        <div class="pickup-code" role="region" aria-label="Código de retiro">
+          <div class="pickup-code__header">
+            <span class="material-symbols-rounded pickup-code__icon" aria-hidden="true">qr_code_scanner</span>
+            <span class="pickup-code__label">Código de retiro</span>
+          </div>
+          <p class="pickup-code__hint">Mostrá este código al repartidor para confirmar el retiro del pedido.</p>
+          @if (qrDataUrl()) {
+            <img
+              class="pickup-code__qr"
+              [src]="qrDataUrl()"
+              alt="Código QR de retiro"
+              width="140"
+              height="140"
+            />
+          }
+          <span class="pickup-code__digits">{{ order().pickupCode }}</span>
+        </div>
+      }
     </div>
   } @else {
     <div class="pickup">

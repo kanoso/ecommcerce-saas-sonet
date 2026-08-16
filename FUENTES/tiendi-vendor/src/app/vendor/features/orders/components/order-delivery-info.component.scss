@@ -166,6 +166,131 @@
   align-items: center;
 }
 
+.pickup-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 16px 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.pickup-code__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pickup-code__icon {
+  font-size: 20px;
+  color: var(--primary);
+}
+
+.pickup-code__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+
+.pickup-code__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pickup-code__qr {
+  display: block;
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.pickup-code__digits {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: var(--text-primary);
+}
+
+.delivery-status {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.delivery-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+
+  .material-symbols-rounded {
+    font-size: 18px;
+    color: var(--primary);
+  }
+
+  &--terminal {
+    color: var(--text-secondary);
+
+    .material-symbols-rounded {
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.delivery-status__timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delivery-status__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.delivery-status__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 2px solid transparent;
+  flex-shrink: 0;
+}
+
+.delivery-status__step--done .delivery-status__dot {
+  background: var(--primary);
+}
+
+.delivery-status__step--current .delivery-status__dot {
+  background: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.25);
+}
+
+.delivery-status__step--current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 .assign-btn {
   display: flex;
   align-items: center;
