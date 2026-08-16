@@ -8,7 +8,6 @@ import {
 import { SentryAppErrorHandler } from './vendor/core/services/sentry-error-handler';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { routes } from './app.routes';
 import { authInterceptor } from './vendor/core/interceptors/auth.interceptor';
 import { storeIdInterceptor } from './vendor/core/interceptors/store-id.interceptor';
@@ -37,7 +36,6 @@ export const appConfig: ApplicationConfig = {
         retryInterceptor,
       ]),
     ),
-    provideCharts(withDefaultRegisterables()),
     {
       provide: APP_INITIALIZER,
       useFactory: () => {

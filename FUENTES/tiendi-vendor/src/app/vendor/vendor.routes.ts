@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { onboardingGuard } from './core/guards/onboarding.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { VendorChatAdapter } from './features/chat';
@@ -26,6 +27,7 @@ export const VENDOR_ROUTES: Routes = [
       {
         path: 'dashboard',
         canActivate: [roleGuard(['STORE_OWNER', 'MANAGER', 'CASHIER', 'WAREHOUSE', 'SUPER_ADMIN'])],
+        providers: [provideCharts(withDefaultRegisterables())],
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard.page').then((c) => c.DashboardPage),
       },
