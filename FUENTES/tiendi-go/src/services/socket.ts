@@ -17,7 +17,7 @@ const WS_NAMESPACE = '/tracking';
 
 /** Strips a trailing slash and a namespace suffix so the join can never double up. */
 function resolveNamespaceUrl(base: string | undefined): string {
-  const host = (base ?? 'http://localhost:3000')
+  const host = (base ?? 'http://localhost:4000')
     .replace(/\/+$/, '')
     .replace(new RegExp(`${WS_NAMESPACE}$`), '');
   return `${host}${WS_NAMESPACE}`;

@@ -59,7 +59,7 @@ describe('getSocket — tracking namespace', () => {
 
     await getSocket();
 
-    expect(mockIo).toHaveBeenCalledWith('http://localhost:3000/tracking', expect.anything());
+    expect(mockIo).toHaveBeenCalledWith('http://localhost:4000/tracking', expect.anything());
   });
 
   it('passes the stored access token in the handshake auth payload', async () => {
