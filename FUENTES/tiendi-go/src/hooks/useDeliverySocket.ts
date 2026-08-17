@@ -88,6 +88,22 @@ export function useDeliverySocket(): void {
           console.warn('[socket] active deliveries fetch failed', err);
         }
       }
+
+      // Recover an offer the API emitted while this socket was not connected.
+      // `order:offer` is one-shot, so a rider who was offline at that moment
+      // would otherwise never see it.
+      try {
+        const offer = await deliveryService.getPendingOffer();
+        if (!cancelled && offer && !useDeliveryStore.getState().offer) {
+          if (offer.expiresAt) {
+            useDeliveryStore.getState().setOfferWithExpiry(offer, offer.expiresAt);
+          } else {
+            useDeliveryStore.getState().setOffer(offer);
+          }
+        }
+      } catch {
+        // best-effort recovery — a missed offer is not fatal
+      }
     };
 
     (async () => {

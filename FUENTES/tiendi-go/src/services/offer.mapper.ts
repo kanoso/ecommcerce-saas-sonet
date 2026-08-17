@@ -40,6 +40,8 @@ export interface OrderOfferWire {
   };
   /** Seconds the rider has to accept, relative to delivery. */
   timerSeconds?: number;
+  /** Absolute deadline (ISO 8601). Preferred over `timerSeconds` when present. */
+  expiresAt?: string;
 }
 
 const METERS_PER_KM = 1000;
@@ -62,6 +64,20 @@ function metersToKilometres(meters: unknown): number {
 }
 
 /**
+ * Resolves the absolute offer deadline. The API sends `expiresAt` (absolute)
+ * so a late-recovered offer shows the *remaining* time; `timerSeconds` is a
+ * legacy fallback that restarts the window from the client's clock.
+ */
+function resolveExpiresAt(wire: OrderOfferWire): number | undefined {
+  if (typeof wire?.expiresAt === 'string') {
+    const ms = Date.parse(wire.expiresAt);
+    if (Number.isFinite(ms)) return ms;
+  }
+  const timerSeconds = finiteNumber(wire?.timerSeconds);
+  return timerSeconds > 0 ? Date.now() + timerSeconds * 1000 : undefined;
+}
+
+/**
  * Translates a wire `order:offer` payload into the `DeliveryOffer` view model.
  *
  * Beyond flattening it reconciles three real mismatches:
@@ -72,7 +88,7 @@ function metersToKilometres(meters: unknown): number {
  */
 export function toDeliveryOffer(wire: OrderOfferWire): DeliveryOffer {
   const method = nonEmptyString(wire?.payment?.method).toUpperCase();
-  const timerSeconds = finiteNumber(wire?.timerSeconds);
+  const expiresAt = resolveExpiresAt(wire);
 
   return {
     deliveryId: nonEmptyString(wire?.deliveryId),
@@ -94,6 +110,6 @@ export function toDeliveryOffer(wire: OrderOfferWire): DeliveryOffer {
     // Not part of the offer payload today; the type keeps the field nullable so the
     // card can render without it until the API starts sending it.
     specialInstructions: null,
-    ...(timerSeconds > 0 ? { expiresAt: Date.now() + timerSeconds * 1000 } : {}),
+    ...(expiresAt !== undefined ? { expiresAt } : {}),
   };
 }

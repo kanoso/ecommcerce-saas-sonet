@@ -1,8 +1,10 @@
 import { api } from './api';
 import { toActiveDelivery, type RiderDeliveryWire } from './delivery.mapper';
+import { toDeliveryOffer, type OrderOfferWire } from './offer.mapper';
 import { toHistoryPage, type DeliveryHistoryPage } from '@/utils/delivery-history';
 import type {
   ActiveDelivery,
+  DeliveryOffer,
   DeliveryStatus,
   ReportIncidentPayload,
   CancelDeliveryPayload,
@@ -72,6 +74,16 @@ export const deliveryService = {
   async getActiveDeliveries(): Promise<ActiveDelivery[]> {
     const { data } = await api.get<RiderDeliveryWire | null>('/deliveries/me/active');
     return data ? [toActiveDelivery(data)] : [];
+  },
+
+  /**
+   * Recovers an offer the API emitted via socket while the app was not yet
+   * connected. Called on socket connect so a missed one-shot `order:offer` is
+   * not silently lost.
+   */
+  async getPendingOffer(): Promise<DeliveryOffer | null> {
+    const { data } = await api.get<OrderOfferWire | null>('/deliveries/me/pending-offer');
+    return data ? toDeliveryOffer(data) : null;
   },
 
   /**
