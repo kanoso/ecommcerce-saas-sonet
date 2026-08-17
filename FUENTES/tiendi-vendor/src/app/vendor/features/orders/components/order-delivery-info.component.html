@@ -89,6 +89,18 @@
         </div>
       }
 
+      @if (hasNoRider()) {
+        <div class="no-rider-banner" role="alert">
+          <span class="material-symbols-rounded" aria-hidden="true">report</span>
+          <span>No se pudo asignar un repartidor. Asigná uno manualmente o cancelá el pedido.</span>
+        </div>
+      } @else if (matchingStatusLabel() && !order().rider) {
+        <p class="matching-status" role="status">
+          <span class="material-symbols-rounded" aria-hidden="true">hourglass_top</span>
+          {{ matchingStatusLabel() }}
+        </p>
+      }
+
       @if (order().status === 'DISPATCHED' && order().pickupCode) {
         <div class="pickup-code" role="region" aria-label="Código de retiro">
           <div class="pickup-code__header">

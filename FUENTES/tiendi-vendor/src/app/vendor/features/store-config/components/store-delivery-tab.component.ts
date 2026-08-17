@@ -27,6 +27,7 @@ export class StoreDeliveryTabComponent implements OnInit {
     freeMinimum:   [50],
     radius:        [5],
     estimatedTime: ['30-45 minutos'],
+    assignmentMode: ['AUTO' as 'AUTO' | 'MANUAL'],
   });
 
   ngOnInit(): void {

@@ -39,6 +39,11 @@ export interface AssignedRider {
   phone: string | null;
 }
 
+export interface MatchingStatus {
+  status: string;
+  riderName?: string;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -61,6 +66,7 @@ export interface Order {
   pickupCode: string | null;
   deliveryId: string | null;
   deliveryStatus: string | null;
+  matchingStatus: MatchingStatus | null;
 }
 
 export interface OrderFilters {
@@ -166,6 +172,7 @@ function mapOrder(raw: Record<string, unknown>): Order {
       const status = delivery?.['status'];
       return typeof status === 'string' ? status : null;
     })(),
+    matchingStatus: null,
   };
 }
 
@@ -402,6 +409,15 @@ export const OrdersStore = signalStore(
           }
           return next;
         };
+        const orders = store.orders().map(patch);
+        const sel = store.selectedOrder();
+        const selectedOrder = sel ? patch(sel) : sel;
+        patchState(store, { orders, selectedOrder });
+      },
+
+      applyMatchingStatus(deliveryId: string, status: MatchingStatus): void {
+        const patch = (o: Order): Order =>
+          o.deliveryId === deliveryId ? { ...o, matchingStatus: status } : o;
         const orders = store.orders().map(patch);
         const sel = store.selectedOrder();
         const selectedOrder = sel ? patch(sel) : sel;

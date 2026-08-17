@@ -52,26 +52,23 @@
     }
     @case ('DISPATCHED') {
       <div class="actions">
-        <button
-          class="btn btn-primary"
-          type="button"
-          [disabled]="isUpdating()"
-          (click)="deliver.emit()"
-          aria-label="Marcar como entregado"
-        >
-          <span class="material-symbols-rounded" aria-hidden="true">done_all</span>
-          {{ isUpdating() ? 'Procesando...' : 'Marcar como entregado' }}
-        </button>
-        <button
-          class="btn btn-danger-ghost"
-          type="button"
-          [disabled]="isUpdating()"
-          (click)="rejectModalOpen.set(true)"
-          aria-label="Rechazar pedido"
-        >
-          <span class="material-symbols-rounded" aria-hidden="true">cancel</span>
-          Rechazar
-        </button>
+        @if (order().deliveryType === 'PICKUP') {
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="isUpdating()"
+            (click)="deliver.emit()"
+            aria-label="Marcar como entregado"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">done_all</span>
+            {{ isUpdating() ? 'Procesando...' : 'Marcar como entregado' }}
+          </button>
+        } @else {
+          <p class="delivery-managed-hint">
+            <span class="material-symbols-rounded" aria-hidden="true">local_shipping</span>
+            La entrega la gestiona el repartidor. Se marcará como entregada automáticamente.
+          </p>
+        }
       </div>
     }
     @default {

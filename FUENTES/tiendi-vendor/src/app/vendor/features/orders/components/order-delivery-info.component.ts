@@ -35,6 +35,7 @@ const DELIVERY_STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelado',
   RETURNED: 'Devuelto',
   INCIDENT: 'Incidente',
+  NO_RIDER: 'Sin repartidor',
 };
 
 @Component({
@@ -70,7 +71,30 @@ export class OrderDeliveryInfoComponent implements OnInit {
   protected readonly isDeliveryInProgress = computed(() => {
     const s = this.order().deliveryStatus;
     if (!s) return false;
-    return !['DELIVERED', 'CANCELLED', 'RETURNED', 'INCIDENT'].includes(s);
+    return !['DELIVERED', 'CANCELLED', 'RETURNED', 'INCIDENT', 'NO_RIDER'].includes(s);
+  });
+
+  protected readonly hasNoRider = computed(() =>
+    this.order().deliveryStatus === 'NO_RIDER' ||
+    this.order().matchingStatus?.status === 'no_candidates'
+  );
+
+  protected readonly matchingStatusLabel = computed(() => {
+    const ms = this.order().matchingStatus;
+    if (!ms) return null;
+    const name = ms.riderName ?? 'El repartidor';
+    switch (ms.status) {
+      case 'offered':
+        return `Ofrecido a ${name}…`;
+      case 'no_candidates':
+        return 'No hay repartidores disponibles.';
+      case 'timeout':
+        return `${name} no respondió. Buscando otro…`;
+      case 'rejected':
+        return `${name} rechazó el pedido. Buscando otro…`;
+      default:
+        return null;
+    }
   });
 
   private readonly qrEffect = effect(() => {
@@ -117,6 +141,14 @@ export class OrderDeliveryInfoComponent implements OnInit {
       .subscribe(({ deliveryId, status }) => {
         if (deliveryId === this.order().deliveryId) {
           this.ordersStore.applyDeliveryStatus(deliveryId, status);
+        }
+      });
+
+    this.realtime.matchingStatus$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ deliveryId, status, riderName }) => {
+        if (deliveryId === this.order().deliveryId) {
+          this.ordersStore.applyMatchingStatus(deliveryId, { status, riderName });
         }
       });
   }

@@ -20,6 +20,7 @@ export interface StoreDelivery {
   freeMinimum: number;
   radius: number;
   estimatedTime: string;
+  assignmentMode: 'AUTO' | 'MANUAL';
 }
 
 export interface StorePayments {
@@ -109,7 +110,7 @@ const INITIAL_INFO: StoreInfo = {
 const INITIAL_STATE: StoreConfigState = {
   info: INITIAL_INFO,
   schedule: DAY_KEYS.map(d => ({ ...d, enabled: false, from: '09:00', to: '18:00' })),
-  delivery: { active: false, cost: 5, freeMinimum: 50, radius: 5, estimatedTime: '30-45 minutos' },
+  delivery: { active: false, cost: 5, freeMinimum: 50, radius: 5, estimatedTime: '30-45 minutos', assignmentMode: 'AUTO' },
   payments: { cash: true, yape: false, plin: false, transfer: false, card: false, cashMessage: '', transferData: '' },
   invoicing: { ruc: '', regime: 'RUS', businessName: '', fiscalAddress: '', oseToken: '', boletaSeries: 'B001', facturaSeries: 'F001', autoEmit: false, igvEnabled: false },
   appearance: { primaryColor: '#047857', bannerUrl: '', welcomeMessage: '' },
@@ -152,6 +153,7 @@ function mapApiToState(data: Record<string, any>): Partial<StoreConfigState> {
         (dc['estimatedMinMin'] as number) ?? 30,
         (dc['estimatedMinMax'] as number) ?? 45,
       ),
+      assignmentMode: (data['assignmentMode'] === 'MANUAL' ? 'MANUAL' : 'AUTO'),
     },
     payments: {
       cash:         pm['cash']?.enabled     ?? false,
@@ -209,6 +211,7 @@ export const StoreConfigStore = signalStore(
       const { min, max } = TIME_OPTIONS[delivery.estimatedTime] ?? { min: 30, max: 45 };
       return {
         deliveryRadius: delivery.radius,
+        assignmentMode: delivery.assignmentMode,
         deliveryConfig: {
           enabled: delivery.active,
           cost: delivery.cost,

@@ -224,6 +224,43 @@
   gap: 10px;
 }
 
+.matching-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  .material-symbols-rounded {
+    font-size: 18px;
+    color: var(--primary);
+  }
+}
+
+.no-rider-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius);
+
+  .material-symbols-rounded {
+    font-size: 20px;
+    color: #d97706;
+  }
+}
+
 .delivery-status__badge {
   display: inline-flex;
   align-items: center;
