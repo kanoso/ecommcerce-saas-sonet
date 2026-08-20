@@ -32,7 +32,12 @@
       <td-product-form-info
         [product]="currentProduct()"
         [categories]="store.categories()"
+        [masterProductLookupStatus]="store.masterProductLookupStatus()"
+        [masterProductMatch]="store.masterProductMatch()"
         (formChange)="onFormChange($event)"
+        (gtinLookupRequested)="onGtinLookupRequested($event)"
+        (matchConfirmed)="onMatchConfirmed()"
+        (matchRejected)="onMatchRejected()"
       />
     </div>
 

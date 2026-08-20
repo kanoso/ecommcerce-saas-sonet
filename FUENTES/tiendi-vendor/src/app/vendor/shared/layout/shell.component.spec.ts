@@ -78,6 +78,7 @@ class ChatWidgetStub {
   readonly adapter = input<ChatAdapter | null>(null);
   readonly userId = input<string | null>(null);
   readonly theme = input<Theme>(Theme.Light);
+  readonly isMobile = input<boolean>(false);
 }
 
 // ─── Smoke Test ──────────────────────────────────────────────────────────────

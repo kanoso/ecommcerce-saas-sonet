@@ -33,6 +33,16 @@ const mockCustomer: Customer = {
   avatarColor: '#FF6B6B',
 };
 
+// listFriends() lists conversations (anyone who chatted), not the customers
+// API — chat-only customers with no orders must appear too. See the comment
+// on VendorChatAdapter.listFriends() for the rationale.
+const mockConversationSummary = {
+  customerId: mockCustomer.id,
+  customerName: mockCustomer.name,
+  lastMessageAt: '2026-05-30T09:00:00.000Z',
+  lastMessageContent: null as string | null,
+};
+
 const mockApiMessage = {
   id: 'msg-1',
   conversationId: 'conv-abc',
@@ -126,19 +136,19 @@ describe('VendorChatAdapter', () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers') && r.method === 'GET')
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations') && r.method === 'GET')
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses[0].participant.id).toBe('a1b2-c3d4-e5f6');
     expect(typeof responses[0].participant.id).toBe('string');
   });
 
-  it('should map displayName from customer.name', async () => {
+  it('should map displayName from conversation.customerName', async () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations'))
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses[0].participant.displayName).toBe('Jane Doe');
   });
@@ -147,8 +157,8 @@ describe('VendorChatAdapter', () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations'))
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses[0].participant.status).toBe(ChatParticipantStatus.Online);
   });
@@ -157,8 +167,8 @@ describe('VendorChatAdapter', () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations'))
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses[0].participant.avatar).toBeNull();
   });
@@ -167,8 +177,8 @@ describe('VendorChatAdapter', () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations'))
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses[0].participant.participantType).toBe(ChatParticipantType.User);
   });
@@ -177,33 +187,28 @@ describe('VendorChatAdapter', () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations'))
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses[0].metadata.totalUnreadMessages).toBe(0);
   });
 
-  it('should GET /stores/{storeId}/customers?limit=100', async () => {
+  it('should GET /stores/{storeId}/conversations', async () => {
     const { adapter, httpMock } = configureAdapter('store-abc');
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
       .expectOne(
-        (r) =>
-          r.url.includes('/stores/store-abc/customers') &&
-          r.url.includes('limit=100') &&
-          r.method === 'GET',
+        (r) => r.url.includes('/stores/store-abc/conversations') && r.method === 'GET',
       )
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .flush({ data: [mockConversationSummary] });
     const responses = await promise;
     expect(responses.length).toBe(1);
   });
 
-  it('should return empty array when API returns no customers', async () => {
+  it('should return empty array when API returns no conversations', async () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
-    httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [], meta: { total: 0, totalPages: 0 } });
+    httpMock.expectOne((r) => r.url.includes('/conversations')).flush({ data: [] });
     const responses = await promise;
     expect(responses).toEqual([]);
   });
@@ -212,18 +217,18 @@ describe('VendorChatAdapter', () => {
     const { adapter, httpMock } = configureAdapter(null, null);
     const responses = await firstValueFrom(adapter.listFriends());
     expect(responses).toEqual([]);
-    httpMock.expectNone((r) => r.url.includes('/customers'));
+    httpMock.expectNone((r) => r.url.includes('/conversations'));
   });
 
   it('should cache participants from listFriends for later socket use', async () => {
     const { adapter, httpMock } = configureAdapter();
     const promise = firstValueFrom(adapter.listFriends());
     httpMock
-      .expectOne((r) => r.url.includes('/customers'))
-      .flush({ data: [mockCustomer], meta: { total: 1, totalPages: 1 } });
+      .expectOne((r) => r.url.includes('/conversations'))
+      .flush({ data: [mockConversationSummary] });
     await promise;
     // Access internal cache via bracket notation for white-box test
-    const cache = (adapter as unknown as { participantsCache: Map<string, unknown> }).participantsCache;
+    const cache = (adapter as unknown as { participants: Map<string, unknown> }).participants;
     expect(cache.has('a1b2-c3d4-e5f6')).toBe(true);
   });
 
@@ -343,10 +348,9 @@ describe('VendorChatAdapter', () => {
 
     // Populate participant cache via listFriends
     const listPromise = firstValueFrom(adapter.listFriends());
-    httpMock.expectOne((r) => r.url.includes('/customers')).flush({
-      data: [mockCustomer],
-      meta: { total: 1, totalPages: 1 },
-    });
+    httpMock
+      .expectOne((r) => r.url.includes('/conversations') && !r.url.includes('/conversations/'))
+      .flush({ data: [mockConversationSummary] });
     await listPromise;
 
     // Load history to populate conversationMap and init socket

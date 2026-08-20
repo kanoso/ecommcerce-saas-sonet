@@ -24,6 +24,7 @@ export interface Product {
   categoryName?: string;
   presentation: string;
   sku: string;
+  gtin?: string;
   price: number;
   discountPrice: number | null;
   stock: number;
@@ -48,6 +49,17 @@ export interface ProductFilters {
   stockFilter: 'all' | 'low' | 'out' | 'ok';
 }
 
+export interface MasterProduct {
+  gtin: string;
+  name: string;
+  marca?: string;
+  contenido?: string;
+  categoria?: string;
+  imagen?: string;
+}
+
+export type MasterProductLookupStatus = 'idle' | 'loading' | 'found' | 'not-found';
+
 interface ProductsState {
   products: Product[];
   categories: Category[];
@@ -56,6 +68,8 @@ interface ProductsState {
   error: string | null;
   filters: ProductFilters;
   viewMode: 'grid' | 'list';
+  masterProductMatch: MasterProduct | null;
+  masterProductLookupStatus: MasterProductLookupStatus;
 }
 
 const initialState: ProductsState = {
@@ -66,6 +80,8 @@ const initialState: ProductsState = {
   error: null,
   filters: { search: '', categoryId: '', stockFilter: 'all' },
   viewMode: 'grid',
+  masterProductMatch: null,
+  masterProductLookupStatus: 'idle',
 };
 
 const API = environment.apiUrl;
@@ -86,6 +102,7 @@ function mapProduct(raw: Record<string, any>): Product {
     categoryName:  cat?.name         ?? '',
     presentation:  '',
     sku:           raw['sku']        ?? '',
+    gtin:          raw['gtin']       ?? undefined,
     price:         Number(raw['price']) || 0,
     discountPrice: raw['salePrice'] != null ? Number(raw['salePrice']) : null,
     stock:         raw['stock']      ?? 0,
@@ -170,6 +187,7 @@ export const ProductsStore = signalStore(
           price: data.price,
           salePrice: data.discountPrice ?? undefined,
           sku: data.sku || undefined,
+          gtin: data.gtin || undefined,
           stock: data.stock,
           stockAlert: data.stockAlert,
           images: data.imageUrls,
@@ -196,6 +214,7 @@ export const ProductsStore = signalStore(
         if (data.price !== undefined)         payload['price']       = data.price;
         if (data.discountPrice !== undefined) payload['salePrice']   = data.discountPrice;
         if (data.sku !== undefined)           payload['sku']         = data.sku;
+        if (data.gtin !== undefined)          payload['gtin']        = data.gtin;
         if (data.stock !== undefined)         payload['stock']       = data.stock;
         if (data.stockAlert !== undefined)    payload['stockAlert']  = data.stockAlert;
         if (data.imageUrls !== undefined)     payload['images']      = data.imageUrls;
@@ -246,6 +265,22 @@ export const ProductsStore = signalStore(
 
       clearFilters(): void {
         patchState(store, { filters: { search: '', categoryId: '', stockFilter: 'all' } });
+      },
+
+      // ─── Master-catalog lookup (§7.5.5) ───────────────────────────────────
+      lookupMasterProduct(gtin: string): void {
+        patchState(store, { masterProductLookupStatus: 'loading' });
+
+        http.get<MasterProduct>(`${API}/master-products/lookup?gtin=${gtin}`).subscribe({
+          next: (match) =>
+            patchState(store, { masterProductMatch: match, masterProductLookupStatus: 'found' }),
+          error: () =>
+            patchState(store, { masterProductMatch: null, masterProductLookupStatus: 'not-found' }),
+        });
+      },
+
+      clearMasterProductMatch(): void {
+        patchState(store, { masterProductMatch: null, masterProductLookupStatus: 'idle' });
       },
     };
   })

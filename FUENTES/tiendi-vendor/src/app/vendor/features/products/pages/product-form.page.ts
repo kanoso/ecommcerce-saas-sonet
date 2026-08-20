@@ -64,6 +64,22 @@ export class ProductFormPage implements OnInit {
     this.formData.set(data);
   }
 
+  /**
+   * Master-catalog lookup wiring (§7.5.5): the component only emits, the
+   * page owns the store call.
+   */
+  onGtinLookupRequested(gtin: string): void {
+    this.store.lookupMasterProduct(gtin);
+  }
+
+  onMatchConfirmed(): void {
+    this.store.clearMasterProductMatch();
+  }
+
+  onMatchRejected(): void {
+    this.store.clearMasterProductMatch();
+  }
+
   onSubmit(): void {
     const data = this.formData();
     const id = this.productId();
@@ -77,6 +93,7 @@ export class ProductFormPage implements OnInit {
       categoryId: data.categoryId ?? '',
       presentation: data.presentation ?? '',
       sku: data.sku ?? '',
+      gtin: data.gtin ?? '',
       price: data.price ?? 0,
       discountPrice: data.discountPrice ?? null,
       stock: data.stock ?? 0,

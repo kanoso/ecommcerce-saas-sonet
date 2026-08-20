@@ -57,6 +57,9 @@
                 <div>
                   <p class="table__name">{{ product.name }}</p>
                   <p class="table__sku">SKU: {{ product.sku }}</p>
+                  @if (product.gtin) {
+                    <p class="table__gtin">GTIN: {{ product.gtin }}</p>
+                  }
                 </div>
               </div>
             </td>

@@ -97,6 +97,43 @@
         />
       </div>
       <div class="field">
+        <label class="field__label" for="gtin">Código de barras (GTIN)</label>
+        <div class="field__gtin-row">
+          <input
+            id="gtin"
+            class="field__input"
+            [class.field__input--error]="gtinCheckDigitInvalid()"
+            type="text"
+            inputmode="numeric"
+            formControlName="gtin"
+            placeholder="Ej: 7750182001234"
+            [attr.aria-describedby]="gtinCheckDigitInvalid() ? 'gtin-error' : null"
+            (keydown.enter)="onGtinEnter($event)"
+          />
+          <button
+            type="button"
+            class="field__scan-btn"
+            (click)="onScanClick()"
+            aria-label="Escanear código de barras con la cámara"
+          >
+            <span class="material-icons-outlined" aria-hidden="true">photo_camera</span>
+            Escanear
+          </button>
+        </div>
+        @if (gtinCheckDigitInvalid()) {
+          <p id="gtin-error" class="field__error" role="alert">
+            El código de barras no es válido (dígito verificador incorrecto)
+          </p>
+        }
+        <div class="scanner" [class.scanner--hidden]="scanState() !== 'scanning'">
+          <video #scanVideo class="scanner__video" autoplay muted playsinline></video>
+          <button type="button" class="scanner__cancel" (click)="onScanCancel()">Cancelar</button>
+        </div>
+        @if (scanState() === 'error') {
+          <p class="scanner__error" role="alert">{{ scanErrorMessage() }}</p>
+        }
+      </div>
+      <div class="field">
         <label class="field__label" for="presentation">Presentación</label>
         <input
           id="presentation"
@@ -107,6 +144,17 @@
         />
       </div>
     </div>
+
+    @if (masterProductLookupStatus() === 'found' && masterProductMatch(); as match) {
+      <div class="master-match">
+        <p class="master-match__found">Encontramos: {{ match.name }} {{ match.contenido }}</p>
+        <p class="master-match__question">¿Es tu producto?</p>
+        <div class="master-match__actions">
+          <button type="button" class="master-match__confirm" (click)="onMatchConfirm()">Sí</button>
+          <button type="button" class="master-match__reject" (click)="onMatchReject()">No, corregir</button>
+        </div>
+      </div>
+    }
   </div>
 
   <!-- Card: Precio y stock -->
