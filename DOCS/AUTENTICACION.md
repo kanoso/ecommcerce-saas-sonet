@@ -426,12 +426,12 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 
 ### Fase 2 — Extraer `@tiendi/auth` (Angular)
 
-- [ ] Crear librería Angular `@tiendi/auth` con `TokenService`
-- [ ] Portar `auth.interceptor.ts` (attach de Bearer) a la librería
-- [ ] Portar `error.interceptor.ts` (refresh con `pendingRefresh$`) a la librería
-- [ ] Reusar la librería en vendor y web
-- [ ] Test: refresh concurrente en 401 comparte una sola llamada (vendor y web)
-- [ ] Test: la librería **no exporta store** — cada app conserva el suyo, y web sigue sin tener uno (A3)
+- [x] Crear librería Angular `@tiendi/auth` con `TokenService` (store-agnostic: `TokenStorage` + `API_BASE_URL` inyectables)
+- [x] Portar `auth.interceptor.ts` (attach de Bearer) a la librería
+- [x] Portar `error.interceptor.ts` (refresh con `pendingRefresh$`) a la librería
+- [ ] Reusar la librería en vendor y web (reemplaza los interceptores locales)
+- [x] Test: refresh concurrente en 401 comparte una sola llamada (`token.service.spec.ts`, a nivel librería)
+- [x] Test: la librería **no exporta store** — cada app conserva el suyo, y web sigue sin tener uno (A3)
 
 ### Fase 3 — Limpiar deuda legacy
 
