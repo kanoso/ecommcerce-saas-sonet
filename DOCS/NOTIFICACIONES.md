@@ -113,6 +113,8 @@ flowchart TD
 > [!CAUTION]
 > **La duplicación es la deuda central de este sistema.**
 > El módulo legacy maneja email/WhatsApp para el vendor; el dispatcher FCM maneja push para riders; los gateways manejan tiempo real; y el admin no tiene nada. Cada vez que aparece un nuevo evento, hay que decidir en cuál de los cuatro sistemas cablearlo — y la respuesta cambia según quién lo escribió.
+>
+> **Corrección (Fase 3, 2026-08-25):** la orquestación legacy (`NotificationsService` + cola BullMQ) resultó ser **código muerto**: ningún evento la llamaba. Fue absorbida por `NotificationDispatcher` y eliminada — ver Fase 3 del checklist.
 
 ---
 
@@ -465,10 +467,15 @@ flowchart TD
 
 ### Fase 3 — Unificar dispatcher
 
-- [ ] `NotificationDispatcher` absorbe `onOrderCreated`/`onOrderStatusChanged` del legacy
-- [ ] Extraer `prefKey` a un contrato compartido para las 4 audiencias
-- [ ] Unificar los 2 caminos de push del vendor en uno
-- [ ] Eliminar el módulo legacy `notifications/` una vez migrado
+> [!NOTE]
+> **Implementada (2026-08-25).** Hallazgo que cambió el alcance: los helpers de dominio del legacy (`onOrderCreated`/`onOrderStatusChanged`/`onUserRegistered`) **no tenían ningún caller** en el código — las secciones §2 y §6 de este doc describían un flujo que nunca existió. La "absorción" fue entonces: mover esos helpers a `NotificationDispatcher` (envío directo con `Promise.allSettled`, sin cola) y **eliminar código muerto**: `NotificationsService`, `notification.worker.ts`, la cola BullMQ `notifications` y su processor no-op (`src/queues/notifications.processor.ts`). El módulo `notifications/` sobrevive solo con canales (`EmailService`, `WhatsappService`) e inbox vendor.
+>
+> ⚠️ Consecuencia operativa: los emails absorbidos ya no pasan por BullMQ (sin reintentos automáticos). Hoy no hay callers, así que cero riesgo; cuando se cableen eventos reales de pedido, evaluar reintentos.
+
+- [x] `NotificationDispatcher` absorbe `onOrderCreated`/`onOrderStatusChanged` del legacy (+ `onUserRegistered`) — envío directo best-effort por canal (`Promise.allSettled`)
+- [x] Extraer `prefKey` a un contrato compartido — `src/common/contracts/notification-preferences.ts`: claves rider (con canal Android asociado) y admin; STORE/CUSTOMER reservados hasta que existan sus superficies
+- [x] Unificar los 2 caminos de push del vendor en uno — el único camino push es `NotificationDispatcher`; el legacy no tenía productores
+- [x] Eliminar el módulo legacy `notifications/` una vez migrado — eliminada la orquestación muerta (servicio + worker + cola); quedan canales e inbox
 
 ### Fase 4 — Push web al admin (opcional, post-email)
 
