@@ -114,11 +114,11 @@ if (storeRole) payload['storeRole'] = storeRole;
 
 - **Access token**: firmado con `JWT_SECRET`, expira en `JWT_EXPIRES_IN` (default `15m`, `config/env.validation.ts:24`).
 - **Refresh token**: firmado con `JWT_REFRESH_SECRET`, expira en `JWT_REFRESH_EXPIRES_IN` (default `30d`, `config/env.validation.ts:26`).
-- **Sin `jti`**: el payload no lleva identificador de token. No hay clave sobre la que indexar una revocación selectiva.
+- **Con `jti` (Fase 5)**: el payload del refresh token lleva `jti`, clave de la revocación selectiva y de la rotación con reuse-detection. El access token sigue sin `jti` — su invalidación es la blacklist de Redis por token completo.
 - **Blacklist**: logout escribe `blacklist:{token}` en Redis con TTL = vida restante del token. `JwtStrategy.validate` lo consulta.
 
-> [!CAUTION]
-> **`logout()` (dispositivo único) sigue sin revocar el refresh token.** Blacklistea el access token de 15 min, pero el refresh token de 30 días queda intacto: un refresh token robado de un `logout` normal sigue emitiendo access tokens. `refresh()` ahora sí consulta el cutoff de revocación de [[REVOCACION_SESION]], pero ese cutoff solo lo escribe `logoutAll()`, no `logout()`.
+> [!NOTE]
+> **Resuelto (Fase 5).** El refresh token lleva `jti`, se persiste hasheado (sha256) en la tabla `RefreshToken`, y `refresh()` rota: marca el token consumido y emite uno nuevo en la misma familia. Reutilizar un token consumido/revocado corta la familia completa (reuse-detection). `logout()` acepta un `refreshToken` opcional en el body y lo revoca individualmente; `logoutAll()` revoca todas las familias del usuario además del cutoff de Redis. Kill switch de admin: `POST /admin/users/:userId/revoke-sessions`.
 
 > [!NOTE]
 > **`logoutAll()` ahora revoca de verdad — mitigación implementada ([[REVOCACION_SESION]]).** Antes era idéntico a `logout()` más un `logger.log()` y no cerraba ninguna sesión ajena. Hoy escribe un cutoff de revocación en Redis (`auth:revoked_before:{userId}`) que `refresh()` y `JwtStrategy.validate()` consultan contra el `iat` del token presentado. La revocación por dispositivo y la rotación con reuse-detection siguen en la Fase 5.
@@ -234,9 +234,9 @@ La revocación masiva (`logout-all`) quedó mitigada con [[REVOCACION_SESION]]: 
 
 | Síntoma | Estado |
 |---------|--------|
-| Un refresh token robado sobrevive a un `logout` de dispositivo único | 🔲 Sigue: `logout()` solo blacklistea el access token; no escribe cutoff |
-| `logout-all` no cierra las demás sesiones | ✅ Resuelto: escribe `auth:revoked_before:{userId}` y `refresh()`/`validate()` lo consultan contra `iat` |
-| No hay revocación selectiva posible | 🔲 Sigue: sin `jti` no hay clave para revocar un token individual (Fase 5) |
+| Un refresh token robado sobrevive a un `logout` de dispositivo único | ✅ Resuelto (Fase 5): `logout()` acepta `refreshToken` opcional y lo revoca en la DB |
+| `logout-all` no cierra las demás sesiones | ✅ Resuelto: cutoff en Redis (`auth:revoked_before:{userId}`) + revocación de todas las familias de refresh tokens en la DB |
+| No hay revocación selectiva posible | ✅ Resuelto (Fase 5): cada refresh token tiene `jti` y registro persistido; kill switch por usuario vía `POST /admin/users/:userId/revoke-sessions` |
 
 El detalle de la mitigación está en [[REVOCACION_SESION]]; la corrección completa (rotación, `jti`, persistencia en Postgres) es la Fase 5 del checklist (§10).
 
@@ -331,7 +331,7 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 > **A3 conserva la conclusión pero corrige el argumento.** El borrador justificaba con *"NgRx signals vs signals"*, sugiriendo stacks distintos. No lo son: vendor usa `@ngrx/signals ^21.1.0` y web `^21.1.1` — la misma librería, casi la misma versión. La razón real es la ausencia de store en web, no una diferencia de stack.
 
 > [!CAUTION]
-> **A4 quedó OVERTAKEN: `tiendi-admin` ya emite tokens `SUPER_ADMIN` sin rotación.** La Fase 2 de [[TIENDI_ADMIN]] (login de Super Admin, `POST /auth/admin/login`) se implementó sin la rotación con reuse-detection que este documento marcaba como bloqueante. La mitigación acotada [[REVOCACION_SESION]] (corte por usuario en Redis comparado contra `iat`) **ya está implementada** y cubre el `logout-all` masivo; la corrección completa —rotación, `jti`, persistencia en Postgres— sigue siendo la Fase 5.
+> **A4 quedó OVERTAKEN: `tiendi-admin` ya emite tokens `SUPER_ADMIN` sin rotación.** La Fase 2 de [[TIENDI_ADMIN]] (login de Super Admin, `POST /auth/admin/login`) se implementó sin la rotación con reuse-detection que este documento marcaba como bloqueante. La mitigación acotada [[REVOCACION_SESION]] (corte por usuario en Redis comparado contra `iat`) **ya está implementada** y cubre el `logout-all` masivo. ~~La corrección completa —rotación, `jti`, persistencia en Postgres— sigue siendo la Fase 5.~~ **Fase 5 implementada** (ver checklist §10): la ventana de riesgo quedó cerrada con la rotación + reuse-detection + kill switch.
 
 ---
 
@@ -496,24 +496,24 @@ Los tres criterios originales están cumplidos: (a) `packages/auth-types` es ins
 - [x] Verificar que el biométrico de go sigue en go — `src/services/auth.service.ts` (expo-local-authentication)
 - [x] Registrar `POST /auth/admin/login` como frontera separada ([[TIENDI_ADMIN]] §7) — ya registrado en §6 y [[TIENDI_ADMIN]] §7
 
-### Fase 5 — Rotación de refresh (bloqueante para `tiendi-admin`)
+### Fase 5 — Rotación de refresh (implementada)
 
-> [!CAUTION]
-> No se arranca hoy, pero **bloquea la Fase 2 de [[TIENDI_ADMIN]]**: no se emite el primer token de `SUPER_ADMIN` sin esto (A4).
+> [!IMPORTANT]
+> **Implementada en `tiendi-api`** (2026-08-25). Verificación: 42/42 suites, 429/429 tests, build de producción limpio.
+>
+> ⚠️ **Pendiente operativo**: aplicar la migración a la base de datos (`npx prisma migrate dev` / `migrate deploy`) — el SQL está en `prisma/migrations/20260825120000_add_refresh_tokens/`. Los tokens emitidos ANTES del deploy no tienen `jti` ni registro en DB: `refresh()` los rechazará con "Refresh token inválido", así que cada cliente tendrá que re-loguearse una vez tras el deploy.
 
-> [!NOTE]
-> **Existe una mitigación previa desplegable ya**: un corte por usuario en Redis (`auth:revoked_before:{userId}`) comparado contra el `iat` del token. Hace que `logout-all` revoque de verdad, sin `jti`, sin migración y sin rotación. No reemplaza esta fase — le saca la urgencia. Spec completa en [[REVOCACION_SESION]].
-
-- [ ] Backend: agregar `jti` al payload de `generateTokens()` — hoy no existe, y sin él no hay clave sobre la que revocar
-- [ ] Backend: persistir refresh tokens (`jti`, `userId`, expiración, estado, familia)
-- [ ] Backend: rotar en cada `POST /auth/refresh` e invalidar el token consumido
-- [ ] Backend: reuse-detection — un token ya consumido revoca la familia completa
-- [ ] Backend: revocación manual por usuario (kill switch sin desactivar la cuenta)
-- [ ] Backend: que `refresh()` consulte la revocación antes de reemitir (hoy no la consulta, §3.1)
-- [ ] Backend: que `logoutAll()` revoque todas las familias del usuario (hoy es un no-op, §3.1)
-- [ ] Test: reusar un refresh token consumido corta la sesión entera
-- [ ] Test: revocar a un `SUPER_ADMIN` corta el acceso sin esperar la expiración
-- [ ] Test: después de `logout-all`, el refresh token de otro dispositivo deja de emitir access tokens
+- [x] Backend: agregar `jti` al payload del refresh token en `issueTokens()` (ex `generateTokens()`)
+- [x] Backend: persistir refresh tokens hasheados (sha256) — tabla `RefreshToken`: `id`=jti, `userId`, `familyId`, `tokenHash`, `expiresAt`, `consumedAt`, `revokedAt`
+- [x] Backend: rotar en cada `POST /auth/refresh` — marca `consumedAt` y emite nuevo token en la misma familia
+- [x] Backend: reuse-detection — token consumido/revocado o hash mismatch revoca toda la familia (`updateMany` por `familyId`)
+- [x] Backend: revocación manual por usuario — `revokeAllSessions()` expuesto como `POST /admin/users/:userId/revoke-sessions` (guard `SUPER_ADMIN`); DB + cutoff Redis
+- [x] Backend: que `refresh()` consulte la revocación antes de reemitir — lookup por jti + cutoff Redis previo
+- [x] Backend: que `logoutAll()` revoque todas las familias del usuario — `updateMany({ userId, revokedAt: null })`
+- [x] Bonus: `logout()` acepta `refreshToken` opcional y revoca el dispositivo (cierra el CAUTION histórico de §3.1)
+- [x] Test: reusar un refresh token consumido corta la sesión entera (R2/R3/R4)
+- [x] Test: revocar a un `SUPER_ADMIN` corta el acceso sin esperar la expiración (K1/K2)
+- [x] Test: después de `logout-all`, el refresh token de otro dispositivo deja de emitir access tokens (integración final)
 
 ### Criterios de aceptación
 
@@ -523,7 +523,7 @@ Los tres criterios originales están cumplidos: (a) `packages/auth-types` es ins
 - [x] La lógica de refresh no está duplicada en vendor y web — ambos importan `authInterceptor`/`authErrorInterceptor` de `@kanoso/auth`
 - [ ] go importa tipos compartidos sin arrastrar runtime Angular — **N/A**: Fase 1 verificó que go no reimplementa `Role`/`User`/`ApiAuthResponse`; no hay nada que importar
 - [x] `@kanoso/auth-types` no agrega dependencias de runtime a ninguna app (A2) — su `package.json` solo tiene `typescript` como devDependency y resuelve tipos desde `src/`
-- [ ] Ningún token de `SUPER_ADMIN` se emite antes de que exista rotación con reuse-detection (A4) — **OVERTAKEN** (ver §9): tiendi-admin ya emite; la corrección es la Fase 5
+- [x] Ningún token de `SUPER_ADMIN` se emite sin rotación con reuse-detection (A4) — **resuelto**: la Fase 5 implementó rotación + reuse-detection; el riesgo que este criterio marcaba quedó cerrado
 
 ---
 
