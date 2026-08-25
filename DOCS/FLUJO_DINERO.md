@@ -1067,9 +1067,18 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 ### Fase 3 — Liquidación al vendedor
 
-- [ ] **B2** — `PayoutRequest`, `PayoutBatch`, job semanal, integración bancaria
-- [ ] **B13** — Comisión de plataforma sobre el subtotal, congelada en `Order`
-- [ ] Panel de liquidaciones en `tiendi-vendor` con desglose por pedido
+> [!NOTE]
+> **Implementada (2026-08-25)** — commits de `tiendi-api` y `tiendi-vendor`:
+>
+> - **B2**: modelos `PayoutRequest` + `PayoutBatch` con el ciclo de estados de §13.2; `SettlementService.runWeeklySettlement()` crea lote RESERVED solo para saldos ≥ S/ 50 (debajo se arrastran); job semanal lunes 00:00 Lima (`0 5 * * *` UTC); procesamiento por cola BullMQ. ⚠️ El `transfer()` bancario es un **stub** (responde éxito) — conectar el proveedor real es lo único que falta para dinero en movimiento.
+> - **B13**: `Order.platformCommission` + `Order.storeNet` congelados al crear el pedido, calculados sobre el **subtotal sin IGV** (§6.1) según `SubscriptionPlan.commissionPct` (default 5%).
+> - Panel del vendor: `/vendor/payouts` lista las liquidaciones de la tienda con período, monto, estado y fecha de pago.
+>
+> Tests: 4 nuevos (`settlement.service.spec.ts`). Suite 478/478.
+
+- [x] **B2** — `PayoutRequest`, `PayoutBatch`, job semanal, integración bancaria — ⚠️ adapter bancario aún stub
+- [x] **B13** — Comisión de plataforma sobre el subtotal, congelada en `Order`
+- [x] Panel de liquidaciones en `tiendi-vendor` con desglose por pedido — `/vendor/payouts`
 
 ### Fase 4 — Monetización
 
