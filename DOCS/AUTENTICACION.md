@@ -252,7 +252,7 @@ Lo que se mantiene por aplicación:
 | Pieza | Por qué no se unifica |
 |-------|----------------------|
 | `vendor.guard` / `role.guard` / `onboarding.guard` | Reglas de acceso del panel del vendedor |
-| `admin.guard` (futuro) | Reglas del back-office |
+| `admin.guard` | Reglas del back-office |
 | Biométrico de `tiendi-go` | Depende de `expo-local-authentication` |
 | `POST /auth/admin/login` | Frontera de rol, no de mecanismo |
 
@@ -265,7 +265,7 @@ flowchart TD
     T["@tiendi/auth-types<br/>(paquete de tipos TS)"] --> V["tiendi-vendor"]
     T --> W["tiendi-web"]
     T --> G["tiendi-go"]
-    T --> A["tiendi-admin (futuro)"]
+    T --> A["tiendi-admin"]
 
     L["@tiendi/auth<br/>(librería Angular)"] --> V
     L --> W
@@ -319,6 +319,7 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 | **A2** | ¿Alcance de `@tiendi/auth-types`? | ✅ **Solo tipos, cero dependencias de runtime** | Ni `tiendi-vendor` ni `tiendi-web` tienen `zod` instalado. Solo lo tienen `tiendi-api` (`^4.3.6`) y `tiendi-go` (`^4.4.3`), ya desalineados entre sí. Incluir validadores Zod agregaría una dependencia de runtime a dos apps Angular y obligaría a resolver ese skew primero |
 | **A3** | ¿`@tiendi/auth` incluye el store base o solo token + interceptores? | ✅ **Solo token + interceptores** | `tiendi-web` **no tiene auth store**. Su autenticación vive en `core/services/auth.service.ts` y `features/landing/services/landing-auth.service.ts`; sus `signalStore` son de dominio (`cart`, `products`, `category`). Un store base obligaría a web a adoptar una pieza que hoy deliberadamente no tiene |
 | **A4** | ¿Refresh token con rotación? | ✅ **Stateless hoy — rotación es prerrequisito de `tiendi-admin`** | `auth.service.ts:164` verifica la firma, chequea `status === 'ACTIVE'` y reemite. No hay tabla de refresh tokens, ni reuse-detection, ni lista de revocación. El payload de `generateTokens()` (`auth.service.ts:401`) no lleva `jti`, y la blacklist de Redis no cubre el refresh path (§3.1) |
+| **A5** | ¿`AdminRole` se absorbe en el `Role` unificado? | ✅ **Sí — se absorbe (subconjunto `SUPER_ADMIN`)** | `SUPER_ADMIN` es uno de los 5 roles del backend (`schema.prisma:14`). Una vez que `@tiendi/auth-types` defina el `Role` alineado, `AdminRole` es redundante. El guard del admin queda `role === 'SUPER_ADMIN'` sobre el `Role` compartido, sin importar el tipo inflado del vendor |
 
 > [!NOTE]
 > **A2 revierte la recomendación del borrador.** El borrador proponía tipos + validadores Zod apoyándose en que "el backend ya usa Zod". Es cierto del backend, pero irrelevante para el frontend: las dos apps Angular no lo tienen. La decisión también mantiene coherencia con §7 — *"Solo los tipos son transportables entre ecosistemas. El runtime no."*
@@ -327,7 +328,7 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 > **A3 conserva la conclusión pero corrige el argumento.** El borrador justificaba con *"NgRx signals vs signals"*, sugiriendo stacks distintos. No lo son: vendor usa `@ngrx/signals ^21.1.0` y web `^21.1.1` — la misma librería, casi la misma versión. La razón real es la ausencia de store en web, no una diferencia de stack.
 
 > [!CAUTION]
-> **A4 deja de ser opcional cuando exista `tiendi-admin`.** Hoy un refresh token filtrado vive **30 días** (default de `JWT_REFRESH_EXPIRES_IN`) y el único kill switch real es desactivar al usuario: ni `logout` ni `logout-all` lo invalidan (§3.1). Mientras el token más peligroso sea de un `STORE_OWNER`, el radio de daño es una tienda. Un refresh token de `SUPER_ADMIN` sin revocación es la plataforma entera, durante un mes. La rotación con reuse-detection es **bloqueante para la Fase 2 de [[TIENDI_ADMIN]]** (login de Super Admin), no una mejora posterior.
+> **A4 quedó OVERTAKEN: `tiendi-admin` ya emite tokens `SUPER_ADMIN` sin rotación.** La Fase 2 de [[TIENDI_ADMIN]] (login de Super Admin, `POST /auth/admin/login`) se implementó sin la rotación con reuse-detection que este documento marcaba como bloqueante. Hoy un refresh token filtrado vive **30 días** y el único kill switch real es desactivar al usuario (§3.1). La mitigación acotada es [[REVOCACION_SESION]] (corte por usuario en Redis comparado contra `iat`); la corrección completa sigue siendo la Fase 5.
 
 ---
 
@@ -351,7 +352,7 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 | Registry privado (npm / GitHub Packages) | Medio — CI de publicación + credenciales en cada consumidor | Publicar versión + bump en cada app | Es el único que sirve si los repos siguen separados |
 | Dependencia `git` por tag | Bajo | Manual: tag + bump en cada app | Sin build step publicado; cada consumidor compila el fuente |
 
-- [ ] Elegir el mecanismo y registrar la decisión en §9
+- [x] Elegir el mecanismo y registrar la decisión en §9 — **decidido en A1: `file:` deps, sin workspace tool**
 - [ ] Dejar creado el scaffolding y un paquete vacío **ya consumible** por al menos una app
 - [ ] Documentar el flujo de release (quién publica, con qué versión, cómo se consume)
 
@@ -359,21 +360,21 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 
 Estado verificado con `git ls-files`:
 
-| Repositorio | Archivos trackeados | Mecanismo |
-|-------------|---------------------|-----------|
-| `tiendi-api` | — | Submódulo (`.gitmodules`) |
-| `tiendi-web` | — | Submódulo (`.gitmodules`) |
-| `tiendi-vendor` | 470 | Archivos planos en el repo padre |
-| `tiendi-go` | 151 | Archivos planos en el repo padre |
-| `tiendi-admin` | **0** | **Ninguno** |
+| Repositorio | Mecanismo |
+|-------------|-----------|
+| `tiendi-api` | Submódulo (`.gitmodules`) |
+| `tiendi-web` | Submódulo (`.gitmodules`) |
+| `tiendi-vendor` | Submódulo (`.gitmodules`) |
+| `tiendi-go` | Submódulo (`.gitmodules`) |
+| `tiendi-admin` | Submódulo (`.gitmodules`) |
 
-`tiendi-admin` no es submódulo, no está trackeado como archivos planos y **tampoco figura en `.gitignore`**. Existe únicamente en el disco local de quien lo creó.
+Las cinco apps del inventario quedaron en control de versiones, cada una en su propio repo (`kanoso/*`) y referenciadas desde `.gitmodules`. `tiendi-vendor` y `tiendi-go` pasaron de archivos planos a submódulo; `tiendi-admin` se creó como submódulo desde el inicio.
 
-> [!WARNING]
-> Otro equipo **no puede clonar** la app que este checklist le pide modificar. Además, el mecanismo de versionado es inconsistente entre repos: dos submódulos y dos árboles de archivos planos. Conviene unificarlo en esta fase, no después de haber migrado tipos.
+> [!NOTE]
+> **Resuelto.** El mecanismo de versionado quedó unificado: las cinco apps son submódulos de `kanoso/*`.
 
-- [ ] Crear el repo remoto de `tiendi-admin` y registrarlo (submódulo, o el mecanismo que se unifique)
-- [ ] Decidir si `tiendi-vendor` y `tiendi-go` pasan también a submódulo, o si los cuatro van a workspace (0.1)
+- [x] Crear el repo remoto de `tiendi-admin` y registrarlo (submódulo, o el mecanismo que se unifique)
+- [x] Decidir si `tiendi-vendor` y `tiendi-go` pasan también a submódulo, o si los cuatro van a workspace (0.1) — **decidido: los cuatro son submódulos**
 
 #### 0.3 Incorporar `tiendi-admin` al inventario de deuda
 
@@ -391,7 +392,7 @@ tiendi-admin/src/app/admin/core/interceptors/error.interceptor.ts
 > [!CAUTION]
 > `admin-role.ts` documenta en su propio comentario la decisión **contraria** a la Fase 1: *"Rol propio de tiendi-admin, definido localmente y NO importado del vendor."* Eso no es un olvido — es una decisión ya tomada en código que este documento nunca registró. Hay que confirmarla o revertirla **antes** de extraer `@tiendi/auth-types`, no durante.
 
-- [ ] Decidir: ¿`AdminRole` se absorbe en el `Role` unificado (es un subconjunto: hoy solo `SUPER_ADMIN`), o queda como tipo separado igual que `StoreRole` (A1)?
+- [x] Decidir: ¿`AdminRole` se absorbe en el `Role` unificado (es un subconjunto: hoy solo `SUPER_ADMIN`), o queda como tipo separado igual que `StoreRole` (A1)? — **decidido: se absorbe (A5)**. `SUPER_ADMIN` ya es uno de los 5 roles del backend; una vez que `Role` esté alineado, `AdminRole` es un tipo redundante
 - [x] Actualizar §4 y §5.1 para inventariar las cuatro apps
 - [x] Agregar las filas de `tiendi-admin` a la tabla "Archivos afectados"
 - [x] Verificar si el `error.interceptor.ts` de admin ya duplica el refresh concurrente que la Fase 2 va a centralizar — **verificado: sí**, es copy-paste literal del vendor (`error.interceptor.ts:8`). Ver el WARNING de §4
