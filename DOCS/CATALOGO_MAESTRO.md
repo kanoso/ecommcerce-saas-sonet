@@ -1481,6 +1481,9 @@ quadrantChart
 - [x] Test: merge en cadena resuelve a la raíz correcta (`master-catalog.service.spec.ts` — "merge en cadena: resuelve la raíz correcta de winner y loser antes de fusionar")
 - [x] Test: merge cíclico lanza error en vez de colgarse (`master-catalog.service.spec.ts` — "merge cíclico: lanza error en vez de colgarse")
 
+> [!NOTE]
+> **Panel de administración (frontend) resuelto.** La interfaz que consume estos endpoints vive en `tiendi-admin` (back-office, app independiente). Ver [[TIENDI_ADMIN]] Fases 4–6: catálogo (listado, detalle, corrección, verify, merge) y ranking de demanda, ambos operativos.
+
 ### Fase 7 — Observabilidad y cierre
 
 - [x] Métrica: porcentaje de productos nuevos con GTIN válido

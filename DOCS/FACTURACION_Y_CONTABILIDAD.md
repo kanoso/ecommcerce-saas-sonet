@@ -358,10 +358,10 @@ graph TD
 | Módulo `wallet` (movimientos) | ✅ Implementado | `tiendi-api/src/modules/wallet/` |
 | Módulo `admin` (backend) | ✅ Existe, sin frontend | `tiendi-api/src/modules/admin/` |
 | Ledger de partida doble | 🔲 Solo diseñado | [[FLUJO_DINERO]] |
-| App back-office (`tiendi-admin`) | 🔲 No existe | — |
+| App back-office (`tiendi-admin`) | ✅ Implementado | `tiendi-admin/` |
 | Estado de cuenta del vendedor | 🔲 No existe | — |
 | Split `invoicing` / `compliance` | 🔲 Acordado, sin ejecutar | — |
-| `/vendor/riders` fuera del panel | 🔲 Pendiente | `sidebar.component.ts:32` |
+| `/vendor/riders` fuera del panel | ✅ Migrado | `tiendi-admin/src/app/admin/features/riders/` |
 
 > [!IMPORTANT]
 > **`wallet/` no es contabilidad.** Registra movimientos de dinero sin partida doble, sin asientos y sin la garantía de atomicidad del principio **P4** de [[FLUJO_DINERO]]. Es un precursor, no un sustituto del ledger.
@@ -408,9 +408,9 @@ Recién acá la pantalla se apoya en datos auditables.
 
 ### Fase 4 — Back-office
 
-- [ ] Levantar `tiendi-admin` con autenticación propia
+- [x] Levantar `tiendi-admin` con autenticación propia
 - [ ] Ledger completo, conciliación bancaria y contra extracto de Culqi
-- [ ] Migrar `/vendor/riders` fuera de `tiendi-vendor`
+- [x] Migrar `/vendor/riders` fuera de `tiendi-vendor`
 
 > [!TIP]
 > Las fases 1 y 2 son independientes entre sí y pueden ir en paralelo si hay dos personas. Las fases 3 y 4 sí dependen de la 2.
