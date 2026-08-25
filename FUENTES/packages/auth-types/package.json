@@ -1,5 +1,5 @@
 {
-  "name": "@tiendi/auth-types",
+  "name": "@kanoso/auth-types",
   "version": "0.1.0",
   "private": true,
   "description": "Tipos compartidos de autenticación Tiendi (Role, StoreRole, User, AuthSession, ApiAuthResponse). Solo tipos, cero runtime (A2).",

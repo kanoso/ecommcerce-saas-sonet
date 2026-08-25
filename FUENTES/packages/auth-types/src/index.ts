@@ -1,5 +1,5 @@
 /**
- * @tiendi/auth-types — tipos compartidos de autenticación.
+ * @kanoso/auth-types — tipos compartidos de autenticación.
  * SOLO tipos, cero runtime (A2). Ver DOCS/AUTENTICACION.md §7.
  *
  * `Role` está alineado al backend (5 roles). `StoreRole` es una dimensión
