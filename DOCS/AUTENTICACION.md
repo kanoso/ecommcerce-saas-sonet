@@ -360,7 +360,7 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 - [x] Documentar el flujo de release (quién publica, con qué versión, cómo se consume) — ver abajo
 - [x] Resolver la dependencia sobre `tiendi-web/dist/` descrita abajo — **decisión A6: registry privado (GitHub Packages) con scope `@kanoso`**. Rename `@tiendi/*` → `@kanoso/*` aplicado (34 archivos entre paquetes, imports y configs; builds de web/vendor/admin verificados), workflow `publish-packages.yml` creado en `tiendi-web`, `.npmrc` sin token commitados en web/vendor/admin
   - [x] Ejecutar el primer publish desde Actions en `kanoso/tiendi-web` — **hecho**: `@kanoso/auth@0.0.1` (tag `auth-v0.0.1`) y `@kanoso/chat@0.0.1` (tag `chat-v0.0.1`) publicados a GitHub Packages. Nota de setup: el token de `gh` CLI sin scope `read:packages` da 403 al consumir; hace falta un PAT propio con ese scope en el `~/.npmrc`
-  - [ ] Migrar vendor/admin de `file:` sobre `dist/` a rangos semver (`^0.0.1`) y verificar un clon limpio del padre compila solo
+  - [x] Migrar vendor/admin de `file:` sobre `dist/` a rangos semver (`^0.0.1`) y verificar un clon limpio del padre compila solo — **hecho y verificado**: vendor consume `@kanoso/auth@^0.0.1` + `@kanoso/chat@^0.0.1` del registry (admin solo usaba `auth-types`, que queda por fuente). Clon fresco del padre con `--recurse-submodules` → `npm install` → `ng build` en vendor compila sin errores. Gotcha: el primer intento falló porque el lockfile conservaba las resoluciones `file:` aunque el manifest pidiera `^0.0.1` — npm install local "funcionaba" solo porque `dist/` existía en disco; hubo que re-resolver (`npm uninstall` + `npm install pkg@^`)
 
 ##### Flujo de release con `file:` deps
 
