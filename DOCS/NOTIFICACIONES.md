@@ -66,7 +66,7 @@ Notificaciones es el sistema que traduce un evento de dominio (pedido creado, en
 | Push móvil (FCM) | firebase-admin | ✅ |
 | In-app persistente | tabla `Notification` (Prisma) | ✅ (solo vendor) |
 | Tiempo real (WS) | socket.io (`/tracking`, `/chat`) | ✅ |
-| Push al admin | — | 🔲 stub |
+| Email al admin (SendGrid) | `ADMIN_ALERT_EMAILS` | ✅ Fase 1 |
 
 ---
 
@@ -93,7 +93,7 @@ flowchart TD
         C3["ChatGateway<br/>/chat"]
     end
 
-    subgraph S4["4. Admin (stub)"]
+    subgraph S4["4. Admin (email ✅ Fase 1)"]
         A4["AdminNotifier<br/>solo logger.warn"]
     end
 
@@ -108,7 +108,7 @@ flowchart TD
 | Legacy | `src/modules/notifications/*` | Email + WhatsApp + in-app | Vendor, cliente | ✅ |
 | Dispatcher FCM | `src/services/notification-dispatcher.service.ts`, `firebase.service.ts` | Push FCM | Rider, vendor | ✅ |
 | WebSockets | `src/gateways/tracking.gateway.ts`, `src/modules/chat/chat.gateway.ts` | socket.io | Rider, vendor, cliente | ✅ |
-| Admin | `src/modules/support/admin-notifier.service.ts` | (ninguno) | Super Admin | 🔲 stub |
+| Admin | `src/modules/support/admin-notifier.service.ts` | Email (SendGrid) | Super Admin | ✅ Fase 1 |
 
 > [!CAUTION]
 > **La duplicación es la deuda central de este sistema.**
@@ -309,9 +309,9 @@ La app maneja el ciclo completo en `useNotificationSetup.ts`: permisos, canales 
 
 | Evento | Canal | Estado |
 |--------|-------|--------|
-| Delivery sin rider | — | 🔲 stub (`alertNoRiderFound`) |
-| Nuevo ticket (P0/P1) | — | 🔲 stub (`alertNewTicket`) |
-| Ticket escalado | — | 🔲 stub (`alertEscalation`) |
+| Delivery sin rider | Email | ✅ `alertNoRiderFound` |
+| Nuevo ticket (P0/P1) | Email | ✅ `alertNewTicket` |
+| Ticket escalado | Email | ✅ `alertEscalation` |
 
 ---
 
@@ -372,12 +372,11 @@ export class AdminNotifier {
 ```
 
 > [!CAUTION]
-> **El admin no recibe nada hoy.**
-> `AdminNotifier` es un stub que solo escribe `logger.warn`. Los tres eventos que deberían alertar a operación — delivery sin rider, ticket nuevo de alta prioridad, ticket escalado — no llegan a ninguna pantalla ni dispositivo.
+> ~~**El admin no recibe nada hoy.**~~
+> **Resuelto (Fase 1, 2026-08-25):** `AdminNotifier` envía los tres eventos (delivery sin rider, ticket P0/P1 nuevo, ticket escalado) por email a `ADMIN_ALERT_EMAILS`. Queda pendiente setear la variable en producción — mientras falte, degrada a log-only.
 >
-> Esto bloquea dos cosas:
-> 1. La **operación reactiva** del back-office (nadie se entera de un P0 en 15 minutos si no mira el log).
-> 2. La **capa lite móvil** de [[TIENDI_ADMIN]] §14, que necesita push al Super Admin como gatillo.
+> Lo que sigue bloqueado:
+> 1. La **capa lite móvil** de [[TIENDI_ADMIN]] §14 necesita **push** al Super Admin como gatillo (Fase 4 de este checklist), no solo email.
 
 ### 9.1 Norte de diseño para el admin
 
@@ -418,7 +417,7 @@ flowchart TD
 | Generalizar `Notification` | Dejar de estar acoplada a `storeId`; soportar rider y admin |
 | Unificar dispatcher | `NotificationDispatcher` absorbe email/WhatsApp del módulo legacy |
 | Extender `prefKey` | A las 4 audiencias, no solo rider |
-| Cablear `AdminNotifier` | Push/email real al Super Admin (reemplaza el stub) |
+| Cablear `AdminNotifier` | ✅ Fase 1: email real al Super Admin |
 | Unificar push de vendor | Hoy hay 2 caminos: `NotificationsService` (email/WA) y `NotificationDispatcher` (FCM) |
 
 > [!WARNING]
@@ -441,11 +440,16 @@ flowchart TD
 
 ### Fase 1 — Cablear el admin (desbloquea el lite de TIENDI_ADMIN §14)
 
-- [ ] Reemplazar `AdminNotifier` stub por canal real (email SendGrid primero)
-- [ ] `alertNewTicket` → email al Super Admin para tickets P0/P1
-- [ ] `alertEscalation` → email al Super Admin
-- [ ] `alertNoRiderFound` → email al Super Admin
-- [ ] Test: un ticket P1 dispara email al admin
+> [!NOTE]
+> **Implementada (2026-08-25).** `AdminNotifier` ya no es un stub: envía emails por SendGrid a las direcciones de `ADMIN_ALERT_EMAILS` (variable opcional, separadas por coma; validada en `env.validation.ts`). Sin la variable configurada, degrada a log-only (comportamiento previo). Cada destinatario se envía individualmente y un fallo de SendGrid **nunca rompe** el flujo de negocio que disparó la alerta.
+>
+> ⚠️ **Pendiente operativo**: setear `ADMIN_ALERT_EMAILS` en el entorno de producción — mientras no exista, las alertas siguen quedando solo en el log.
+
+- [x] Reemplazar `AdminNotifier` stub por canal real (email SendGrid primero)
+- [x] `alertNewTicket` → email al Super Admin para tickets P0/P1 (prioridades menores: solo log, N4)
+- [x] `alertEscalation` → email al Super Admin
+- [x] `alertNoRiderFound` → email al Super Admin
+- [x] Test: un ticket P1 dispara email al admin — `admin-notifier.service.spec.ts` (8 tests: P0/P1 sí, P3 no, múltiples destinatarios, absorción de fallos, degradación sin config)
 
 ### Fase 2 — Generalizar `Notification`
 
@@ -488,7 +492,7 @@ flowchart TD
 
 | Repositorio | Archivo | Cambio |
 |-------------|---------|--------|
-| `tiendi-api` | `src/modules/support/admin-notifier.service.ts` | Reemplazar stub por canal real |
+| `tiendi-api` | `src/modules/support/admin-notifier.service.ts` | ✅ Fase 1: canal email real (`ADMIN_ALERT_EMAILS`) |
 | `tiendi-api` | `src/services/notification-dispatcher.service.ts` | Absorber email/WhatsApp; extender `prefKey` |
 | `tiendi-api` | `src/modules/notifications/*` | Migrar a dispatcher unificado y luego eliminar |
 | `tiendi-api` | `prisma/schema.prisma` | Generalizar `Notification` (multi-audiencia) |
