@@ -1028,13 +1028,23 @@ flowchart LR
 
 Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
-- [ ] **B1** — Verificación HMAC del webhook + `WebhookEvent` con `@@unique`
-- [ ] **B4** — `cashBlocked` como propiedad derivada de `cashOnHand`
-- [ ] **B9** — Corregir `confirmCashDeposit()` para no acreditar el efectivo como ganancia
-- [ ] **B5** — Estado `PROCESSING` en retiros; dejar de nacer `COMPLETED`
+> [!NOTE]
+> **Implementada (2026-08-25)** — commits de `tiendi-api`:
+>
+> - **B1**: `handleWebhook()` verifica `Culqi-Signature` (HMAC-SHA256 de `{id}{timestamp}{rawBody}`, comparación timing-safe) contra la variable nueva **`CULQI_WEBHOOK_SECRET`** (⚠️ setearla en producción es obligatorio: sin ella procesa sin verificar y loguea WARNING por request). Idempotencia vía tabla nueva `WebhookEvent` con `@@unique(provider, eventId)`; reintentos duplicados se ignoran. `main.ts` habilitó `rawBody: true`.
+> - **B4**: `cashBlocked` se recalcula como derivada del `cashOnHand` al depositar (`confirmCashDeposit`), límite S/ 200 (§8.2). Ya no hay repartidor bloqueado para siempre.
+> - **B9**: el depósito **solo baja `cashOnHand`** — ya no acredita efectivo como ganancia en `balance`. La Transaction nace `SUBMITTED` a la espera de conciliación bancaria; liberar `pending → balance` es la B3 (Fase 2).
+> - **B5**: los retiros nacen `PROCESSING`, no `COMPLETED` (el saldo se debita igual). ⚠️ Operativo: hasta que exista el lote bancario (B2, Fase 3) las transacciones quedan en `PROCESSING` indefinidamente — refleja la realidad (dinero debitado, aún no transferido), pero no hay flujo que las cierre.
+>
+> Tests: 14 nuevos (`payments.service.spec.ts`, `wallet.service.spec.ts`). Suite 466/466, build y migración aplicada.
+
+- [x] **B1** — Verificación HMAC del webhook + `WebhookEvent` con `@@unique`
+- [x] **B4** — `cashBlocked` como propiedad derivada de `cashOnHand`
+- [x] **B9** — Corregir `confirmCashDeposit()` para no acreditar el efectivo como ganancia
+- [x] **B5** — Estado `PROCESSING` en retiros; dejar de nacer `COMPLETED`
 
 > [!IMPORTANT]
-> **B1 y B4 son bloqueantes absolutos de producción.** B1 permite fraude con un solo `curl`. B4 deja repartidores inutilizables sin vía de recuperación desde la app. Ninguna de las dos requiere el ledger para arreglarse.
+> ~~**B1 y B4 son bloqueantes absolutos de producción.**~~ Ambas quedaron resueltas. Recordatorio operativo: B1 exige `CULQI_WEBHOOK_SECRET` en las variables de entorno de producción para ser real.
 
 ### Fase 2 — Fundación contable
 
