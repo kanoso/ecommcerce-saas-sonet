@@ -4,3 +4,12 @@
 [submodule "FUENTES/tiendi-web"]
 	path = FUENTES/tiendi-web
 	url = https://github.com/kanoso/tiendihector.git
+[submodule "FUENTES/tiendi-admin"]
+	path = FUENTES/tiendi-admin
+	url = https://github.com/kanoso/tiendi-admin.git
+[submodule "FUENTES/tiendi-vendor"]
+	path = FUENTES/tiendi-vendor
+	url = https://github.com/kanoso/tiendi-vendor.git
+[submodule "FUENTES/tiendi-go"]
+	path = FUENTES/tiendi-go
+	url = https://github.com/kanoso/tiendi-go.git
