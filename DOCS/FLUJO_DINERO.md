@@ -1048,11 +1048,22 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 ### Fase 2 — Fundación contable
 
-- [ ] **B8** — Ledger de doble entrada: `LedgerAccount`, `EntryGroup`, `LedgerEntry`
-- [ ] **B7** — Wallet polimórfica (`ownerType` + `ownerId`)
-- [ ] **B11** — `idempotencyKey` en todos los endpoints de dinero
-- [ ] **B3** — Reconciliación `pending → balance` al conciliar el depósito
-- [ ] Job de conciliación diaria con los invariantes I1–I7
+> [!NOTE]
+> **Implementada (2026-08-25)** — commits de `tiendi-api`:
+>
+> - **B8**: `LedgerAccount`/`EntryGroup`/`LedgerEntry` según §4.1, con `LedgerService.post()` que rechaza grupos que no suman 0 (I1) y es idempotente por `idempotencyKey`. Asientos inmutables.
+> - **B7**: `Wallet` polimórfica (`ownerType` + `ownerId`, histórico backfillado como RIDER); `riderId` ahora nullable sin unique para permitir wallets de vendedor. Los saldos siguen siendo columnas proyectadas — la sincronización fina con el ledger llega con los postings reales.
+> - **B11**: `Transaction.idempotencyKey` (@@unique); retiros y depósitos aceptan clave opcional — un reintento devuelve el resultado original.
+> - **B3**: `POST /admin/riders/:riderId/reconcile-cash-deposit` libera `pending → balance` hasta el monto conciliado (nunca más que el pending).
+> - **Job diario**: cola BullMQ `ledger-reconciliation` programada 03:00 Lima (08:00 UTC) ejecutando I1/I3/I7; I4/I5 omitidos hasta integración con Culqi/banco; I6 cuando exista `PayoutRequest`. Trigger manual: `POST /admin/ledger/run-daily-checks`.
+>
+> Tests: 8 nuevos (`ledger.service.spec.ts`). Suite 474/474, migración aplicada.
+
+- [x] **B8** — Ledger de doble entrada: `LedgerAccount`, `EntryGroup`, `LedgerEntry`
+- [x] **B7** — Wallet polimórfica (`ownerType` + `ownerId`)
+- [x] **B11** — `idempotencyKey` en todos los endpoints de dinero
+- [x] **B3** — Reconciliación `pending → balance` al conciliar el depósito
+- [x] Job de conciliación diaria con los invariantes I1–I7
 
 ### Fase 3 — Liquidación al vendedor
 
