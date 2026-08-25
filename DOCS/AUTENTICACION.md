@@ -181,7 +181,7 @@ flowchart TD
 | Refresh en 401 | `error.interceptor.ts` (con `pendingRefresh$`) | `auth-error.interceptor.ts` | `error.interceptor.ts` (con `pendingRefresh$`) | `api.ts` (axios + `reconnectWithToken`) |
 | Guard | `vendor.guard` + `role.guard` + `onboarding.guard` | en `landing-auth` | `admin.guard` (`isSuperAdmin`) | biométrico |
 
-`tiendi-go` es la única app no-Angular del inventario. Por eso queda **fuera de la Fase 2**: `@tiendi/auth` es una librería Angular y no puede consumirse desde React. Go entra solo en la Fase 1 (tipos), que es framework-agnóstica. El reparto completo por capas está en §0.4 — la exclusión es de diseño, no un olvido del checklist.
+`tiendi-go` es la única app no-Angular del inventario. Por eso queda **fuera de la Fase 2**: `@kanoso/auth` es una librería Angular y no puede consumirse desde React. Go entra solo en la Fase 1 (tipos), que es framework-agnóstica. El reparto completo por capas está en §0.4 — la exclusión es de diseño, no un olvido del checklist.
 
 > [!WARNING]
 > La lógica de **refresh en 401** está implementada cuatro veces: el vendor comparte un `pendingRefresh$` entre 401 concurrentes; la web reintenta el request original; go además reconecta el socket con el token nuevo. Funciona, pero un cambio de política (ej. rotación de refresh token) hay que replicarlo en cuatro lugares.
@@ -222,7 +222,11 @@ flowchart TD
 
 ### 5.3 Mapeo de usuario duplicado
 
-`mapApiUser` (web), el bloque de mapeo en `auth.store.ts` (vendor), el `toAdminUser` de `auth.store.ts:45` (admin) y el `refreshProfile`/`hydrate` (go) traducen el mismo `ApiAuthResponse` a shapes distintos. Cuatro shapes de "usuario logueado" que deberían ser uno. Peor: `tiendi-admin` declara su **propia** interfaz `ApiAuthResponse` en `core/types/auth.types.ts`, así que ni siquiera el contrato de entrada es compartido — es una copia local que puede quedar desfasada de la API sin que nada lo detecte.
+> [!NOTE]
+> **Resuelto (Fase 3).** Los tres shapes derivan hoy del `User` compartido de `@kanoso/auth-types`:
+> el vendor mapea con su `toUser()` local a `User`; la web define `ICurrentUser extends User` (más los alias calculados `nombre`/`tieneTienda`); y `tiendi-admin` define `AdminUser = Pick<User, 'id' | 'name' | 'email' | 'role'> & { role: AdminRole }`, con `AdminRole` derivado del `Role` compartido (`Extract<Role, 'SUPER_ADMIN'>`) y su copia local de `ApiAuthResponse` eliminada (re-exporta la del paquete). Los mappers siguen siendo locales porque el paquete es solo-tipos (A2), pero todos producen el mismo shape canónico.
+
+El `mapApiUser` (web), el bloque de mapeo en `auth.store.ts` (vendor) y el `toAdminUser` de `auth.store.ts` (admin) traducían el mismo `ApiAuthResponse` a shapes distintos. Peor: `tiendi-admin` declaraba su **propia** interfaz `ApiAuthResponse` en `core/types/auth.types.ts`, así que ni siquiera el contrato de entrada era compartido — era una copia local que podía quedar desfasada de la API sin que nada lo detectara.
 
 ### 5.4 Revocación de sesión — parcialmente resuelta
 
@@ -260,12 +264,12 @@ Lo que se mantiene por aplicación:
 
 ```mermaid
 flowchart TD
-    T["@tiendi/auth-types<br/>(paquete de tipos TS)"] --> V["tiendi-vendor"]
+    T["@kanoso/auth-types<br/>(paquete de tipos TS)"] --> V["tiendi-vendor"]
     T --> W["tiendi-web"]
     T --> G["tiendi-go"]
     T --> A["tiendi-admin"]
 
-    L["@tiendi/auth<br/>(librería Angular)"] --> V
+    L["@kanoso/auth<br/>(librería Angular)"] --> V
     L --> W
     L --> A
 
@@ -282,8 +286,8 @@ flowchart TD
 
 | Capa | Qué contiene | Quién la consume |
 |------|--------------|------------------|
-| **1. `@tiendi/auth-types`** | `Role`, `User`, `AuthSession`, `ApiAuthResponse` — una sola fuente de verdad | Las 4 apps (incluso go, son solo types) |
-| **2. `@tiendi/auth`** (Angular) | `TokenService`, interceptores (attach + refresh) — **sin store** (A3) | vendor + web + admin |
+| **1. `@kanoso/auth-types`** | `Role`, `User`, `AuthSession`, `ApiAuthResponse` — una sola fuente de verdad | Las 4 apps (incluso go, son solo types) |
+| **2. `@kanoso/auth`** (Angular) | `TokenService`, interceptores (attach + refresh) — **sin store** (A3) | vendor + web + admin |
 | **3. Adapter RN** | Solo importa `auth-types`; conserva zustand + SecureStore + biométrico | go |
 
 > [!IMPORTANT]
@@ -302,10 +306,10 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 >
 > ```json
 > // tiendi-vendor/package.json
-> "@tiendi/chat": "file:../tiendi-web/dist/ng-chat-tiendi"
+> "@kanoso/chat": "file:../tiendi-web/dist/ng-chat-tiendi"
 > ```
 >
-> No hay workspace tool (`nx.json`, `turbo.json`, `pnpm-workspace.yaml` no existen). El ecosistema actual son carpetas hermanas con dependencias `file:` sobre build outputs. `@tiendi/auth-types` y `@tiendi/auth` encajan en ese mismo patrón sin introducir infraestructura nueva.
+> No hay workspace tool (`nx.json`, `turbo.json`, `pnpm-workspace.yaml` no existen). El ecosistema actual son carpetas hermanas con dependencias `file:` sobre build outputs. `@kanoso/auth-types` y `@kanoso/auth` encajan en ese mismo patrón sin introducir infraestructura nueva.
 
 ---
 
@@ -313,11 +317,12 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 
 | # | Decisión | Respuesta | Evidencia |
 |---|----------|-----------|-----------|
-| **A1** | ¿Introducir workspace tool (Nx/Turborepo)? | ✅ **No todavía — mantener `file:`** | No existe `nx.json`, `turbo.json`, `pnpm-workspace.yaml` ni `lerna.json` en ningún repo del ecosistema. El patrón `file:` ya está en producción (`@tiendi/chat`, §8). Un workspace tool es un proyecto en sí mismo |
-| **A2** | ¿Alcance de `@tiendi/auth-types`? | ✅ **Solo tipos, cero dependencias de runtime** | Ni `tiendi-vendor` ni `tiendi-web` tienen `zod` instalado. Solo lo tienen `tiendi-api` (`^4.3.6`) y `tiendi-go` (`^4.4.3`), ya desalineados entre sí. Incluir validadores Zod agregaría una dependencia de runtime a dos apps Angular y obligaría a resolver ese skew primero |
-| **A3** | ¿`@tiendi/auth` incluye el store base o solo token + interceptores? | ✅ **Solo token + interceptores** | `tiendi-web` **no tiene auth store**. Su autenticación vive en `core/services/auth.service.ts` y `features/landing/services/landing-auth.service.ts`; sus `signalStore` son de dominio (`cart`, `products`, `category`). Un store base obligaría a web a adoptar una pieza que hoy deliberadamente no tiene |
+| **A1** | ¿Introducir workspace tool (Nx/Turborepo)? | ✅ **No todavía — mantener `file:`** | No existe `nx.json`, `turbo.json`, `pnpm-workspace.yaml` ni `lerna.json` en ningún repo del ecosistema. El patrón `file:` ya está en producción (`@kanoso/chat`, §8). Un workspace tool es un proyecto en sí mismo |
+| **A2** | ¿Alcance de `@kanoso/auth-types`? | ✅ **Solo tipos, cero dependencias de runtime** | Ni `tiendi-vendor` ni `tiendi-web` tienen `zod` instalado. Solo lo tienen `tiendi-api` (`^4.3.6`) y `tiendi-go` (`^4.4.3`), ya desalineados entre sí. Incluir validadores Zod agregaría una dependencia de runtime a dos apps Angular y obligaría a resolver ese skew primero |
+| **A3** | ¿`@kanoso/auth` incluye el store base o solo token + interceptores? | ✅ **Solo token + interceptores** | `tiendi-web` **no tiene auth store**. Su autenticación vive en `core/services/auth.service.ts` y `features/landing/services/landing-auth.service.ts`; sus `signalStore` son de dominio (`cart`, `products`, `category`). Un store base obligaría a web a adoptar una pieza que hoy deliberadamente no tiene |
 | **A4** | ¿Refresh token con rotación? | ✅ **Stateless hoy — rotación es prerrequisito de `tiendi-admin`** | `auth.service.ts:164` verifica la firma, chequea `status === 'ACTIVE'` y reemite. No hay tabla de refresh tokens, ni reuse-detection, ni lista de revocación. El payload de `generateTokens()` (`auth.service.ts:401`) no lleva `jti`, y la blacklist de Redis no cubre el refresh path (§3.1) |
-| **A5** | ¿`AdminRole` se absorbe en el `Role` unificado? | ✅ **Sí — se absorbe (subconjunto `SUPER_ADMIN`)** | `SUPER_ADMIN` es uno de los 5 roles del backend (`schema.prisma:14`). Una vez que `@tiendi/auth-types` defina el `Role` alineado, `AdminRole` es redundante. El guard del admin queda `role === 'SUPER_ADMIN'` sobre el `Role` compartido, sin importar el tipo inflado del vendor |
+| **A5** | ¿`AdminRole` se absorbe en el `Role` unificado? | ✅ **Sí — se absorbe (subconjunto `SUPER_ADMIN`)** | `SUPER_ADMIN` es uno de los 5 roles del backend (`schema.prisma:14`). Una vez que `@kanoso/auth-types` defina el `Role` alineado, `AdminRole` es redundante. El guard del admin queda `role === 'SUPER_ADMIN'` sobre el `Role` compartido, sin importar el tipo inflado del vendor |
+| **A6** | ¿Dónde se publican las librerías compiladas (`auth`, `chat`)? | ✅ **GitHub Packages con scope `@kanoso`** | El scope `@tiendi` está tomado en GitHub por una cuenta ajena inactiva y el registry exige scope = owner. Rename aplicado y verificado por builds; publish automatizado con `GITHUB_TOKEN` (sin secrets). Detalle en la NOTE de §0.1 |
 
 > [!NOTE]
 > **A2 revierte la recomendación del borrador.** El borrador proponía tipos + validadores Zod apoyándose en que "el backend ya usa Zod". Es cierto del backend, pero irrelevante para el frontend: las dos apps Angular no lo tienen. La decisión también mantiene coherencia con §7 — *"Solo los tipos son transportables entre ecosistemas. El runtime no."*
@@ -338,11 +343,11 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 ### Fase 0 — Prerrequisitos de infraestructura (bloqueante)
 
 > [!IMPORTANT]
-> **Ninguna fase posterior arranca sin esto.** Las Fases 1 y 2 crean paquetes compartidos que hoy no tienen dónde vivir ni cómo distribuirse, y una de las cuatro apps involucradas no está en control de versiones. No es trabajo de análisis: son cuatro decisiones y un repo que falta crear.
+> **Casi toda esta fase ya está cerrada.** Las cinco apps son submódulos de `kanoso/*` (§0.2), el inventario de deuda está actualizado (§0.3) y el framework de cada app está anotado (§0.4). Lo único que sigue abierto es **§0.1: el flujo de release del mecanismo `file:`**, y no es un detalle administrativo — hoy rompe el clone aislado de cualquier submódulo. Ver el CAUTION de §0.1.
 
 #### 0.1 Decidir el mecanismo de distribución de los paquetes
 
-`FUENTES/` **no es un monorepo**. No hay `package.json` raíz, ni `nx.json`, ni `lerna.json`, ni `pnpm-workspace.yaml`. Los paquetes `@tiendi/auth-types` (Fase 1) y `@tiendi/auth` (Fase 2) no tienen hoy infraestructura donde publicarse ni desde donde consumirse.
+`FUENTES/` **no es un monorepo**. No hay `package.json` raíz, ni `nx.json`, ni `lerna.json`, ni `pnpm-workspace.yaml`. Los paquetes `@kanoso/auth-types` (Fase 1) y `@kanoso/auth` (Fase 2) no tienen hoy infraestructura donde publicarse ni desde donde consumirse.
 
 | Opción | Costo inicial | Costo por release | Nota |
 |--------|---------------|-------------------|------|
@@ -351,8 +356,46 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 | Dependencia `git` por tag | Bajo | Manual: tag + bump en cada app | Sin build step publicado; cada consumidor compila el fuente |
 
 - [x] Elegir el mecanismo y registrar la decisión en §9 — **decidido en A1: `file:` deps, sin workspace tool**
-- [ ] Dejar creado el scaffolding y un paquete vacío **ya consumible** por al menos una app
-- [ ] Documentar el flujo de release (quién publica, con qué versión, cómo se consume)
+- [x] Dejar creado el scaffolding y un paquete vacío **ya consumible** por al menos una app — **hecho**: `FUENTES/packages/auth-types/` (7 archivos, trackeados en el repo padre) lo consumen vendor y web
+- [x] Documentar el flujo de release (quién publica, con qué versión, cómo se consume) — ver abajo
+- [x] Resolver la dependencia sobre `tiendi-web/dist/` descrita abajo — **decisión A6: registry privado (GitHub Packages) con scope `@kanoso`**. Rename `@tiendi/*` → `@kanoso/*` aplicado (34 archivos entre paquetes, imports y configs; builds de web/vendor/admin verificados), workflow `publish-packages.yml` creado en `tiendi-web`, `.npmrc` sin token commitados en web/vendor/admin
+  - [ ] Ejecutar el primer publish desde Actions en `kanoso/tiendi-web` (workflow_dispatch, o tags `auth-v*` / `chat-v*`)
+  - [ ] Migrar vendor/admin de `file:` sobre `dist/` a rangos semver (`^0.0.1`) y verificar un clon limpio del padre compila solo
+
+##### Flujo de release con `file:` deps
+
+> Este flujo aplica solo a `@kanoso/auth-types` (por fuente). Las librerías compiladas (`@kanoso/auth`, `@kanoso/chat`) migran a GitHub Packages — ver NOTE de A6 abajo.
+
+No hay registry ni publish: la distribución es la carpeta hermana. `@kanoso/auth-types` declara `"types": "./src/index.ts"`, así que **no tiene build step** — los consumidores resuelven el fuente directamente.
+
+1. Editar `packages/auth-types/src/index.ts`
+2. Bump de `version` en su `package.json` (semver; es `private`, nunca se publica)
+3. En cada app consumidora: `npm install` para refrescar el link/junction de `node_modules/@kanoso/auth-types`
+4. Verificación: `npm run test:types` dentro del paquete (`tsc --noEmit` sobre `test/types.check.ts`, incluye el `@ts-expect-error` que impide asignar `StoreRole` a `Role`)
+
+##### Estado real del mecanismo (verificado en disco)
+
+La decisión A1 (`file:` deps) ya está implementada. Los `package.json` declaran:
+
+| Consumidor | Dependencia | Apunta a | ¿Viaja en git? |
+|------------|-------------|----------|----------------|
+| `tiendi-vendor` | `@kanoso/auth-types` | `file:../packages/auth-types` | Sí — repo **padre** |
+| `tiendi-web` | `@kanoso/auth-types` | `file:../packages/auth-types` | Sí — repo **padre** |
+| `tiendi-admin` | `@kanoso/auth-types` | `file:../packages/auth-types` | Sí — repo **padre** |
+| `tiendi-vendor` | `@kanoso/auth` | `file:../tiendi-web/dist/auth` → migrar a registry (A6) | **No** — en transición |
+| `tiendi-vendor` | `@kanoso/chat` | `file:../tiendi-web/dist/ng-chat-tiendi` → migrar a registry (A6) | **No** — en transición |
+| `tiendi-web` | `@kanoso/auth` | `file:./dist/auth` → migrar a registry (A6) | **No** — en transición |
+
+> [!CAUTION]
+> **Ningún submódulo se puede clonar y compilar por separado.** Dos problemas encadenados:
+>
+> 1. **Las rutas `file:` salen del submódulo.** `packages/` vive en el repo padre, no dentro de `tiendi-vendor` ni de `tiendi-web`. Un `git clone kanoso/tiendi-vendor` seguido de `npm install` falla: `../packages/auth-types` no existe. Hay que clonar el repo padre **con** `--recurse-submodules`.
+> 2. **`@kanoso/auth` y `@kanoso/chat` apuntan a build output ignorado.** `tiendi-web/.gitignore:4` ignora `/dist`, y `git ls-files dist` devuelve **0**. Los directorios existen en disco local, pero no en el remoto. Incluso clonando el padre completo, `npm install` en vendor falla hasta que alguien corra el build de las librerías en `tiendi-web` primero — y ese orden no está documentado en ningún README.
+>
+> Esto es lo que hay que resolver antes de dar la Fase 0 por cerrada. Opciones: versionar los `dist/` de las librerías, publicarlas a un registry privado, o mover las librerías a `packages/` y consumirlas por fuente.
+
+> [!NOTE]
+> **Resolución (A6): registry privado — GitHub Packages con scope `@kanoso`.** El scope `@tiendi` no está disponible en GitHub (cuenta personal ajena, creada ~2013, sin actividad) y GitHub Packages exige que el scope coincida con el owner. Se aplicó el rename `@tiendi/*` → `@kanoso/*` en los 4 paquetes/consumidores (verificado por builds y por búsqueda del scope viejo con 0 resultados). El publish corre en `kanoso/tiendi-web` vía Actions (`publish-packages.yml`) con el `GITHUB_TOKEN` nativo — sin secrets que configurar. Para instalar localmente hace falta un PAT con `read:packages` en el `~/.npmrc` de cada desarrollador. A1 queda parcialmente overtaken: `@kanoso/auth-types` sigue consumiéndose por fuente (`file:`); solo las libs compiladas pasan por el registry.
 
 #### 0.2 Poner `tiendi-admin` en control de versiones
 
@@ -388,7 +431,7 @@ tiendi-admin/src/app/admin/core/interceptors/error.interceptor.ts
 ```
 
 > [!CAUTION]
-> `admin-role.ts` documenta en su propio comentario la decisión **contraria** a la Fase 1: *"Rol propio de tiendi-admin, definido localmente y NO importado del vendor."* Eso no es un olvido — es una decisión ya tomada en código que este documento nunca registró. Hay que confirmarla o revertirla **antes** de extraer `@tiendi/auth-types`, no durante.
+> `admin-role.ts` documenta en su propio comentario la decisión **contraria** a la Fase 1: *"Rol propio de tiendi-admin, definido localmente y NO importado del vendor."* Eso no es un olvido — es una decisión ya tomada en código que este documento nunca registró. Hay que confirmarla o revertirla **antes** de extraer `@kanoso/auth-types`, no durante.
 
 - [x] Decidir: ¿`AdminRole` se absorbe en el `Role` unificado (es un subconjunto: hoy solo `SUPER_ADMIN`), o queda como tipo separado igual que `StoreRole` (A1)? — **decidido: se absorbe (A5)**. `SUPER_ADMIN` ya es uno de los 5 roles del backend; una vez que `Role` esté alineado, `AdminRole` es un tipo redundante
 - [x] Actualizar §4 y §5.1 para inventariar las cuatro apps
@@ -399,7 +442,7 @@ tiendi-admin/src/app/admin/core/interceptors/error.interceptor.ts
 
 `tiendi-go` es **React 19.2.3**. El diseño de tres capas (§7) ya lo contempla correctamente — go consume solo la capa de tipos, nunca la librería Angular — pero el documento nunca lo dice de forma explícita, y el checklist de la Fase 2 pide *"reusar la librería en vendor y web"* sin justificar la exclusión.
 
-| App | Framework | Capa 1 (`@tiendi/auth-types`) | Capa 2 (`@tiendi/auth`, Angular) |
+| App | Framework | Capa 1 (`@kanoso/auth-types`) | Capa 2 (`@kanoso/auth`, Angular) |
 |-----|-----------|-------------------------------|----------------------------------|
 | `tiendi-vendor` | Angular `^21.2.17` | Sí | Sí |
 | `tiendi-web` | Angular `^21.2.17` | Sí | Sí |
@@ -413,11 +456,14 @@ tiendi-admin/src/app/admin/core/interceptors/error.interceptor.ts
 
 #### Criterio de salida de la Fase 0
 
-La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al menos una app, (b) `tiendi-admin` se puede clonar desde el remoto, (c) está decidido el destino de `AdminRole`.
+Los tres criterios originales están cumplidos: (a) `packages/auth-types` es instalable desde vendor y web, (b) `tiendi-admin` está pusheado en `kanoso/tiendi-admin` y se clona, (c) el destino de `AdminRole` quedó decidido en **A5** (se absorbe).
 
-### Fase 1 — Extraer `@tiendi/auth-types`
+> [!IMPORTANT]
+> **Las Fases 1 y 2 ya se ejecutaron** — sus checkboxes están todos en `[x]` y el código está en disco. Se hicieron mientras la Fase 0 seguía formalmente abierta, lo cual explica el agujero de `tiendi-web/dist/`: el mecanismo de distribución se resolvió sobre la marcha, sin flujo de release. Cerrar §0.1 ahora es trabajo de saneamiento, no de habilitación.
 
-- [x] Crear paquete `@tiendi/auth-types` con `Role`, `User`, `AuthSession`, `ApiAuthResponse`
+### Fase 1 — Extraer `@kanoso/auth-types`
+
+- [x] Crear paquete `@kanoso/auth-types` con `Role`, `User`, `AuthSession`, `ApiAuthResponse`
 - [x] El paquete no declara **ninguna dependencia de runtime** — solo tipos (A2)
 - [x] Definir `Role` alineado al backend (5 roles) y `StoreRole` separado
 - [x] Definir `User` con `storeRole` explícito (no promovido a `Role`)
@@ -427,12 +473,12 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 - [x] Test: el compilador no deja asignar un `StoreRole` a un `Role` (`packages/auth-types/test/types.check.ts` con `@ts-expect-error`)
 - [x] Test: el build del paquete no arrastra `zod` ni ningún otro runtime (A2) — `emitDeclarationOnly`, dist solo `.d.ts`
 
-### Fase 2 — Extraer `@tiendi/auth` (Angular)
+### Fase 2 — Extraer `@kanoso/auth` (Angular)
 
-- [x] Crear librería Angular `@tiendi/auth` con `TokenService` (store-agnostic: `TokenStorage` + `API_BASE_URL` inyectables)
+- [x] Crear librería Angular `@kanoso/auth` con `TokenService` (store-agnostic: `TokenStorage` + `API_BASE_URL` inyectables)
 - [x] Portar `auth.interceptor.ts` (attach de Bearer) a la librería
 - [x] Portar `error.interceptor.ts` (refresh con `pendingRefresh$`) a la librería
-- [x] Reusar la librería en **web** (`WebTokenStorage` SSR-safe + `TOKEN_STORAGE`/`API_BASE_URL` + interceptores de `@tiendi/auth`; se eliminó `TokenService` e interceptores locales)
+- [x] Reusar la librería en **web** (`WebTokenStorage` SSR-safe + `TOKEN_STORAGE`/`API_BASE_URL` + interceptores de `@kanoso/auth`; se eliminó `TokenService` e interceptores locales)
 - [x] Reusar la librería en **vendor** (`VendorTokenStorage` + `AuthStore` sin token (usa `TokenService`) + `forbiddenInterceptor` (403) + `sessionExpired$` → logout; se eliminaron los interceptores locales)
 - [x] Test: refresh concurrente en 401 comparte una sola llamada (`token.service.spec.ts`, a nivel librería)
 - [x] Test: la librería **no exporta store** — cada app conserva el suyo, y web sigue sin tener uno (A3)
@@ -442,11 +488,11 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 - [x] Eliminar `auth.service.ts` vacío de web
 - [x] Eliminar o migrar `session.ts` (`UserID: number` obsoleto) — eliminado + métodos muertos de `SessionInfo`
 - [x] Eliminar la clave legacy `HdataTiendiComprador` (sin lector). El resto de `HdataTiendi*` sigue **vivo** vía `SessionInfo` (§5.2)
-- [ ] Unificar el shape de "usuario logueado" en las 3 apps
+- [x] Unificar el shape de "usuario logueado" en las 3 apps — **hecho**: web `ICurrentUser extends User` (+ alias `nombre`/`tieneTienda`); admin `AdminUser` derivado de `User` con `AdminRole = Extract<Role, 'SUPER_ADMIN'>` y copia local de `ApiAuthResponse` eliminada; vendor ya usaba el `User` compartido. Build de admin y su suite (4/4) en verde; build de web compila sin errores de tipos (el fallo de *budget* de bundle es preexistente en HEAD, verificado con `git stash`)
 
 ### Fase 4 — Mantener app-specific
 
-- [x] Verificar que los guards del vendor siguen en el vendor (no en la librería) — `vendor.guard`/`role.guard`/`onboarding.guard` siguen en `vendor/core/guards/`; `@tiendi/auth` no exporta guards
+- [x] Verificar que los guards del vendor siguen en el vendor (no en la librería) — `vendor.guard`/`role.guard`/`onboarding.guard` siguen en `vendor/core/guards/`; `@kanoso/auth` no exporta guards
 - [x] Verificar que el biométrico de go sigue en go — `src/services/auth.service.ts` (expo-local-authentication)
 - [x] Registrar `POST /auth/admin/login` como frontera separada ([[TIENDI_ADMIN]] §7) — ya registrado en §6 y [[TIENDI_ADMIN]] §7
 
@@ -471,13 +517,13 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 
 ### Criterios de aceptación
 
-- [ ] Un solo `Role` (5 valores) consumido por las 4 apps
-- [ ] `storeRole` no se confunde con `Role`
-- [ ] Un token de vendedor no puede acceder a endpoints admin
-- [ ] La lógica de refresh no está duplicada en vendor y web
-- [ ] go importa tipos compartidos sin arrastrar runtime Angular
-- [ ] `@tiendi/auth-types` no agrega dependencias de runtime a ninguna app (A2)
-- [ ] Ningún token de `SUPER_ADMIN` se emite antes de que exista rotación con reuse-detection (A4)
+- [x] Un solo `Role` (5 valores) consumido por las apps Angular — vendor (`user.types.ts` re-exporta), web (`landing-auth.service.ts`) y admin (`AdminRole = Extract<Role, ...>`); go es N/A (rider-céntrico, no define `Role`, Fase 1)
+- [x] `storeRole` no se confunde con `Role` — `packages/auth-types/test/types.check.ts` con `@ts-expect-error`
+- [x] Un token de vendedor no puede acceder a endpoints admin — `adminLogin()` rechaza rol distinto de `SUPER_ADMIN` en el backend (`auth.service.ts:153`, cubierto por `auth-admin-login.spec.ts`)
+- [x] La lógica de refresh no está duplicada en vendor y web — ambos importan `authInterceptor`/`authErrorInterceptor` de `@kanoso/auth`
+- [ ] go importa tipos compartidos sin arrastrar runtime Angular — **N/A**: Fase 1 verificó que go no reimplementa `Role`/`User`/`ApiAuthResponse`; no hay nada que importar
+- [x] `@kanoso/auth-types` no agrega dependencias de runtime a ninguna app (A2) — su `package.json` solo tiene `typescript` como devDependency y resuelve tipos desde `src/`
+- [ ] Ningún token de `SUPER_ADMIN` se emite antes de que exista rotación con reuse-detection (A4) — **OVERTAKEN** (ver §9): tiendi-admin ya emite; la corrección es la Fase 5
 
 ---
 
@@ -493,14 +539,14 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 
 | Repositorio | Archivo | Cambio |
 |-------------|---------|--------|
-| `tiendi-vendor` | `core/types/user.types.ts` | Migrar a `@tiendi/auth-types` |
+| `tiendi-vendor` | `core/types/user.types.ts` | Migrar a `@kanoso/auth-types` |
 | `tiendi-vendor` | `core/services/auth.store.ts` | Importar tipos; conservar store |
-| `tiendi-vendor` | `core/interceptors/*.ts` | Migrar a `@tiendi/auth` |
-| `tiendi-web` | `core/services/landing-auth.service.ts`, `token.service.ts` | Migrar a `@tiendi/auth` |
+| `tiendi-vendor` | `core/interceptors/*.ts` | Migrar a `@kanoso/auth` |
+| `tiendi-web` | `core/services/landing-auth.service.ts`, `token.service.ts` | Migrar a `@kanoso/auth` |
 | `tiendi-web` | `core/services/auth.service.ts`, `core/models/session.ts` | Eliminar |
-| `tiendi-go` | `stores/auth.store.ts`, `services/auth.service.ts` | Importar `@tiendi/auth-types` |
-| `tiendi-admin` | `core/types/admin-role.ts`, `core/types/auth.types.ts` | Migrar a `@tiendi/auth-types` **o** mantener local — decidir en §0.3 |
+| `tiendi-go` | `stores/auth.store.ts`, `services/auth.service.ts` | Importar `@kanoso/auth-types` |
+| `tiendi-admin` | `core/types/admin-role.ts`, `core/types/auth.types.ts` | Migrados: derivan de `@kanoso/auth-types` (A5); copia local de `ApiAuthResponse` eliminada |
 | `tiendi-admin` | `core/auth/auth.store.ts` | Importar tipos; conservar store |
-| `tiendi-admin` | `core/interceptors/*.ts` | Migrar a `@tiendi/auth` — elimina la duplicación literal del `pendingRefresh$` |
+| `tiendi-admin` | `core/interceptors/*.ts` | Migrar a `@kanoso/auth` — elimina la duplicación literal del `pendingRefresh$` |
 | `tiendi-api` | `src/modules/auth/**` | Sin cambios para la unificación de tipos (ya unificado) |
 | `tiendi-api` | `src/modules/auth/auth.service.ts`, `strategies/jwt.strategy.ts` | Revocación de sesión — ver [[REVOCACION_SESION]] |
