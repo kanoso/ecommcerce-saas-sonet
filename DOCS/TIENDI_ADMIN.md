@@ -544,7 +544,7 @@ quadrantChart
 - [x] Cambio de estado (`PATCH /admin/riders/:riderId/status`)
 - [x] Eliminar `/vendor/riders` de `tiendi-vendor`
 - [x] Eliminar la entrada `Repartidores` de `src/app/vendor/shared/layout/sidebar.component.ts:32`
-- [ ] Test e2e: el flujo de revisión de repartidor funciona en el admin
+- [x] Test e2e: el flujo de revisión de repartidor funciona en el admin — `tiendi-admin/e2e/riders-review.spec.ts` (Playwright con API mockeada vía `page.route`; lista → detalle → aprobar verifica el PATCH `{status:'APPROVED'}` + expulsión de no-SUPER_ADMIN). Encontró y corrigió un bug de copy en el toast
 
 ### Fase 5 — Curación del catálogo
 
@@ -554,9 +554,9 @@ quadrantChart
 - [x] Acción de corrección manual (`PATCH /master-products/:id`) dentro del detalle: `name`, `brand`, `netContent`, `uom`, `imageUrl`, `categoryId`
 - [x] Acción de verificación (`POST /master-products/:id/verify`)
 - [x] Acción de fusión (`POST /master-products/merge`) con comparación lado a lado
-- [ ] Test e2e: fusionar dos duplicados no altera el `OrderItem` (snapshot intacto)
-- [ ] Test: el formulario de corrección no expone `gtin` ni `matchKey` (recalcular la identidad está fuera del alcance del `PATCH`)
-- [ ] Test: enviar el formulario sin cambios no dispara request (el backend exige al menos un campo)
+- [x] Test e2e: fusionar dos duplicados no altera el `OrderItem` (snapshot intacto) — cubierto a nivel servicio: `master-catalog.service.spec.ts` ("no modifica ningún OrderItem"); la invariante vive en `merge()`, no en la UI
+- [x] Test: el formulario de corrección no expone `gtin` ni `matchKey` — `master-detail.page.spec.ts` (payload ⊆ campos editables)
+- [x] Test: enviar el formulario sin cambios no dispara request — mismo spec (`buildPayload()` devuelve null → toast info)
 
 ### Fase 6 — Ranking de demanda
 
@@ -569,7 +569,7 @@ quadrantChart
 - [x] Pantalla `/admin/demand` con el ranking de plataforma
 - [x] `demand.store.ts` consumiendo el endpoint nuevo
 - [x] Visualizar `storeCount`, `unitsSold`, `grossRevenue`, `avgUnitPrice`
-- [ ] Test: el ranking respeta el k-anonimato (`minStores`)
+- [x] Test: el ranking respeta el k-anonimato (`minStores`) — `demand.service.spec.ts`: default 3, propagación del parámetro custom y `HAVING COUNT(DISTINCT storeId)` presente en la consulta
 
 ### Fase 7 — Ledger y conciliación
 
