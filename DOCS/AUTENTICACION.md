@@ -414,15 +414,15 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 
 ### Fase 1 — Extraer `@tiendi/auth-types`
 
-- [ ] Crear paquete `@tiendi/auth-types` con `Role`, `User`, `AuthSession`, `ApiAuthResponse`
-- [ ] El paquete no declara **ninguna dependencia de runtime** — solo tipos (A2)
-- [ ] Definir `Role` alineado al backend (5 roles) y `StoreRole` separado
-- [ ] Definir `User` con `storeRole` explícito (no promovido a `Role`)
-- [ ] Migrar `user.types.ts` del vendor al paquete
+- [x] Crear paquete `@tiendi/auth-types` con `Role`, `User`, `AuthSession`, `ApiAuthResponse`
+- [x] El paquete no declara **ninguna dependencia de runtime** — solo tipos (A2)
+- [x] Definir `Role` alineado al backend (5 roles) y `StoreRole` separado
+- [x] Definir `User` con `storeRole` explícito (no promovido a `Role`)
+- [x] Migrar `user.types.ts` del vendor al paquete (re-export + `AccessLevel` local; `role.guard`, `auth.store`, `shell/sidebar/bottom-nav/mobile-shell` y `employee.types` actualizados)
 - [ ] Migrar los tipos de `landing-auth.service.ts` de web al paquete
 - [ ] Migrar los tipos de auth de go al paquete
-- [ ] Test: el compilador no deja asignar un `StoreRole` a un `Role`
-- [ ] Test: el build del paquete no arrastra `zod` ni ningún otro runtime (A2)
+- [x] Test: el compilador no deja asignar un `StoreRole` a un `Role` (`packages/auth-types/test/types.check.ts` con `@ts-expect-error`)
+- [x] Test: el build del paquete no arrastra `zod` ni ningún otro runtime (A2) — `emitDeclarationOnly`, dist solo `.d.ts`
 
 ### Fase 2 — Extraer `@tiendi/auth` (Angular)
 
