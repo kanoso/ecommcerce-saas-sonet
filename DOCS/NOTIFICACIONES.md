@@ -453,10 +453,15 @@ flowchart TD
 
 ### Fase 2 — Generalizar `Notification`
 
-- [ ] Agregar `ownerType` + `ownerId` (o equivalente) a la tabla `Notification`
-- [ ] Migrar `storeId` a `ownerId` con `ownerType='STORE'` manteniendo compatibilidad
-- [ ] Endpoints de inbox para rider y admin
-- [ ] Test: una notificación de rider no aparece en el inbox de una tienda
+> [!NOTE]
+> **Implementada (2026-08-25).** La tabla `Notification` ya es multi-audiencia: enum `NotificationOwner` (`STORE`/`RIDER`/`ADMIN`) + `ownerId`, con migración `20260825150000_notification_multi_owner` que backfilló el histórico como `STORE` y soltó el FK a `Store`. El API del vendor quedó intacto (`findAll`/`create(storeId)` envuelven STORE). Inbox genérico nuevo: `GET /notifications/inbox` + `POST /notifications/inbox/mark-all-read` (rider → `Rider.id`; admin → `User.id`; roles de tienda → vacío, siguen con sus endpoints por store).
+>
+> ⚠️ Nadie persiste aún notificaciones RIDER/ADMIN in-app (el admin va por email, Fase 1). La tabla está lista para cuando se cableen.
+
+- [x] Agregar `ownerType` + `ownerId` a la tabla `Notification`
+- [x] Migrar `storeId` a `ownerId` con `ownerType='STORE'` manteniendo compatibilidad — backfill en la migración; endpoints del vendor sin cambios
+- [x] Endpoints de inbox para rider y admin — `notifications-inbox.controller.ts` (`GET /notifications/inbox`)
+- [x] Test: una notificación de rider no aparece en el inbox de una tienda — `notifications-inbox.spec.ts` (aislamiento por audiencia + resolución de dueño rider/admin/tienda)
 
 ### Fase 3 — Unificar dispatcher
 
@@ -495,5 +500,5 @@ flowchart TD
 | `tiendi-api` | `src/modules/support/admin-notifier.service.ts` | ✅ Fase 1: canal email real (`ADMIN_ALERT_EMAILS`) |
 | `tiendi-api` | `src/services/notification-dispatcher.service.ts` | Absorber email/WhatsApp; extender `prefKey` |
 | `tiendi-api` | `src/modules/notifications/*` | Migrar a dispatcher unificado y luego eliminar |
-| `tiendi-api` | `prisma/schema.prisma` | Generalizar `Notification` (multi-audiencia) |
+| `tiendi-api` | `prisma/schema.prisma` | ✅ Generalizada: `NotificationOwner` + `ownerId` (Fase 2) |
 | `tiendi-admin` | `**` | Suscripción a notificaciones (post-Fase 1) |
