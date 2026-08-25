@@ -1082,9 +1082,20 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 ### Fase 4 — Monetización
 
-- [ ] **B6** — Cobro recurrente de suscripciones + dunning + degradación
-- [ ] Prorrateo en cambios de plan
-- [ ] **B12** — Campo `tip` real en `Delivery` y en la UI del cliente
+> [!NOTE]
+> **Implementada (2026-08-25)** — commits de `tiendi-api`:
+>
+> - **B6**: `BillingService.runBillingCycle()` (job diario 06:00 UTC) cobra suscripciones vencidas con la tarjeta guardada (`gatewayCardId`, NUNCA PAN), registra `SUBSCRIPTION_REVENUE` en el ledger, avanza `nextBillingAt`. Dunning: reintentos en 1/3/7 días; al agotar 4 intentos → `pastDue = true` — degradación GRADUAL, jamás borra datos. Cobros idempotentes por `subscription:{id}:{fecha}`.
+> - **Prorrateo**: `computeProration()` — subir de plan cobra la diferencia proporcional a los días restantes; bajar acredita saldo a favor (negativo), nunca reembolso.
+> - **B12**: campo `Delivery.tip` (default 0) + migración. ⚠️ Pendiente: exponerlo en el DTO de creación y en la UI del cliente para que sea cobrable de verdad.
+>
+> ⚠️ **Para activar cobros reales**: las suscripciones necesitan `gatewayCustomerId`/`gatewayCardId` (Culqi Customers + Cards API — aún no integrado) y el job diario corre solo con Redis arriba.
+>
+> Tests: 7 nuevos (`billing.service.spec.ts`). Suite 485/485.
+
+- [x] **B6** — Cobro recurrente de suscripciones + dunning + degradación — ⚠️ requiere Culqi Customers/Cards para capturar tarjetas
+- [x] Prorrateo en cambios de plan
+- [x] **B12** — Campo `tip` real en `Delivery` — ⚠️ falta exponer en DTO/UI del cliente
 
 ### Fase 5 — Robustez
 
