@@ -213,9 +213,12 @@ flowchart TD
 
 | Archivo | Problema |
 |---------|----------|
-| `core/services/auth.service.ts` | Clase vacía (`export class AuthService {}`) |
-| `core/models/session.ts` | `UserID: number` — pero los IDs son UUID string |
-| `landing-auth.service.ts` (`setSession`) | Escribe 4 claves legacy `HdataTiendiUser`, `HdataTiendiComprador`, `HdataTiendiCompradorId` sin consumidor claro |
+| `core/services/auth.service.ts` | Clase vacía (`export class AuthService {}`) — **eliminado (Fase 3)** |
+| `core/models/session.ts` | `UserID: number` — pero los IDs son UUID string — **eliminado (Fase 3)** |
+| `session.service.ts` (`SessionInfo`) | Métodos muertos `getAudit()`/`getUserName()`/`getCodComprador()` — **eliminados (Fase 3)** |
+
+> [!WARNING]
+> **Corrección de la auditoría anterior:** las claves `HdataTiendi*` **NO están muertas**. `SessionInfo` (11 consumidores: cart, checkout, chat, orders, layout…) lee `HdataTiendiTiendaId`, `HdataTiendiTiendaSlug`, `HdataTiendiTiendaNombre`, `HdataTiendiCompradorId`, `HdataTiendiUser` y `HdataTiendiTienda`. Solo `HdataTiendiComprador` quedó sin lector y se eliminó. El resto es un sistema legacy **vivo** que requiere una migración propia, no un borrado.
 
 ### 5.3 Mapeo de usuario duplicado
 
@@ -436,16 +439,16 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 
 ### Fase 3 — Limpiar deuda legacy
 
-- [ ] Eliminar `auth.service.ts` vacío de web
-- [ ] Eliminar o migrar `session.ts` (`UserID: number` obsoleto)
-- [ ] Eliminar las 4 claves legacy `HdataTiendi*`
+- [x] Eliminar `auth.service.ts` vacío de web
+- [x] Eliminar o migrar `session.ts` (`UserID: number` obsoleto) — eliminado + métodos muertos de `SessionInfo`
+- [x] Eliminar la clave legacy `HdataTiendiComprador` (sin lector). El resto de `HdataTiendi*` sigue **vivo** vía `SessionInfo` (§5.2)
 - [ ] Unificar el shape de "usuario logueado" en las 3 apps
 
 ### Fase 4 — Mantener app-specific
 
-- [ ] Verificar que los guards del vendor siguen en el vendor (no en la librería)
-- [ ] Verificar que el biométrico de go sigue en go
-- [ ] Registrar `POST /auth/admin/login` como frontera separada ([[TIENDI_ADMIN]] §7)
+- [x] Verificar que los guards del vendor siguen en el vendor (no en la librería) — `vendor.guard`/`role.guard`/`onboarding.guard` siguen en `vendor/core/guards/`; `@tiendi/auth` no exporta guards
+- [x] Verificar que el biométrico de go sigue en go — `src/services/auth.service.ts` (expo-local-authentication)
+- [x] Registrar `POST /auth/admin/login` como frontera separada ([[TIENDI_ADMIN]] §7) — ya registrado en §6 y [[TIENDI_ADMIN]] §7
 
 ### Fase 5 — Rotación de refresh (bloqueante para `tiendi-admin`)
 
