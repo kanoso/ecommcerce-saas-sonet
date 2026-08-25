@@ -3,7 +3,7 @@
 	url = https://github.com/kanoso/tiendi-api.git
 [submodule "FUENTES/tiendi-web"]
 	path = FUENTES/tiendi-web
-	url = https://github.com/kanoso/tiendihector.git
+	url = https://github.com/kanoso/tiendi-web.git
 [submodule "FUENTES/tiendi-admin"]
 	path = FUENTES/tiendi-admin
 	url = https://github.com/kanoso/tiendi-admin.git
