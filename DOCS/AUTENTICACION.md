@@ -429,7 +429,8 @@ La Fase 1 puede abrirse cuando: (a) existe un paquete vacío instalable desde al
 - [x] Crear librería Angular `@tiendi/auth` con `TokenService` (store-agnostic: `TokenStorage` + `API_BASE_URL` inyectables)
 - [x] Portar `auth.interceptor.ts` (attach de Bearer) a la librería
 - [x] Portar `error.interceptor.ts` (refresh con `pendingRefresh$`) a la librería
-- [ ] Reusar la librería en vendor y web (reemplaza los interceptores locales)
+- [x] Reusar la librería en **web** (`WebTokenStorage` SSR-safe + `TOKEN_STORAGE`/`API_BASE_URL` + interceptores de `@tiendi/auth`; se eliminó `TokenService` e interceptores locales)
+- [ ] Reusar la librería en **vendor** (falta: `TokenStorage` adaptador sobre el session blob del `AuthStore`)
 - [x] Test: refresh concurrente en 401 comparte una sola llamada (`token.service.spec.ts`, a nivel librería)
 - [x] Test: la librería **no exporta store** — cada app conserva el suyo, y web sigue sin tener uno (A3)
 
