@@ -484,7 +484,13 @@ flowchart TD
 > - Backend: `AdminNotifier` envía push a todos los `SUPER_ADMIN` activos con token (`User.fcmToken`) además del email; endpoint nuevo `POST /notifications/inbox/device-token` (solo SUPER_ADMIN).
 > - Frontend: `PushService` en tiendi-admin — registra `/firebase-messaging-sw.js`, pide permiso, obtiene el token con VAPID key, lo publica al backend y muestra toasts de mensajes en foreground.
 >
-> ⚠️ **Para activar**: (1) crear proyecto Firebase web y copiar la config en `environment.ts`/`environment.prod.ts` **y** en `public/firebase-messaging-sw.js`; (2) generar la clave VAPID (Cloud Messaging → Web Push certificates) y setearla como `vapidKey`; (3) setear `ADMIN_ALERT_EMAILS`. Mientras falten, todo sigue funcionando sin push.
+> ⚠️ **Pendiente operativo para activar** (requiere credenciales del entorno, no código):
+>
+> - [ ] Crear proyecto Firebase web y copiar la config en `environment.ts`/`environment.prod.ts` **y** en `public/firebase-messaging-sw.js`
+> - [ ] Generar clave VAPID (Cloud Messaging → Web Push certificates) y setearla como `vapidKey`
+> - [ ] Setear `ADMIN_ALERT_EMAILS` en producción
+>
+> Mientras falten, todo sigue funcionando sin push/email real (degradación a log).
 
 - [x] FCM web en `tiendi-admin` — `push.service.ts` + service worker (`public/firebase-messaging-sw.js`)
 - [x] Token de dispositivo del Super Admin — registro vía `POST /notifications/inbox/device-token` → `User.fcmToken`
