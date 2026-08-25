@@ -119,15 +119,17 @@ Estas decisiones fueron acordadas antes de redactar este documento y son la base
 `tiendi-admin` es para **`SUPER_ADMIN`** exclusivamente. No hay tenants, no hay sub-roles de tienda.
 
 > [!WARNING]
-> **No replicar el error de los roles desalineados.**
-> Hoy el `enum Role` del backend y el tipo `Role` del frontend están desincronizados:
+> ~~**No replicar el error de los roles desalineados.**~~
+> **Resuelto por la Fase 1 de [[AUTENTICACION]]**: el vendor ya no define su propio enum inflado; `user.types.ts` re-exporta el `Role` compartido de `@kanoso/auth-types` (5 valores, alineado al backend) con `StoreRole` como dimensión separada.
+>
+> Estado actual:
 >
 > | Fuente | Roles |
 > |--------|-------|
-> | `tiendi-api/prisma/schema.prisma:14` | `SUPER_ADMIN`, `STORE_OWNER`, `EMPLOYEE`, `CUSTOMER`, `RIDER` |
-> | `tiendi-vendor/.../user.types.ts:1` | `STORE_OWNER`, `MANAGER`, `CASHIER`, `WAREHOUSE`, `EMPLOYEE`, `CUSTOMER`, `SUPER_ADMIN` |
+> | `tiendi-api/prisma/schema.prisma` | `SUPER_ADMIN`, `STORE_OWNER`, `EMPLOYEE`, `CUSTOMER`, `RIDER` |
+> | `@kanoso/auth-types` | Idéntico al backend (fuente única compartida) |
 >
-> `tiendi-admin` debe definir **su propio tipo `AdminRole`** (hoy solo `SUPER_ADMIN`) y no importar el tipo del vendor. La deuda documentada en [[FACTURACION_Y_CONTABILIDAD]] §10 se corrige aparte.
+> `tiendi-admin` deriva su `AdminRole = Extract<Role, 'SUPER_ADMIN'>` del paquete compartido (decisión **A5**), no lo redefine.
 
 ### 3.2 Futuro: operadores con alcance parcial
 
@@ -349,7 +351,7 @@ sequenceDiagram
 | Endpoints de catálogo (Fase 6) | ✅ Existe, con guard `SUPER_ADMIN` | `tiendi-api/src/modules/master-catalog/` |
 | Endpoints de repartidores admin | ✅ Existe | `GET/PATCH /admin/riders/*` |
 | App `tiendi-admin` | ✅ Scaffold pusheado | `kanoso/tiendi-admin` (submódulo), commit `d928f24`, 43 `.ts` en `src/` |
-| Auth de Super Admin separada | ✅ Existe, **sesión no revocable** | `core/auth/auth.store.ts` + `admin.guard.ts` — ver el WARNING de la Fase 2 |
+| Auth de Super Admin separada | ✅ Existe, **sesión revocable** (Fase 5 de [[AUTENTICACION]]) | `core/auth/auth.store.ts` + `admin.guard.ts` |
 | Pantalla de curación de catálogo | 🔲 No existe | — |
 | `DemandService.getPlatformDemand()` | ✅ Existe, **sin endpoint HTTP** | `tiendi-api/src/modules/master-catalog/demand.service.ts:46` |
 | Endpoint HTTP de demanda | 🔲 No existe | Único consumidor actual: `demand-rollup.processor.ts` (BullMQ) |
@@ -435,15 +437,14 @@ flowchart TD
     FD["FLUJO_DINERO<br/>ledger partida doble 🔲"] --> AD2["tiendi-admin<br/>Dinero"]
     WAL["Módulo wallet ✅<br/>en producción, sin ledger"] --> AD2
     ADM["Módulo admin<br/>riders ✅"] --> AD3["tiendi-admin<br/>Repartidores"]
-    AUTH["AUTENTICACION Fase 5<br/>rotación + jti 🔲"] --> AD5["tiendi-admin<br/>Fase 2 — sesión revocable"]
+    AUTH["AUTENTICACION Fase 5<br/>rotación + jti ✅"] --> AD5["tiendi-admin<br/>Fase 2 — sesión revocable ✅"]
 
-    AD -.->|"bloqueada por"| ADM2["tiendi-admin<br/>no existe"]
+    AD -.->|"fue bloqueada por"| ADM2["tiendi-admin<br/>scaffold resuelto ✅"]
 
     style ADM2 fill:#dc2626,color:#fff
     style FD fill:#f59e0b,color:#000
     style DEM fill:#f59e0b,color:#000
     style WAL fill:#f59e0b,color:#000
-    style AUTH fill:#f59e0b,color:#000
 ```
 
 > [!IMPORTANT]
@@ -452,7 +453,7 @@ flowchart TD
 > - El ranking de demanda **depende de un endpoint que todavía no existe**. El cálculo (`DemandService`) está implementado, pero sin superficie HTTP no hay nada que consumir (§5.3).
 > - El módulo de Dinero **depende del ledger** de [[FLUJO_DINERO]], que aún no está implementado, y de resolver su relación con el módulo `wallet`, que ya está en producción moviendo dinero.
 > - La migración de repartidores **solo depende de `tiendi-admin`**, porque el backend ya existe.
-> - La **Fase 2 (autenticación)** figura como completa, pero **depende de la Fase 5 de [[AUTENTICACION]]** para que una sesión de `SUPER_ADMIN` sea revocable. Hoy no lo es. La decisión A4 la fija como bloqueante, y [[REVOCACION_SESION]] §9 documenta la mitigación intermedia.
+> - ~~La Fase 2 (autenticación) depende de la Fase 5 de [[AUTENTICACION]]~~ — **dependencia resuelta**: la Fase 5 está implementada (rotación + `jti` + reuse-detection + kill switch), así que la sesión de `SUPER_ADMIN` es revocable.
 
 ---
 
@@ -483,7 +484,7 @@ quadrantChart
 | Reusar login del vendedor para el admin | Token de tienda accede a endpoints admin | Login propio `POST /auth/admin/login` (§7) |
 | Guard de frontend como única defensa | Datos de plataforma expuestos | Guard `SUPER_ADMIN` en el backend es la barrera real (§7) |
 | Agregar pantallas admin al vendor | Reaparece el anti-patrón de `/vendor/riders` | D2: app independiente; nunca compilar pantallas admin en el vendor |
-| Roles desalineados entre apps | Confusión de permisos | `AdminRole` propio, sin importar tipos del vendor (§3) |
+| Roles desalineados entre apps | Confusión de permisos | **Resuelto**: `AdminRole` deriva del `Role` compartido de `@kanoso/auth-types` (A5, §3) |
 | `Wallet` y ledger como fuentes paralelas de verdad | Descuadres que el invariante `SUM(asientos) == 0` no detecta | Decidir proyección vs coexistencia **antes** de escribir el primer asiento (Fase 7) |
 | Ranking de demanda apoyado en una decisión abierta | Retrabajo o exposición legal si cambia la política de datos | La D5 de [[MODELO_NEGOCIO]] (§9.4, uso de datos de venta) sigue **Abierta**; el k-anonimato (`minStores`) es mitigación parcial, no la decisión |
 | Planificar la Fase 6 como si fuera solo interfaz | La fase se bloquea apenas arranca | El endpoint de demanda no existe: la fase incluye trabajo de backend (§13) |
@@ -515,14 +516,14 @@ quadrantChart
 ### Fase 2 — Autenticación independiente
 
 > [!WARNING]
-> **Los checks de abajo significan "el login funciona", no "la sesión es revocable".** No hay forma de matar una sesión de `SUPER_ADMIN` comprometida: el JWT es stateless y la blacklist de Redis indexa el string del access token, sin `jti`. Un atacante con un refresh token válido lo sigue canjeando por **30 días** (`config/env.validation.ts:26`) aunque le cambien la contraseña.
+> **Histórico — resuelto el 2026-08-25.** Los checks de abajo significaban "el login funciona", no "la sesión es revocable". El JWT era stateless y un refresh token robado vivía **30 días** aunque se cambiara la contraseña.
 >
-> La decisión **A4** de [[AUTENTICACION]] §9 mantiene la **Fase 5** (rotación + `jti`) como **bloqueante de esta fase**. La mitigación de [[REVOCACION_SESION]] baja la urgencia, pero no la reemplaza — ver su §9.
+> La **Fase 5 de [[AUTENTICACION]]** ya está implementada y despliega exactamente lo que A4 exigía: rotación de refresh tokens con reuse-detection, persistencia hasheada por `jti`, cutoff de revocación y kill switch por usuario (`POST /admin/users/:userId/revoke-sessions`). Una sesión de `SUPER_ADMIN` comprometida hoy se mata al instante desde el back-office. Además, el logout del admin envía su refresh token para revocación por dispositivo.
 
 - [x] Backend: `POST /auth/admin/login` que solo acepta `SUPER_ADMIN`
 - [x] Backend: emitir JWT con claim de rol `SUPER_ADMIN`
 - [x] Frontend: `AdminRole` propio (`admin-role.ts`), sin importar tipos del vendor — **hecho, pero superado por la decisión A5**
-- [ ] Frontend: migrar `AdminRole` al `Role` unificado. La decisión **A5** de [[AUTENTICACION]] §9 está cerrada como *"se absorbe"*: `SUPER_ADMIN` ya es uno de los 5 roles del backend (`schema.prisma:14`), así que `admin-role.ts` queda redundante en cuanto exista `@kanoso/auth-types`. Tener el tipo local fue correcto **mientras no hubiera paquete compartido**; deja de serlo cuando lo haya. No tocar hasta que la Fase 1 de [[AUTENTICACION]] esté cerrada
+- [x] Frontend: migrar `AdminRole` al `Role` unificado — **hecho** con la Fase 3 de [[AUTENTICACION]]: `AdminRole = Extract<Role, 'SUPER_ADMIN'>` derivado de `@kanoso/auth-types` y la copia local de `ApiAuthResponse` eliminada (`auth.types.ts` re-exporta la del paquete)
 - [x] Frontend: `auth.store.ts` con NgRx Signals (token + rol)
 - [x] Frontend: `admin.guard.ts` que valida el claim antes de renderizar
 - [x] Test: un token de vendedor es rechazado por `admin.guard`
@@ -668,7 +669,7 @@ flowchart LR
 - [[MODELO_NEGOCIO]] — modelo mayorista y su decisión **D5 sobre uso de datos de venta** (§9.4, todavía **Abierta**). No confundir con la D5 de este documento, que es de autenticación
 - [[MODULOS_SISTEMA_TIENDI]] — roles y dashboard de administración (conceptual)
 - [[NOTIFICACIONES]] — sistema de notificaciones unificado (incluye el canal admin que habilita el lite)
-- [[REVOCACION_SESION]] — mitigación de revocación de sesión (cutoff `auth:revoked_before:{userId}` en Redis). Su §9 explica por qué la Fase 5 de [[AUTENTICACION]] sigue bloqueando la Fase 2 de acá
+- [[REVOCACION_SESION]] — mitigación de revocación de sesión (cutoff `auth:revoked_before:{userId}` en Redis). Su mitigación fue absorbida por la **Fase 5 de [[AUTENTICACION]]** (rotación + reuse-detection + kill switch), ya implementada
 
 ### Archivos afectados (estado objetivo)
 
