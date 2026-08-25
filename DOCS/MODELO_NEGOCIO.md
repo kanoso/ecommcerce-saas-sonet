@@ -682,6 +682,13 @@ El margen mayorista proviene del volumen de compra. En la etapa inicial no hay v
 > [!NOTE]
 > **Decidido (2026-08-25, cierra D5):** los datos de venta **pueden usarse en agregados de plataforma con k-anonimato k ≥ 3** (ningún dato visible proviene de menos de 3 tiendas distintas) y **nunca de forma individualizada ni para beneficiar a una tienda concreta sobre otra**. Esta política ya está materializada en código: `DemandService.getPlatformDemand()` exige `HAVING COUNT(DISTINCT storeId) >= minStores` (default 3) y el término de servicios debe reflejarla antes de captar tiendas.
 
+##### Pendiente operativo — reflejar la política en los Términos y Condiciones
+
+🔲 **Antes de captar la primera tienda**, incorporar al ToS del vendedor:
+
+1. **Cláusula de "Uso de datos de venta"**: la plataforma puede usar datos transaccionales para agregados estadísticos de plataforma; siempre con k-anonimato ≥ 3; nunca individualizados ni para beneficiar a una tienda sobre otra. Borrador técnico a redactar y pasar por revisión legal.
+2. **Aceptación registrada**: checkbox obligatorio en el onboarding de `tiendi-vendor` + campo `termsVersion`/`termsAcceptedAt` en `Store` o `User` (migración + endpoint que registre versión y fecha, para poder probar qué versión aceptó cada tienda).
+
 ---
 
 ## 10. La trampa de selección de clientes
