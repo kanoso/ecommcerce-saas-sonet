@@ -118,10 +118,10 @@ if (storeRole) payload['storeRole'] = storeRole;
 - **Blacklist**: logout escribe `blacklist:{token}` en Redis con TTL = vida restante del token. `JwtStrategy.validate` lo consulta.
 
 > [!CAUTION]
-> **La blacklist solo cubre el access token, y `refresh()` no la consulta.** `logout()` (`auth.service.ts:123`) blacklistea el access token de 15 min; el refresh token de 30 días queda intacto, y `refresh()` (`auth.service.ts:164`) solo verifica firma y `status`. Un refresh token robado sigue emitiendo access tokens nuevos después del logout.
+> **`logout()` (dispositivo único) sigue sin revocar el refresh token.** Blacklistea el access token de 15 min, pero el refresh token de 30 días queda intacto: un refresh token robado de un `logout` normal sigue emitiendo access tokens. `refresh()` ahora sí consulta el cutoff de revocación de [[REVOCACION_SESION]], pero ese cutoff solo lo escribe `logoutAll()`, no `logout()`.
 
-> [!CAUTION]
-> **`logoutAll()` no cierra las demás sesiones.** `auth.service.ts:143` hace exactamente lo mismo que `logout()` más un `logger.log()`. Su propio comentario lo admite — *"solo el access token actual puede ser blacklisted"* — pero después afirma que *"el resto de sesiones expirarán naturalmente al vencer su access token"*, y eso es falso: las otras sesiones llaman a `POST /auth/refresh` y renuevan. El endpoint promete algo que no hace.
+> [!NOTE]
+> **`logoutAll()` ahora revoca de verdad — mitigación implementada ([[REVOCACION_SESION]]).** Antes era idéntico a `logout()` más un `logger.log()` y no cerraba ninguna sesión ajena. Hoy escribe un cutoff de revocación en Redis (`auth:revoked_before:{userId}`) que `refresh()` y `JwtStrategy.validate()` consultan contra el `iat` del token presentado. La revocación por dispositivo y la rotación con reuse-detection siguen en la Fase 5.
 
 ### 3.2 El contexto de tienda
 
@@ -221,22 +221,17 @@ flowchart TD
 
 `mapApiUser` (web), el bloque de mapeo en `auth.store.ts` (vendor), el `toAdminUser` de `auth.store.ts:45` (admin) y el `refreshProfile`/`hydrate` (go) traducen el mismo `ApiAuthResponse` a shapes distintos. Cuatro shapes de "usuario logueado" que deberían ser uno. Peor: `tiendi-admin` declara su **propia** interfaz `ApiAuthResponse` en `core/types/auth.types.ts`, así que ni siquiera el contrato de entrada es compartido — es una copia local que puede quedar desfasada de la API sin que nada lo detecte.
 
-### 5.4 Revocación de sesión inexistente
+### 5.4 Revocación de sesión — parcialmente resuelta
 
-El backend expone `POST /auth/logout` y `POST /auth/logout-all`, pero ninguno de los dos revoca la sesión. La blacklist de Redis solo cubre el access token de 15 minutos, y el refresh path no la consulta antes de reemitir.
+La revocación masiva (`logout-all`) quedó mitigada con [[REVOCACION_SESION]]: `logoutAll()` escribe un cutoff en Redis y `refresh()`/`JwtStrategy.validate()` lo consultan contra `iat`. Lo que **sigue** pendiente es la revocación por dispositivo y la rotación con reuse-detection (Fase 5).
 
-| Síntoma | Causa |
-|---------|-------|
-| Un refresh token robado sobrevive al logout | `refresh()` (`auth.service.ts:164`) solo verifica firma y `status` — nunca consulta `blacklist:{token}` |
-| `logout-all` no cierra las demás sesiones | `logoutAll()` (`auth.service.ts:143`) es idéntico a `logout()` más un `logger.log()`: blacklistea únicamente el access token del dispositivo que llama |
-| No hay revocación selectiva posible | El payload de `generateTokens()` (`auth.service.ts:401`) no lleva `jti`, así que no hay clave sobre la que revocar |
+| Síntoma | Estado |
+|---------|--------|
+| Un refresh token robado sobrevive a un `logout` de dispositivo único | 🔲 Sigue: `logout()` solo blacklistea el access token; no escribe cutoff |
+| `logout-all` no cierra las demás sesiones | ✅ Resuelto: escribe `auth:revoked_before:{userId}` y `refresh()`/`validate()` lo consultan contra `iat` |
+| No hay revocación selectiva posible | 🔲 Sigue: sin `jti` no hay clave para revocar un token individual (Fase 5) |
 
-El único kill switch real es poner al usuario en `status !== 'ACTIVE'`, que corta todas sus sesiones y también su cuenta. El detalle está en §3.1; el plan de corrección es la Fase 5 del checklist (§10).
-
-> [!WARNING]
-> Esta deuda es distinta a 5.1–5.3: no es duplicación de código frontend, es una **promesa incumplida de la API**. El mensaje de respuesta de `logout-all` — *"Las demás sesiones expirarán en breve"* — le dice al usuario que cerró sus sesiones cuando no las cerró. Un usuario que sospecha de un robo de cuenta queda comprometido hasta 30 días.
-
-La corrección acotada de esta deuda — la que hace que `logout-all` cumpla lo que promete sin esperar a la Fase 5 completa — está especificada en [[REVOCACION_SESION]].
+El detalle de la mitigación está en [[REVOCACION_SESION]]; la corrección completa (rotación, `jti`, persistencia en Postgres) es la Fase 5 del checklist (§10).
 
 ---
 
@@ -328,7 +323,7 @@ Extraer `Role` a un paquete de tipos **mata la desalineación de roles de raíz*
 > **A3 conserva la conclusión pero corrige el argumento.** El borrador justificaba con *"NgRx signals vs signals"*, sugiriendo stacks distintos. No lo son: vendor usa `@ngrx/signals ^21.1.0` y web `^21.1.1` — la misma librería, casi la misma versión. La razón real es la ausencia de store en web, no una diferencia de stack.
 
 > [!CAUTION]
-> **A4 quedó OVERTAKEN: `tiendi-admin` ya emite tokens `SUPER_ADMIN` sin rotación.** La Fase 2 de [[TIENDI_ADMIN]] (login de Super Admin, `POST /auth/admin/login`) se implementó sin la rotación con reuse-detection que este documento marcaba como bloqueante. Hoy un refresh token filtrado vive **30 días** y el único kill switch real es desactivar al usuario (§3.1). La mitigación acotada es [[REVOCACION_SESION]] (corte por usuario en Redis comparado contra `iat`); la corrección completa sigue siendo la Fase 5.
+> **A4 quedó OVERTAKEN: `tiendi-admin` ya emite tokens `SUPER_ADMIN` sin rotación.** La Fase 2 de [[TIENDI_ADMIN]] (login de Super Admin, `POST /auth/admin/login`) se implementó sin la rotación con reuse-detection que este documento marcaba como bloqueante. La mitigación acotada [[REVOCACION_SESION]] (corte por usuario en Redis comparado contra `iat`) **ya está implementada** y cubre el `logout-all` masivo; la corrección completa —rotación, `jti`, persistencia en Postgres— sigue siendo la Fase 5.
 
 ---
 

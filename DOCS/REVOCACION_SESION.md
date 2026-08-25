@@ -1,6 +1,6 @@
 ---
 title: Revocación de sesión — mitigación de `logout-all`
-status: propuesta
+status: implementado
 scope: tiendi-api
 blocks: none
 blocked_by: none
@@ -250,15 +250,15 @@ const service = new AuthService(
 
 Orden estricto. Ningún paso avanza sin el anterior en verde.
 
-- [ ] **P0** — Escribir `auth-session-revocation.spec.ts` con T1–T11. Correr y confirmar **RED**.
-- [ ] **P1** — Constante `REVOCATION_TTL_SECONDS` y helper de clave (`revokedBeforeKey(userId)`) en `auth.service.ts`.
-- [ ] **P2** — `logoutAll()` escribe el cutoff. T1–T3 en verde.
-- [ ] **P3** — `refresh()` lee el cutoff y compara contra `iat`. T4–T8 en verde.
-- [ ] **P4** — `JwtStrategy.validate()` lee el cutoff. T9–T10 en verde.
-- [ ] **P5** — T11 en verde.
-- [ ] **P6** — Corregir el doc-comment mentiroso de `logoutAll()` y el mensaje de respuesta del endpoint.
-- [ ] **P7** — Actualizar Swagger si el endpoint documenta el comportamiento anterior.
-- [ ] **P8** — Actualizar [[AUTENTICACION]] §3.1, §5.4 y §9 A4 para reflejar que la mitigación existe.
+- [x] **P0** — Escribir `auth-session-revocation.spec.ts` con T1–T11. Correr y confirmar **RED**. (12 tests: T1–T8b + T9–T11)
+- [x] **P1** — Constante `REVOCATION_TTL_SECONDS` y helper de clave (`revokedBeforeKey(userId)`) en un util compartido `common/services/session-revocation.util.ts` (no en `auth.service.ts`, para que `JwtStrategy` lo reutilice sin duplicar la política de fallo)
+- [x] **P2** — `logoutAll()` escribe el cutoff. T1–T3 en verde.
+- [x] **P3** — `refresh()` lee el cutoff y compara contra `iat`. T4–T8 en verde.
+- [x] **P4** — `JwtStrategy.validate()` lee el cutoff. T9–T10 en verde.
+- [x] **P5** — T11 en verde.
+- [x] **P6** — Corregir el doc-comment mentiroso de `logoutAll()` y el mensaje de respuesta del endpoint.
+- [x] **P7** — Actualizar Swagger si el endpoint documenta el comportamiento anterior (N/A: `logout-all` no tenía docs Swagger).
+- [x] **P8** — Actualizar [[AUTENTICACION]] §3.1, §5.4 y §9 A4 para reflejar que la mitigación existe.
 
 ---
 
