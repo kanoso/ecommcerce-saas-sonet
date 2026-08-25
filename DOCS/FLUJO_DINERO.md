@@ -1099,7 +1099,15 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 ### Fase 5 — Robustez
 
-- [ ] **B14** — Módulo de devoluciones y contracargos con saldo negativo
+> [!NOTE]
+> **Implementada (2026-08-25)** — commits de `tiendi-api`:
+>
+> - **B14**: modelo `Refund` + matriz de responsabilidad §15.1 codificada (`RefundService.MATRIX`, 6 tipos). Cada reversa crea un EntryGroup nuevo (`kind: REFUND|CHARGEBACK`) sin tocar el asiento original (P3). Un contracargo perdido deja `STORE_PAYABLE` con saldo **negativo** que se descuenta solo en la próxima liquidación. Reembolsos de tarjeta vía `CulqiService.createRefund()` (nuevo); efectivo → nota de crédito manual. Endpoint: `POST /admin/refunds` (SUPER_ADMIN).
+> - Persistencia del charge id: `Order.gatewayChargeId` se guarda al cobrar y en el webhook.
+>
+> Tests: 7 nuevos (`refund.service.spec.ts`). Suite 492/492.
+
+- [x] **B14** — Módulo de devoluciones y contracargos con saldo negativo
 - [ ] **B10** — Multiplicador contra `delivery.completedAt`
 - [ ] Reportes fiscales e integración de comprobantes electrónicos
 
