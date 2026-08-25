@@ -479,16 +479,23 @@ flowchart TD
 
 ### Fase 4 — Push web al admin (opcional, post-email)
 
-- [ ] FCM web en `tiendi-admin`
-- [ ] Token de dispositivo del Super Admin
-- [ ] Push para tickets P0/P1 y escalados
+> [!NOTE]
+> **Implementada (2026-08-25), pendiente de configuración.** El código está completo y degrada silenciosamente sin credenciales:
+> - Backend: `AdminNotifier` envía push a todos los `SUPER_ADMIN` activos con token (`User.fcmToken`) además del email; endpoint nuevo `POST /notifications/inbox/device-token` (solo SUPER_ADMIN).
+> - Frontend: `PushService` en tiendi-admin — registra `/firebase-messaging-sw.js`, pide permiso, obtiene el token con VAPID key, lo publica al backend y muestra toasts de mensajes en foreground.
+>
+> ⚠️ **Para activar**: (1) crear proyecto Firebase web y copiar la config en `environment.ts`/`environment.prod.ts` **y** en `public/firebase-messaging-sw.js`; (2) generar la clave VAPID (Cloud Messaging → Web Push certificates) y setearla como `vapidKey`; (3) setear `ADMIN_ALERT_EMAILS`. Mientras falten, todo sigue funcionando sin push.
+
+- [x] FCM web en `tiendi-admin` — `push.service.ts` + service worker (`public/firebase-messaging-sw.js`)
+- [x] Token de dispositivo del Super Admin — registro vía `POST /notifications/inbox/device-token` → `User.fcmToken`
+- [x] Push para tickets P0/P1 y escalados (+ delivery sin rider) — 5 tests nuevos; suite 452/452
 
 ### Criterios de aceptación
 
-- [ ] Un ticket P0/P1 nuevo llega al Super Admin (email o push), no solo al log
-- [ ] Un evento de rider respeta su `prefKey`
-- [ ] Una notificación de una tienda no se cruza con otra ni con el admin
-- [ ] Cada evento de dominio tiene una única puerta de entrada al sistema de notificaciones
+- [x] Un ticket P0/P1 nuevo llega al Super Admin por email y push — no solo al log (Fases 1 y 4)
+- [x] Un evento de rider respeta su `prefKey` (dispatcher FCM, contrato compartido en `common/contracts/notification-preferences.ts`)
+- [x] Una notificación de una tienda no se cruza con otra ni con el admin (`notifications-inbox.spec.ts`, Fase 2)
+- [x] Cada evento de dominio tiene una única puerta de entrada al sistema de notificaciones (`NotificationDispatcher`, Fase 3)
 
 ---
 
