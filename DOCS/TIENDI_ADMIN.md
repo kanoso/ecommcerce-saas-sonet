@@ -108,7 +108,7 @@ Estas decisiones fueron acordadas antes de redactar este documento y son la base
 > D1 y D2 son decisiones de arquitectura que definen el contorno de la app. D3, D4 y D5 son de implementación. Todas son revisables, pero cambiarlas después de arrancar tiene costo alto.
 
 > [!WARNING]
-> **La numeración D1–D5 es local a este documento.** [[MODELO_NEGOCIO]] tiene su propia D5 (política de uso de datos de venta, §9.4) que no tiene relación con la D5 de acá (autenticación) y que además sigue **Abierta**. Al citar una decisión entre documentos, nombrar siempre el documento de origen.
+> **La numeración D1–D5 es local a este documento.** [[MODELO_NEGOCIO]] tiene su propia D5 (política de uso de datos de venta, §9.4) que no tiene relación con la D5 de acá (autenticación); esa fue **resuelta el 2026-08-25** (agregados con k ≥ 3, nunca individualizados). Al citar una decisión entre documentos, nombrar siempre el documento de origen.
 
 ---
 
@@ -473,7 +473,6 @@ quadrantChart
     "Guard de frontend como única defensa": [0.5, 0.95]
     "Wallet y ledger en paralelo": [0.7, 0.85]
     "Agregar pantallas admin al vendor": [0.7, 0.7]
-    "Demanda sobre decisión D5 abierta": [0.5, 0.7]
     "Fase 6 planificada como solo UI": [0.8, 0.45]
     "Ledger llega antes que la app": [0.4, 0.6]
     "Roles desalineados entre apps": [0.6, 0.5]
@@ -485,8 +484,8 @@ quadrantChart
 | Guard de frontend como única defensa | Datos de plataforma expuestos | Guard `SUPER_ADMIN` en el backend es la barrera real (§7) |
 | Agregar pantallas admin al vendor | Reaparece el anti-patrón de `/vendor/riders` | D2: app independiente; nunca compilar pantallas admin en el vendor |
 | Roles desalineados entre apps | Confusión de permisos | **Resuelto**: `AdminRole` deriva del `Role` compartido de `@kanoso/auth-types` (A5, §3) |
-| `Wallet` y ledger como fuentes paralelas de verdad | Descuadres que el invariante `SUM(asientos) == 0` no detecta | Decidir proyección vs coexistencia **antes** de escribir el primer asiento (Fase 7) |
-| Ranking de demanda apoyado en una decisión abierta | Retrabajo o exposición legal si cambia la política de datos | La D5 de [[MODELO_NEGOCIO]] (§9.4, uso de datos de venta) sigue **Abierta**; el k-anonimato (`minStores`) es mitigación parcial, no la decisión |
+| `Wallet` y ledger como fuentes paralelas de verdad | Descuadres que el invariante `SUM(asientos) == 0` no detecta | **Decidido**: wallet es proyección del ledger ([[FLUJO_DINERO]] P1); queda implementar la migración según su plan (Fase 7) |
+| Ranking de demanda apoyado en una decisión abierta | ~~Retrabajo o exposición legal~~ | **Riesgo cerrado**: D5 de [[MODELO_NEGOCIO]] resuelta (agregados con k ≥ 3, nunca individualizados); el k-anonimato (`minStores`) es ahora la política materializada en código |
 | Planificar la Fase 6 como si fuera solo interfaz | La fase se bloquea apenas arranca | El endpoint de demanda no existe: la fase incluye trabajo de backend (§13) |
 
 ---
@@ -574,10 +573,12 @@ quadrantChart
 ### Fase 7 — Ledger y conciliación
 
 > [!CAUTION]
-> **No se arranca de cero.** El módulo `wallet` ya está en producción moviendo dinero: `GET /wallet/me`, `GET /wallet/me/transactions`, `POST /wallet/me/withdraw`, `POST /wallet/me/cash-deposit`. Antes de escribir el primer asiento hay que decidir si `Wallet`/`Transaction` pasa a ser una **proyección** del ledger o si ambos conviven. Si queda como fuente paralela de verdad, el invariante `SUM(asientos) == 0` se cumple y los saldos igual pueden estar descuadrados.
+> **No se arranca de cero.** El módulo `wallet` ya está en producción moviendo dinero: `GET /wallet/me`, `GET /wallet/me/transactions`, `POST /wallet/me/withdraw`, `POST /wallet/me/cash-deposit`. Además tiene dos brechas activas documentadas en [[FLUJO_DINERO]] §9: `pending` solo recibe sumas (nunca pasa a `balance`) y `cashBlocked` nunca vuelve a `false`.
+>
+> ~~Antes de escribir el primer asiento hay que decidir si `Wallet`/`Transaction` pasa a ser proyección del ledger o si conviven.~~ **Decidido en [[FLUJO_DINERO]] (Principio P1): el ledger es la única fuente de verdad; los saldos son proyecciones derivadas.** La migración del modelo ya está especificada ahí (§ migraciones: quitar `riderId @unique` → `ownerType`+`ownerId`; saldos como campos derivados; invariantes I1/I2 con job de conciliación).
 
-- [ ] Decidir la relación entre `Wallet`/`Transaction` y el ledger (proyección vs coexistencia)
-- [ ] Plan de migración del histórico de `Transaction` a asientos
+- [x] Decidir la relación entre `Wallet`/`Transaction` y el ledger — **proyección** ([[FLUJO_DINERO]] P1); la coexistencia quedó descartada por el riesgo de descuadre estructural
+- [ ] Plan de migración del histórico de `Transaction` a asientos — pertenece al plan de [[FLUJO_DINERO]], no a este doc
 - [ ] Implementar el ledger de partida doble de [[FLUJO_DINERO]]
 - [ ] Endpoints de ledger en `tiendi-api`
 - [ ] Pantalla `/admin/finance/ledger` con conciliación contra extracto de Culqi
@@ -585,10 +586,13 @@ quadrantChart
 - [ ] Test: `SUM(asientos) == 0` como invariante
 - [ ] Test: el saldo de `Wallet` coincide con el saldo derivado del ledger
 
+> [!NOTE]
+> Los ítems abiertos de esta fase **no se implementan desde tiendi-admin**: son el plan de [[FLUJO_DINERO]]. Este documento los lista solo como frontera de consumo: cuando existan endpoints de ledger, acá van las pantallas.
+
 ### Fase 8 — Soporte
 
 - [x] Pantalla `/admin/support` con tickets escalados (`POST /admin/tickets/:ticketId/escalate` ya existe)
-- [ ] Chat en vivo solo si se decide habilitar `socket.io` en el admin
+- [x] Chat en vivo — **decisión: deferido**. No se habilita `socket.io` en el admin por ahora; el canal `AdminNotifier` sigue siendo un stub y sin push real no hay gatillo de tiempo real (§14). Reevaluar cuando [[NOTIFICACIONES]] resuelva el canal admin — habilitarlo después es barato porque la plataforma ya corre socket.io para el chat comprador-vendedor
 
 ### Fase 9 — Observabilidad y cierre
 
@@ -666,7 +670,7 @@ flowchart LR
 - [[CATALOGO_MAESTRO]] — identidad de producto y Fase 6 (endpoints de curación)
 - [[FACTURACION_Y_CONTABILIDAD]] — frontera por aplicación y Fase 4 (back-office)
 - [[FLUJO_DINERO]] — ledger de partida doble y liquidaciones
-- [[MODELO_NEGOCIO]] — modelo mayorista y su decisión **D5 sobre uso de datos de venta** (§9.4, todavía **Abierta**). No confundir con la D5 de este documento, que es de autenticación
+- [[MODELO_NEGOCIO]] — modelo mayorista y su decisión **D5 sobre uso de datos de venta** (§9.4, resuelta: agregados con k ≥ 3). No confundir con la D5 de este documento, que es de autenticación
 - [[MODULOS_SISTEMA_TIENDI]] — roles y dashboard de administración (conceptual)
 - [[NOTIFICACIONES]] — sistema de notificaciones unificado (incluye el canal admin que habilita el lite)
 - [[REVOCACION_SESION]] — mitigación de revocación de sesión (cutoff `auth:revoked_before:{userId}` en Redis). Su mitigación fue absorbida por la **Fase 5 de [[AUTENTICACION]]** (rotación + reuse-detection + kill switch), ya implementada

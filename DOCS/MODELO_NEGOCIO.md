@@ -679,6 +679,9 @@ El margen mayorista proviene del volumen de compra. En la etapa inicial no hay v
 >
 > **Mitigación obligatoria:** términos de servicio explícitos, y uso **agregado y anonimizado** de los datos —nunca a nivel de tienda individual—. Esta decisión debe tomarse antes de captar la primera tienda, no después.
 
+> [!NOTE]
+> **Decidido (2026-08-25, cierra D5):** los datos de venta **pueden usarse en agregados de plataforma con k-anonimato k ≥ 3** (ningún dato visible proviene de menos de 3 tiendas distintas) y **nunca de forma individualizada ni para beneficiar a una tienda concreta sobre otra**. Esta política ya está materializada en código: `DemandService.getPlatformDemand()` exige `HAVING COUNT(DISTINCT storeId) >= minStores` (default 3) y el término de servicios debe reflejarla antes de captar tiendas.
+
 ---
 
 ## 10. La trampa de selección de clientes
@@ -788,7 +791,7 @@ El margen más alto, sin inventario, y aprovecha el dato que solo la plataforma 
 | D2 | Take rate objetivo | Determina el margen por pedido (§4.3) | Abierta |
 | D3 | ¿Se traslada el costo de pasarela al cliente? | Margen y conversión | Abierta |
 | D4 | ¿Se incentiva COD sobre tarjeta? | Margen vs. riesgo de efectivo (§4.4) | Abierta |
-| D5 | Política de uso de datos de venta de las tiendas | Confianza y riesgo legal (§9.4) | Abierta |
+| D5 | Política de uso de datos de venta de las tiendas | Confianza y riesgo legal (§9.4) | ✅ **RESUELTO (2026-08-25)** — agregados con k ≥ 3, nunca individualizados |
 | D6 | Segmento de tiendas objetivo | Riesgo crediticio y margen (§10) | Abierta |
 | D7 | ¿Plan gratuito permanente o generoso reversible? | Reversibilidad de la monetización (§11.1) | Abierta |
 
