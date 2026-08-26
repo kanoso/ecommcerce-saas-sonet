@@ -853,23 +853,25 @@ El margen más alto, sin inventario, y aprovecha el dato que solo la plataforma 
 
 ### 12.2 Decisiones abiertas
 
+> ✅ **Sin decisiones abiertas (2026-08-26).** D1 quedó condicionada a un gatillo objetivo y D3/D4/D6/D7 resueltas — ver tabla. Las únicas tareas externas restantes son la revisión legal del ToS ([§9.4](#94-conflicto-de-interés-con-los-usuarios)) y la implementación del recargo de procesamiento de D3 cuando se activen pagos con tarjeta.
+
 | # | Decisión | Impacto | Estado |
 |---|----------|---------|--------|
-| D1 | **Categoría objetivo de las tiendas** (consumo masivo vs. nicho) | Determina la viabilidad del modelo mayorista (§7.2) | **Abierta — bloqueante** |
+| D1 | **Categoría objetivo de las tiendas** (consumo masivo vs. nicho) | Determina la viabilidad del modelo mayorista (§7.2) | ✅ **RESUELTA CONDICIONADA (2026-08-26)** — ver nota bajo la tabla |
 | D2 | ~~Take rate objetivo~~ | ~~Determina el margen por pedido (§4.3)~~ | ✅ **RESUELTO (2026-08-26)** por eliminación: no hay take rate ni comisión; la monetización es suscripción ([§3.1](#31-evaluación-por-palanca)) |
-| D3 | ¿Se traslada el costo de pasarela al cliente? | Reformulada: sin comisión, el único margen por pedido en juego es el de delivery. Para el cobro de la propia suscripción la respuesta ya está en §3.2 (fee visible + aceptación explícita si se usa tarjeta) | Abierta (acotada a delivery) |
-| D4 | ¿Se incentiva COD sobre tarjeta? | Reformulada igual que D3: afecta al margen de delivery y al riesgo de custodia de efectivo ([[FLUJO_DINERO]] §8), ya no a una comisión sobre ventas | Abierta (acotada a delivery) |
+| D3 | ¿Se traslada el costo de pasarela al cliente? | Reformulada: sin comisión, el único margen por pedido en juego es el de delivery. Para el cobro de la propia suscripción la respuesta ya está en §3.2 (fee visible + aceptación explícita si se usa tarjeta) | ✅ **RESUELTO (2026-08-26)** — **sí, trasladar de forma explícita**: recargo transparente por procesamiento SOLO sobre la tarifa de delivery (jamás sobre el total del pedido), mostrado como línea separada en checkout, con tope (~S/ 1.50) para no matar conversión. Implementar cuando se activen pagos con tarjeta |
+| D4 | ¿Se incentiva COD sobre tarjeta? | Reformulada igual que D3: afecta al margen de delivery y al riesgo de custodia de efectivo ([[FLUJO_DINERO]] §8), ya no a una comisión sobre ventas | ✅ **RESUELTO (2026-08-26)** — **neutro**: el producto no discrimina métodos hoy; cualquier incentivo futuro se decide con datos reales de faltantes de custodia ([[FLUJO_DINERO]] §8). Principio: sin volumen no hay calibración posible |
 | D5 | Política de uso de datos de venta de las tiendas | Confianza y riesgo legal (§9.4) | ✅ **RESUELTO (2026-08-25)** — agregados con k ≥ 3, nunca individualizados |
-| D6 | Segmento de tiendas objetivo | Riesgo crediticio y margen (§10) | Abierta |
-| D7 | ¿Plan gratuito permanente o generoso reversible? | Reversibilidad de la monetización (§11.1) — con la comisión eliminada, la reversibilidad es menor: reintroducirla sería una decisión nueva | Abierta |
+| D6 | Segmento de tiendas objetivo | Riesgo crediticio y margen (§10) | ✅ **RESUELTO (2026-08-26)** — **concentración geográfica sobre filtrado de tamaño**: onboarding denso en 2–3 zonas acotadas (perfil intermedio-informal), métrica guía = tiendas activas por zona antes de abrir zona nueva. Sin exclusión por tamaño (D7: plan gratis generoso). Nota: con suscripción como único ingreso el riesgo crediticio pierde centralidad — una tienda morosa pierde servicio, no deja inventario colgado. El análisis de tamaño del §10 vuelve a regir solo si se activa crédito de reposición (Fase 3) |
+| D7 | ¿Plan gratuito permanente o generoso reversible? | Reversibilidad de la monetización (§11.1) — con la comisión eliminada, la reversibilidad es menor: reintroducirla sería una decisión nueva | ✅ **RESUELTO (2026-08-26)** — plan gratuito **generoso reversible**; jamás prometer permanencia ("Plan Starter gratis", nunca "gratis para siempre"); ajustes de límites con aviso previo |
 | D8 | **Canal de cobro de la suscripción** | Fee de pasarela sobre ingreso propio ([§3.2](#32-cobro-de-la-suscripción-política-de-pasarela)) | ✅ **RESUELTO (2026-08-26)** — por defecto fuera de pasarela; tarjeta opt-in con indicador de fee y aceptación explícita |
 
-> [!IMPORTANT]
-> **D1 es bloqueante.** Con margen de consumo masivo (~10% bruto), el modelo mayorista rinde apenas más que el take rate SaaS y exige infinitamente más capital y operación. Con margen de nicho (~35%), justifica plenamente la complejidad.
+> [!NOTE]
+> **D1 resuelta condicionada (2026-08-26).** La eliminación de la comisión y la elección de suscripción como única palanca quitaron urgencia: hoy ninguna inversión depende de responder D1. En lugar de decidir a ciegas (sin tiendas operando), se fija un **gatillo objetivo y medible**:
 >
-> Ninguna inversión significativa en el modelo mayorista debería comprometerse antes de responder D1.
+> **El modelo mayorista (Fase 2, stock propio) solo se activa si los rollups de demanda agregada (`DemandService`, k ≥ 3) muestran, por dos meses consecutivos, una categoría de nicho (no FMCG) concentrando ≥ 25% del GMV agregado en la zona objetivo.**
 >
-> **A1, en cambio, no depende de D1.** El catálogo maestro es necesario en cualquier escenario —consumo masivo o nicho— y es más barato ahora que en cualquier momento futuro. Debe atenderse de inmediato, en paralelo a la discusión de D1.
+> Si el gatillo no dispara, Tiendi permanece SaaS-de-suscripción y el onboarding es amplio sin filtro de categoría (criterio de segmentación pasa a ser el de D6). El análisis de §7.2 queda como fundamento: si algún día hay que elegir entre masivo y nicho, los números ya demostraron que masivo exige capital e infraestructura que el margen (~10%) no paga.
 
 ---
 
