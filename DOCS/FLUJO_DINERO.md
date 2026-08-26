@@ -1258,8 +1258,8 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 > **Reescrita (2026-08-26).** La decisión de monetización por suscripción única ([[MODELO_NEGOCIO]]) disolvió el dilema Modelo A vs Modelo B: el flujo P2P actual es el diseño objetivo y **no lleva asientos de plataforma** (ver §9). Lo que queda del canal es auditoría y el arreglo de seguridad B16. Los ítems de deuda de billetera (`STORE_FLOAT`, neteo, límites) fueron eliminados del diseño.
 
 - [x] **B16** — Unificado `paymentMethod` en enum Prisma `PaymentMethod` (CASH/YAPE/PLIN/TRANSFER/CARD, 2026-08-26): migración normaliza a mayúsculas, las guardas de `confirmManualPayment` y `refund.service` comparan contra `'CARD'` y ya no pueden saltarse por capitalización
-- [ ] Auditoría de la confirmación manual: quién, cuándo y con qué comprobante, con `idempotencyKey` `wallet-proof:{orderId}:confirm` ([§9.3](#93-conciliación-y-auditoría-del-canal))
-- [ ] Excluir pedidos `YAPE`/`PLIN` del cuadre nocturno contra el ledger en [§18](#18-conciliación-y-cierre-diario) (el dinero nunca tocó cuentas de plataforma)
+- [x] **Auditoría de la confirmación manual** (2026-08-26): modelo `ManualPaymentAudit` (`orderId @unique` = idempotencia `wallet-proof:{orderId}:confirm`; segundo clic y carreras concurrentes rechazan) con `vendorId`/`method`/`proofRef`; `confirmManualPayment` también bloquea de entrada pedidos ya `PAID`
+- [x] **Excluir pedidos `YAPE`/`PLIN` del cuadre nocturno contra el ledger en [§18](#18-conciliación-y-cierre-diario)** (2026-08-26): implementado como invariante **I2** — hoy no existe ningún asiento del canal (correcto); si aparece un EntryGroup `WALLET_*`/`ORDER_CAPTURE_WALLET`, la reconciliación diaria falla con alerta. Los `ORDER_CAPTURE` genéricos (tarjeta/recaudador §9.4) no disparan I2
 - [ ] ~~Emitir `ORDER_CAPTURE_WALLET` + `WALLET_SELF_SETTLE`~~ — eliminado: sin comisión no hay nada que asentar
 - [ ] ~~Cuenta `STORE_FLOAT:{storeId}` + invariante I8~~ — eliminado
 - [ ] ~~Neteo `WALLET_DEBT_OFFSET` en liquidación~~ — eliminado
