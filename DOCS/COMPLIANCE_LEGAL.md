@@ -1207,6 +1207,47 @@ Tiendi actúa como intermediario entre compradores y vendedores. En consecuencia
 Estas limitaciones no aplican en casos de dolo o culpa grave de Tiendi.
 ```
 
+**Cláusula de "Uso de datos de venta" (T&C del vendedor):**
+
+> [!WARNING]
+> **BORRADOR — PENDIENTE DE REVISIÓN LEGAL.** No publicar hasta que un
+> abogado apruebe el texto. Mientras tanto, la versión vigente registrada
+> por `VENDOR_TERMS_VERSION` (`legal.service.ts`) es `2026-08-26-draft`
+> y se expone como tal a los endpoints. Al aprobarse: reemplazar este
+> texto, bump de versión y pedir reaceptación.
+
+```
+USO DE DATOS DE VENTA
+
+1. Con la aceptación de estos Términos, el Vendedor autoriza a Tiendi a
+   tratar los datos transaccionales generados por su actividad en la
+   plataforma (productos vendidos, volúmenes, precios, frecuencias,
+   zonas y horarios) con las siguientes finalidades:
+
+   a) Generar estadísticas y agregados de plataforma para la toma de
+      decisiones internas de Tiendi.
+   b) Mejorar los servicios prestados al Vendedor y a la plataforma en
+      general.
+
+2. Compromisos de Tiendi:
+
+   a) Todo dato se tratará ÚNICAMENTE en forma agregada y anonimizada:
+      ningún dato visible o publicado provendrá de menos de tres (3)
+      tiendas distintas (k-anonimato ≥ 3).
+   b) En ningún caso los datos se usarán de forma individualizada ni
+      para beneficiar a una tienda concreta en detrimento de otra.
+   c) El tratamiento respetará la Ley N° 29733 de Protección de Datos
+      Personales y su reglamento.
+
+3. El Vendedor conserva los derechos ARCO sobre sus datos personales
+   conforme a la Política de Privacidad.
+
+4. Vigencia: esta autorización subsiste mientras el Vendedor utilice la
+   plataforma, pudiendo revocar el uso futuro de sus datos mediante
+   comunicación escrita; la revocación no afecta los agregados ya
+   producidos bajo esta cláusula.
+```
+
 ---
 
 ## 7. Política de Privacidad

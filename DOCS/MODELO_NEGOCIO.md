@@ -743,10 +743,12 @@ El margen mayorista proviene del volumen de compra. En la etapa inicial no hay v
 
 ##### Pendiente operativo — reflejar la política en los Términos y Condiciones
 
-🔲 **Antes de captar la primera tienda**, incorporar al ToS del vendedor:
+✅ **Maquinaria técnica implementada (2026-08-26):** campos `termsVersion`/`termsAcceptedAt` en `Store` (migración `20260826150000_store_terms_acceptance`), endpoints `GET .../legal/terms` y `POST .../legal/accept-terms`, checkbox obligatorio en el paso 4 del onboarding vendor (bloquea "Finalizar" sin aceptar) que registra la aceptación. Borrador de la cláusula en [[COMPLIANCE_LEGAL]] §6.2.
 
-1. **Cláusula de "Uso de datos de venta"**: la plataforma puede usar datos transaccionales para agregados estadísticos de plataforma; siempre con k-anonimato ≥ 3; nunca individualizados ni para beneficiar a una tienda sobre otra. Borrador técnico a redactar y pasar por revisión legal.
-2. **Aceptación registrada**: checkbox obligatorio en el onboarding de `tiendi-vendor` + campo `termsVersion`/`termsAcceptedAt` en `Store` o `User` (migración + endpoint que registre versión y fecha, para poder probar qué versión aceptó cada tienda).
+🔲 **Antes de captar la primera tienda**, falta únicamente:
+
+1. **Revisión legal del borrador** de la cláusula de "Uso de datos de venta" (k-anonimato ≥ 3, nunca individualizado). Al aprobarse: reemplazar el texto, hacer bump de `VENDOR_TERMS_VERSION` y pedir reaceptación a las tiendas con versión draft.
+2. Borrador técnico a redactar y pasar por revisión legal.
 
 ---
 
