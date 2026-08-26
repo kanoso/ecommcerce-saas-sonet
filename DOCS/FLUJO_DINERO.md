@@ -1249,7 +1249,7 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 > Tests: 7 nuevos (`refund.service.spec.ts`). Suite 492/492.
 
 - [x] **B14** — Módulo de devoluciones y contracargos con saldo negativo
-- [ ] **B10** — Multiplicador contra `delivery.completedAt`
+- [x] **B10** — Multiplicador contra la fecha de entrega (`Delivery.deliveredAt`, 2026-08-26: el modelo no tiene `completedAt`; `deliveredAt` es el timestamp de POD). Un reproceso en lunes conserva el recargo del sábado; sin `deliveredAt` cae a `new Date()` como antes
 - [ ] Reportes fiscales e integración de comprobantes electrónicos
 
 ### Fase 6 — Money-in por billetera (Yape, Plin)
@@ -1257,7 +1257,7 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 > [!IMPORTANT]
 > **Reescrita (2026-08-26).** La decisión de monetización por suscripción única ([[MODELO_NEGOCIO]]) disolvió el dilema Modelo A vs Modelo B: el flujo P2P actual es el diseño objetivo y **no lleva asientos de plataforma** (ver §9). Lo que queda del canal es auditoría y el arreglo de seguridad B16. Los ítems de deuda de billetera (`STORE_FLOAT`, neteo, límites) fueron eliminados del diseño.
 
-- [ ] **B16** — Unificar `paymentMethod` en un enum único (arreglo de seguridad, independiente del modelo elegido)
+- [x] **B16** — Unificado `paymentMethod` en enum Prisma `PaymentMethod` (CASH/YAPE/PLIN/TRANSFER/CARD, 2026-08-26): migración normaliza a mayúsculas, las guardas de `confirmManualPayment` y `refund.service` comparan contra `'CARD'` y ya no pueden saltarse por capitalización
 - [ ] Auditoría de la confirmación manual: quién, cuándo y con qué comprobante, con `idempotencyKey` `wallet-proof:{orderId}:confirm` ([§9.3](#93-conciliación-y-auditoría-del-canal))
 - [ ] Excluir pedidos `YAPE`/`PLIN` del cuadre nocturno contra el ledger en [§18](#18-conciliación-y-cierre-diario) (el dinero nunca tocó cuentas de plataforma)
 - [ ] ~~Emitir `ORDER_CAPTURE_WALLET` + `WALLET_SELF_SETTLE`~~ — eliminado: sin comisión no hay nada que asentar
