@@ -17,7 +17,7 @@ Este documento define **cómo debe funcionar** el movimiento de dinero en Tiendi
 
 > [!IMPORTANT]
 > Este es el **estado objetivo (target state)**, no el estado actual del código.
-> Las brechas confirmadas contra la implementación de hoy están marcadas con callouts `[!WARNING]` a lo largo del documento y resumidas en la sección [§18 Brechas actuales](#18-brechas-actuales-vs-objetivo).
+> Las brechas confirmadas contra la implementación de hoy están marcadas con callouts `[!WARNING]` a lo largo del documento y resumidas en la sección [§19 Brechas actuales](#19-brechas-actuales-vs-objetivo).
 
 ---
 
@@ -31,18 +31,19 @@ Este documento define **cómo debe funcionar** el movimiento de dinero en Tiendi
 6. [Descomposición del total del pedido](#6-descomposición-del-total-del-pedido)
 7. [Money-in: pago con tarjeta](#7-money-in-pago-con-tarjeta-culqi)
 8. [Money-in: pago contra entrega](#8-money-in-pago-contra-entrega-cod)
-9. [Comisión del repartidor](#9-comisión-del-repartidor)
-10. [Wallet del repartidor](#10-wallet-del-repartidor)
-11. [Retiros del repartidor](#11-retiros-del-repartidor)
-12. [Depósito de efectivo del repartidor](#12-depósito-de-efectivo-del-repartidor)
-13. [Liquidación al vendedor](#13-liquidación-al-vendedor-settlement)
-14. [Suscripciones](#14-suscripciones)
-15. [Devoluciones y contracargos](#15-devoluciones-cancelaciones-y-contracargos)
-16. [Idempotencia, atomicidad y reintentos](#16-idempotencia-atomicidad-y-reintentos)
-17. [Conciliación y cierre diario](#17-conciliación-y-cierre-diario)
-18. [Brechas actuales vs objetivo](#18-brechas-actuales-vs-objetivo)
-19. [Plan de implementación por fases](#19-plan-de-implementación-por-fases)
-20. [Glosario](#20-glosario)
+9. [Money-in: pago con billetera móvil](#9-money-in-pago-con-billetera-móvil-yape-plin)
+10. [Comisión del repartidor](#10-comisión-del-repartidor)
+11. [Wallet del repartidor](#11-wallet-del-repartidor)
+12. [Retiros del repartidor](#12-retiros-del-repartidor)
+13. [Depósito de efectivo del repartidor](#13-depósito-de-efectivo-del-repartidor)
+14. [Liquidación al vendedor](#14-liquidación-al-vendedor-settlement)
+15. [Suscripciones](#15-suscripciones)
+16. [Devoluciones y contracargos](#16-devoluciones-cancelaciones-y-contracargos)
+17. [Idempotencia, atomicidad y reintentos](#17-idempotencia-atomicidad-y-reintentos)
+18. [Conciliación y cierre diario](#18-conciliación-y-cierre-diario)
+19. [Brechas actuales vs objetivo](#19-brechas-actuales-vs-objetivo)
+20. [Plan de implementación por fases](#20-plan-de-implementación-por-fases)
+21. [Glosario](#21-glosario)
 
 ---
 
@@ -128,6 +129,7 @@ El ledger opera sobre cuentas tipadas. Cada cuenta tiene un `type` que determina
 | `GATEWAY_RECEIVABLE` | Activo | Deudora | Dinero cobrado por Culqi todavía no abonado a la plataforma |
 | `PLATFORM_CASH` | Activo | Deudora | Dinero efectivamente disponible en la cuenta bancaria de la plataforma |
 | `RIDER_FLOAT:{riderId}` | Activo | Deudora | Efectivo del COD que el repartidor tiene físicamente encima |
+| `STORE_FLOAT:{storeId}` | Activo | Deudora | Dinero de billetera (Yape/Plin P2P) que el vendedor cobró directamente y todavía no rindió |
 | `STORE_PAYABLE:{storeId}` | Pasivo | Acreedora | Lo que la plataforma le debe al vendedor |
 | `RIDER_PAYABLE:{riderId}` | Pasivo | Acreedora | Lo que la plataforma le debe al repartidor |
 | `IGV_PAYABLE` | Pasivo | Acreedora | IGV recaudado pendiente de declarar |
@@ -269,6 +271,7 @@ flowchart LR
     subgraph IN["Entrada"]
         CARD["Tarjeta<br/>via Culqi"]
         CASH["Efectivo<br/>contra entrega"]
+        WALLET["Billetera<br/>Yape / Plin"]
     end
 
     subgraph SPLIT["Reparto"]
@@ -286,6 +289,7 @@ flowchart LR
 
     CUST --> CARD
     CUST --> CASH
+    CUST --> WALLET
     CARD --> GWFEE
     CARD --> PCOM
     CARD --> RCOM
@@ -294,16 +298,24 @@ flowchart LR
     CASH --> RCOM
     CASH --> SNET
     CASH --> PCOM
+    CASH --> IGVP
+    WALLET --> RCOM
+    WALLET --> SNET
+    WALLET --> PCOM
+    WALLET --> IGVP
     SNET --> POUT
     RCOM --> RWD
 ```
 
 > [!IMPORTANT]
-> **La diferencia clave entre tarjeta y efectivo no es el monto, es quién custodia el dinero mientras tanto.**
-> - **Tarjeta:** la plataforma custodia. Debe al vendedor y al repartidor.
-> - **Efectivo:** el repartidor custodia. Le debe a la plataforma.
+> **La diferencia clave entre canales no es el monto, es quién custodia el dinero mientras tanto.** Hay tres casos, no dos:
+> - **Tarjeta** ([§7](#7-money-in-pago-con-tarjeta-culqi)): la **plataforma** custodia. Debe al vendedor y al repartidor.
+> - **Efectivo** ([§8](#8-money-in-pago-contra-entrega-cod)): el **repartidor** custodia. Le debe a la plataforma.
+> - **Billetera P2P** ([§9](#9-money-in-pago-con-billetera-móvil-yape-plin)): el **vendedor** custodia. Le debe a la plataforma.
 >
-> Esa inversión de la relación de deuda es la razón por la que el efectivo necesita `cashOnHand`, límite de custodia y depósito obligatorio.
+> Esa inversión de la relación de deuda es la razón por la que el efectivo necesita `cashOnHand`, límite de custodia y depósito obligatorio — y por la que la billetera P2P necesita `STORE_FLOAT`, límite de deuda y neteo en la liquidación.
+>
+> Un recaudador integrado ([§9.4](#94-modelo-b--recaudador-integrado-objetivo)) colapsa el tercer caso sobre el primero: contablemente se comporta igual que la tarjeta.
 
 ---
 
@@ -338,7 +350,7 @@ El orden importa. Calcular la comisión sobre el total con IGV incluido es un er
 4. total           = subtotal + igv + deliveryFee
 5. platformCommission = subtotal * plan.commissionPct     // ← sobre subtotal, NO sobre total
 6. storeNet        = subtotal - platformCommission
-7. riderCommission = f(config, distancia, nivel)          // ver §9
+7. riderCommission = f(config, distancia, nivel)          // ver §10
 8. platformDeliveryMargin = deliveryFee - riderCommission
 ```
 
@@ -484,7 +496,181 @@ sequenceDiagram
 
 ---
 
-## 9. Comisión del repartidor
+## 9. Money-in: pago con billetera móvil (Yape, Plin)
+
+> [!WARNING]
+> **Este canal existe en el producto pero NO EXISTE en el ledger.** `create-order.dto.ts:16` acepta `YAPE` y `PLIN` como métodos de pago de primera clase y `payments.service.ts:191` (`confirmManualPayment`) marca el pedido como `PAID`, pero **no emite ningún EntryGroup**. Las únicas llamadas a `ledger.post()` en el código viven en `refund.service.ts:133`, `settlement.service.ts:136` y `billing.service.ts:71`. Ver [§19 B15](#19-brechas-actuales-vs-objetivo).
+
+En Yape y Plin el dinero viaja **de billetera a billetera**. La plataforma no está en el medio salvo que se contrate un recaudador. Eso abre dos modelos incompatibles entre sí, y el sistema tiene que elegir uno de forma explícita.
+
+| Dimensión | Modelo A — P2P con comprobante | Modelo B — recaudador integrado |
+| --- | --- | --- |
+| Custodia del dinero | **Vendedor** | **Plataforma** |
+| Confirmación del cobro | Manual, la hace el propio vendedor | Webhook firmado del proveedor |
+| Comisión de plataforma | Deuda a recuperar en la liquidación | Retenida en el momento de la captura |
+| Costo por transacción | S/ 0.00 para la plataforma | ≈ 2.49 % + S/ 0.30 |
+| Riesgo de desintermediación | Alto | Nulo |
+| Riesgo de morosidad | Alto | Nulo |
+| Emisor del comprobante fiscal | Ambiguo | Plataforma |
+| Cuentas involucradas | `STORE_FLOAT`, `STORE_PAYABLE` | `GATEWAY_RECEIVABLE`, `PLATFORM_CASH` |
+
+> [!IMPORTANT]
+> Con este canal el eje de **custodia** del [§5 Mapa global](#5-mapa-global-del-dinero) pasa a tener tres casos, no dos:
+> - **Tarjeta** → custodia la **plataforma** (§7).
+> - **COD** → custodia el **repartidor**, y le debe a la plataforma (§8).
+> - **Billetera P2P** → custodia el **vendedor**, y le debe a la plataforma (§9, Modelo A).
+>
+> El Modelo B elimina el tercer caso: contablemente se comporta igual que la tarjeta.
+
+---
+
+### 9.1 Modelo A — P2P con comprobante (el flujo de hoy)
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant W as tiendi-web
+    participant V as Vendedor
+    participant API as tiendi-api
+    participant L as Ledger
+
+    C->>W: Elige Yape/Plin en el checkout
+    W->>API: POST /orders { paymentMethod: "YAPE" }
+    API->>API: Congela platformCommission y storeNet (§6.1)
+    API-->>W: Número o QR de la billetera del vendedor
+    C->>C: Transfiere desde su app de Yape al vendedor
+    C->>W: Sube el comprobante
+    W->>API: Adjunta comprobante al pedido
+    API-->>V: Notificación "pago por verificar"
+    V->>API: confirmManualPayment(orderId)
+    API->>API: paymentStatus = PAID
+    API->>L: post(ORDER_CAPTURE_WALLET)
+    API->>L: post(WALLET_SELF_SETTLE)
+    L-->>API: STORE_FLOAT = deuda del vendedor
+    API-->>C: Pedido confirmado
+```
+
+Sobre el pedido canónico de [§6](#6-descomposición-del-total-del-pedido) — subtotal S/ 100.00, IGV S/ 18.00, comisión de plataforma S/ 5.00 (plan Pro), neto del vendedor S/ 95.00:
+
+```
+EntryGroup ORDER_CAPTURE_WALLET
++STORE_FLOAT:{storeId}      118.00
+-STORE_PAYABLE:{storeId}     95.00
+-PLATFORM_REVENUE             5.00
+-IGV_PAYABLE                 18.00
+```
+
+El vendedor ya tiene ese dinero encima, así que su propio neto se cancela en el acto:
+
+```
+EntryGroup WALLET_SELF_SETTLE
++STORE_PAYABLE:{storeId}     95.00
+-STORE_FLOAT:{storeId}       95.00
+```
+
+**Saldo resultante:** `STORE_FLOAT:{storeId}` queda deudor en **S/ 23.00** — exactamente la comisión de plataforma más el IGV que el vendedor cobró por cuenta de la plataforma. `STORE_PAYABLE:{storeId}` queda sin variación neta, porque el vendedor se pagó a sí mismo.
+
+> [!TIP]
+> `STORE_FLOAT:{storeId}` es el espejo exacto de `RIDER_FLOAT:{riderId}`: una cuenta de **activo de la plataforma** que representa dinero propio en manos de un tercero. La diferencia es que el repartidor custodia billetes y el vendedor custodia saldo digital.
+
+> [!CAUTION]
+> **No colapsar los dos asientos en uno solo de S/ 23.00.** Registrar únicamente el margen destruye la comparabilidad entre canales: el ledger dejaría de poder responder "cuánto se vendió" y las conciliaciones de [§18](#18-conciliación-y-cierre-diario) no cerrarían contra `Order.total`.
+
+La comisión del repartidor, cuando hay reparto, se registra en su propio `EntryGroup COMMISSION` según [§10](#10-comisión-del-repartidor), igual que en tarjeta y en COD.
+
+---
+
+### 9.2 Recuperación de la comisión
+
+La deuda acumulada en `STORE_FLOAT:{storeId}` se recupera por **neteo contra la liquidación semanal** ([§14](#14-liquidación-al-vendedor-settlement), paso de retenciones):
+
+```
+EntryGroup WALLET_DEBT_OFFSET
++STORE_PAYABLE:{storeId}     23.00
+-STORE_FLOAT:{storeId}       23.00
+```
+
+Si la tienda tiene saldo acreedor suficiente por pedidos con tarjeta o COD, la deuda simplemente reduce el payout. Si no lo tiene, `STORE_PAYABLE:{storeId}` **queda en negativo y se arrastra al ciclo siguiente** — el mismo mecanismo que [§16](#16-devoluciones-cancelaciones-y-contracargos) ya exige para contracargos.
+
+Vía alternativa, cuando el vendedor regulariza por fuera:
+
+```
+EntryGroup WALLET_DEBT_PAYMENT
++PLATFORM_CASH               23.00
+-STORE_FLOAT:{storeId}       23.00
+```
+
+> [!CAUTION]
+> **El neteo falla justo en el caso que más importa.** Una tienda que opera *exclusivamente* con Yape nunca genera saldo acreedor en `STORE_PAYABLE`, así que no hay nada contra qué netear: la deuda crece sin techo y la única palanca de cobro es dejar de venderle el servicio. Por eso el límite de [§9.3](#93-límite-de-deuda-del-vendedor) no es opcional en el Modelo A — es lo único que acota la pérdida.
+
+---
+
+### 9.3 Límite de deuda del vendedor
+
+| Parámetro | Valor propuesto | Motivo |
+| --- | --- | --- |
+| `walletDebtLimit` | S/ 300.00 | Exposición máxima por tienda antes de cortar el canal |
+| `walletDebtGraceDays` | 7 días | Un ciclo completo de liquidación ([§14.3](#14-liquidación-al-vendedor-settlement)) |
+| Acción al superar el límite | `walletPaymentsBlocked = true` | Deshabilita Yape/Plin en el checkout **de esa tienda** |
+| Alcance del bloqueo | Solo métodos de billetera | Tarjeta y COD siguen activos: no se corta la operación completa |
+| Acción tras 2 ciclos sin regularizar | Escalado a soporte y suspensión del plan | Morosidad estructural |
+
+> [!CAUTION]
+> **`walletPaymentsBlocked` nunca debe afectar pedidos ya confirmados.** El bloqueo aplica a **ofrecer el método en el checkout**, no a cobrar, despachar o liquidar lo que ya está en curso. Es la misma regla que `cashBlocked` en [§8.2](#82-límite-de-custodia-de-efectivo).
+
+> [!NOTE]
+> El flag debe recalcularse como **derivada del saldo de `STORE_FLOAT`** en cada liquidación y en cada pago de deuda, nunca escribirse como estado independiente. Persistirlo por separado es lo que produjo la brecha B4 en repartidores.
+
+---
+
+### 9.4 Modelo B — recaudador integrado (objetivo)
+
+Yape opera como método de pago dentro de Culqi y Niubiz. Con un recaudador, el dinero entra a la cuenta de la plataforma y **la contabilidad es idéntica a la de tarjeta** ([§7](#7-money-in-pago-con-tarjeta-culqi)); lo único que cambia es la tasa del fee.
+
+```
+EntryGroup ORDER_CAPTURE
++GATEWAY_RECEIVABLE         118.00
+-STORE_PAYABLE:{storeId}     95.00
+-PLATFORM_REVENUE             5.00
+-IGV_PAYABLE                 18.00
+```
+
+Al acreditarse en banco, con fee de 2.49 % + S/ 0.30 sobre S/ 118.00 → S/ 3.24:
+
+```
+EntryGroup GATEWAY_SETTLEMENT
++PLATFORM_CASH              114.76
++GATEWAY_FEE_EXPENSE          3.24
+-GATEWAY_RECEIVABLE         118.00
+```
+
+No hace falta `STORE_FLOAT`, ni límite de deuda, ni neteo, ni verificación manual. La comisión se retiene en el instante de la captura.
+
+> [!IMPORTANT]
+> **Recomendación: adoptar el Modelo B y dejar el Modelo A como degradado explícito.** El Modelo A invierte la custodia a favor de la parte a la que se le está cobrando, y convierte cada comisión en un problema de cobranza. Un fee de 2.49 % es un costo conocido y acotado; una cartera de deuda de vendedores no lo es.
+
+---
+
+### 9.5 Consideraciones críticas
+
+> [!CAUTION]
+> **Desintermediación.** En el Modelo A el vendedor conoce el monto, tiene el dinero y controla la confirmación. Nada le impide acordar con el cliente por fuera y **no registrar el pedido**. La plataforma no puede detectar lo que nunca se le informó: no es un problema de validación de comprobantes, es un problema estructural del canal.
+
+> [!CAUTION]
+> **IGV y comprobante fiscal.** El asiento acredita `IGV_PAYABLE` a la plataforma, pero en el Modelo A quien recibió el dinero fue el vendedor. Quién emite la boleta o factura determina quién declara ese IGV ante SUNAT. Definir esto antes de implementar; ver [[COMPLIANCE_LEGAL]].
+
+> [!WARNING]
+> **Brecha actual — comparación de método de pago con distinta capitalización.** `create-order.dto.ts:16` persiste `'CASH' | 'YAPE' | 'PLIN' | 'TRANSFER' | 'CARD'` en mayúsculas, pero `payments.service.ts:200` y `refund.service.ts:106` comparan contra `'card'` en minúsculas. La guarda de `confirmManualPayment` **nunca se cumple**: hoy un vendedor puede marcar como `PAID` un pedido con tarjeta desde el panel, sin cobro real. `matching.service.ts:569` sí compara en mayúsculas. Unificar en un enum único.
+
+> [!WARNING]
+> **Verificación del comprobante.** La aprobación manual del vendedor es una confirmación de parte interesada. Como mínimo debe quedar auditada: quién confirmó, cuándo, con qué imagen, y con `idempotencyKey` `wallet-proof:{orderId}:confirm` para que un doble clic no genere dos capturas ([§17.2](#17-idempotencia-atomicidad-y-reintentos)).
+
+> [!NOTE]
+> `Store.paymentMethods` (`schema.prisma:177`) ya modela el toggle por tienda y `PayoutRequest.method` ya acepta `YAPE | PLIN` **para pagar al vendedor**. Money-in y money-out por billetera son flujos distintos y no deben compartir configuración.
+
+---
+
+## 10. Comisión del repartidor
 
 ```mermaid
 flowchart TD
@@ -505,7 +691,7 @@ flowchart TD
     ROUND --> POST["Asiento en el ledger"]
 ```
 
-### 9.1 Variables de entrada
+### 10.1 Variables de entrada
 
 | Variable | Origen | Congelada |
 |----------|--------|-----------|
@@ -530,7 +716,7 @@ flowchart TD
 > [!WARNING]
 > **Brecha actual:** el cálculo del multiplicador usa `new Date().getDay()` (hora de ejecución) en lugar de la fecha de la entrega. Además `tip` está hardcodeado en `0` porque el campo no existe todavía en el modelo `Delivery`.
 
-### 9.2 Ejemplo numérico
+### 10.2 Ejemplo numérico
 
 Entrega de 4.2 km, repartidor GOLD (bonus 10%), sábado (multiplicador 1.25), `platformFeePct` 15%:
 
@@ -554,7 +740,7 @@ Asientos generados:
 
 ---
 
-## 10. Wallet del repartidor
+## 11. Wallet del repartidor
 
 ```mermaid
 stateDiagram-v2
@@ -574,7 +760,7 @@ stateDiagram-v2
     end note
 ```
 
-### 10.1 Campos de la wallet y su significado exacto
+### 11.1 Campos de la wallet y su significado exacto
 
 | Campo | Definición | Se deriva de |
 |-------|-----------|--------------|
@@ -595,7 +781,7 @@ stateDiagram-v2
 
 ---
 
-## 11. Retiros del repartidor
+## 12. Retiros del repartidor
 
 ```mermaid
 stateDiagram-v2
@@ -620,7 +806,7 @@ stateDiagram-v2
     end note
 ```
 
-### 11.1 Flujo completo
+### 12.1 Flujo completo
 
 ```mermaid
 sequenceDiagram
@@ -678,7 +864,7 @@ sequenceDiagram
 
 ---
 
-## 12. Depósito de efectivo del repartidor
+## 13. Depósito de efectivo del repartidor
 
 ```mermaid
 sequenceDiagram
@@ -724,12 +910,12 @@ sequenceDiagram
 
 ---
 
-## 13. Liquidación al vendedor (settlement)
+## 14. Liquidación al vendedor (settlement)
 
 > [!WARNING]
 > **Este flujo NO EXISTE en el sistema actual.** No hay modelo, servicio, endpoint ni job de liquidación. El dinero de las ventas con tarjeta queda en la cuenta Culqi de la plataforma y **nunca se transfiere al vendedor**. Es la brecha más grave del sistema.
 
-### 13.1 Ciclo de liquidación
+### 14.1 Ciclo de liquidación
 
 ```mermaid
 sequenceDiagram
@@ -763,7 +949,7 @@ sequenceDiagram
     API-->>S: Email + notificación<br/>con detalle de liquidación
 ```
 
-### 13.2 Estados del lote
+### 14.2 Estados del lote
 
 ```mermaid
 stateDiagram-v2
@@ -777,7 +963,7 @@ stateDiagram-v2
     SETTLED --> [*]
 ```
 
-### 13.3 Parámetros del ciclo
+### 14.3 Parámetros del ciclo
 
 | Parámetro | Valor propuesto | Consideración |
 |-----------|-----------------|---------------|
@@ -798,7 +984,7 @@ stateDiagram-v2
 
 ---
 
-## 14. Suscripciones
+## 15. Suscripciones
 
 ```mermaid
 sequenceDiagram
@@ -832,7 +1018,7 @@ sequenceDiagram
     end
 ```
 
-### 14.1 Consideraciones
+### 15.1 Consideraciones
 
 > [!WARNING]
 > **Brecha actual:** `changePlan()` en `subscription.service.ts` es un `UPDATE` puro de base de datos. **Cambiar a plan Enterprise no cobra absolutamente nada.** No hay cobro inicial, ni recurrente, ni prorrateo, ni reintentos, ni degradación por impago. El sistema de planes existe solo como metadatos.
@@ -848,7 +1034,7 @@ sequenceDiagram
 
 ---
 
-## 15. Devoluciones, cancelaciones y contracargos
+## 16. Devoluciones, cancelaciones y contracargos
 
 ```mermaid
 flowchart TD
@@ -871,7 +1057,7 @@ flowchart TD
     GW -->|Efectivo| RCASH["Nota de crédito<br/>o transferencia manual"]
 ```
 
-### 15.1 Matriz de responsabilidad
+### 16.1 Matriz de responsabilidad
 
 | Escenario | Cliente recibe | Vendedor asume | Repartidor cobra | Plataforma asume |
 |-----------|----------------|----------------|------------------|------------------|
@@ -898,9 +1084,9 @@ flowchart TD
 
 ---
 
-## 16. Idempotencia, atomicidad y reintentos
+## 17. Idempotencia, atomicidad y reintentos
 
-### 16.1 Regla de oro
+### 17.1 Regla de oro
 
 ```mermaid
 flowchart LR
@@ -916,11 +1102,12 @@ flowchart LR
     COMMIT --> RESP["Devuelve resultado"]
 ```
 
-### 16.2 Operaciones que exigen `idempotencyKey`
+### 17.2 Operaciones que exigen `idempotencyKey`
 
 | Operación | Clave sugerida |
 |-----------|----------------|
 | Cobro de pedido | `order:{orderId}:charge` |
+| Confirmación de pago por billetera | `wallet-proof:{orderId}:confirm` |
 | Webhook de pasarela | `webhook:{provider}:{externalId}` |
 | Comisión de entrega | `delivery:{deliveryId}:commission` |
 | Retiro | `payout:{ownerId}:{clientNonce}` |
@@ -940,7 +1127,7 @@ flowchart LR
 > [!IMPORTANT]
 > **Todo job que mueve dinero debe poder correr dos veces sin efecto adicional.** Los reintentos van a ocurrir: por timeout, por redeploy, por reinicio del worker. La idempotencia no es una optimización, es el requisito mínimo de corrección.
 
-### 16.3 Concurrencia
+### 17.3 Concurrencia
 
 > [!NOTE]
 > **Bloqueo pesimista sobre la cuenta al escribir asientos.**
@@ -951,7 +1138,7 @@ flowchart LR
 
 ---
 
-## 17. Conciliación y cierre diario
+## 18. Conciliación y cierre diario
 
 ```mermaid
 flowchart TD
@@ -973,7 +1160,7 @@ flowchart TD
     CHK4 -->|Sí| OK["Cierre OK<br/>snapshot archivado"]
 ```
 
-### 17.1 Invariantes verificados cada noche
+### 18.1 Invariantes verificados cada noche
 
 | # | Invariante | Severidad si falla |
 |---|-----------|--------------------|
@@ -984,6 +1171,7 @@ flowchart TD
 | I5 | `PLATFORM_CASH == saldo bancario real` | **Crítica** |
 | I6 | Ningún `PayoutRequest` en `PROCESSING` por más de 48 h | Alta |
 | I7 | Ningún `pending` sin movimiento por más de 30 días | Media |
+| I8 | `SUM(STORE_FLOAT)` == deuda de billetera declarada por tienda | Alta |
 
 > [!CAUTION]
 > **Si I1 falla, se detienen TODOS los payouts automáticamente.** Un ledger descuadrado significa que el sistema no sabe cuánto dinero tiene. Seguir pagando en ese estado convierte un error de contabilidad en una pérdida real e irreversible.
@@ -993,7 +1181,7 @@ flowchart TD
 
 ---
 
-## 18. Brechas actuales vs objetivo
+## 19. Brechas actuales vs objetivo
 
 | # | Brecha | Severidad | Ubicación | Impacto |
 |---|--------|-----------|-----------|---------|
@@ -1011,10 +1199,12 @@ flowchart TD
 | **B12** | `tip` hardcodeado en `0` | Baja | `delivery.service.ts` | La propina no existe funcionalmente |
 | **B13** | Sin comisión de plataforma sobre la venta | **Alta** | Modelo `Order` | La plataforma solo monetiza el delivery |
 | **B14** | Sin flujo de devoluciones ni contracargos | **Alta** | No existe el módulo | Toda disputa se resuelve a mano |
+| **B15** | Yape/Plin marca `PAID` sin emitir ningún asiento | **Crítica** | `payments.service.ts:191` → `confirmManualPayment()` | La venta, la comisión y el IGV no existen en el ledger: la comisión es incobrable |
+| **B16** | `paymentMethod` comparado con distinta capitalización | **Alta** | `payments.service.ts:200`, `refund.service.ts:106` | La guarda de tarjeta nunca se cumple: un vendedor puede marcar `PAID` un pedido con tarjeta sin cobro real |
 
 ---
 
-## 19. Plan de implementación por fases
+## 20. Plan de implementación por fases
 
 ```mermaid
 flowchart LR
@@ -1070,7 +1260,7 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 > [!NOTE]
 > **Implementada (2026-08-25)** — commits de `tiendi-api` y `tiendi-vendor`:
 >
-> - **B2**: modelos `PayoutRequest` + `PayoutBatch` con el ciclo de estados de §13.2; `SettlementService.runWeeklySettlement()` crea lote RESERVED solo para saldos ≥ S/ 50 (debajo se arrastran); job semanal lunes 00:00 Lima (`0 5 * * *` UTC); procesamiento por cola BullMQ. ⚠️ El `transfer()` bancario es un **stub** (responde éxito) — conectar el proveedor real es lo único que falta para dinero en movimiento.
+> - **B2**: modelos `PayoutRequest` + `PayoutBatch` con el ciclo de estados de §14.2; `SettlementService.runWeeklySettlement()` crea lote RESERVED solo para saldos ≥ S/ 50 (debajo se arrastran); job semanal lunes 00:00 Lima (`0 5 * * *` UTC); procesamiento por cola BullMQ. ⚠️ El `transfer()` bancario es un **stub** (responde éxito) — conectar el proveedor real es lo único que falta para dinero en movimiento.
 > - **B13**: `Order.platformCommission` + `Order.storeNet` congelados al crear el pedido, calculados sobre el **subtotal sin IGV** (§6.1) según `SubscriptionPlan.commissionPct` (default 5%).
 > - Panel del vendor: `/vendor/payouts` lista las liquidaciones de la tienda con período, monto, estado y fecha de pago.
 >
@@ -1102,7 +1292,7 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 > [!NOTE]
 > **Implementada (2026-08-25)** — commits de `tiendi-api`:
 >
-> - **B14**: modelo `Refund` + matriz de responsabilidad §15.1 codificada (`RefundService.MATRIX`, 6 tipos). Cada reversa crea un EntryGroup nuevo (`kind: REFUND|CHARGEBACK`) sin tocar el asiento original (P3). Un contracargo perdido deja `STORE_PAYABLE` con saldo **negativo** que se descuenta solo en la próxima liquidación. Reembolsos de tarjeta vía `CulqiService.createRefund()` (nuevo); efectivo → nota de crédito manual. Endpoint: `POST /admin/refunds` (SUPER_ADMIN).
+> - **B14**: modelo `Refund` + matriz de responsabilidad §16.1 codificada (`RefundService.MATRIX`, 6 tipos). Cada reversa crea un EntryGroup nuevo (`kind: REFUND|CHARGEBACK`) sin tocar el asiento original (P3). Un contracargo perdido deja `STORE_PAYABLE` con saldo **negativo** que se descuenta solo en la próxima liquidación. Reembolsos de tarjeta vía `CulqiService.createRefund()` (nuevo); efectivo → nota de crédito manual. Endpoint: `POST /admin/refunds` (SUPER_ADMIN).
 > - Persistencia del charge id: `Order.gatewayChargeId` se guarda al cobrar y en el webhook.
 >
 > Tests: 7 nuevos (`refund.service.spec.ts`). Suite 492/492.
@@ -1111,9 +1301,22 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 - [ ] **B10** — Multiplicador contra `delivery.completedAt`
 - [ ] Reportes fiscales e integración de comprobantes electrónicos
 
+### Fase 6 — Money-in por billetera (Yape, Plin)
+
+> [!IMPORTANT]
+> **Antes de escribir código hay que cerrar una decisión de negocio**: Modelo A (P2P con comprobante) o Modelo B (recaudador integrado) — ver [§9.4](#94-modelo-b--recaudador-integrado-objetivo). Los dos modelos no comparten cuentas ni asientos, así que implementar uno y migrar al otro es reescribir el canal entero.
+
+- [ ] **B16** — Unificar `paymentMethod` en un enum único (arreglo de seguridad, independiente del modelo elegido)
+- [ ] **B15** — Emitir `ORDER_CAPTURE_WALLET` + `WALLET_SELF_SETTLE` al confirmar el pago (Modelo A)
+- [ ] Cuenta `STORE_FLOAT:{storeId}` en el plan de cuentas y en el invariante I8 de [§18.1](#18-conciliación-y-cierre-diario)
+- [ ] Neteo de la deuda de billetera en la liquidación semanal (`WALLET_DEBT_OFFSET`), con arrastre en negativo
+- [ ] `walletDebtLimit` y `walletPaymentsBlocked` **derivados** del saldo de `STORE_FLOAT`, nunca persistidos como estado independiente
+- [ ] Auditoría de la confirmación manual: quién, cuándo y con qué comprobante, con `idempotencyKey` `wallet-proof:{orderId}:confirm`
+- [ ] Alternativa Modelo B: habilitar Yape vía Culqi/Niubiz y reusar el flujo de tarjeta de [§7](#7-money-in-pago-con-tarjeta-culqi) sin cuentas nuevas
+
 ---
 
-## 20. Glosario
+## 21. Glosario
 
 | Término | Definición |
 |---------|-----------|
