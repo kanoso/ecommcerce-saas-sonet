@@ -19,6 +19,17 @@ Este documento define **cómo debe funcionar** el movimiento de dinero en Tiendi
 > Este es el **estado objetivo (target state)**, no el estado actual del código.
 > Las brechas confirmadas contra la implementación de hoy están marcadas con callouts `[!WARNING]` a lo largo del documento y resumidas en la sección [§19 Brechas actuales](#19-brechas-actuales-vs-objetivo).
 
+> [!CAUTION]
+> ## ✅ Decisión que modifica este documento (2026-08-26)
+>
+> **Tiendi se monetiza exclusivamente por suscripción; la comisión por venta queda eliminada como concepto** ([[MODELO_NEGOCIO]], decisión del 2026-08-26). Consecuencias sobre este documento:
+>
+> - **No existe comisión de plataforma sobre la venta.** El neto del vendedor es su subtotal completo. Los asientos `ORDER_CAPTURE*` ya no incluyen la línea `-PLATFORM_REVENUE`.
+> - **La maquinaria de deuda de billetera del §9 muere**: no hay `STORE_FLOAT`, ni límite de deuda, ni neteo (`WALLET_DEBT_OFFSET`), ni `walletPaymentsBlocked`. En Yape/Plin P2P el vendedor cobra su propia venta íntegra; a la plataforma no le corresponde nada.
+> - **B13 y B15 se reencuadran** en [§19](#19-brechas-actuales-vs-objetivo): ya no hay comisión incobrable que recuperar; lo que queda del hueco es auditabilidad.
+> - La **comisión del repartidor** ([§10](#10-comisión-del-repartidor)) NO cambia: es economía de delivery, no monetización de ventas.
+> - El cobro de la propia suscripción ([§15](#15-suscripciones)) por defecto **no pasa por pasarela**; si se habilita tarjeta, la tienda debe ver y aceptar el fee ([[MODELO_NEGOCIO]] §3.2).
+
 ---
 
 ## Índice
@@ -129,12 +140,12 @@ El ledger opera sobre cuentas tipadas. Cada cuenta tiene un `type` que determina
 | `GATEWAY_RECEIVABLE` | Activo | Deudora | Dinero cobrado por Culqi todavía no abonado a la plataforma |
 | `PLATFORM_CASH` | Activo | Deudora | Dinero efectivamente disponible en la cuenta bancaria de la plataforma |
 | `RIDER_FLOAT:{riderId}` | Activo | Deudora | Efectivo del COD que el repartidor tiene físicamente encima |
-| `STORE_FLOAT:{storeId}` | Activo | Deudora | Dinero de billetera (Yape/Plin P2P) que el vendedor cobró directamente y todavía no rindió |
+| ~~`STORE_FLOAT:{storeId}`~~ | — | — | **Eliminada del diseño (2026-08-26)**: sin comisión por venta, el cobro P2P de billetera no genera deuda del vendedor; la cuenta nunca se crea |
 | `STORE_PAYABLE:{storeId}` | Pasivo | Acreedora | Lo que la plataforma le debe al vendedor |
 | `RIDER_PAYABLE:{riderId}` | Pasivo | Acreedora | Lo que la plataforma le debe al repartidor |
 | `IGV_PAYABLE` | Pasivo | Acreedora | IGV recaudado pendiente de declarar |
 | `CUSTOMER_REFUND_PAYABLE` | Pasivo | Acreedora | Devoluciones aprobadas aún no ejecutadas |
-| `PLATFORM_REVENUE` | Ingreso | Acreedora | Comisión de plataforma ganada |
+| `PLATFORM_REVENUE` | Ingreso | Acreedora | Margen operativo de plataforma (delivery). **Ya no acumula comisión por venta** (eliminada 2026-08-26) |
 | `SUBSCRIPTION_REVENUE` | Ingreso | Acreedora | Ingresos por planes de suscripción |
 | `GATEWAY_FEE_EXPENSE` | Gasto | Deudora | Fee cobrado por Culqi |
 | `CHARGEBACK_EXPENSE` | Gasto | Deudora | Pérdida por contracargos no recuperados |
@@ -253,12 +264,12 @@ model WebhookEvent {
 | `Wallet` | Quitar `riderId @unique`; usar `ownerType` + `ownerId` | Permitir wallet de vendedor |
 | `Wallet` | Los saldos pasan a ser campos **derivados** del ledger | Principio P1 |
 | `Transaction` | Se conserva solo como vista legible; el dato real vive en `LedgerEntry` | Principio P1 |
-| `Order` | Añadir `platformCommission Decimal` y `storeNet Decimal` congelados al confirmar | Principio P7 |
+| `Order` | ~~Añadir `platformCommission Decimal` y `storeNet Decimal` congelados al confirmar~~ **Invertido (2026-08-26): eliminar esos campos por migración** — sin comisión, el neto del vendedor es el subtotal | Comisión eliminada como concepto |
 | `Delivery` | Añadir `tip Decimal @default(0)` | Hoy la propina está hardcodeada en `0` |
 | `Subscription` | Añadir `nextBillingAt`, `gatewayCustomerId`, `gatewayCardId` | Cobro recurrente |
 
 > [!NOTE]
-> El campo `commissionConfigId` en `Delivery` ya implementa correctamente el principio P7 (snapshot de configuración). **Esa parte del diseño actual se conserva tal cual** — es el patrón correcto y hay que replicarlo en `Order` para la comisión de plataforma.
+> El campo `commissionConfigId` en `Delivery` ya implementa correctamente el principio P7 (snapshot de configuración) y **se conserva tal cual** para la economía de delivery. El patrón snapshot deja de aplicarse a una comisión sobre la venta: ese concepto fue eliminado ([[MODELO_NEGOCIO]], 2026-08-26).
 
 ---
 
@@ -276,9 +287,8 @@ flowchart LR
 
     subgraph SPLIT["Reparto"]
         GWFEE["Fee pasarela<br/>3.99% + S/ 0.30"]
-        PCOM["Comisión plataforma<br/>segun plan"]
         RCOM["Comisión repartidor"]
-        SNET["Neto del vendedor"]
+        SNET["Neto del vendedor<br/>= subtotal completo"]
         IGVP["IGV por pagar"]
     end
 
@@ -291,18 +301,13 @@ flowchart LR
     CUST --> CASH
     CUST --> WALLET
     CARD --> GWFEE
-    CARD --> PCOM
     CARD --> RCOM
     CARD --> SNET
     CARD --> IGVP
     CASH --> RCOM
     CASH --> SNET
-    CASH --> PCOM
     CASH --> IGVP
-    WALLET --> RCOM
-    WALLET --> SNET
-    WALLET --> PCOM
-    WALLET --> IGVP
+    WALLET -.->|"sin asientos de plataforma:<br/>dinero directo vendedor"| SNET
     SNET --> POUT
     RCOM --> RWD
 ```
@@ -311,17 +316,17 @@ flowchart LR
 > **La diferencia clave entre canales no es el monto, es quién custodia el dinero mientras tanto.** Hay tres casos, no dos:
 > - **Tarjeta** ([§7](#7-money-in-pago-con-tarjeta-culqi)): la **plataforma** custodia. Debe al vendedor y al repartidor.
 > - **Efectivo** ([§8](#8-money-in-pago-contra-entrega-cod)): el **repartidor** custodia. Le debe a la plataforma.
-> - **Billetera P2P** ([§9](#9-money-in-pago-con-billetera-móvil-yape-plin)): el **vendedor** custodia. Le debe a la plataforma.
+> - **Billetera P2P** ([§9](#9-money-in-pago-con-billetera-móvil-yape-plin)): el **vendedor** cobra directamente su propia venta íntegra. **No genera deuda ni cuentas de plataforma** — sin comisión, a la plataforma no le corresponde nada de ese dinero.
 >
-> Esa inversión de la relación de deuda es la razón por la que el efectivo necesita `cashOnHand`, límite de custodia y depósito obligatorio — y por la que la billetera P2P necesita `STORE_FLOAT`, límite de deuda y neteo en la liquidación.
+> Por eso el efectivo necesita `cashOnHand`, límite de custodia y depósito obligatorio, mientras que la billetera P2P solo necesita registro operativo del pago confirmado (comprobante + auditoría), sin contabilidad de custodia.
 >
-> Un recaudador integrado ([§9.4](#94-modelo-b--recaudador-integrado-objetivo)) colapsa el tercer caso sobre el primero: contablemente se comporta igual que la tarjeta.
+> Un recaudador integrado ([§9.4](#94-recaudador-integrado-opcional-a-futuro)) colapsa el tercer caso sobre el primero: contablemente se comporta igual que la tarjeta.
 
 ---
 
 ## 6. Descomposición del total del pedido
 
-Ejemplo con un pedido de **S/ 100.00** pagado con tarjeta, tienda en plan Pro (5% comisión).
+Ejemplo con un pedido de **S/ 100.00** pagado con tarjeta. **Sin comisión de plataforma** (decisión 2026-08-26): el neto del vendedor es su subtotal completo.
 
 ```mermaid
 flowchart TD
@@ -330,8 +335,7 @@ flowchart TD
     T --> IGV["IGV 18%<br/>S/ 18.00"]
     T --> DF["Delivery fee<br/>S/ 8.00"]
 
-    SUB --> PC["Comisión plataforma 5%<br/>S/ 5.00"]
-    SUB --> SN["Neto vendedor<br/>S/ 95.00"]
+    SUB --> SN["Neto vendedor<br/>S/ 100.00<br/><i>sin comisión</i>"]
 
     DF --> RC["Comisión repartidor<br/>S/ 6.80"]
     DF --> PD["Margen plataforma delivery<br/>S/ 1.20"]
@@ -341,25 +345,22 @@ flowchart TD
 
 ### 6.1 Orden de cálculo (obligatorio)
 
-El orden importa. Calcular la comisión sobre el total con IGV incluido es un error que infla la comisión un 18%.
-
 ```
 1. subtotal        = SUM(item.price * item.quantity)
 2. igv             = subtotal * 0.18
 3. deliveryFee     = tarifa de zona/distancia
 4. total           = subtotal + igv + deliveryFee
-5. platformCommission = subtotal * plan.commissionPct     // ← sobre subtotal, NO sobre total
-6. storeNet        = subtotal - platformCommission
-7. riderCommission = f(config, distancia, nivel)          // ver §10
-8. platformDeliveryMargin = deliveryFee - riderCommission
+5. storeNet        = subtotal                              // sin comisión: el vendedor cobra su subtotal completo
+6. riderCommission = f(config, distancia, nivel)           // ver §10
+7. platformDeliveryMargin = deliveryFee - riderCommission
 ```
 
 > [!CAUTION]
-> **La comisión de plataforma se calcula sobre el `subtotal`, jamás sobre el `total`.**
-> El IGV no es ingreso de la tienda: es dinero de SUNAT que la tienda solo recauda. Cobrar comisión sobre el IGV significa cobrarle al vendedor por recaudar impuestos ajenos — es incorrecto contablemente y probablemente impugnable legalmente.
+> **La comisión de plataforma NO EXISTE (2026-08-26).** Los campos `platformCommission` y `storeNet` se eliminan del schema por migración y ningún cálculo debe reintroducirla: la monetización es la suscripción ([[MODELO_NEGOCIO]]).
+> La regla histórica de "nunca calcular porcentajes sobre el total con IGV incluido" sigue vigente para cualquier porcentaje futuro que pueda existir sobre la venta.
 
 > [!WARNING]
-> **Brecha actual:** no existe ningún cálculo de `platformCommission` sobre el pedido. El modelo `Order` tiene `subtotal`, `igv`, `deliveryFee` y `total`, pero ningún campo que registre cuánto le corresponde a la plataforma ni cuánto al vendedor. La comisión de plataforma **solo existe dentro del cálculo de la entrega** (`platformFeePct` sobre la tarifa del repartidor), no sobre la venta.
+> **Consecuencia económica a tener presente:** el único ingreso por pedido es el margen de delivery (S/ 1.20 en el ejemplo), mientras que el fee de pasarela se cobra sobre el total (≈ S/ 5.61 con tarjeta). **Un pedido pagado con tarjeta deja margen negativo para la plataforma**; en COD no hay fee y el margen es positivo. Esto ya se analizó en [[MODELO_NEGOCIO]] §4 y alimenta las decisiones D3/D4 (traslado de fee e incentivo de método de pago), hoy acotadas al delivery.
 
 ---
 
@@ -384,13 +385,12 @@ sequenceDiagram
         API-->>W: 409 ALREADY_PAID
     end
 
-    API->>DB: Congela snapshot:<br/>platformCommission, storeNet
     API->>CQ: createCharge<br/>{amount: centimos, currency: PEN}
     CQ-->>API: charge.id, outcome
 
     alt Cobro aceptado
         API->>L: EntryGroup ORDER_CAPTURE
-        Note over L: +GATEWAY_RECEIVABLE 118.00<br/>-STORE_PAYABLE 95.00<br/>-PLATFORM_REVENUE 5.00<br/>-IGV_PAYABLE 18.00
+        Note over L: +GATEWAY_RECEIVABLE 118.00<br/>-STORE_PAYABLE 100.00<br/>-IGV_PAYABLE 18.00<br/>(sin comisión de plataforma)
         API->>DB: paymentStatus = PAID<br/>status = CONFIRMED
         API-->>W: 200 OK
     else Rechazado
@@ -449,7 +449,7 @@ sequenceDiagram
     R->>API: POST /deliveries/:id/complete<br/>{otp, photoUrl}
 
     API->>L: EntryGroup ORDER_CAPTURE_CASH
-    Note over L: +RIDER_FLOAT 118.00<br/>-STORE_PAYABLE 95.00<br/>-PLATFORM_REVENUE 5.00<br/>-IGV_PAYABLE 18.00
+    Note over L: +RIDER_FLOAT 118.00<br/>-STORE_PAYABLE 100.00<br/>-IGV_PAYABLE 18.00<br/>(sin comisión de plataforma)
 
     API->>L: EntryGroup COMMISSION
     Note over L: +PLATFORM_REVENUE 6.80<br/>-RIDER_PAYABLE 6.80
@@ -499,32 +499,27 @@ sequenceDiagram
 ## 9. Money-in: pago con billetera móvil (Yape, Plin)
 
 > [!WARNING]
-> **Este canal existe en el producto pero NO EXISTE en el ledger.** `create-order.dto.ts:16` acepta `YAPE` y `PLIN` como métodos de pago de primera clase y `payments.service.ts:191` (`confirmManualPayment`) marca el pedido como `PAID`, pero **no emite ningún EntryGroup**. Las únicas llamadas a `ledger.post()` en el código viven en `refund.service.ts:133`, `settlement.service.ts:136` y `billing.service.ts:71`. Ver [§19 B15](#19-brechas-actuales-vs-objetivo).
+> **Este canal existe en el producto y NO emite asientos — y desde la decisión del 2026-08-26 eso es correcto.** `create-order.dto.ts:16` acepta `YAPE` y `PLIN` como métodos de pago de primera clase y `payments.service.ts:191` (`confirmManualPayment`) marca el pedido como `PAID`. Como **no hay comisión por venta** ([[MODELO_NEGOCIO]]), el dinero va directo del cliente al vendedor y **no cruza ninguna cuenta de la plataforma**: no hay nada que asentar. Lo único pendiente del canal es auditoría operativa (ver [§9.3](#93-conciliación-y-auditoría-del-canal)) y el bug de capitalización B16.
 
-En Yape y Plin el dinero viaja **de billetera a billetera**. La plataforma no está en el medio salvo que se contrate un recaudador. Eso abre dos modelos incompatibles entre sí, y el sistema tiene que elegir uno de forma explícita.
+En Yape y Plin el dinero viaja **de billetera a billetera**: el vendedor cobra su venta íntegra, sin intermediación de la plataforma y sin fee para nadie. La eliminación de la comisión por venta disolvió el dilema Modelo A vs Modelo B que este documento planteaba originalmente: **el flujo actual de las tiendas (Modelo A, P2P con comprobante) es también el diseño objetivo**, porque no le cuesta nada a la plataforma ni genera deuda recuperable.
 
-| Dimensión | Modelo A — P2P con comprobante | Modelo B — recaudador integrado |
+| Dimensión | P2P con comprobante (flujo actual = objetivo) | Recaudador integrado (opcional futuro, §9.4) |
 | --- | --- | --- |
-| Custodia del dinero | **Vendedor** | **Plataforma** |
+| Custodia del dinero | **Vendedor** (su propia venta) | **Plataforma** |
 | Confirmación del cobro | Manual, la hace el propio vendedor | Webhook firmado del proveedor |
-| Comisión de plataforma | Deuda a recuperar en la liquidación | Retenida en el momento de la captura |
-| Costo por transacción | S/ 0.00 para la plataforma | ≈ 2.49 % + S/ 0.30 |
-| Riesgo de desintermediación | Alto | Nulo |
-| Riesgo de morosidad | Alto | Nulo |
-| Emisor del comprobante fiscal | Ambiguo | Plataforma |
-| Cuentas involucradas | `STORE_FLOAT`, `STORE_PAYABLE` | `GATEWAY_RECEIVABLE`, `PLATFORM_CASH` |
+| Ingreso de plataforma por la venta | S/ 0.00 — monetiza por suscripción | S/ 0.00 — solo cambiaría el costo: ≈ 2.49 % + S/ 0.30 |
+| Asientos de plataforma | Ninguno | Igual que tarjeta ([§7](#7-money-in-pago-con-tarjeta-culqi)), sin línea de comisión |
+| Emisor del comprobante fiscal | El vendedor | Ambiguo — requiere análisis legal |
 
 > [!IMPORTANT]
-> Con este canal el eje de **custodia** del [§5 Mapa global](#5-mapa-global-del-dinero) pasa a tener tres casos, no dos:
+> El eje de **custodia** del [§5 Mapa global](#5-mapa-global-del-dinero) sigue teniendo tres casos:
 > - **Tarjeta** → custodia la **plataforma** (§7).
 > - **COD** → custodia el **repartidor**, y le debe a la plataforma (§8).
-> - **Billetera P2P** → custodia el **vendedor**, y le debe a la plataforma (§9, Modelo A).
->
-> El Modelo B elimina el tercer caso: contablemente se comporta igual que la tarjeta.
+> - **Billetera P2P** → el dinero nunca fue de la plataforma: el vendedor cobra directo. No genera cuentas ni deuda (§9).
 
 ---
 
-### 9.1 Modelo A — P2P con comprobante (el flujo de hoy)
+### 9.1 Flujo operativo (P2P con comprobante)
 
 ```mermaid
 sequenceDiagram
@@ -532,106 +527,61 @@ sequenceDiagram
     participant W as tiendi-web
     participant V as Vendedor
     participant API as tiendi-api
-    participant L as Ledger
 
     C->>W: Elige Yape/Plin en el checkout
     W->>API: POST /orders { paymentMethod: "YAPE" }
-    API->>API: Congela platformCommission y storeNet (§6.1)
     API-->>W: Número o QR de la billetera del vendedor
-    C->>C: Transfiere desde su app de Yape al vendedor
+    C->>C: Transfiere desde su app de Yape al vendedor<br/>(100% del total es del vendedor)
     C->>W: Sube el comprobante
     W->>API: Adjunta comprobante al pedido
     API-->>V: Notificación "pago por verificar"
-    V->>API: confirmManualPayment(orderId)
-    API->>API: paymentStatus = PAID
-    API->>L: post(ORDER_CAPTURE_WALLET)
-    API->>L: post(WALLET_SELF_SETTLE)
-    L-->>API: STORE_FLOAT = deuda del vendedor
+    V->>API: confirmManualPayment(orderId)<br/>idempotencyKey: wallet-proof:{orderId}:confirm
+    API->>API: paymentStatus = PAID<br/>+ registro de auditoría (quién, cuándo, comprobante)
     API-->>C: Pedido confirmado
 ```
 
-Sobre el pedido canónico de [§6](#6-descomposición-del-total-del-pedido) — subtotal S/ 100.00, IGV S/ 18.00, comisión de plataforma S/ 5.00 (plan Pro), neto del vendedor S/ 95.00:
-
-```
-EntryGroup ORDER_CAPTURE_WALLET
-+STORE_FLOAT:{storeId}      118.00
--STORE_PAYABLE:{storeId}     95.00
--PLATFORM_REVENUE             5.00
--IGV_PAYABLE                 18.00
-```
-
-El vendedor ya tiene ese dinero encima, así que su propio neto se cancela en el acto:
-
-```
-EntryGroup WALLET_SELF_SETTLE
-+STORE_PAYABLE:{storeId}     95.00
--STORE_FLOAT:{storeId}       95.00
-```
-
-**Saldo resultante:** `STORE_FLOAT:{storeId}` queda deudor en **S/ 23.00** — exactamente la comisión de plataforma más el IGV que el vendedor cobró por cuenta de la plataforma. `STORE_PAYABLE:{storeId}` queda sin variación neta, porque el vendedor se pagó a sí mismo.
-
-> [!TIP]
-> `STORE_FLOAT:{storeId}` es el espejo exacto de `RIDER_FLOAT:{riderId}`: una cuenta de **activo de la plataforma** que representa dinero propio en manos de un tercero. La diferencia es que el repartidor custodia billetes y el vendedor custodia saldo digital.
-
-> [!CAUTION]
-> **No colapsar los dos asientos en uno solo de S/ 23.00.** Registrar únicamente el margen destruye la comparabilidad entre canales: el ledger dejaría de poder responder "cuánto se vendió" y las conciliaciones de [§18](#18-conciliación-y-cierre-diario) no cerrarían contra `Order.total`.
-
-La comisión del repartidor, cuando hay reparto, se registra en su propio `EntryGroup COMMISSION` según [§10](#10-comisión-del-repartidor), igual que en tarjeta y en COD.
+Sin asientos de plataforma, sin `STORE_FLOAT`, sin neteo. El pedido entra a la estadística de ventas de la tienda (que alimenta la agregación de demanda del catálogo maestro) pero **no** al ledger de dinero.
 
 ---
 
-### 9.2 Recuperación de la comisión
+### 9.2 Por qué ya no existe la deuda de billetera
 
-La deuda acumulada en `STORE_FLOAT:{storeId}` se recupera por **neteo contra la liquidación semanal** ([§14](#14-liquidación-al-vendedor-settlement), paso de retenciones):
+El diseño anterior a la decisión del 2026-08-26 contemplaba toda una maquinaria para recuperar la comisión de plataforma en ventas P2P:
 
-```
-EntryGroup WALLET_DEBT_OFFSET
-+STORE_PAYABLE:{storeId}     23.00
--STORE_FLOAT:{storeId}       23.00
-```
+| Mecanismo eliminado | Para qué servía |
+| --- | --- |
+| `STORE_FLOAT:{storeId}` | Acumular como activo la comisión + IGV que el vendedor cobró por cuenta de la plataforma |
+| Asientos `ORDER_CAPTURE_WALLET` / `WALLET_SELF_SETTLE` | Registrar esa deuda en partida doble |
+| `WALLET_DEBT_OFFSET` / `WALLET_DEBT_PAYMENT` | Recuperarla neteando la liquidación semanal o por pago directo |
+| `walletDebtLimit` (S/ 300) + `walletPaymentsBlocked` | Acotar la morosidad cortando el canal por tienda |
 
-Si la tienda tiene saldo acreedor suficiente por pedidos con tarjeta o COD, la deuda simplemente reduce el payout. Si no lo tiene, `STORE_PAYABLE:{storeId}` **queda en negativo y se arrastra al ciclo siguiente** — el mismo mecanismo que [§16](#16-devoluciones-cancelaciones-y-contracargos) ya exige para contracargos.
-
-Vía alternativa, cuando el vendedor regulariza por fuera:
-
-```
-EntryGroup WALLET_DEBT_PAYMENT
-+PLATFORM_CASH               23.00
--STORE_FLOAT:{storeId}       23.00
-```
-
-> [!CAUTION]
-> **El neteo falla justo en el caso que más importa.** Una tienda que opera *exclusivamente* con Yape nunca genera saldo acreedor en `STORE_PAYABLE`, así que no hay nada contra qué netear: la deuda crece sin techo y la única palanca de cobro es dejar de venderle el servicio. Por eso el límite de [§9.3](#93-límite-de-deuda-del-vendedor) no es opcional en el Modelo A — es lo único que acota la pérdida.
+**Todos quedan fuera del diseño.** Sin comisión no hay nada que recuperar: el vendedor cobró SU dinero, no dinero de la plataforma. La motivación completa de la eliminación está en [[MODELO_NEGOCIO]] (cabecera): las tiendas ya operan así, forzarlas a deberle a la plataforma por su propia venta era generar un problema de cobranza donde no lo había.
 
 ---
 
-### 9.3 Límite de deuda del vendedor
+### 9.3 Conciliación y auditoría del canal
 
-| Parámetro | Valor propuesto | Motivo |
-| --- | --- | --- |
-| `walletDebtLimit` | S/ 300.00 | Exposición máxima por tienda antes de cortar el canal |
-| `walletDebtGraceDays` | 7 días | Un ciclo completo de liquidación ([§14.3](#14-liquidación-al-vendedor-settlement)) |
-| Acción al superar el límite | `walletPaymentsBlocked = true` | Deshabilita Yape/Plin en el checkout **de esa tienda** |
-| Alcance del bloqueo | Solo métodos de billetera | Tarjeta y COD siguen activos: no se corta la operación completa |
-| Acción tras 2 ciclos sin regularizar | Escalado a soporte y suspensión del plan | Morosidad estructural |
+Sin asientos, la conciliación nocturna de [§18](#18-conciliación-y-cierre-diario) **no puede cuadrar los pedidos de billetera contra el ledger**. La regla:
+
+| Chequeo | Alcance |
+| --- | --- |
+| Cuadre `SUM(Order.total) == SUM(asientos ORDER_CAPTURE*)` | **Excluye** pedidos `YAPE`/`PLIN`/`CASH`-directo: su dinero nunca tocó cuentas de plataforma |
+| Auditoría de confirmaciones manuales | Obligatoria: quién confirmó, cuándo y con qué comprobante, con `idempotencyKey` `wallet-proof:{orderId}:confirm` |
+| Detección de doble confirmación | La idempotencia del endpoint es la única barrera: un doble clic no debe duplicar estados |
 
 > [!CAUTION]
-> **`walletPaymentsBlocked` nunca debe afectar pedidos ya confirmados.** El bloqueo aplica a **ofrecer el método en el checkout**, no a cobrar, despachar o liquidar lo que ya está en curso. Es la misma regla que `cashBlocked` en [§8.2](#82-límite-de-custodia-de-efectivo).
-
-> [!NOTE]
-> El flag debe recalcularse como **derivada del saldo de `STORE_FLOAT`** en cada liquidación y en cada pago de deuda, nunca escribirse como estado independiente. Persistirlo por separado es lo que produjo la brecha B4 en repartidores.
+> **La verificación del comprobante sigue siendo confirmación de parte interesada.** Que no haya dinero de plataforma en juego no elimina el riesgo operativo: un vendedor puede confirmar un pago que no ocurrió (ej. para disparar la preparación/entrega antes de cobrar). El registro de auditoría con comprobante adjunto es el control mínimo; no se diseña validación automática de comprobantes en esta etapa.
 
 ---
 
-### 9.4 Modelo B — recaudador integrado (objetivo)
+### 9.4 Recaudador integrado (opcional a futuro)
 
-Yape opera como método de pago dentro de Culqi y Niubiz. Con un recaudador, el dinero entra a la cuenta de la plataforma y **la contabilidad es idéntica a la de tarjeta** ([§7](#7-money-in-pago-con-tarjeta-culqi)); lo único que cambia es la tasa del fee.
+Yape puede operar como método de pago dentro de Culqi o Niubiz si algún día se quiere intermediar el cobro (por ejemplo, para ofrecer liquidación semanal del canal billetera). Con un recaudador, el dinero entra a la cuenta de la plataforma y **la contabilidad es idéntica a la de tarjeta** ([§7](#7-money-in-pago-con-tarjeta-culqi)), sin línea de comisión:
 
 ```
 EntryGroup ORDER_CAPTURE
 +GATEWAY_RECEIVABLE         118.00
--STORE_PAYABLE:{storeId}     95.00
--PLATFORM_REVENUE             5.00
+-STORE_PAYABLE:{storeId}    100.00
 -IGV_PAYABLE                 18.00
 ```
 
@@ -644,20 +594,18 @@ EntryGroup GATEWAY_SETTLEMENT
 -GATEWAY_RECEIVABLE         118.00
 ```
 
-No hace falta `STORE_FLOAT`, ni límite de deuda, ni neteo, ni verificación manual. La comisión se retiene en el instante de la captura.
-
-> [!IMPORTANT]
-> **Recomendación: adoptar el Modelo B y dejar el Modelo A como degradado explícito.** El Modelo A invierte la custodia a favor de la parte a la que se le está cobrando, y convierte cada comisión en un problema de cobranza. Un fee de 2.49 % es un costo conocido y acotado; una cartera de deuda de vendedores no lo es.
+> [!CAUTION]
+> **No adoptar por defecto.** Con monetización por suscripción, este canal le agrega a la plataforma un costo fijo por transacción (el fee del recaudador) **sin ningún ingreso asociado**: el único ingreso sigue siendo la suscripción. Solo tiene sentido como producto vendible al vendedor (ej. garantía de fondos), no como infraestructura por defecto.
 
 ---
 
 ### 9.5 Consideraciones críticas
 
 > [!CAUTION]
-> **Desintermediación.** En el Modelo A el vendedor conoce el monto, tiene el dinero y controla la confirmación. Nada le impide acordar con el cliente por fuera y **no registrar el pedido**. La plataforma no puede detectar lo que nunca se le informó: no es un problema de validación de comprobantes, es un problema estructural del canal.
+> **Desintermediación — hoy pierde datos, no dinero.** Antes de la eliminación de la comisión, cada venta no registrada era comisión perdida. Hoy el costo de un pedido no registrado es distinto pero real: **datos de demanda** (la agregación que sostiene el modelo mayorista, [[MODELO_NEGOCIO]] §7) y, si el acuerdo incluye entrega propia, el fee de delivery. La plataforma no puede detectar lo que nunca se le informó: sigue siendo una limitación estructural del canal.
 
-> [!CAUTION]
-> **IGV y comprobante fiscal.** El asiento acredita `IGV_PAYABLE` a la plataforma, pero en el Modelo A quien recibió el dinero fue el vendedor. Quién emite la boleta o factura determina quién declara ese IGV ante SUNAT. Definir esto antes de implementar; ver [[COMPLIANCE_LEGAL]].
+> [!NOTE]
+> **IGV y comprobante fiscal en P2P.** Quien recibió el dinero fue el vendedor: la emisión de boleta/factura y la declaración del IGV son íntegramente suyas, igual que en una venta en mostrador. La pregunta fiscal de "quién emite" solo reaparece si algún día se adopta el recaudador de [§9.4](#94-recaudador-integrado-opcional-a-futuro); ver [[COMPLIANCE_LEGAL]].
 
 > [!WARNING]
 > **Brecha actual — comparación de método de pago con distinta capitalización.** `create-order.dto.ts:16` persiste `'CASH' | 'YAPE' | 'PLIN' | 'TRANSFER' | 'CARD'` en mayúsculas, pero `payments.service.ts:200` y `refund.service.ts:106` comparan contra `'card'` en minúsculas. La guarda de `confirmManualPayment` **nunca se cumple**: hoy un vendedor puede marcar como `PAID` un pedido con tarjeta desde el panel, sin cobro real. `matching.service.ts:569` sí compara en mayúsculas. Unificar en un enum único.
@@ -977,7 +925,7 @@ stateDiagram-v2
 > **La retención de 7 días no es capricho: es gestión de riesgo.** Si se liquida al vendedor el mismo día y el cliente pide devolución al día siguiente, la plataforma tiene que recuperar dinero que ya no controla. La retención garantiza que la ventana de disputa cierre antes de que el dinero salga.
 
 > [!CAUTION]
-> **Toda liquidación debe ir acompañada de un detalle desglosado.** El vendedor tiene que poder reconciliar el monto recibido contra sus pedidos, uno por uno: pedido, subtotal, comisión, devoluciones, neto. Una transferencia sin detalle genera disputas que consumen soporte y erosionan confianza.
+> **Toda liquidación debe ir acompañada de un detalle desglosado.** El vendedor tiene que poder reconciliar el monto recibido contra sus pedidos, uno por uno: pedido, subtotal, devoluciones, neto. Una transferencia sin detalle genera disputas que consumen soporte y erosionan confianza.
 
 > [!NOTE]
 > **Zona horaria: `America/Lima` explícito, siempre.** Un corte que usa la hora del servidor produce períodos de distinta duración cuando el servidor está en UTC, y pedidos que caen en el período equivocado. Todo cálculo de período debe ser explícito en la zona del negocio.
@@ -1171,7 +1119,7 @@ flowchart TD
 | I5 | `PLATFORM_CASH == saldo bancario real` | **Crítica** |
 | I6 | Ningún `PayoutRequest` en `PROCESSING` por más de 48 h | Alta |
 | I7 | Ningún `pending` sin movimiento por más de 30 días | Media |
-| I8 | `SUM(STORE_FLOAT)` == deuda de billetera declarada por tienda | Alta |
+| ~~I8~~ | ~~`SUM(STORE_FLOAT)` == deuda de billetera declarada por tienda~~ | **Eliminado (2026-08-26)**: la cuenta `STORE_FLOAT` ya no existe en el diseño |
 
 > [!CAUTION]
 > **Si I1 falla, se detienen TODOS los payouts automáticamente.** Un ledger descuadrado significa que el sistema no sabe cuánto dinero tiene. Seguir pagando en ese estado convierte un error de contabilidad en una pérdida real e irreversible.
@@ -1182,6 +1130,9 @@ flowchart TD
 ---
 
 ## 19. Brechas actuales vs objetivo
+
+> [!WARNING]
+> **Descubrimiento (2026-08-26):** verificado contra `tiendi-api/src`, el asiento de captura `ORDER_CAPTURE` **no existe para NINGÚN método de pago** — no solo para billetera (B15). Los únicos módulos que escriben al ledger hoy son `refund`, `settlement` y `billing`. Las tablas de §7 y §8 describen el diseño objetivo; la captura de pedidos es trabajo pendiente y convive con la eliminación de comisión de esta fecha: cuando se implemente, se hace ya sin línea `-PLATFORM_REVENUE`.
 
 | # | Brecha | Severidad | Ubicación | Impacto |
 |---|--------|-----------|-----------|---------|
@@ -1197,9 +1148,9 @@ flowchart TD
 | **B10** | Multiplicador usa la fecha de ejecución | Media | `delivery.service.ts` → `new Date().getDay()` | Reprocesos pierden el recargo de fin de semana |
 | **B11** | Sin idempotencia en operaciones de dinero | Media | Transversal | Reintentos duplican movimientos |
 | **B12** | `tip` hardcodeado en `0` | Baja | `delivery.service.ts` | La propina no existe funcionalmente |
-| **B13** | Sin comisión de plataforma sobre la venta | **Alta** | Modelo `Order` | La plataforma solo monetiza el delivery |
-| **B14** | Sin flujo de devoluciones ni contracargos | **Alta** | No existe el módulo | Toda disputa se resuelve a mano |
-| **B15** | Yape/Plin marca `PAID` sin emitir ningún asiento | **Crítica** | `payments.service.ts:191` → `confirmManualPayment()` | La venta, la comisión y el IGV no existen en el ledger: la comisión es incobrable |
+| **B13** | ~~Sin comisión de plataforma sobre la venta~~ **OBSOLETA (2026-08-26)** — la comisión fue eliminada como concepto; los campos existentes se quitan por migración (Tanda 2 del checklist en [[MODELO_NEGOCIO]]) | Cerrada | `schema.prisma:288-290,406`, `orders.service.ts:143-148` | Ya no hay brecha: el comportamiento "sin comisión" pasa a ser el diseño |
+| **B14** | Sin flujo de devoluciones ni contracargos | ~~Alta~~ ✅ Implementada (Fase 5) | `refund.service.ts` | — |
+| **B15** | Yape/Plin marca `PAID` sin emitir ningún asiento | ~~Crítica~~ → **Menor (auditabilidad)** — reencuadrada 2026-08-26: sin comisión no hay dinero de plataforma que pierda, solo falta el registro de auditoría de [§9.3](#93-conciliación-y-auditoría-del-canal) | `payments.service.ts:191` → `confirmManualPayment()` | Sin auditoría de quién confirmó y con qué comprobante |
 | **B16** | `paymentMethod` comparado con distinta capitalización | **Alta** | `payments.service.ts:200`, `refund.service.ts:106` | La guarda de tarjeta nunca se cumple: un vendedor puede marcar `PAID` un pedido con tarjeta sin cobro real |
 
 ---
@@ -1261,7 +1212,7 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 > **Implementada (2026-08-25)** — commits de `tiendi-api` y `tiendi-vendor`:
 >
 > - **B2**: modelos `PayoutRequest` + `PayoutBatch` con el ciclo de estados de §14.2; `SettlementService.runWeeklySettlement()` crea lote RESERVED solo para saldos ≥ S/ 50 (debajo se arrastran); job semanal lunes 00:00 Lima (`0 5 * * *` UTC); procesamiento por cola BullMQ. ⚠️ El `transfer()` bancario es un **stub** (responde éxito) — conectar el proveedor real es lo único que falta para dinero en movimiento.
-> - **B13**: `Order.platformCommission` + `Order.storeNet` congelados al crear el pedido, calculados sobre el **subtotal sin IGV** (§6.1) según `SubscriptionPlan.commissionPct` (default 5%).
+> - **B13**: `Order.platformCommission` + `Order.storeNet` congelados al crear el pedido, calculados sobre el **subtotal sin IGV** (§6.1) según `SubscriptionPlan.commissionPct` (default 5%). **⚠️ Superseded (2026-08-26):** la comisión fue eliminada como concepto — estos campos y este cálculo se eliminan por migración (ver [[MODELO_NEGOCIO]], Tanda 2 del checklist). Se conserva el registro histórico de lo implementado.
 > - Panel del vendor: `/vendor/payouts` lista las liquidaciones de la tienda con período, monto, estado y fecha de pago.
 >
 > Tests: 4 nuevos (`settlement.service.spec.ts`). Suite 478/478.
@@ -1304,15 +1255,16 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 ### Fase 6 — Money-in por billetera (Yape, Plin)
 
 > [!IMPORTANT]
-> **Antes de escribir código hay que cerrar una decisión de negocio**: Modelo A (P2P con comprobante) o Modelo B (recaudador integrado) — ver [§9.4](#94-modelo-b--recaudador-integrado-objetivo). Los dos modelos no comparten cuentas ni asientos, así que implementar uno y migrar al otro es reescribir el canal entero.
+> **Reescrita (2026-08-26).** La decisión de monetización por suscripción única ([[MODELO_NEGOCIO]]) disolvió el dilema Modelo A vs Modelo B: el flujo P2P actual es el diseño objetivo y **no lleva asientos de plataforma** (ver §9). Lo que queda del canal es auditoría y el arreglo de seguridad B16. Los ítems de deuda de billetera (`STORE_FLOAT`, neteo, límites) fueron eliminados del diseño.
 
 - [ ] **B16** — Unificar `paymentMethod` en un enum único (arreglo de seguridad, independiente del modelo elegido)
-- [ ] **B15** — Emitir `ORDER_CAPTURE_WALLET` + `WALLET_SELF_SETTLE` al confirmar el pago (Modelo A)
-- [ ] Cuenta `STORE_FLOAT:{storeId}` en el plan de cuentas y en el invariante I8 de [§18.1](#18-conciliación-y-cierre-diario)
-- [ ] Neteo de la deuda de billetera en la liquidación semanal (`WALLET_DEBT_OFFSET`), con arrastre en negativo
-- [ ] `walletDebtLimit` y `walletPaymentsBlocked` **derivados** del saldo de `STORE_FLOAT`, nunca persistidos como estado independiente
-- [ ] Auditoría de la confirmación manual: quién, cuándo y con qué comprobante, con `idempotencyKey` `wallet-proof:{orderId}:confirm`
-- [ ] Alternativa Modelo B: habilitar Yape vía Culqi/Niubiz y reusar el flujo de tarjeta de [§7](#7-money-in-pago-con-tarjeta-culqi) sin cuentas nuevas
+- [ ] Auditoría de la confirmación manual: quién, cuándo y con qué comprobante, con `idempotencyKey` `wallet-proof:{orderId}:confirm` ([§9.3](#93-conciliación-y-auditoría-del-canal))
+- [ ] Excluir pedidos `YAPE`/`PLIN` del cuadre nocturno contra el ledger en [§18](#18-conciliación-y-cierre-diario) (el dinero nunca tocó cuentas de plataforma)
+- [ ] ~~Emitir `ORDER_CAPTURE_WALLET` + `WALLET_SELF_SETTLE`~~ — eliminado: sin comisión no hay nada que asentar
+- [ ] ~~Cuenta `STORE_FLOAT:{storeId}` + invariante I8~~ — eliminado
+- [ ] ~~Neteo `WALLET_DEBT_OFFSET` en liquidación~~ — eliminado
+- [ ] ~~`walletDebtLimit` / `walletPaymentsBlocked`~~ — eliminado
+- [ ] Recaudador integrado ([§9.4](#94-recaudador-integrado-opcional-a-futuro)) — solo si algún día se vende como producto; NO por defecto
 
 ---
 

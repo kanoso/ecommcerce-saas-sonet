@@ -17,6 +17,60 @@ aliases:
 Este documento analiza **cómo Tiendi puede generar ingresos**, cuánto cuesta operarlo en producción, y evalúa la tesis de convertir la plataforma en un canal de distribución mayorista.
 
 > [!IMPORTANT]
+> ## ✅ Decisión de monetización (2026-08-26)
+>
+> **Tiendi se monetiza exclusivamente por suscripción SaaS. La comisión por venta queda eliminada como concepto** — no como palanca dormida al 0%, sino fuera del modelo de negocio.
+>
+> Motivos que la sustentan:
+>
+> 1. **La venta en mostrador y el Yape/Plin P2P son la realidad operativa de las tiendas**, y ninguno de los dos pasa por la plataforma: una comisión sobre ventas solo capturaría una fracción del negocio real y crearía el problema de recuperación de deuda documentado en [[FLUJO_DINERO]] §9.
+> 2. **El análisis de margen de [§4](#4-el-problema-estructural-del-margen)** ya demostró que con pago por tarjeta el take rate dejaba menos de S/ 0.60 netos por pedido de S/ 118.
+> 3. La infraestructura de cobro recurrente por suscripción **ya está implementada** (`SubscriptionPlan`, ciclo de cobro vía Culqi, dunning, prorrateo).
+>
+> Consecuencias registradas:
+>
+> - Los campos `commissionPct` (`SubscriptionPlan`), `platformCommission` y `storeNet` (`Order`) **se eliminan del schema mediante migración** (decidido 2026-08-26).
+> - La comisión del **repartidor** NO está afectada: es economía de delivery, no monetización de plataforma ([[FLUJO_DINERO]] §10).
+> - El cobro de la propia suscripción **no debe pasar por defecto por Culqi**: la pasarela cobra su fee (~3% + IGV) sobre el ingreso de la plataforma misma. Ver [§3.2](#32-cobro-de-la-suscripción-política-de-pasarela).
+>
+> Las secciones [§4](#4-el-problema-estructural-del-margen) y las tablas de palancas conservan el análisis original como justificación de esta decisión; donde el texto recomienda comisión, manda esta nota.
+
+### Checklist de implementación de la decisión
+
+**Tanda 1 — Documentación**
+
+- [x] `MODELO_NEGOCIO.md` — registro de decisión en cabecera (esta sección)
+- [x] `MODELO_NEGOCIO.md` — nueva §3.2: política de cobro de la suscripción (pasarela por defecto fuera, indicador de fee si se habilita tarjeta)
+- [x] `MODELO_NEGOCIO.md` — alinear §2 (estado real del código), §3 (palancas), §11.1 (gratuidad), Fase 0, §12 (D2/D3/D4/D8) y glosario
+- [x] `FLUJO_DINERO.md` — banner de decisión + §6 descomposición sin comisión (`storeNet = subtotal`)
+- [x] `FLUJO_DINERO.md` — §9 simplificado: eliminar maquinaria de deuda de billetera (`STORE_FLOAT`, límite S/ 300, neteo, `walletPaymentsBlocked`)
+- [x] `FLUJO_DINERO.md` — reencuadrar B15 (crítica → auditabilidad) + documentar que `ORDER_CAPTURE` no existe para ningún método hoy
+- [x] `FLUJO_DINERO.md` — reescribir Fase 6 (billetera queda como registro informativo, sin recuperación de comisión)
+- [x] `FACTURACION_Y_CONTABILIDAD.md` — confirmar alcance de §7 (el hueco de billetera evapora) + corregir §8 (ledger ya implementado)
+
+**Tanda 2 — Código** (ejecutada 2026-08-26)
+
+- [x] Migración Prisma: drop de `SubscriptionPlan.commissionPct`, `Order.platformCommission`, `Order.storeNet` (`20260826120000_drop_commission_fields`)
+- [x] `orders.service.ts`: eliminar cálculo y persistencia de comisión; `storeNet` desaparece, el neto del vendedor es el subtotal
+- [x] `refund.service.ts`: revisada la absorción de `PLATFORM_REVENUE` en refunds sin comisión → **sin cambios requeridos**: la matriz de responsabilidad usa solo `subtotal`/`deliveryFee`/`total`, y la línea `PLATFORM_REVENUE` es el tapón de balance que absorbe fee de pasarela/disputas, no comisión
+- [x] `tiendi-vendor/src/app/vendor/core/types/subscription.types.ts`: quitar campo de comisión (`commissionPercent`)
+- [x] Specs verificados: ninguno referenciaba los tres campos eliminados (no hubo que reescribir `ledger.service.spec` ni `refund.service.spec`). Suite verde post-cambio: **50 suites / 492 tests**, `tsc --noEmit` limpio (se corrigió de paso un casteo pre-existente roto en `auth-session-revocation.spec.ts`)
+
+**Tanda 3 — Cobro de suscripción** (decisiones tomadas 2026-08-26, registradas en [§3.2](#32-cobro-de-la-suscripción-política-de-pasarela) y D8)
+
+- [x] Decidir canal de cobro por defecto: transferencia/Yape (sin fee) como primario
+- [x] Si se habilita cobro con tarjeta vía Culqi: indicador visible del fee de pasarela + aceptación explícita de la tienda antes del primer cargo
+
+**Tanda 4 — Maquinaria del cobro fuera de pasarela**
+
+> ✅ **COMPLETA (2026-08-26)** — backend + UI implementados y verificados (API: 50 suites / 504 tests; vendor: build limpio). El canal por defecto off-gateway es plenamente operable y el cobro con tarjeta exige aceptación explícita del fee.
+
+- [x] Endpoint de **registro de pago manual**: `POST /stores/:storeId/subscription/register-payment` (Yape/Plin/transferencia) — la referencia del extracto es clave de idempotencia, postea `SUBSCRIPTION_REVENUE` con débito a `PLATFORM_CASH`, avanza `nextBillingAt` desde el período pagado y regulariza `past_due`; notifica a la tienda
+- [x] **Recordatorio de vencimiento + past_due**: job diario (`runRenewalMaintenance` tras el ciclo de cobro) notifica D-7/3/1 deduplicado por período y marca `past_due` tras 3 días de gracia sin pago confirmado (corregido también el bug pre-existente: `getSubscription()` no devolvía nada)
+- [x] **Opt-in tarjeta vía Culqi — backend**: migración `20260826130000_subscription_card_fee_optin` (`StoreSubscription.cardFeeAcceptedAt`); `GET .../card-fee-info` expone desglose del fee estimado; `POST .../accept-card-fee` registra la aceptación; `runBillingCycle` omite el cargo automático sin aceptación registrada
+- [x] **Opt-in tarjeta vía Culqi — UI en tiendi-vendor**: componente `app-card-fee-optin` en la página de suscripción — muestra el desglose del fee, estado Habilitado/Desactivado y botón de aceptación contra los endpoints; `GET .../subscription` ahora devuelve `planId`, uso del plan, `currentPeriodEnd`, `pastDue`, `hasGatewayCard` y `cardFeeAcceptedAt` (alineado con lo que el panel ya consumía)
+
+> [!IMPORTANT]
 > **Estado del proyecto: pre-lanzamiento.** No hay tiendas activas ni transacciones reales.
 > Este es un documento de **decisión estratégica**, no una descripción del estado actual del negocio.
 > Las brechas técnicas confirmadas contra el código de hoy están marcadas con callouts `[!WARNING]`.
@@ -47,7 +101,7 @@ Este documento analiza **cómo Tiendi puede generar ingresos**, cuánto cuesta o
 ## Índice
 
 1. [Contexto y alcance](#1-contexto-y-alcance)
-2. [Estado actual: tres motores, cero ingresos](#2-estado-actual-tres-motores-cero-ingresos)
+2. [Estado actual: suscripción activa, comisión eliminada](#2-estado-actual-suscripción-activa-comisión-eliminada)
 3. [Palancas de monetización disponibles](#3-palancas-de-monetización-disponibles)
 4. [El problema estructural del margen](#4-el-problema-estructural-del-margen)
 5. [Costos de operación en producción](#5-costos-de-operación-en-producción)
@@ -81,52 +135,41 @@ La pregunta que responde este documento: **¿de dónde sale el dinero?**
 
 ---
 
-## 2. Estado actual: tres motores, cero ingresos
+## 2. Estado actual: suscripción activa, comisión eliminada
 
-El sistema tiene tres mecanismos de monetización parcialmente construidos. **Ninguno cobra dinero hoy.**
+> [!IMPORTANT]
+> **Actualizado por la decisión del 2026-08-26** (ver cabecera): la comisión por venta queda eliminada como concepto. Esta sección describe los motores que quedan y el destino de los campos existentes.
 
 ```mermaid
 flowchart LR
     subgraph BUILT["Construido en el código"]
-        SUB["Suscripciones<br/>SubscriptionPlan + StoreSubscription"]
-        COM["Comisión por venta"]
+        SUB["Suscripciones<br/>SubscriptionPlan + cobro vía Culqi<br/>dunning + prorrateo"]
+        COM["Comisión por venta<br/>campos en schema + cálculo<br/>en orders.service.ts"]
         DEL["Margen de delivery<br/>platformFeePct"]
     end
 
-    subgraph REALITY["Ingreso real generado"]
-        Z1["S/ 0.00"]
-        Z2["S/ 0.00"]
-        Z3["S/ 0.00"]
+    subgraph FATE["Destino"]
+        KEEP["Se mantiene:<br/>única palanca de monetización"]
+        DROP["Se elimina por migración<br/>(Tanda 2 del checklist)"]
+        KEEPD["Se mantiene:<br/>economía de delivery,<br/>no es monetización"]
     end
 
-    SUB -->|"changePlan() es un UPDATE puro"| Z1
-    COM -->|"el campo no existe"| Z2
-    DEL -->|"se descuenta al rider,<br/>no es margen sobre el fee"| Z3
+    SUB --> KEEP
+    COM --> DROP
+    DEL --> KEEPD
 
-    style Z1 fill:#5a1e1e,color:#fff
-    style Z2 fill:#5a1e1e,color:#fff
-    style Z3 fill:#5a1e1e,color:#fff
+    style KEEP fill:#1e4a2a,color:#fff
+    style DROP fill:#5a1e1e,color:#fff
+    style KEEPD fill:#1e3a5a,color:#fff
 ```
 
 ### 2.1 Detalle por motor
 
-| Motor | Qué existe | Qué falta |
-|-------|-----------|-----------|
-| **Suscripciones** | `SubscriptionPlan` con `price`, `annualPrice`, `billingCycle`, `maxProducts`, `maxOrdersPerMonth`, `maxStaff`, `features` | Todo el cobro: job de facturación, integración con pasarela, prorrateo, reintentos (*dunning*), degradación por impago |
-| **Comisión por venta** | Nada | Campo `commissionPct` en el plan, campos `platformCommission` y `storeNet` en `Order`, cálculo, y liquidación al vendedor |
-| **Margen de delivery** | `platformFeePct` sobre la tarifa calculada del repartidor | Separar contablemente el margen de plataforma del descuento al repartidor |
-
-> [!WARNING]
-> **`changePlan()` en `subscription.service.ts` es un `UPDATE` de base de datos sin cobro.**
-> Cambiar a un plan superior no genera ningún cargo. El sistema de planes existe hoy únicamente como metadatos.
-
-> [!WARNING]
-> **`SubscriptionPlan` no tiene campo `commissionPct`.**
-> El modelo de negocio asume comisión diferenciada por plan (ej. plan Pro = 5%), pero el schema no puede representarlo. Es un campo a agregar antes de cualquier implementación de comisiones.
-
-> [!WARNING]
-> **`Order` no registra el reparto del dinero.**
-> Tiene `subtotal`, `igv`, `deliveryFee` y `total`, pero ningún campo que indique cuánto corresponde a la plataforma y cuánto al vendedor. Sin eso no hay liquidación auditable.
+| Motor | Qué existe | Estado tras la decisión |
+|-------|-----------|------------------------|
+| **Suscripciones** | `SubscriptionPlan` (`price`, `annualPrice`, `billingCycle`, límites, `features`) + ciclo de cobro recurrente vía Culqi con dunning y prorrateo ([[FLUJO_DINERO]] Fase 4) | **Palanca única de monetización.** Pendiente: definir canal de cobro por defecto fuera de pasarela ([§3.2](#32-cobro-de-la-suscripción-política-de-pasarela)) |
+| **Comisión por venta** | `commissionPct` en `SubscriptionPlan` (default 5), `platformCommission`/`storeNet` en `Order`, cálculo al crear pedido | **Eliminada.** Los tres campos se quitan por migración; el neto del vendedor pasa a ser el subtotal |
+| **Margen de delivery** | `platformFeePct` sobre la tarifa calculada del repartidor | Se mantiene: es economía de delivery ([[FLUJO_DINERO]] §10), no monetización sobre ventas |
 
 ---
 
@@ -136,10 +179,9 @@ flowchart LR
 mindmap
   root((Ingresos<br/>Tiendi))
     Del vendedor
-      Comisión por venta
-        take rate sobre subtotal
       Suscripción SaaS
         plan mensual o anual
+        única palanca activa
       Publicidad
         posicionamiento en búsqueda
         carrusel destacado
@@ -155,22 +197,36 @@ mindmap
       Comisión de intermediación
 ```
 
+> La rama "Comisión por venta" fue eliminada del mapa por la decisión del 2026-08-26 (ver cabecera).
+
 ### 3.1 Evaluación por palanca
 
 | # | Palanca | Esfuerzo | Ingreso | Riesgo | Prioridad |
 |---|---------|----------|---------|--------|-----------|
-| 1 | **Comisión por venta** | Alto | Alto | Bajo | Alta |
-| 2 | **Suscripción SaaS** | Medio | Medio | Bajo | Media |
-| 3 | **Margen de delivery** | Bajo | Bajo | Bajo | Alta |
+| 1 | ~~**Comisión por venta**~~ | Alto | Alto | Bajo | ❌ **ELIMINADA (2026-08-26)** |
+| 2 | **Suscripción SaaS** | Medio | Medio | Bajo | ✅ **ÚNICA PALANCA ACTIVA** |
+| 3 | **Margen de delivery** | Bajo | Bajo | Bajo | Activa (economía de entrega, no monetización de ventas) |
 | 4 | **Publicidad / posicionamiento** | Bajo | Medio | Bajo | Media |
 | 5 | **Fees del repartidor** | Bajo | Bajo | Bajo | Baja |
 | 6 | **Servicios financieros** | Muy alto | Muy alto | Muy alto | Tardía |
 | 7 | **Venta mayorista** | Muy alto | Muy alto | Alto | Ver §7 |
 
-> [!TIP]
-> **Comisión antes que suscripción.** La comisión escala con el éxito del vendedor y no exige pago por adelantado a quien todavía no vendió nada. Una tienda nueva que debe pagar una cuota fija antes de su primera venta simplemente no se registra; una que entrega un porcentaje de lo que vende, sí.
->
-> La suscripción funciona mejor como **upgrade**: menos comisión a cambio de una cuota fija. Ese es el mecanismo que convierte tiendas de alto volumen en suscriptores.
+> [!IMPORTANT]
+> **Decisión inversa a la recomendación original (2026-08-26).** Este documento recomendaba "comisión antes que suscripción". La decisión tomada va en sentido contrario y sus motivos están en la cabecera: las tiendas operan con venta en mostrador y Yape/Plin P2P que nunca atraviesan la plataforma, así que una comisión por venta capturaría una fracción del negocio real a cambio de toda la maquinaria de deuda de [[FLUJO_DINERO]] §9. El análisis de [§4](#4-el-problema-estructural-del-margen) (margen neto de S/ 0.59 por pedido con tarjeta) refuerza la decisión.
+
+### 3.2 Cobro de la suscripción: política de pasarela
+
+La suscripción es el ingreso de la plataforma, pero cobrarlo con tarjeta vía Culqi tiene un costo directo: la pasarela cobra su fee (~3% + IGV) **sobre el ingreso propio**. Sobre un plan de S/ 39, eso son ~S/ 1.40/mes por tienda que se pierden sin entregar valor a nadie.
+
+Política acordada:
+
+| Modo | Estado | Condición |
+|------|--------|-----------|
+| **Cobro fuera de pasarela** (transferencia / Yape / Plin a cuenta de la plataforma) | **Canal por defecto** | Sin fee de gateway; conciliación manual o semiautomática contra extracto bancario |
+| **Cobro con tarjeta vía Culqi** | Desactivado por defecto | Solo se habilita si la tienda acepta explícitamente el fee: la UI debe mostrar el monto de la comisión de pasarela antes del primer cargo y registrar esa aceptación |
+
+> [!NOTE]
+> El dunning y los reintentos automáticos ya implementados aplican al cobro con tarjeta. Para el canal por defecto fuera de pasarela, el recordatorio de vencimiento es notificación + estado `past_due`, sin reintento automático posible.
 
 > [!CAUTION]
 > Ninguna de estas palancas es viable sin el ledger de doble entrada y el ciclo de liquidación descritos en [[FLUJO_DINERO]].
@@ -181,6 +237,9 @@ mindmap
 ## 4. El problema estructural del margen
 
 Este es el hallazgo más importante del documento.
+
+> [!IMPORTANT]
+> **Este análisis es uno de los fundamentos de la decisión del 2026-08-26** (ver cabecera): con comisión por venta y pago con tarjeta, el margen neto por pedido era de centavos. La respuesta adoptada no fue subir el take rate sino eliminar la comisión y monetizar por suscripción. El análisis se conserva como justificación; las "salidas posibles" de §4.5 quedaron resueltas por esa vía para el caso de la comisión (la traslación del costo de pasarela al cliente final sigue abierta solo para el fee de delivery).
 
 ### 4.1 La descomposición
 
@@ -745,9 +804,9 @@ flowchart LR
 
 | Tarea | Motivo |
 |-------|--------|
-| Catálogo maestro `MasterProduct` + captura de GTIN | Sin esto no hay ventaja informativa (§8) |
-| Ledger de doble entrada | Sin esto no hay liquidación auditable ([[FLUJO_DINERO]]) |
-| Campos `commissionPct`, `platformCommission`, `storeNet` | Sin esto no hay comisión (§2) |
+| Catálogo maestro `MasterProduct` + captura de GTIN | Sin esto no hay ventaja informativa (§8) — ✅ implementado ([[CATALOGO_MAESTRO]]) |
+| Ledger de doble entrada | Sin esto no hay liquidación auditable ([[FLUJO_DINERO]]) — ✅ implementado (Fases 1-5) |
+| ~~Campos `commissionPct`, `platformCommission`, `storeNet`~~ | ~~Sin esto no hay comisión~~ → **Invertido (2026-08-26): eliminarlos por migración** (Tanda 2 del checklist) |
 | Push como canal primario, SMS como fallback | Evita el costo variable dominante (§6.1) |
 | Caché de geocoding | Evita el segundo costo variable (§6.2) |
 
@@ -772,7 +831,7 @@ El margen más alto, sin inventario, y aprovecha el dato que solo la plataforma 
 > [!CAUTION]
 > **No anunciar "gratis para siempre".** Es una promesa que no se puede retirar sin costo reputacional.
 >
-> Alternativa recomendada: un plan gratuito **generoso** —suficiente para ganar adopción— manteniendo la estructura de planes y comisiones implementada aunque configurada en cero. Si el modelo mayorista tarda más de lo previsto en generar ingresos, la palanca de monetización sigue disponible.
+> Alternativa recomendada: un plan gratuito **generoso** —suficiente para ganar adopción— con la estructura de planes y límites implementada. ~~Si el modelo mayorista tarda más de lo previsto en generar ingresos, la palanca de comisión sigue disponible.~~ **Actualizado (2026-08-26):** esa red de seguridad ya no existe — la comisión se elimina como concepto y el único ingreso de suscripción es el cobro del plan. Si el modelo mayorista demora, no hay palanca intermedia: o se reintroduce la comisión como decisión nueva, o se sostiene el consumo de caja con la suscripción.
 >
 > **La infraestructura cuesta ~USD 100/mes desde el día uno.** Si el negocio mayorista demora 18 meses en madurar, ese es el período de consumo de caja sin ingresos que debe estar financiado.
 
@@ -795,12 +854,13 @@ El margen más alto, sin inventario, y aprovecha el dato que solo la plataforma 
 | # | Decisión | Impacto | Estado |
 |---|----------|---------|--------|
 | D1 | **Categoría objetivo de las tiendas** (consumo masivo vs. nicho) | Determina la viabilidad del modelo mayorista (§7.2) | **Abierta — bloqueante** |
-| D2 | Take rate objetivo | Determina el margen por pedido (§4.3) | Abierta |
-| D3 | ¿Se traslada el costo de pasarela al cliente? | Margen y conversión | Abierta |
-| D4 | ¿Se incentiva COD sobre tarjeta? | Margen vs. riesgo de efectivo (§4.4) | Abierta |
+| D2 | ~~Take rate objetivo~~ | ~~Determina el margen por pedido (§4.3)~~ | ✅ **RESUELTO (2026-08-26)** por eliminación: no hay take rate ni comisión; la monetización es suscripción ([§3.1](#31-evaluación-por-palanca)) |
+| D3 | ¿Se traslada el costo de pasarela al cliente? | Reformulada: sin comisión, el único margen por pedido en juego es el de delivery. Para el cobro de la propia suscripción la respuesta ya está en §3.2 (fee visible + aceptación explícita si se usa tarjeta) | Abierta (acotada a delivery) |
+| D4 | ¿Se incentiva COD sobre tarjeta? | Reformulada igual que D3: afecta al margen de delivery y al riesgo de custodia de efectivo ([[FLUJO_DINERO]] §8), ya no a una comisión sobre ventas | Abierta (acotada a delivery) |
 | D5 | Política de uso de datos de venta de las tiendas | Confianza y riesgo legal (§9.4) | ✅ **RESUELTO (2026-08-25)** — agregados con k ≥ 3, nunca individualizados |
 | D6 | Segmento de tiendas objetivo | Riesgo crediticio y margen (§10) | Abierta |
-| D7 | ¿Plan gratuito permanente o generoso reversible? | Reversibilidad de la monetización (§11.1) | Abierta |
+| D7 | ¿Plan gratuito permanente o generoso reversible? | Reversibilidad de la monetización (§11.1) — con la comisión eliminada, la reversibilidad es menor: reintroducirla sería una decisión nueva | Abierta |
+| D8 | **Canal de cobro de la suscripción** | Fee de pasarela sobre ingreso propio ([§3.2](#32-cobro-de-la-suscripción-política-de-pasarela)) | ✅ **RESUELTO (2026-08-26)** — por defecto fuera de pasarela; tarjeta opt-in con indicador de fee y aceptación explícita |
 
 > [!IMPORTANT]
 > **D1 es bloqueante.** Con margen de consumo masivo (~10% bruto), el modelo mayorista rinde apenas más que el take rate SaaS y exige infinitamente más capital y operación. Con margen de nicho (~35%), justifica plenamente la complejidad.
@@ -815,7 +875,7 @@ El margen más alto, sin inventario, y aprovecha el dato que solo la plataforma 
 
 | Término | Definición |
 |---------|------------|
-| **Take rate** | Porcentaje del valor de la venta que retiene la plataforma como comisión |
+| **Take rate** | ~~Porcentaje del valor de la venta que retiene la plataforma como comisión~~ **Concepto eliminado (2026-08-26)**: Tiendi no cobra comisión sobre ventas; se conserva el término solo por el análisis histórico de §4 y §7 |
 | **GMV** | *Gross Merchandise Value*. Valor total transaccionado en la plataforma |
 | **COD** | *Cash On Delivery*. Pago contra entrega en efectivo |
 | **CAC** | *Customer Acquisition Cost*. Costo de adquirir un cliente |

@@ -318,14 +318,17 @@ Hoy emitir un comprobante — tarea **diaria** — está enterrado detrás de un
 
 ## 7. Estado de cuenta del vendedor
 
-**Brecha confirmada:** no existe ninguna ruta en `tiendi-vendor` donde el vendedor pueda ver cuánto le debe Tiendi, qué comisión se le descontó ni cuándo se le liquida.
+**Brecha confirmada:** no existe ninguna ruta en `tiendi-vendor` donde el vendedor pueda ver cuánto le debe Tiendi ni cuándo se le liquida.
+
+> [!NOTE]
+> **Actualizado (2026-08-26):** con la eliminación de la comisión por venta ([[MODELO_NEGOCIO]]), este estado de cuenta **no necesita mostrar deuda de billetera** (`STORE_FLOAT` ya no existe en el diseño de [[FLUJO_DINERO]] §9): en Yape/Plin el vendedor cobra su venta íntegra y no le debe nada a la plataforma. El alcance original de esta sección queda como está — el hueco que se anticipaba para el canal billetera evaporó con la decisión.
 
 ### 7.1 Alcance
 
 | Incluye | Excluye |
 |---|---|
 | Saldo actual de `STORE_PAYABLE:{storeId}` | Cualquier otra cuenta del ledger |
-| Asientos línea por línea (venta, comisión, liquidación) | Comisiones de otras tiendas |
+| Asientos línea por línea (venta, liquidación, devoluciones) | Comisiones de otras tiendas |
 | Liquidaciones recibidas y sus fechas | Margen de la plataforma |
 | Próxima liquidación estimada | Saldos de repartidores |
 
@@ -357,11 +360,12 @@ graph TD
 | API de comprobantes y config SUNAT | ✅ Implementado | `tiendi-api/src/modules/legal/` |
 | Módulo `wallet` (movimientos) | ✅ Implementado | `tiendi-api/src/modules/wallet/` |
 | Módulo `admin` (backend) | ✅ Existe, sin frontend | `tiendi-api/src/modules/admin/` |
-| Ledger de partida doble | 🔲 Solo diseñado | [[FLUJO_DINERO]] |
+| Ledger de partida doble | ✅ Implementado ([[FLUJO_DINERO]] Fases 1-5, corregido 2026-08-26 — este ítem estaba desactualizado) | `tiendi-api/src/modules/ledger/` |
 | App back-office (`tiendi-admin`) | ✅ Implementado | `tiendi-admin/` |
 | Estado de cuenta del vendedor | 🔲 No existe | — |
 | Split `invoicing` / `compliance` | 🔲 Acordado, sin ejecutar | — |
 | `/vendor/riders` fuera del panel | ✅ Migrado | `tiendi-admin/src/app/admin/features/riders/` |
+| Eliminación de campos de comisión (`commissionPct`, `platformCommission`, `storeNet`) | 🔲 Decidido (2026-08-26), pendiente de migración | [[MODELO_NEGOCIO]] Tanda 2 del checklist |
 
 > [!IMPORTANT]
 > **`wallet/` no es contabilidad.** Registra movimientos de dinero sin partida doble, sin asientos y sin la garantía de atomicidad del principio **P4** de [[FLUJO_DINERO]]. Es un precursor, no un sustituto del ledger.
@@ -390,12 +394,13 @@ Mecánico, bajo riesgo y sin dependencias. Va primero porque toca los mismos arc
 
 ### Fase 2 — Ledger de partida doble
 
-El trabajo que duele y el que habilita todo lo demás. Vive en `tiendi-api`, sin frontend nuevo.
+> [!NOTE]
+> **Implementada** vía [[FLUJO_DINERO]] Fases 1-5 (2026-08-25): `modules/ledger/` con `LedgerService.post()` idempotente, reversas, invariantes en tests y conciliación nocturna. Ítems marcados con ese criterio.
 
-- [ ] Modelos `LedgerAccount`, `EntryGroup`, `LedgerEntry` según [[FLUJO_DINERO]]
-- [ ] Atomicidad del principio **P4**: movimiento de dinero + asientos + saldos en la misma transacción
-- [ ] Idempotencia por `idempotencyKey` y reversas vía `reversalOfId`
-- [ ] Invariante verificable en tests: `SUM(asientos) == 0`
+- [x] Modelos `LedgerAccount`, `EntryGroup`, `LedgerEntry` según [[FLUJO_DINERO]]
+- [x] Atomicidad del principio **P4**: movimiento de dinero + asientos + saldos en la misma transacción
+- [x] Idempotencia por `idempotencyKey` y reversas vía `reversalOfId`
+- [x] Invariante verificable en tests: `SUM(asientos) == 0`
 - [ ] Backfill o convivencia con `wallet/` durante la transición
 
 ### Fase 3 — Estado de cuenta del vendedor
