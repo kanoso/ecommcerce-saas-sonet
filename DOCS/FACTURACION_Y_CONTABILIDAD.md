@@ -385,12 +385,12 @@ graph TD
 
 Mecánico, bajo riesgo y sin dependencias. Va primero porque toca los mismos archivos que la Fase 3 (`vendor.routes.ts`, `sidebar.component.ts`): ordenar la superficie antes de agregar pantallas evita tocar dos veces lo mismo y resolver conflictos autoinfligidos.
 
-- [ ] `tiendi-api`: `legal/` → `invoicing/` + `compliance/`
-- [ ] `tiendi-vendor`: `features/legal/` → `features/invoicing/` + `features/compliance/`
-- [ ] Partir `legal.store.ts` (hoy maneja los tres tabs con un único `activeTab()`)
-- [ ] Actualizar `vendor.routes.ts` (tres rutas lazy-loaded)
-- [ ] Actualizar `sidebar.component.ts` (dos entradas en lugar de una)
-- [ ] Redirecciones temporales desde `/vendor/legal*`
+- [x] `tiendi-api`: `legal/` → `invoicing/` + `compliance/` (2026-08-26, rutas idénticas para no romper consumidores)
+- [x] `tiendi-vendor`: `features/legal/` → `features/invoicing/` + `features/compliance/`
+- [x] Partir `legal.store.ts` (hoy maneja los tres tabs con un único `activeTab()`) → `InvoicingStore` (facturación+SUNAT) y `ComplianceStore` (reclamos)
+- [x] Actualizar `vendor.routes.ts` → `/vendor/invoicing` y `/vendor/compliance` lazy-loaded
+- [x] Actualizar `sidebar.component.ts` ("Facturación" + "Libro de Reclamos")
+- [x] Redirecciones temporales desde `/vendor/legal*`
 
 ### Fase 2 — Ledger de partida doble
 
@@ -405,11 +405,13 @@ Mecánico, bajo riesgo y sin dependencias. Va primero porque toca los mismos arc
 
 ### Fase 3 — Estado de cuenta del vendedor
 
+> ✅ **Implementada (2026-08-26):** `GET /stores/:storeId/account-statement` (`AccountStatementService`, módulo ledger) + sección "Estado de cuenta" en la página de Liquidaciones de `tiendi-vendor`.
+
 Recién acá la pantalla se apoya en datos auditables.
 
-- [ ] Endpoint `GET /vendor/account-statement` filtrado por `ownerType=STORE, ownerId={storeId}`
-- [ ] Pantalla de estado de cuenta en `tiendi-vendor`
-- [ ] Verificar que la respuesta **nunca** incluya cuentas ajenas al `storeId` de la sesión
+- [x] Endpoint `GET /vendor/account-statement` filtrado por `ownerType=STORE, ownerId={storeId}` (ruta efectiva: `/stores/:storeId/account-statement`; paginado con `?take=`, saldo histórico aparte)
+- [x] Pantalla de estado de cuenta en `tiendi-vendor`
+- [x] Verificar que la respuesta **nunca** incluya cuentas ajenas al `storeId` de la sesión — test estructural: la query filtra `ownerId` del parámetro validado con ownership check (dueño/SUPER_ADMIN/empleado activo)
 
 ### Fase 4 — Back-office
 
