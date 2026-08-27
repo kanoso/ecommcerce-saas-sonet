@@ -476,7 +476,7 @@ sequenceDiagram
 > El anti-patrón es acumular la comisión en un estado `pending` que ningún proceso convierte nunca en saldo disponible.
 
 > [!WARNING]
-> **Brecha actual:** el campo `pending` de la wallet **solo recibe sumas**. La única escritura está en `creditCommission()` (`delivery.service.ts:846`) y no existe ningún proceso que convierta `pending → balance`. **Toda comisión ganada en pedidos en efectivo queda congelada de forma permanente.**
+> ~~**Brecha actual:** el campo `pending` de la wallet **solo recibe sumas**...~~ **Resuelto (Fase 2/3):** `reconcileDeposit()` (B3) libera `pending → balance` al conciliar el depósito bancario. La forma correcta de pensar `pending` es la de esta sección: deuda compensable, no congelamiento.
 
 ### 8.2 Límite de custodia de efectivo
 
@@ -491,8 +491,7 @@ sequenceDiagram
 > **`cashBlocked` nunca debe impedir COMPLETAR una entrega en curso.** Si un repartidor cruza el límite a mitad de ruta y el sistema le bloquea la finalización, el cliente se queda sin pedido y el efectivo sin registrar. El bloqueo aplica exclusivamente a **aceptar entregas nuevas**.
 
 > [!WARNING]
-> **Brecha actual:** `cashBlocked` se pone en `true` en `delivery.service.ts:845` pero **`confirmCashDeposit()` nunca lo devuelve a `false`**. Hay incluso un comentario en `delivery.service.ts:754` que afirma que el endpoint de depósito lo limpia — pero el código de `wallet.service.ts` no toca ese campo.
-> **Consecuencia:** el primer repartidor que cruce S/ 200 queda bloqueado **para siempre**, sin ninguna vía de recuperación desde la aplicación.
+> ~~**Brecha actual:** `cashBlocked` se pone en `true`...~~ **Resuelto (B4):** `confirmCashDeposit()` recalcula `cashBlocked` como derivada del nuevo `cashOnHand` (límite S/ 200, §8.2).
 
 ---
 
@@ -1305,10 +1304,12 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 **Plan de migración (en orden):**
 
-- [ ] **F7.1 — Modelo de asientos**: definir los EntryGroups por operación y cerrar las preguntas contables abiertas:
-  - Cuenta nueva `RIDER_PAYABLE:{riderId}` (LIABILITY) para comisiones devengadas no cobradas.
-  - **Pregunta abierta**: en COD, ¿el deliveryFee cobrado por el rider fue plata del vendedor que el rider ya custodia? Coherencia requerida entre §10, §12 y I3 — resolver ANTES de F7.2.
-  - Retiro → débito `RIDER_FLOAT` ↔ crédito cuenta bancaria puente hasta integración I5.
+- [x] **F7.1 — Modelo de asientos** (resuelto 2026-08-26): la respuesta a la pregunta de COD la dio §8 — **el repartidor es custodio del total completo** (`RIDER_FLOAT` +total con contrapartida `STORE_PAYABLE`/`IGV_PAYABLE` en `ORDER_CAPTURE_CASH`), y su comisión es asiento separado contra `RIDER_PAYABLE`. Modelo cerrado por operación:
+  - **W1 comisión** (`DELIVERY_COMMISSION`): `+PLATFORM_REVENUE totalCommission / −RIDER_PAYABLE totalCommission`
+  - **W2 retiro** (`RIDER_WITHDRAWAL`): `−RIDER_PAYABLE amount / −PLATFORM_CASH amount` (la plata sale al banco del rider; el débito de `balance` pasa a ser proyección)
+  - **W3 depósito** (`CASH_DEPOSIT_CONFIRMED`): `+PLATFORM_CASH amount / −RIDER_FLOAT:{riderId} amount`
+  - **W4 conciliación**: **sin asiento** — solo reestructura la proyección (`pending→balance`); el hecho económico ya está asentado en W1+W3
+  - `cashOnHand` pasa a derivarse del saldo `RIDER_FLOAT`; `ORDER_CAPTURE_CASH` (captura del total en POD) es parte del money-in de §8, fuera del alcance de esta fase
 - [ ] **F7.2 — Pares atómicos**: cada mutación W1-W4 poste su asiento DENTRO de la misma transacción Prisma; las columnas del wallet pasan a ser proyección derivada (principio P1). Mantener tabla `Wallet` y API estable.
 - [ ] **F7.3 — Backfill cero**: pre-launch no hay saldos reales que reconciliar; si existieran filas con saldo ≠ 0, crear un EntryGroup inicial `WALLET_MIGRATION_OPENING:{riderId}` por diferencia.
 - [ ] **F7.4 — Invariante nuevo I8**: para cada wallet activo, `balance + pending + cashOnHand` derivado debe igualar la suma de sus cuentas ledger; sumarlo a `runDailyChecks`.
