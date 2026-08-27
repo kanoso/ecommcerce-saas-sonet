@@ -1289,6 +1289,34 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 ---
 
+### Fase 7 — Migración de wallets al ledger (decidida: SÍ, pre-lanzamiento)
+
+> [!IMPORTANT]
+> **Decidido (2026-08-26): migrar YA.** Verificado contra código: hoy el módulo `wallet/` NO toca el ledger — son dos sistemas de dinero paralelos. Pre-lanzamiento es la única ventana barata: no hay históricos masivos ni riders con saldo real. La convivencia definitiva dejaría proyecciones (`balance`/`pending`/`cashOnHand`) sin respaldo contable para siempre.
+
+**Escritores de dinero al wallet hoy (verificados, sin asiento):**
+
+| # | Operación | Código | Campos que toca |
+|---|-----------|--------|-----------------|
+| W1 | Comisión por entrega | `delivery.service.creditCommission()` | balance+, pending+, cashOnHand+ (COD), totalEarned+ |
+| W2 | Retiro | `wallet.service.requestWithdrawal()` | balance− (Transaction PROCESSING) |
+| W3 | Depósito de efectivo | `wallet.service.confirmCashDeposit()` | cashOnHand− |
+| W4 | Conciliación de depósito | `reconciliation.reconcileDeposit()` | pending− balance+ |
+
+**Plan de migración (en orden):**
+
+- [ ] **F7.1 — Modelo de asientos**: definir los EntryGroups por operación y cerrar las preguntas contables abiertas:
+  - Cuenta nueva `RIDER_PAYABLE:{riderId}` (LIABILITY) para comisiones devengadas no cobradas.
+  - **Pregunta abierta**: en COD, ¿el deliveryFee cobrado por el rider fue plata del vendedor que el rider ya custodia? Coherencia requerida entre §10, §12 y I3 — resolver ANTES de F7.2.
+  - Retiro → débito `RIDER_FLOAT` ↔ crédito cuenta bancaria puente hasta integración I5.
+- [ ] **F7.2 — Pares atómicos**: cada mutación W1-W4 poste su asiento DENTRO de la misma transacción Prisma; las columnas del wallet pasan a ser proyección derivada (principio P1). Mantener tabla `Wallet` y API estable.
+- [ ] **F7.3 — Backfill cero**: pre-launch no hay saldos reales que reconciliar; si existieran filas con saldo ≠ 0, crear un EntryGroup inicial `WALLET_MIGRATION_OPENING:{riderId}` por diferencia.
+- [ ] **F7.4 — Invariante nuevo I8**: para cada wallet activo, `balance + pending + cashOnHand` derivado debe igualar la suma de sus cuentas ledger; sumarlo a `runDailyChecks`.
+- [ ] **F7.5 — Lecturas derivadas**: `getTransactions` pasa a servir desde LedgerEntry filtrado por cuentas del rider (la tabla `Transaction` queda deprecated, no eliminada).
+- [ ] **F7.6 — Suite verde + verificación doble-escritura** durante un período de sombra antes de declarar deprecada la escritura directa.
+
+---
+
 ## Referencias internas
 
 - [[DIAGRAMAS_SECUENCIA_COMISIONES]] — modelo de comisiones y monetización
