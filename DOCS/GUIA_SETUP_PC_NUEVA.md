@@ -197,13 +197,28 @@ docker compose -f FUENTES\tiendi-api\docker-compose.yml up -d
 
 ## 7. Publicar cambios en esta PC (flujo diario)
 
-Desde la PC de desarrollo:
+Desde la PC de desarrollo (o esta misma PC si desarrollás aquí):
 
 ```powershell
-git add <archivos>
-git commit -m "feat(scope): mensaje"
+cd D:\Proyectos\ecommcerce-saas-sonet
+
+# 1. Commitear primero en los SUBMÓDULOS que cambiaron
+git -C FUENTES\tiendi-web add <archivos>
+git -C FUENTES\tiendi-web commit -m "feat(scope): mensaje"
+
+# 2. PUSH de los submódulos ANTES que el padre
+git -C FUENTES\tiendi-web push
+
+# 3. Después: commitear y pushear el padre (bump del puntero del submódulo)
+git add FUENTES\tiendi-web
+git commit -m "chore(submódulos): bump tiendi-web"
 git push
 ```
+
+> [!IMPORTANT]
+> El orden es estricto: **submódulos primero, repo padre después**.
+> Si se pushea el padre primero, queda apuntando a commits que aún no
+> existen en el remote de los submódulos.
 
 En la PC de publicación:
 
@@ -211,10 +226,6 @@ En la PC de publicación:
 git -C D:\Proyectos\ecommcerce-saas-sonet pull --ff-only
 git -C D:\Proyectos\ecommcerce-saas-sonet submodule update --init --recursive
 ```
-
-> [!IMPORTANT]
-> Recordar pushear primero los **submódulos** que hayan cambiado y después el repo padre
-> (bump del puntero). El orden inverso deja el padre apuntando a commits inexistentes.
 
 ---
 
