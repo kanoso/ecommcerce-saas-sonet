@@ -145,13 +145,17 @@ El ledger opera sobre cuentas tipadas. Cada cuenta tiene un `type` que determina
 | `RIDER_PAYABLE:{riderId}` | Pasivo | Acreedora | Lo que la plataforma le debe al repartidor |
 | `IGV_PAYABLE` | Pasivo | Acreedora | IGV recaudado pendiente de declarar |
 | `CUSTOMER_REFUND_PAYABLE` | Pasivo | Acreedora | Devoluciones aprobadas aún no ejecutadas |
-| `PLATFORM_REVENUE` | Ingreso | Acreedora | Margen operativo de plataforma (delivery). **Ya no acumula comisión por venta** (eliminada 2026-08-26) |
+| `PLATFORM_REVENUE` | Ingreso | Acreedora | Margen operativo de plataforma (delivery). Se reconoce en el money-in del delivery fee, NO en el asiento de comisión (2026-08-27). **Ya no acumula comisión por venta** (eliminada 2026-08-26) |
+| `RIDER_COMMISSION_EXPENSE` | Gasto | Deudora | Comisión devengada del repartidor por entrega completada (F7.2/W1) |
 | `SUBSCRIPTION_REVENUE` | Ingreso | Acreedora | Ingresos por planes de suscripción |
 | `GATEWAY_FEE_EXPENSE` | Gasto | Deudora | Fee cobrado por Culqi |
 | `CHARGEBACK_EXPENSE` | Gasto | Deudora | Pérdida por contracargos no recuperados |
 
 > [!TIP]
 > Las cuentas con sufijo `:{id}` son **subcuentas por contraparte**. El saldo de la wallet de un vendedor es literalmente el saldo de su `STORE_PAYABLE:{storeId}`. Eso hace que la wallet sea auditable línea por línea sin ninguna lógica adicional.
+
+> [!IMPORTANT]
+> **Convención de signos (2026-08-27, verificada contra código):** los montos se registran en débito/crédito — **débito = +, crédito = −**. Cuentas deudoras (activo, gasto) crecen con +; cuentas acreedoras (pasivo, ingreso) crecen con −: un pasivo que sube (debemos más) se registra en NEGATIVO. Ejemplos: `+PLATFORM_CASH` = entra plata al banco; `−STORE_PAYABLE` = debemos más al vendedor; `−RIDER_PAYABLE` = debemos más al rider. I1 (suma cero por grupo) se verifica sobre estos montos firmados. Los asientos de `refund.service` y `settlement.service` estaban con signos invertidos respecto de esta convención y se corrigieron (pre-launch, sin histórico real).
 
 **Invariante global del sistema:**
 
@@ -452,7 +456,7 @@ sequenceDiagram
     Note over L: +RIDER_FLOAT 118.00<br/>-STORE_PAYABLE 100.00<br/>-IGV_PAYABLE 18.00<br/>(sin comisión de plataforma)
 
     API->>L: EntryGroup COMMISSION
-    Note over L: +PLATFORM_REVENUE 6.80<br/>-RIDER_PAYABLE 6.80
+    Note over L: +RIDER_COMMISSION_EXPENSE 6.80<br/>-RIDER_PAYABLE 6.80<br/>(el margen se reconoce en el money-in)
 
     API->>API: Recalcula cashOnHand<br/>= saldo RIDER_FLOAT
 
@@ -681,8 +685,8 @@ totalCommission                                = 11.74
 Asientos generados:
 
 ```
-+PLATFORM_REVENUE           11.74
--RIDER_PAYABLE:{riderId}    11.74
++RIDER_COMMISSION_EXPENSE    11.74
+-RIDER_PAYABLE:{riderId}     11.74
 ```
 
 ---
@@ -1304,17 +1308,18 @@ Objetivo: que nada esté roto de forma peligrosa o irrecuperable.
 
 **Plan de migración (en orden):**
 
-- [x] **F7.1 — Modelo de asientos** (resuelto 2026-08-26): la respuesta a la pregunta de COD la dio §8 — **el repartidor es custodio del total completo** (`RIDER_FLOAT` +total con contrapartida `STORE_PAYABLE`/`IGV_PAYABLE` en `ORDER_CAPTURE_CASH`), y su comisión es asiento separado contra `RIDER_PAYABLE`. Modelo cerrado por operación:
-  - **W1 comisión** (`DELIVERY_COMMISSION`): `+PLATFORM_REVENUE totalCommission / −RIDER_PAYABLE totalCommission`
-  - **W2 retiro** (`RIDER_WITHDRAWAL`): `−RIDER_PAYABLE amount / −PLATFORM_CASH amount` (la plata sale al banco del rider; el débito de `balance` pasa a ser proyección)
+- [x] **F7.1 — Modelo de asientos** (resuelto 2026-08-26; signos corregidos 2026-08-27): la respuesta a la pregunta de COD la dio §8 — **el repartidor es custodio del total completo** (`RIDER_FLOAT` +total con contrapartida `STORE_PAYABLE`/`IGV_PAYABLE` en `ORDER_CAPTURE_CASH`), y su comisión es asiento separado contra `RIDER_PAYABLE`. Modelo cerrado por operación (convención débito=+/crédito=−, §3):
+  - **W1 comisión** (`DELIVERY_COMMISSION`): `+RIDER_COMMISSION_EXPENSE totalCommission / −RIDER_PAYABLE:{riderId} totalCommission` — la comisión es GASTO del período; el margen de plataforma se reconoce en el money-in del delivery fee, no acá
+  - **W2 retiro** (`RIDER_WITHDRAWAL`): `+RIDER_PAYABLE amount / −PLATFORM_CASH amount` (débito al payable = debemos menos; crédito al cash = sale al banco del rider; el débito de `balance` pasa a ser proyección). ⚠️ La versión anterior de esta línea (`−RIDER_PAYABLE / −PLATFORM_CASH`) era un typo: sumaba −2×amount y violaba I1
   - **W3 depósito** (`CASH_DEPOSIT_CONFIRMED`): `+PLATFORM_CASH amount / −RIDER_FLOAT:{riderId} amount`
   - **W4 conciliación**: **sin asiento** — solo reestructura la proyección (`pending→balance`); el hecho económico ya está asentado en W1+W3
   - `cashOnHand` pasa a derivarse del saldo `RIDER_FLOAT`; `ORDER_CAPTURE_CASH` (captura del total en POD) es parte del money-in de §8, fuera del alcance de esta fase
-- [ ] **F7.2 — Pares atómicos**: cada mutación W1-W4 poste su asiento DENTRO de la misma transacción Prisma; las columnas del wallet pasan a ser proyección derivada (principio P1). Mantener tabla `Wallet` y API estable.
+  - Corrección de signos (2026-08-27): `refund.service` y `settlement.service` tenían los asientos con signos invertidos respecto de la convención débito/crédito; se normalizaron junto con F7.2
+- [x] **F7.2 — Pares atómicos** (resuelto 2026-08-27): W1 (`delivery.service.creditCommission`), W2 (`wallet.service.requestWithdrawal`) y W3 (`wallet.service.confirmCashDeposit`) postean su asiento DENTRO de la misma transacción Prisma vía `LedgerService.post(input, tx)`; las columnas del wallet quedan como proyección escrita en doble (principio P1). Tabla `Wallet` y API intactos.
 - [ ] **F7.3 — Backfill cero**: pre-launch no hay saldos reales que reconciliar; si existieran filas con saldo ≠ 0, crear un EntryGroup inicial `WALLET_MIGRATION_OPENING:{riderId}` por diferencia.
-- [ ] **F7.4 — Invariante nuevo I8**: para cada wallet activo, `balance + pending + cashOnHand` derivado debe igualar la suma de sus cuentas ledger; sumarlo a `runDailyChecks`.
+- [x] **F7.4 — Invariante nuevo I8** (resuelto 2026-08-27): para cada wallet activo, `balance + pending + cashOnHand` derivado debe igualar `−RIDER_PAYABLE + RIDER_FLOAT`; sumado a `runDailyChecks` con tests.
 - [ ] **F7.5 — Lecturas derivadas**: `getTransactions` pasa a servir desde LedgerEntry filtrado por cuentas del rider (la tabla `Transaction` queda deprecated, no eliminada).
-- [ ] **F7.6 — Suite verde + verificación doble-escritura** durante un período de sombra antes de declarar deprecada la escritura directa.
+- [~] **F7.6 — Suite verde + verificación doble-escritura**: suite 527/527; la doble escritura quedó activa por diseño (proyección + asiento atómicos) e I8 la audita diariamente. Falta el período de sombra en un entorno con datos antes de deprecar la escritura directa de proyecciones.
 
 ---
 
