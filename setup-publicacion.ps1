@@ -17,7 +17,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repoUrl = "https://github.com/kanoso/ecommcerce-saas-sonet.git"
-$submodules = @("tiendi-api", "tiendi-vendor", "tiendi-admin", "tiendi-go")
+$submodules = @("tiendi-api", "tiendi-web", "tiendi-admin", "tiendi-vendor", "tiendi-go")
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Ok($msg)   { Write-Host "    [OK] $msg" -ForegroundColor Green }
@@ -72,9 +72,24 @@ foreach ($mod in $submodules) {
 
 # ---------- 5. Base de datos ----------
 if (-not $SkipBuild) {
-    Step "Aplicando migraciones de Prisma"
     Push-Location (Join-Path $fuentes "tiendi-api")
     try {
+        if (-not (Test-Path ".env")) {
+            if (Test-Path ".env.example") {
+                Step "Creando .env desde .env.example"
+                Copy-Item ".env.example" ".env"
+                Ok ".env creado (revisá los valores antes de continuar)"
+            } else {
+                throw "No existe .env ni .env.example en FUENTES\tiendi-api"
+            }
+        }
+
+        Step "Generando cliente de Prisma"
+        npx prisma generate
+        if ($LASTEXITCODE -ne 0) { throw "prisma generate falló" }
+        Ok "Cliente Prisma generado"
+
+        Step "Aplicando migraciones de Prisma"
         npx prisma migrate deploy
         if ($LASTEXITCODE -ne 0) { throw "prisma migrate deploy falló" }
         Ok "Migraciones aplicadas"
@@ -94,6 +109,7 @@ Write-Host " Setup completado en $RepoDir" -ForegroundColor Yellow
 Write-Host "=============================================" -ForegroundColor Yellow
 Write-Host " Servicios:"
 Write-Host "   API      : npm run start:dev  (en FUENTES\tiendi-api)"
+Write-Host "   Frontends: npm start  (en cada carpeta de FUENTES\tiendi-web|admin|vendor|go)"
 Write-Host "   Postgres : localhost:5432 (postgres/postgres, db: tiendi)"
 Write-Host "   Redis    : localhost:6379"
 Write-Host "   Grafana  : http://localhost:3001 (admin/admin)"

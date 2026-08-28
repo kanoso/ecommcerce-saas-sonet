@@ -98,8 +98,10 @@ El script `setup-publicacion.ps1` (raíz del repo) automatiza todo:
 1. Verifica Git, Node ≥ 20 y Docker daemon
 2. Clona o actualiza repo + submódulos
 3. Levanta infraestructura (`docker compose`)
-4. Instala dependencias (`npm ci`) en los 4 proyectos Node
-5. Aplica migraciones de Prisma
+4. Instala dependencias (`npm ci`) en los **5** proyectos Node (incluye `tiendi-web`)
+5. Crea `.env` desde `.env.example` si no existe
+6. Genera el cliente de Prisma (`prisma generate`)
+7. Aplica migraciones de Prisma (`prisma migrate deploy`)
 
 ```powershell
 cd D:\Proyectos\ecommcerce-saas-sonet   # o donde esté el script
@@ -128,7 +130,42 @@ El script es **idempotente**: si el repo ya existe hace `pull --ff-only` y conti
 
 ## 5. Flujo del proceso
 
+1. **Prerequisitos**: Git, Node ≥ 20.19, Docker daemon respondiendo
+2. **Código**: clone/pull del repo padre + `submodule update --init --recursive`
+3. **Infraestructura**: `docker compose up -d` (Postgres, Redis, Prometheus, Loki, Grafana)
+4. **Dependencias**: `npm ci` en los 5 proyectos de `FUENTES/`
+5. **Base de datos**: `.env` (si falta), `prisma generate`, `prisma migrate deploy`, seed opcional
+
 > Diagrama interactivo: [`diagramas/flujo-setup.html`](diagramas/flujo-setup.html)
+
+---
+
+## 5b. Cómo levantar la aplicación
+
+La infraestructura corre en Docker; los procesos Node corren en el host:
+
+```powershell
+cd D:\Proyectos\ecommcerce-saas-sonet\FUENTES
+
+# API (NestJS) — terminal propia
+npm --prefix tiendi-api run start:dev
+
+# Frontends (Angular) — una terminal por cada uno
+npm --prefix tiendi-web  start
+npm --prefix tiendi-admin start
+npm --prefix tiendi-vendor start
+npm --prefix tiendi-go    start
+```
+
+Los frontends usan Angular CLI (`ng serve`), puerto por defecto **4200**.
+Si se levantan varios a la vez, separarlos con `-- --port <puerto>`,
+ej.: `npm --prefix tiendi-admin start -- --port 4201`.
+
+Verificar que los contenedores estén *healthy* antes de arrancar la API:
+
+```powershell
+docker compose -f FUENTES\tiendi-api\docker-compose.yml ps
+```
 
 ---
 
@@ -181,7 +218,36 @@ git -C D:\Proyectos\ecommcerce-saas-sonet submodule update --init --recursive
 
 ---
 
-## 8. Troubleshooting
+## 8. Abrir puertos en el firewall (acceso desde la red local)
+
+El firewall de Windows bloquea por defecto las conexiones entrantes.
+Para que otras PCs de la red accedan a los servicios, abrir solo los
+puertos necesarios (PowerShell como administrador):
+
+```powershell
+# Grafana (monitoreo)
+New-NetFirewallRule -DisplayName "tiendi-grafana" -Direction Inbound `
+  -Protocol TCP -LocalPort 3001 -Action Allow
+
+# API NestJS (ajustar puerto según .env del backend)
+New-NetFirewallRule -DisplayName "tiendi-api" -Direction Inbound `
+  -Protocol TCP -LocalPort 3000 -Action Allow
+
+# Frontends Angular si se sirven hacia la red (ej. ng serve --host 0.0.0.0)
+New-NetFirewallRule -DisplayName "tiendi-web" -Direction Inbound `
+  -Protocol TCP -LocalPort 4200 -Action Allow
+
+# Verificar reglas creadas
+Get-NetFirewallRule -DisplayName "tiendi-*"
+```
+
+> [!IMPORTANT]
+> **No exponer** Postgres (`5432`) ni Redis (`6379`) al resto de la red:
+> van sin credenciales fuertes y solo el host local debería hablar con ellos.
+
+---
+
+## 9. Troubleshooting
 
 ### Ping no responde pero la PC está encendida
 
