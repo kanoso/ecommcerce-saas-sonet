@@ -578,13 +578,13 @@ quadrantChart
 > ~~Antes de escribir el primer asiento hay que decidir si `Wallet`/`Transaction` pasa a ser proyección del ledger o si conviven.~~ **Decidido en [[FLUJO_DINERO]] (Principio P1): el ledger es la única fuente de verdad; los saldos son proyecciones derivadas.** La migración del modelo ya está especificada ahí (§ migraciones: quitar `riderId @unique` → `ownerType`+`ownerId`; saldos como campos derivados; invariantes I1/I2 con job de conciliación).
 
 - [x] Decidir la relación entre `Wallet`/`Transaction` y el ledger — **proyección** ([[FLUJO_DINERO]] P1); la coexistencia quedó descartada por el riesgo de descuadre estructural
-- [ ] Plan de migración del histórico de `Transaction` a asientos — pertenece al plan de [[FLUJO_DINERO]], no a este doc
-- [ ] Implementar el ledger de partida doble de [[FLUJO_DINERO]]
-- [ ] Endpoints de ledger en `tiendi-api`
+- [x] Plan de migración del histórico de `Transaction` a asientos — documentado en [[FLUJO_DINERO]] Fase 7 (F7.1–F7.6, resuelto 2026-08-26)
+- [x] Implementar el ledger de partida doble de [[FLUJO_DINERO]] — módulo `ledger` con EntryGroups, idempotencia por key e invariantes I1/I2 (Fases 1/3/6); migración de wallets = Fase 7 (pendiente)
+- [x] Endpoints de ledger en `tiendi-api` — `GET /stores/:storeId/account-statement` y `POST /admin/ledger/run-daily-checks`
 - [ ] Pantalla `/admin/finance/ledger` con conciliación contra extracto de Culqi
-- [ ] Pantalla `/admin/finance/payouts`
-- [ ] Test: `SUM(asientos) == 0` como invariante
-- [ ] Test: el saldo de `Wallet` coincide con el saldo derivado del ledger
+- [ ] Pantalla `/admin/finance/payouts` — el API ya expone `GET /stores/:storeId/payouts`
+- [x] Test: `SUM(asientos) == 0` como invariante — `ledger.service.spec.ts`: invariante I1 por grupo y suma global
+- [ ] Test: el saldo de `Wallet` coincide con el saldo derivado del ledger — invariante I8, planificado como [[FLUJO_DINERO]] F7.4
 
 > [!NOTE]
 > Los ítems abiertos de esta fase **no se implementan desde tiendi-admin**: son el plan de [[FLUJO_DINERO]]. Este documento los lista solo como frontera de consumo: cuando existan endpoints de ledger, acá van las pantallas.

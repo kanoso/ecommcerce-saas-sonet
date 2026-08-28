@@ -9,7 +9,8 @@ aliases:
 # Tiendi — Tareas de Desarrollo
 
 > Marcá cada tarea con `[x]` al completarla.
-> Estado general: 🔴 No iniciado
+> Estado general: 🟢 Núcleo operativo (521 tests verdes) — pendiente: búsqueda full-text, uploads Cloudinary, dashboards Grafana, e2e, CI/CD y deploy
+> Auditoría contra código real: 2026-08-27
 
 ---
 
@@ -67,8 +68,8 @@ aliases:
   - [x] Modelo `SubscriptionPlan`
   - [x] Modelo `StoreSubscription`
 - [x] Crear primera migración (`prisma migrate dev --name init`)
-- [ ] Crear seed con datos de prueba (`prisma db seed`)
-- [ ] Habilitar extensión PostGIS para geolocalización
+- [x] Crear seed con datos de prueba (`prisma db seed`) — existe `prisma/seed.ts` con script npm
+- [x] Habilitar extensión PostGIS para geolocalización
 
 ### 1.3 Infraestructura local
 
@@ -134,16 +135,18 @@ aliases:
 - [x] Crear decorator `@Roles(...roles)`
 - [x] Crear `RolesGuard`
 - [x] Crear decorator `@CurrentUser()` para obtener usuario del request
-- [ ] Proteger rutas sensibles con guards
+- [x] Proteger rutas sensibles con guards — `JwtAuthGuard` + `RolesGuard` + `StoreManagerGuard` (dueño/SUPER_ADMIN/empleado ACTIVE)
 
 ### 2.3 Módulo Users
 
-- [ ] Endpoint `GET /users/me` — perfil propio
-- [ ] Endpoint `PUT /users/me` — actualizar perfil
-- [ ] Endpoint `PUT /users/me/password` — cambiar contraseña
-- [ ] Endpoint `DELETE /users/me` — eliminar cuenta (soft delete)
+> Decisión: el módulo `users/` nunca se creó; el perfil propio vive en `auth` y los demás endpoints no existen.
+
+- [-] Endpoint `GET /users/me` — perfil propio → sustituido por `GET /auth/me`
+- [-] Endpoint `PUT /users/me` — actualizar perfil → sustituido por `PATCH /auth/me`
+- [ ] Endpoint `PUT /users/me/password` — cambiar contraseña (existe flujo forgot/reset, no cambio autenticado)
+- [ ] Endpoint `DELETE /users/me` — eliminar cuenta (soft delete) — solo riders lo tiene (`DELETE /riders/me`)
 - [ ] Endpoint `GET /users` — listar usuarios (solo super_admin)
-- [ ] Endpoint `PUT /users/:id/status` — suspender/activar (solo super_admin)
+- [ ] Endpoint `PUT /users/:id/status` — suspender/activar (solo super_admin) — solo riders tiene status
 
 ---
 
@@ -162,17 +165,19 @@ aliases:
 
 ### 3.2 Configuración de tienda
 
-- [ ] Endpoint `PUT /stores/:id/hours` — horarios de atención
-- [ ] Endpoint `PUT /stores/:id/delivery` — zonas y costo de delivery
-- [ ] Endpoint `PUT /stores/:id/payment-methods` — métodos de pago habilitados
-- [ ] Endpoint `POST /stores/:id/logo` — subir logo (Cloudinary)
-- [ ] Endpoint `POST /stores/:id/banner` — subir banner (Cloudinary)
+> Decisión: no hay endpoints separados de configuración; todo va por `PUT/PATCH /stores/:id` con el DTO (`openingHours`, `paymentMethods`, `deliveryConfig`).
+
+- [-] Endpoint `PUT /stores/:id/hours` — cubierto por `PUT/PATCH /stores/:id` (campo `openingHours`)
+- [-] Endpoint `PUT /stores/:id/delivery` — cubierto por `PUT/PATCH /stores/:id` (campo `deliveryConfig`)
+- [-] Endpoint `PUT /stores/:id/payment-methods` — cubierto por `PUT/PATCH /stores/:id` (campo `paymentMethods`)
+- [ ] Endpoint `POST /stores/:id/logo` — subir logo (Cloudinary) — `logoUrl` seteable por PATCH con URL, upload pendiente
+- [ ] Endpoint `POST /stores/:id/banner` — subir banner (Cloudinary) — ídem
 
 ### 3.3 Empleados
 
-- [ ] Endpoint `GET /stores/:id/employees` — listar empleados
-- [ ] Endpoint `POST /stores/:id/employees` — agregar empleado (por email)
-- [ ] Endpoint `DELETE /stores/:id/employees/:userId` — remover empleado
+- [x] Endpoint `GET /stores/:id/employees` — listar empleados (módulo `staff`)
+- [x] Endpoint `POST /stores/:id/employees` — agregar empleado (por email) — implementado como `POST /stores/:id/employees/invite`
+- [x] Endpoint `DELETE /stores/:id/employees/:userId` — remover empleado — más `PUT :id/role` y `POST :id/resend-invite`
 
 ---
 
@@ -239,7 +244,7 @@ aliases:
 
 ### 6.1 Culqi (pasarela peruana)
 
-- [ ] Crear cuenta y obtener API keys de Culqi
+- [x] Crear cuenta y obtener API keys de Culqi — integración completa (charge + webhook), keys en `.env`
 - [x] Endpoint `POST /payments/charge` — cobrar con tarjeta (token Culqi)
 - [x] Endpoint `POST /payments/webhook` — recibir confirmaciones de Culqi
 - [x] Manejar estados: `paid`, `failed`, `pending`
@@ -291,7 +296,7 @@ aliases:
 - [-] Integrar Pino como transport — descartado, Winston cubre el caso
 - [x] Exponer endpoint `GET /metrics` para Prometheus (prom-client)
 - [x] MetricsInterceptor global — registra `http_requests_total` y `http_request_duration_seconds`
-- [ ] Configurar dashboards en Grafana:
+- [ ] Configurar dashboards en Grafana — `monitoring/` solo tiene `prometheus.yml` y `alerts.yml`; sin dashboards:
   - [ ] Request rate y latencia
   - [ ] Error rate
   - [ ] Jobs de BullMQ
@@ -303,58 +308,62 @@ aliases:
 
 ## Fase 9 — Panel de vendedor (API)
 
-- [ ] Endpoint `GET /vendor/dashboard` — resumen del día (pedidos, ventas, stock bajo)
-- [ ] Endpoint `GET /vendor/analytics?period=` — ventas por período
-- [ ] Endpoint `GET /vendor/reports/sales` — reporte exportable (CSV/PDF)
-- [ ] Endpoint `GET /vendor/products/low-stock` — productos con stock bajo
+> Decisión: no hay namespace `/vendor/*` para analytics; todo cuelga de `GET /stores/:storeId/analytics/*` (módulo `analytics`).
+
+- [-] Endpoint `GET /vendor/dashboard` — resumen del día → cubierto por `GET /stores/:storeId/analytics/summary`
+- [-] Endpoint `GET /vendor/analytics?period=` — ventas por período → cubierto por `analytics/sales-chart` + `analytics/hourly` + `analytics/top-products`
+- [-] Endpoint `GET /vendor/reports/sales` — reporte exportable → cubierto por `GET /stores/:storeId/reports/sales`
+- [ ] Endpoint `GET /vendor/products/low-stock` — productos con stock bajo (sin equivalente)
 
 ---
 
 ## Fase 10 — Suscripciones
 
-- [ ] Definir planes en seed: Gratuito, Pro, Enterprise
-- [ ] Endpoint `GET /subscription-plans` — listar planes públicos
-- [ ] Endpoint `POST /subscriptions` — suscribirse a un plan
-- [ ] Endpoint `GET /subscriptions/my` — suscripción activa de la tienda
-- [ ] Validar límites de plan (máx. productos, máx. pedidos/mes)
-- [ ] Job BullMQ para renovación automática y notificación de vencimiento
+- [ ] Definir planes en seed: Gratuito, Pro, Enterprise — `seed.ts` no define `SubscriptionPlan`; planes residen en DB
+- [x] Endpoint `GET /subscription-plans` — listar planes públicos (`SubscriptionPlansController`)
+- [x] Endpoint `POST /subscriptions` — suscribirse a un plan — implementado como `POST /stores/:storeId/subscription/change` (+ `cancel` y `register-payment`)
+- [x] Endpoint `GET /subscriptions/my` — suscripción activa — implementado como `GET /stores/:storeId/subscription` (+ `payment-history`)
+- [x] Validar límites de plan (máx. productos, máx. pedidos/mes) — uso vs límites en `subscription.service`
+- [ ] Job BullMQ para renovación automática y notificación de vencimiento — `jobs/` solo tiene riders y wallet
 
 ---
 
 ## Fase 11 — Super Admin (API)
 
-- [ ] Endpoint `GET /admin/stores?status=pending` — tiendas pendientes de aprobación
-- [ ] Endpoint `PUT /admin/stores/:id/approve` — aprobar tienda
-- [ ] Endpoint `PUT /admin/stores/:id/suspend` — suspender tienda
+- [-] Endpoint `GET /admin/stores?status=pending` — tiendas pendientes → cubierto por `GET /stores/admin/list`
+- [-] Endpoint `PUT /admin/stores/:id/approve` — aprobar tienda → cubierto por `PUT /stores/:id/status`
+- [-] Endpoint `PUT /admin/stores/:id/suspend` — suspender tienda → ídem
 - [ ] Endpoint `GET /admin/users` — listar todos los usuarios
-- [ ] Endpoint `GET /admin/analytics` — métricas globales de la plataforma
+- [ ] Endpoint `GET /admin/analytics` — métricas globales (parcial: existe `GET /admin/demand` de demanda por zona)
 - [ ] Endpoint `GET /admin/orders` — todos los pedidos de la plataforma
+
+> El módulo `admin` cubre además: gestión de riders, tickets escalados, revocación de sesiones, reconciliación de depósitos, daily checks del ledger y procesamiento de settlements.
 
 ---
 
 ## Fase 12 — Seguridad y hardening
 
-- [ ] Rate limiting global con `@nestjs/throttler` (Redis store)
-- [ ] Rate limiting específico en auth (5 intentos / 15 min)
-- [ ] Helmet.js para security headers
-- [ ] CORS configurado correctamente por entorno
-- [ ] Sanitización de inputs (strip HTML, prevención XSS)
-- [ ] Protección contra SQL injection (Prisma ya lo maneja, verificar raw queries)
+- [x] Rate limiting global con `@nestjs/throttler` (Redis store) — `ThrottlerModule.forRoot` 60 req/min como `APP_GUARD` — ⚠️ store en memoria, no Redis
+- [x] Rate limiting específico en auth (5 intentos / 15 min) — `@Throttle` en `auth.controller`
+- [x] Helmet.js para security headers
+- [x] CORS configurado correctamente por entorno
+- [ ] Sanitización de inputs (strip HTML, prevención XSS) — Zod valida tipos/formas pero no strip HTML
+- [x] Protección contra SQL injection (Prisma ya lo maneja, verificar raw queries) — única `$queryRaw` en `demand.service` usa tagged template parametrizado
 - [ ] Audit log: registrar acciones sensibles (login, cambio de contraseña, aprobación de tienda)
-- [ ] Rotación automática de refresh tokens
-- [ ] Blacklist de tokens en Redis al hacer logout
+- [x] Rotación automática de refresh tokens — rotación + revocación en `auth.service`
+- [x] Blacklist de tokens en Redis al hacer logout — `logout`, `logout-all` y `POST /admin/users/:userId/revoke-sessions`
 
 ---
 
 ## Fase 13 — Testing
 
-- [ ] Configurar Jest para NestJS
-- [ ] Tests unitarios de servicios críticos:
-  - [ ] `AuthService`
-  - [ ] `OrderService` (validación de stock, cálculo de totales)
-  - [ ] `PaymentService`
-- [ ] Tests de integración para endpoints principales (supertest)
-- [ ] Cobertura mínima: 70%
+- [x] Configurar Jest para NestJS
+- [x] Tests unitarios de servicios críticos — suite completa: 521 tests verdes:
+  - [x] `AuthService`
+  - [x] `OrderService` (validación de stock, cálculo de totales)
+  - [x] `PaymentService`
+- [ ] Tests de integración para endpoints principales (supertest) — solo spec base `app.e2e-spec.ts`
+- [ ] Cobertura mínima: 70% — sin `coverageThreshold` configurado
 
 ---
 
@@ -380,7 +389,7 @@ aliases:
 
 ---
 
-*Última actualización: 2026-04-13*
+*Última actualización: 2026-08-27 (auditoría contra código real)*
 
 ---
 

@@ -68,6 +68,23 @@ flowchart TB
 > otro lado: que la plata que Tiendi le liquida al comercio también caiga en el
 > mismo libro.
 
+> [!IMPORTANT]
+> **Pregunta que va a volver a aparecer: ¿la venta de mostrador y la compra de
+> mercadería para reventa (ej. caramelos) no deberían estar "en la
+> contabilidad" de Tiendi?**
+>
+> No. Van al libro del comerciante (kipu), nunca al ledger de Tiendi.
+> `DOCS/FACTURACION_Y_CONTABILIDAD.md` §4.1 lo dice explícito: *"Tiendi solo
+> observa la porción del negocio que pasa por Tiendi. No ve las ventas en
+> mostrador, ni la compra de inventario, ni el alquiler, ni los sueldos.
+> Construir 'la contabilidad de la tienda' con esos datos produciría un
+> balance incompleto y, por lo tanto, falso."*
+>
+> - **Venta de mostrador** → ya se registra hoy en kipu como `ingreso` (NOTE de
+>   arriba). No requiere el puente.
+> - **Compra de mercadería para reventa** → gasto del comerciante, también
+>   fuera del ledger de Tiendi. Hoy no tiene categoría propia — ver §4.4.
+
 ---
 
 ## 3. Dirección: Tiendi → Kipu
@@ -180,6 +197,12 @@ valor de `tipo`.
 > `universidad | comida | alquiler | transporte | servicios | entretenimiento | otros`.
 > Es una taxonomía de finanzas personales. **Una liquidación de Tiendi no tiene
 > dónde aterrizar**, y `categoria` es obligatorio en `Expense`.
+>
+> Esto no es solo problema de la liquidación de Tiendi: la **compra de
+> mercadería para reventa** (§2, ej. caramelos) tampoco tiene dónde aterrizar
+> hoy. Es un gasto de negocio real y necesita su propio valor —"inventario",
+> "compra a proveedores" o similar— **independiente de si el puente con Tiendi
+> llega a existir**.
 >
 > Lo mismo con `MetodoPago`
 > (`debito | credito | yape | plin | efectivo | alimentos | fiado`): una
@@ -471,8 +494,8 @@ un endpoint.
 
 **Tiendi — bloqueado en Fase 2**
 
-- [ ] Wallet o saldo para comercios, no solo repartidores
-- [ ] Cálculo de liquidación al vendedor
+- [ ] Wallet o saldo para comercios, no solo repartidores — parcialmente cubierto por la liquidación semanal (`STORE_PAYABLE` → `PayoutRequest`, B2 de [[FLUJO_DINERO]] §13); falta saldo en tiempo real
+- [x] Cálculo de liquidación al vendedor — `settlement.service` (B2): cierre semanal por tienda, mínimo S/ 50, `PayoutBatch`, asiento `PAYOUT` por éxito
 - [ ] `origenExternoId` estable e inmutable por liquidación
 - [ ] Emisión hacia kipu con reintentos
 
