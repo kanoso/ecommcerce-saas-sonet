@@ -362,10 +362,10 @@ graph TD
 | Módulo `admin` (backend) | ✅ Existe, sin frontend | `tiendi-api/src/modules/admin/` |
 | Ledger de partida doble | ✅ Implementado ([[FLUJO_DINERO]] Fases 1-5, corregido 2026-08-26 — este ítem estaba desactualizado) | `tiendi-api/src/modules/ledger/` |
 | App back-office (`tiendi-admin`) | ✅ Implementado | `tiendi-admin/` |
-| Estado de cuenta del vendedor | 🔲 No existe | — |
-| Split `invoicing` / `compliance` | 🔲 Acordado, sin ejecutar | — |
+| Estado de cuenta del vendedor | ✅ Implementado (2026-08-26 — Fase 3) | `tiendi-api/src/modules/ledger/account-statement.*` + sección en `tiendi-vendor` Liquidaciones |
+| Split `invoicing` / `compliance` | ✅ Implementado (2026-08-26 — Fase 1, con redirecciones desde `/vendor/legal*`) | `invoicing/` + `compliance/` en API y vendor |
 | `/vendor/riders` fuera del panel | ✅ Migrado | `tiendi-admin/src/app/admin/features/riders/` |
-| Eliminación de campos de comisión (`commissionPct`, `platformCommission`, `storeNet`) | 🔲 Decidido (2026-08-26), pendiente de migración | [[MODELO_NEGOCIO]] Tanda 2 del checklist |
+| Eliminación de campos de comisión (`commissionPct`, `platformCommission`, `storeNet`) | ✅ Migrado (2026-08-26, `20260826120000_drop_commission_fields`) | [[MODELO_NEGOCIO]] Tanda 2 del checklist |
 
 > [!IMPORTANT]
 > **`wallet/` no es contabilidad.** Registra movimientos de dinero sin partida doble, sin asientos y sin la garantía de atomicidad del principio **P4** de [[FLUJO_DINERO]]. Es un precursor, no un sustituto del ledger.
@@ -401,7 +401,7 @@ Mecánico, bajo riesgo y sin dependencias. Va primero porque toca los mismos arc
 - [x] Atomicidad del principio **P4**: movimiento de dinero + asientos + saldos en la misma transacción
 - [x] Idempotencia por `idempotencyKey` y reversas vía `reversalOfId`
 - [x] Invariante verificable en tests: `SUM(asientos) == 0`
-- [ ] Backfill o convivencia con `wallet/` durante la transición
+- [x] Backfill o convivencia con `wallet/` durante la transición (2026-08-27 — resuelto vía [[FLUJO_DINERO]] F7.2/F7.5: decisión de "migrar ya", pares atómicos proyección+asiento en la misma transacción vía `LedgerService.post(input, tx)`, lecturas derivadas desde `LedgerEntry`; `Transaction` deprecada. El período de sombra de F7.6 sigue abierto ahí)
 
 ### Fase 3 — Estado de cuenta del vendedor
 
@@ -427,8 +427,9 @@ Recién acá la pantalla se apoya en datos auditables.
 ## 10. Deuda técnica detectada — roles desalineados
 
 > [!CAUTION]
-> El frontend de `tiendi-vendor` declara roles que el backend **no puede emitir en un JWT**.
-> Toda decisión de permisos basada en esos roles es, hoy, código muerto que aparenta funcionar.
+> ~~El frontend de `tiendi-vendor` declara roles que el backend **no puede emitir en un JWT**.~~
+> **Resuelta el 2026-08-25** — ver §10.3. El análisis de §10.1 y §10.2 se conserva como
+> registro de cómo se detectó y por qué importaba.
 
 ### 10.1 La discrepancia
 
@@ -456,15 +457,19 @@ El mismo efecto aplica a `auth.store.ts:32`, donde `vendorRoles` incluye tres ro
 > no se manifiesta como error. Se manifiesta como una delegación de permisos que nunca ocurre —
 > el dueño no puede darle facturación a un encargado, aunque el código sugiera que sí.
 
-### 10.3 Decisión pendiente
+### 10.3 Resolución (2026-08-25)
 
-Son dos caminos con costos distintos y hay que elegir **antes** de la Fase 1, porque el renombrado
-toca exactamente los archivos donde vive el gateo:
+> [!NOTE]
+> **Resuelta con un tercer camino: ni ampliar el backend ni recortar el frontend, sino separar las dos dimensiones.**
+> Se creó el paquete compartido `packages/auth-types` (`@kanoso/auth-types`, commit `a19ae2f`):
+> - `Role` — alineado 1:1 al `enum Role` del backend (`SUPER_ADMIN`, `STORE_OWNER`, `EMPLOYEE`, `CUSTOMER`, `RIDER`).
+> - `StoreRole` — `MANAGER`, `CASHIER`, `WAREHOUSE` redefinidos como **rol interno de un `EMPLOYEE` dentro de una tienda**, una dimensión distinta que nunca se promueve a `Role`.
+> - `tiendi-api` emite `storeRole` en el JWT (`auth.service.ts` → `resolveStoreContext`, leído de la membresía del empleado) y `jwt.strategy.ts` lo restaura en el request.
+> - `tiendi-vendor` consume los tipos desde el paquete (`user.types.ts` re-exporta) y gatea con `AccessLevel = Role | StoreRole`.
 
-| Camino | Implica |
-|---|---|
-| Ampliar el backend | Agregar `MANAGER`, `CASHIER`, `WAREHOUSE` al `enum Role` de Prisma + migración + asignación de roles por tienda |
-| Reducir el frontend | Eliminar los tres roles de `user.types.ts` y ajustar todo gateo que los mencione |
+La delegación que antes era código muerto ahora es real: el dueño puede asignar
+`MANAGER` a un empleado y el gateo de facturación (`['STORE_OWNER', 'MANAGER']`)
+funciona como declara. Detalle del diseño en `AUTENTICACION.md` §7.
 
 > [!NOTE]
 > Esta deuda es **independiente** de facturación y contabilidad: se documenta acá porque se

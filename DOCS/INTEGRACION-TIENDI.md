@@ -1,10 +1,16 @@
 # Integración Tiendi ↔ Kipu — Puente de Liquidación
 
 > [!NOTE]
-> Este es un **documento de diseño**, no la descripción de algo construido.
-> Nada de lo que está acá existe todavía en el código. Su propósito es fijar la
-> dirección, el contrato y —sobre todo— el orden de dependencias, para que
-> cuando se empiece a construir no se empiece por el lado equivocado.
+> Este es un **documento de diseño** que ya tiene implementación completa del
+> lado kipu y del lado emisor de tiendi. Estado (2026-08-28): el libro de
+> partida doble y la liquidación al vendedor existen en `tiendi-api`
+> ([[FLUJO_DINERO]] Fases 1-5 + `settlement.service`); las Fases 1-5 de
+> `MULTI-TENANCY-KIPU.md` están completas (modelo, API, UI, puente); las reglas
+> de offline-first (§8) están implementadas; y `tiendi-api` encola y emite cada
+> liquidación hacia kipu con reintentos (módulo `integraciones/`). Falta solo
+> operar: configurar `KIPU_URL`/`KIPU_SERVICE_TOKEN` en tiendi-api y
+> `TIENDI_SERVICE_TOKEN` en kipu, y que cada comercio cree su Negocio y lo
+> vincule. El contrato de §6 sigue siendo la referencia del wire format.
 
 ---
 
@@ -17,10 +23,10 @@ mapeo a `ingreso`. Lo caro es todo lo que tiene que existir **antes** dentro de
 
 | Pieza | Dónde vive | Estado | Costo relativo |
 | --- | --- | --- | --- |
-| Liquidación al vendedor (la fuente) | `tiendi-api` | **No existe** | Alto — Fase 2 del plan contable |
-| Multi-tenancy de kipu | `tiendi-kipu` | **No existe** | Medio — independiente, se puede arrancar hoy |
-| Taxonomía de comercio en kipu | `tiendi-kipu` | **No existe** | Bajo |
-| El puente propiamente dicho | ambos | No existe | **Bajo** |
+| Liquidación al vendedor (la fuente) | `tiendi-api` | **Existe** — Fases 1-5 de [[FLUJO_DINERO]] + `settlement.service` (2026-08-25, signos corregidos 2026-08-27) | ~~Alto~~ hecho |
+| Multi-tenancy de kipu | `tiendi-kipu` | **Fases 1-5 hechas** (modelo + API + UI Ajustes + filtro + puente, 2026-08-28); falta registro multi-usuario real | ~~Medio~~ hecho |
+| Taxonomía de comercio en kipu | `tiendi-kipu` | **No existe** — ver §11 | Bajo |
+| El puente propiamente dicho | ambos | **Completo** — lado kipu (endpoint + idempotencia + 422, 2026-08-28) y lado emisor (outbox + cron con reintentos, 2026-08-28); falta configuración de entorno para operarlo | ~~Bajo~~ hecho |
 
 ---
 
@@ -129,18 +135,17 @@ Están ordenadas por costo, no por importancia.
 
 ### 4.1 — La fuente no existe
 
-> [!CAUTION]
-> **No hay nada que importar.**
-> `rg -i "payout|liquidacion|settlement|STORE_PAYABLE"` sobre todo
-> `FUENTES/tiendi-api/src` devuelve **cero coincidencias**. No hay liquidación
-> al vendedor, no hay payout, no hay `STORE_PAYABLE`.
+> ~~[!CAUTION]~~
+> ~~**No hay nada que importar.**~~
+> **RESUELTO (2026-08-25).** La Fase 2 del plan contable se construyó vía
+> [[FLUJO_DINERO]] Fases 1-5: `LedgerAccount` con `STORE_PAYABLE:{storeId}`,
+> `PayoutRequest`/`PayoutBatch`, y `settlement.service` (cierre semanal por
+> tienda, mínimo S/ 50, asiento `PAYOUT` idempotente por éxito). Los wallets ya
+> no son exclusivos de riders ([[FLUJO_DINERO]] B7: `Wallet` polimórfica,
+> `riderId` nullable).
 >
-> Además `Wallet.riderId @unique` significa que **solo los repartidores tienen
-> wallet**: los comercios ni siquiera tienen dónde acumular un saldo.
->
-> Esto es la **Fase 2** del plan de `DOCS/FACTURACION_Y_CONTABILIDAD.md` (libro
-> de partida doble en `tiendi-api`), y no está construida. El puente no tiene de
-> dónde leer.
+> Lo que sigue sin existir es la **emisión hacia kipu**: ningún código de
+> `tiendi-api` notifica liquidaciones a un sistema externo (ver checklist §11).
 
 ### 4.2 — Colisión de nombre con `liquidacion`
 
@@ -189,6 +194,84 @@ valor de `tipo`.
 > con un comercio de Tiendi.
 >
 > **Este es el único bloqueante que no depende de `tiendi-api`.**
+
+> [!NOTE]
+> **Avance (2026-08-28): la identidad vinculable ya está construida** — Fases 1-2
+> de `MULTI-TENANCY-KIPU.md`: modelo `Negocio` con `tiendiStoreId @unique`
+> (migración `20260828052938_add_negocio`), `negocioId` opcional con `SetNull`
+> en `Expense`/`Cuenta`, y CRUD completo en `api/src/modules/negocios/`
+> (`POST/GET/PATCH /negocios`, `POST/DELETE /negocios/:id/tienda` con `409`
+> legible). Pendiente de ese plan: UI de Ajustes (Fase 3), selector/filtro
+> (Fase 4) y el puente mismo (Fase 5). El registro multi-usuario real sigue
+> fuera de alcance.
+
+**Resolución:** el bloqueante son en realidad dos problemas distintos, y solo
+uno es responsabilidad de este puente.
+
+El registro multi-usuario real (signup, login por cuenta) es infraestructura
+de auth que kipu necesita de todas formas — no es específico de Tiendi y queda
+fuera del alcance de este documento. Lo que sí resuelve el puente es la
+segunda mitad: **una identidad de negocio que un usuario de kipu pueda
+vincular con un comercio de Tiendi**, sin volver kipu multi-tenant a nivel de
+autenticación.
+
+```prisma
+// docs/INTEGRACION-TIENDI.md §4.3 — identidad de negocio vinculable a Tiendi.
+// Un User puede tener cero, uno o varios Negocios; seguir anotando gastos
+// personales sin ninguno sigue siendo válido.
+model Negocio {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nombre        String
+  tiendiStoreId String?  @unique // el mismo `tiendaId` del contrato de §6
+  createdAt     DateTime @default(now())
+
+  gastos  Expense[]
+  cuentas Cuenta[]
+}
+```
+
+`Expense` y `Cuenta` ganan un `negocioId String?` opcional, `onDelete:
+SetNull` — mismo patrón que `cuentaId` (§7 tiene el diff completo). Un
+movimiento sin `negocioId` es personal; con `negocioId` pertenece a ese
+negocio.
+
+**La vinculación es manual, no automática.** El usuario crea el Negocio a
+mano en kipu y le pega el `tiendaId` de su tienda en Tiendi. El puente **no**
+auto-crea un Negocio la primera vez que ve un `tiendaId` desconocido — si
+todavía nadie lo vinculó, la liquidación se rechaza con el `422` que ya
+contempla la tabla de §6. Auto-provisionar un Negocio a partir de un dato
+entrante es la clase de magia que después nadie puede auditar: "¿de dónde
+salió este negocio, quién lo creó?"
+
+Con `tiendiStoreId @unique`, la búsqueda del endpoint de §6 no depende de qué
+usuario está autenticado en el request:
+
+```
+Negocio.findUnique({ where: { tiendiStoreId: body.tiendaId } })
+  → existe    → usar su userId + id para insertar el movimiento
+  → no existe → 422
+```
+
+**Decisión de UI: filtro por pantalla, no selector de contexto global.**
+
+El listado de gastos y el resumen mensual ganan un filtro más, al lado del de
+fecha — `[Todos] [Personal] [Negocio A] ...]` — resuelto como un `computed`
+local, el mismo patrón que ya usa `cuentasVisibles` en `RegisterPage` para
+filtrar cuentas según `metodoPago`. Sin filtro aplicado, el comportamiento es
+idéntico al actual: todo mezclado, nada cambia.
+
+Se descartó un selector de contexto global (tipo workspace de Slack) por dos
+razones: exige una capa de estado nueva que hoy no existe (`expenses.store`,
+`cuentasStore` y `settings.store` son todos flat, sin noción de "contexto
+activo"), y un context-switcher esconde por diseño la vista combinada
+personal + negocio, que en kipu es el caso de uso más común, no la excepción.
+
+**El filtro solo se muestra si el usuario tiene al menos un `Negocio`
+vinculado.** Sin negocios registrados, la UI no cambia: ni el filtro ni
+ningún selector aparecen. Evita meter una fila de UI muerta para quien nunca
+vinculó un comercio de Tiendi.
 
 ### 4.4 — La taxonomía es personal, no comercial
 
@@ -413,6 +496,18 @@ flowchart TB
 > importada en modo avión, el libro del comerciante deja de coincidir con el de
 > Tiendi y no hay forma automática de volver atrás.
 
+> [!NOTE]
+> **Implementadas (2026-08-28).** El API expone `origenExterno` /
+> `origenExternoId` / `compensaA` en `ExpenseResponse`; el cliente las usa así:
+> 1. `expenses.store.update()` rechaza la edición con error legible, la página
+>    de edición redirige si se entra por URL directa, el listado oculta
+>    editar/devolución/eliminar y muestra el badge "Tiendi", y la reparación de
+>    cuentas (`movimientosSinCuenta`) las excluye — sin outbox no hay op.
+> 2. `expenses.store.remove()` rechaza el tombstone.
+> 3. Estructural: ninguna fila importada puede llegar a tener un outbox op
+>    pendiente, así que el pull del servidor siempre gana y el
+>    `clientUpdatedAt` del cliente nunca compite.
+
 Queda además una decisión de producto: **a qué `Cuenta` cae la liquidación**.
 Kipu ya tiene el precedente de `SettingsStore.cuentaPorMetodo()` — un mapeo
 configurable de método de pago a cuenta. La liquidación de Tiendi debería seguir
@@ -483,29 +578,29 @@ un endpoint.
 
 **Kipu — independiente**
 
-- [ ] Multi-tenancy: registro, aislamiento por tenant, identidad vinculable
-- [ ] Extender `Categoria` con valores de comercio
-- [ ] Extender `MetodoPago` o definir el mapeo de liquidación a cuenta
-- [ ] Migración: `origenExterno`, `origenExternoId`, `compensaA` + `@@unique`
-- [ ] Movimientos importados: solo lectura en la UI
-- [ ] Outbox: nunca encolar filas con `origenExterno != null`
-- [ ] Sync: excluir esas filas de la comparación LWW
-- [ ] Ajuste: elegir cuenta destino de las liquidaciones
+- [x] Multi-tenancy de kipu: **completa** — identidad vinculable (Fases 1-2 de `MULTI-TENANCY-KIPU.md`), UI (Fases 3-4), puente (Fase 5) y **registro multi-usuario** (`POST /auth/register` + toggle de registro en el login; cada query ya estaba aislada por `userId` del JWT, así que un segundo usuario solo ve sus filas)
+- [x] Extender `Categoria` con valores de comercio (2026-08-28 — `'inventario'`: compra de mercadería para reventa; API `categoriaSchema` + web union/options)
+- [x] Extender `MetodoPago` con valor de comercio (2026-08-28 — `'transferencia'`: liquidación de plataforma / transferencia bancaria; el puente etiqueta sus filas importadas con este valor, no `'efectivo'`)
+- [x] Migración: `origenExterno`, `origenExternoId`, `compensaA` + `@@unique` (2026-08-28 — `20260828120000_add_origen_externo`)
+- [x] Movimientos importados: solo lectura en la UI (2026-08-28 — badge "Tiendi", sin editar/devolución/eliminar; guards en `update`/`remove` del store y en la página de edición; excluidos de la reparación de cuentas)
+- [x] Outbox: nunca encolar filas con `origenExterno != null` (2026-08-28 — garantizado en origen: los guards de `expenses.store` cortan antes de que exista un op)
+- [x] Sync: excluir esas filas de la comparación LWW (2026-08-28 — estructural: sin outbox op pendiente, el pull del servidor siempre aplica y el servidor es autoridad única)
+- [x] Ajuste: elegir cuenta destino de las liquidaciones (2026-08-28 — `Negocio.cuentaDestinoId` + `PUT /negocios/:id/cuenta` + select en Ajustes; el puente conecta la cuenta al crear la fila; sin mapeo, `cuentaId: null`)
 
-**Tiendi — bloqueado en Fase 2**
+**Tiendi — fuente disponible, emisión pendiente**
 
 - [ ] Wallet o saldo para comercios, no solo repartidores — parcialmente cubierto por la liquidación semanal (`STORE_PAYABLE` → `PayoutRequest`, B2 de [[FLUJO_DINERO]] §13); falta saldo en tiempo real
 - [x] Cálculo de liquidación al vendedor — `settlement.service` (B2): cierre semanal por tienda, mínimo S/ 50, `PayoutBatch`, asiento `PAYOUT` por éxito
-- [ ] `origenExternoId` estable e inmutable por liquidación
-- [ ] Emisión hacia kipu con reintentos
+- [x] `origenExternoId` estable e inmutable por liquidación (2026-08-28 — la `idempotencyKey` del PayoutRequest, `settlement:{storeId}:{fecha}`: estable por deriva del período, inmutable por el unique del payout; fallback `payout:{id}`)
+- [x] Emisión hacia kipu con reintentos (2026-08-28 — módulo `integraciones/` en `tiendi-api`: tabla `KipuEmission` outbox + cron cada 5 min con backoff 1→60 min; 2xx → EMITTED, 409/401 → FAILED_PERMANENT, 422 sigue PENDING porque la tienda puede vincularse después; gates `KIPU_URL` + `KIPU_SERVICE_TOKEN` deny-by-default. Migración `20260828180000_kipu_emission` escrita — aplicar con `prisma migrate deploy` cuando la DB esté arriba)
 
-**Puente**
+**Puente — lado kipu implementado (2026-08-28)**
 
-- [ ] `POST /integraciones/tiendi/liquidaciones`
-- [ ] Idempotencia por `@@unique` compuesto
-- [ ] `409` ante mismo ID con datos distintos
-- [ ] Mapeo a `tipo: 'ingreso'` — **nunca** a `liquidacion`
-- [ ] Asientos compensatorios para rectificaciones
+- [x] `POST /integraciones/tiendi/liquidaciones` — módulo `integraciones/` con `ServiceTokenGuard` (`TIENDI_SERVICE_TOKEN`, deny-by-default mientras no esté configurado)
+- [x] Idempotencia por `@@unique` compuesto — incluida la carrera `P2002`: el perdedor reconcilia contra la fila ganadora en vez de 500
+- [x] `409` ante mismo ID con datos distintos
+- [x] Mapeo a `tipo: 'ingreso'` — **nunca** a `liquidacion`
+- [x] Asientos compensatorios para rectificaciones — cada corrección llega como liquidación nueva (signo contrario en `monto`, propio `origenExternoId`) con referencia `compensaA`; la original nunca se toca
 
 ---
 
