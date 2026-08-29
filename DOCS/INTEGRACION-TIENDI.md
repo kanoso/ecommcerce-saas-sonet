@@ -2,15 +2,41 @@
 
 > [!NOTE]
 > Este es un **documento de diseño** que ya tiene implementación completa del
-> lado kipu y del lado emisor de tiendi. Estado (2026-08-28): el libro de
+> lado kipu y del lado emisor de tiendi. Estado (2026-08-29): el libro de
 > partida doble y la liquidación al vendedor existen en `tiendi-api`
 > ([[FLUJO_DINERO]] Fases 1-5 + `settlement.service`); las Fases 1-5 de
 > `MULTI-TENANCY-KIPU.md` están completas (modelo, API, UI, puente); las reglas
 > de offline-first (§8) están implementadas; y `tiendi-api` encola y emite cada
-> liquidación hacia kipu con reintentos (módulo `integraciones/`). Falta solo
-> operar: configurar `KIPU_URL`/`KIPU_SERVICE_TOKEN` en tiendi-api y
-> `TIENDI_SERVICE_TOKEN` en kipu, y que cada comercio cree su Negocio y lo
-> vincule. El contrato de §6 sigue siendo la referencia del wire format.
+> liquidación hacia kipu con reintentos (módulo `integraciones/`). El contrato
+> de §6 sigue siendo la referencia del wire format.
+
+---
+
+## 6 bis. Estado de despliegue (2026-08-29)
+
+> [!IMPORTANT]
+> **El puente está operativo en producción.** E2E verificado en vivo:
+> `KipuEmission` PENDING → cron (t+150s) → `EMITTED` → liquidación importada
+> en el libro de kipu como `ingreso`/`transferencia`.
+
+| Pieza | Server `ubuntu@157.151.237.57` (Oracle Cloud, key `ssh-key-2026-08-01.key`) |
+|---|---|
+| kipu API | pm2 `tiendi-api`, `localhost:3000`, SQLite `api/prisma/prod.db`, repo `/home/ubuntu/tiendi-kipu` |
+| kipu web | PWA estática, **https://157-151-237-57.nip.io** (nginx, `/api` → `:3000`) |
+| tiendi API | pm2 `tiendi-platform-api`, `localhost:3001` (sin exponer por nginx aún), repo `/home/ubuntu/tiendi-api` |
+| Postgres | servicio local del server (Ubuntu 24.04 apt), DB `tiendi` (owner `tiendi`), 40 migraciones + seed |
+| Redis | servicio local del server (BullMQ: colas `settlement` y `kipu-emit`) |
+| GitHub | deploy keys por repo en `~/.ssh/` (alias `github-tiendikipu` y `github-tiendiapi`); kipu también es repo standalone fuera del monorepo |
+
+**Variables críticas** (`.env` de cada API, `chmod 600`, no versionados):
+- kipu `api/.env`: `TIENDI_SERVICE_TOKEN` — token del puente.
+- tiendi `.env`: `KIPU_URL=http://localhost:3000` y `KIPU_SERVICE_TOKEN` (**mismo valor** que el de kipu), `DATABASE_URL`, `REDIS_HOST/PORT`, `TWILIO_*` placeholders (el guard de producción exige que existan).
+
+**Redesplegar el emisor** — la VM (1 GB RAM) **no compila** tiendi-api (tsc OOM): compilar local (`npm run build`) y subir solo `dist/` (⚠️ `scp -r dist` a un destino existente anida `dist/dist` — borrar el remoto primero), luego `pm2 restart tiendi-platform-api`. Ojo: pm2 persiste el env del primer boot y dotenv no pisa `process.env` — si se cambia el token hay que `pm2 delete` + `pm2 start ecosystem.config.cjs`.
+
+**Bugs de boot encontrados al desplegar** (mismo patrón: DI no visible en tests unitarios): `NegociosModule`/`ServicesModule` no importaban/proveían dependencias de sus guards y servicios (`50492ba` en kipu, `bc988de` en tiendi); y el reintento idempotente del puente devolvía `201` en vez de `200` (`3525c96`).
+
+---
 
 ---
 
@@ -592,7 +618,7 @@ un endpoint.
 - [ ] Wallet o saldo para comercios, no solo repartidores — parcialmente cubierto por la liquidación semanal (`STORE_PAYABLE` → `PayoutRequest`, B2 de [[FLUJO_DINERO]] §13); falta saldo en tiempo real
 - [x] Cálculo de liquidación al vendedor — `settlement.service` (B2): cierre semanal por tienda, mínimo S/ 50, `PayoutBatch`, asiento `PAYOUT` por éxito
 - [x] `origenExternoId` estable e inmutable por liquidación (2026-08-28 — la `idempotencyKey` del PayoutRequest, `settlement:{storeId}:{fecha}`: estable por deriva del período, inmutable por el unique del payout; fallback `payout:{id}`)
-- [x] Emisión hacia kipu con reintentos (2026-08-28 — módulo `integraciones/` en `tiendi-api`: tabla `KipuEmission` outbox + cron cada 5 min con backoff 1→60 min; 2xx → EMITTED, 409/401 → FAILED_PERMANENT, 422 sigue PENDING porque la tienda puede vincularse después; gates `KIPU_URL` + `KIPU_SERVICE_TOKEN` deny-by-default. Migración `20260828180000_kipu_emission` escrita — aplicar con `prisma migrate deploy` cuando la DB esté arriba)
+- [x] Emisión hacia kipu con reintentos (2026-08-28, **desplegada y verificada E2E en producción el 2026-08-29** — módulo `integraciones/` en `tiendi-api`: tabla `KipuEmission` outbox + cron cada 5 min con backoff 1→60 min; 2xx → EMITTED, 409/401 → FAILED_PERMANENT, 422 sigue PENDING porque la tienda puede vincularse después; gates `KIPU_URL` + `KIPU_SERVICE_TOKEN` deny-by-default. Ver §6 bis para el estado de despliegue)
 
 **Puente — lado kipu implementado (2026-08-28)**
 
