@@ -25,3 +25,9 @@ FUENTES/tiendi-go/coverage/
 FUENTES/tiendi-kipu/
 FUENTES/tiendi-vendor-refactor/
 tiendi-vendor-fase14/
+
+# deploy-pc: artefactos generados (solo versionar setup.ps1)
+FUENTES/deploy-pc/api
+FUENTES/deploy-pc/vendor
+FUENTES/deploy-pc/admin
+FUENTES/deploy-pc/tiendi-deploy.zip
