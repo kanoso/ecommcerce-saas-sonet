@@ -13,3 +13,6 @@
 [submodule "FUENTES/tiendi-go"]
 	path = FUENTES/tiendi-go
 	url = https://github.com/kanoso/tiendi-go.git
+[submodule "FUENTES/tiendi-site"]
+	path = FUENTES/tiendi-site
+	url = https://github.com/kanoso/tiendi-site.git
