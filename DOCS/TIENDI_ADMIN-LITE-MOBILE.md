@@ -2,7 +2,7 @@
 tags: [tiendi-admin, mobile, notificaciones, rbac, diseño]
 aliases: ["Admin Lite Mobile", "Capa de aprobaciones móviles"]
 related: ["[[TIENDI_ADMIN]]", "[[NOTIFICACIONES]]", "[[AUTENTICACION]]"]
-status: diseño aprobado — no implementado
+status: en implementación (scaffolding + cliente mobile code-complete 2026-08-31)
 fecha: 2026-08-31
 ---
 
@@ -37,7 +37,7 @@ Esto cambia el punto de partida real:
 | `AdminNotifier` solo hacía `logger.warn` | ✅ Envía email + push reales (2026-08-25) |
 | No había endpoint de inbox genérico | ✅ `GET /notifications/inbox`, `POST /notifications/inbox/mark-all-read` |
 | No había forma de registrar el token del dispositivo | ✅ `POST /notifications/inbox/device-token` (gateado a `SUPER_ADMIN`) |
-| **La app mobile en sí** | 🔲 Cero scaffolding — sigue sin existir |
+| **La app mobile en sí** | ✅ Scaffolding + cliente code-complete (2026-08-31); falta build/firma/distribución y config operativa |
 
 > [!IMPORTANT]
 > Lo que falta **no es backend de notificaciones** — eso ya está. Lo que falta es el **cliente mobile** que reciba el push, muestre el inbox y ejecute las 5 acciones de aprobación con un tap.
@@ -96,9 +96,12 @@ Siguiendo la numeración de decisiones de [[TIENDI_ADMIN]] (D1-D5), pero con pre
 | Permisos runtime | Capacitor `Permissions` API | Android 13+ exige permiso explícito de notificaciones |
 | UI | Angular 21 (standalone, signals) + Tailwind CSS 4 | Reuso directo — cero librería de UI nueva, cero design system paralelo |
 
-### 3.2 Backend — cero cambios
+### 3.2 Backend — una corrección al respecto
 
-`tiendi-api` no necesita ni una línea nueva para que el mobile funcione: `AdminNotifier`, `NotificationDispatcher`, `FirebaseService` y los endpoints de inbox/device-token (§5) ya están en producción. El mobile es, desde la perspectiva del backend, **un cliente más** consumiendo lo que `tiendi-admin` desktop ya consume.
+> [!WARNING]
+> **Corrección (2026-08-31, durante la implementación):** esta sección decía "tiendi-api no necesita ni una línea nueva". Eso era **inexacto**: `AdminNotifier` enviaba email + push pero **nunca persistía** filas `Notification` con `ownerType=ADMIN` — el inbox del SUPER_ADMIN estaba siempre vacío y `GET /notifications/inbox` no devolvía nada. Como el inbox es la fuente de verdad del mobile (§7), se agregó: `AdminNotifier.persistAdminInbox()` persiste una fila por SUPER_ADMIN activo en cada alerta (y `alertRiderPendingReview()` nueva, disparada por `RidersService.registerStep3` al pasar a `UNDER_REVIEW` — alimenta las acciones de rider). Verificados con tests.
+
+Con esa corrección aplicada, el resto sigue siendo cierto: `NotificationDispatcher`, `FirebaseService` y los endpoints de inbox/device-token ya estaban en producción. El mobile es, desde la perspectiva del backend, **un cliente más** consumiendo lo que `tiendi-admin` desktop ya consume.
 
 ### 3.3 Excluido a propósito
 
@@ -200,14 +203,16 @@ Trabajo real pendiente:
 ## 8. Checklist de seguimiento
 
 - [x] **L1-L5** — Decisiones tomadas y documentadas (confirmadas 2026-08-31)
-- [ ] Scaffolding de Capacitor sobre `tiendi-admin`
-- [ ] Login mobile + almacenamiento seguro de token
-- [ ] Registro de `fcmToken` vía `POST /notifications/inbox/device-token`
-- [ ] Recepción de push + deep link al inbox
-- [ ] UI de las 5 acciones tap-confirm
-- [ ] Manejo de 409 (estado ya resuelto por otro canal)
-- [ ] Config operativa pendiente heredada de [[NOTIFICACIONES]] §12: `ADMIN_ALERT_EMAILS` en prod, proyecto Firebase web + VAPID key
-- [ ] Pipeline de build/firma/distribución
+- [x] Scaffolding de Capacitor sobre `tiendi-admin` (`capacitor.config.ts` con `appId: com.tiendi.admin` + shell Android; 2026-08-31)
+- [x] Login mobile + almacenamiento seguro de token (`@capacitor/preferences`, biometría local vía `@aparajita/capacitor-biometric-auth`; 2026-08-31)
+- [x] Backend: `AdminNotifier` persiste inbox ADMIN + alerta de rider pendiente (corrección de §3.2; 2026-08-31)
+- [x] Registro de `fcmToken` vía `POST /notifications/inbox/device-token` (`MobilePushService`; 2026-08-31)
+- [x] Recepción de push + deep link al inbox (`pushNotificationActionPerformed` → `/mobile/inbox`; 2026-08-31)
+- [x] UI de las 5 acciones tap-confirm (`/mobile/inbox`, mapeo por `type` de notificación; 2026-08-31)
+- [x] Manejo de 409 (estado ya resuelto por otro canal) → toast + reload del inbox (2026-08-31)
+- [ ] URL de API en el build del APK: `environment.prod.ts` hoy apunta a `localhost:3001` (config de desktop); el APK necesita la URL pública de `tiendi-api`
+- [ ] Config operativa pendiente heredada de [[NOTIFICACIONES]] §12: `ADMIN_ALERT_EMAILS` en prod, proyecto Firebase Android (google-services.json) para el `appId com.tiendi.admin` + proyecto Firebase web + VAPID key
+- [ ] Pipeline de build/firma/distribución (`npx cap sync` ya verificado; falta firma de APK, TestFlight iOS y Firebase App Distribution — decisión L5)
 
 ## Referencias
 
@@ -219,7 +224,8 @@ Trabajo real pendiente:
 
 | Archivo | Estado actual | Cambio esperado |
 |---|---|---|
-| `tiendi-admin/capacitor.config.ts` | No existe | Crear (scaffolding L1) — `appId: "com.tiendi.admin"`, `appName: "Tiendi Admin"` |
-| `tiendi-admin/src/app/mobile/**` | No existe | Crear (UI de inbox + 5 acciones) |
-| `tiendi-api/src/modules/support/admin-notifier.service.ts` | ✅ Implementado | Sin cambios — ya soporta este flujo |
-| `tiendi-api/.../notifications/inbox.controller.ts` | ✅ Implementado | Sin cambios — reusar tal cual |
+| `tiendi-admin/capacitor.config.ts` | ✅ Creado (2026-08-31) | `appId: "com.tiendi.admin"`, `appName: "Tiendi Admin"` |
+| `tiendi-admin/src/app/mobile/**` | ✅ Creado (2026-08-31) | Login + biometría, inbox con las 5 acciones tap-confirm, push nativo, storage seguro |
+| `tiendi-admin/android/` | ✅ Creado (`npx cap add android`) | Shell nativo Android; iOS queda para cuando haya macOS (TestFlight) |
+| `tiendi-api/src/modules/support/admin-notifier.service.ts` | ✅ Actualizado (2026-08-31) | Además de email+push, persiste inbox ADMIN (`persistAdminInbox`) y agrega `alertRiderPendingReview` |
+| `tiendi-api/.../notifications/inbox.controller.ts` | ✅ Sin cambios | Reusado tal cual |
