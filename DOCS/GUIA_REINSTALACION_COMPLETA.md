@@ -2,7 +2,8 @@
 
 > Documento para levantar **todo** el ecosistema en una PC Windows desde cero:
 > tiendi-api, tiendi-vendor, tiendi-admin, tiendi-web, tiendi-go y tiendi-kipu.
-> Incluye las trampas encontradas en la práctica (PowerShell, CORS, Prisma, procesos huérfanos).
+> Incluye las trampas encontradas en la práctica (PowerShell, CORS, Prisma, procesos huérfanos)
+> y el **deploy a producción con pm2 + Cloudflare Tunnel** (§14).
 >
 > Complementa a [`GUIA_SETUP_PC_NUEVA.md`](GUIA_SETUP_PC_NUEVA.md) (setup de publicación);
 > esta guía agrega el entorno de desarrollo completo con tiendi-kipu.
@@ -334,8 +335,200 @@ New-NetFirewallRule -DisplayName "tiendi-api"   -Direction Inbound -Protocol TCP
 
 ---
 
+## 14. Deploy a producción en esta PC (pm2 + Cloudflare Tunnel)
+
+> Proceso real ejecutado y verificado. En esta arquitectura **la misma PC es dev y prod**:
+> el código fuente vive en `D:\Proyectos\...` y el deploy corre desde `C:\tiendi`.
+
+### 14a. Arquitectura final
+
+| URL pública | Proceso pm2 | Puerto local | Tipo |
+|---|---|---|---|
+| `https://api.tiendi.pe` | `tiendi-platform-api` | 3001 | NestJS (`dist\src\main.js`) |
+| `https://vendor.tiendi.pe` | `tiendi-vendor` | 4201 | estático (`pm2 serve --spa`) |
+| `https://admin.tiendi.pe` | `tiendi-admin` | 4202 | estático (`pm2 serve --spa`) |
+| `https://web.tiendi.pe` | `tiendi-web-ssr` | 4000 | **SSR** (`node server.mjs`) |
+| `https://kipu.tiendi.pe` | `kipu-web` | 4300 | estático (`pm2 serve --spa`) |
+| `https://kipuapi.tiendi.pe` | — (dev watch) | 3000 | NestJS kipu |
+
+Cloudflare termina TLS en el borde; cloudflared (`tunnel run --token-file`, túnel
+`tiendi-pc` manejado desde el dashboard Zero Trust) conecta a los puertos locales por **HTTP**.
+
+### 14b. Por qué no basta con "API interna"
+
+Los paneles Angular ejecutan las llamadas a la API **en el navegador del visitante**.
+Un `apiUrl: 'http://localhost:3001'` en un build servido al público hace que cada
+visitante le pida la API a *su propia máquina*. Por eso el `apiUrl` de los builds
+públicos apunta a `https://api.tiendi.pe/api/v1` (y kipu a `https://kipuapi.tiendi.pe`).
+
+### 14c. Proceso de deploy (pasos ejecutados)
+
+**1. Limpiar lo que estorba** (watchers de dev duplican puertos y consumen CPU):
+
+```powershell
+# identificar por CommandLine ANTES de matar (pm2 tambien es node - no matarlo)
+Get-CimInstance Win32_Process -Filter "Name='node.exe' OR Name='esbuild.exe'" |
+  Select-Object ProcessId, CommandLine
+# matar: ng serve, nest start --watch, expo, esbuild huerfanos
+taskkill /PID <pid> /T /F
+```
+
+**2. Liberar puertos que Docker ocupa** (Grafana tiene 3001, que necesita la API):
+
+```powershell
+docker stop tiendi-grafana tiendi-prometheus tiendi-loki
+# postgres y redis QUEDAN: la API los usa
+```
+
+**3. Compilar a `C:\tiendi`** (API + estáticos):
+
+```powershell
+cd D:\Proyectos\ecommcerce-saas-sonet\FUENTES\tiendi-api
+npm run build                                  # -> dist\src\main.js
+
+cd ..\tiendi-vendor
+npx ng build --configuration production --output-path C:\tiendi\vendor
+cd ..\tiendi-admin
+npx ng build --configuration production --output-path C:\tiendi\admin
+cd ..\tiendi-kipu\web
+npx ng build --configuration production --output-path C:\tiendi\kipu
+cd ..\tiendi-web
+npm run build                                  # -> dist\tiendi-web\server\server.mjs (SSR)
+```
+
+> [!IMPORTANT]
+> `ng build --output-path C:\tiendi\vendor` genera una subcarpeta **`browser\`**
+> dentro. `pm2 serve` debe apuntar a `C:\tiendi\vendor\browser`, no a `C:\tiendi\vendor`.
+
+**4. Cocinar el `apiUrl` con el patrón edit-build-revert** (el repo queda limpio):
+editar temporalmente cada `src/environments/environment.prod.ts`
+(vendor/admin: `https://api.tiendi.pe/api/v1`; kipu: `https://kipuapi.tiendi.pe`;
+web: `https://api.tiendi.pe/api/v1`), compilar, y **revertir** el archivo después
+(`git checkout -- <archivo>`). El valor queda horneado en el build.
+
+**5. Definir el ecosistema pm2** (`C:\tiendi\ecosystem.config.cjs`):
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'tiendi-platform-api',
+      cwd: 'D:\\Proyectos\\ecommcerce-saas-sonet\\FUENTES\\tiendi-api',
+      script: 'dist\\src\\main.js',
+      env: {
+        // development = mocks de Twilio/Firebase/etc. Con credenciales
+        // reales, cambiar a 'production' (si no, el boot exige TWILIO_ACCOUNT_SID)
+        NODE_ENV: 'development',
+        PORT: 3001,
+        FRONTEND_URL:
+          'https://vendor.tiendi.pe,https://admin.tiendi.pe,https://web.tiendi.pe,' +
+          'http://localhost:4201,http://localhost:4202,http://localhost:4200,' +
+          'http://127.0.0.1:4201,http://127.0.0.1:4202,' +
+          'http://192.168.1.29:4201,http://192.168.1.29:4202',
+      },
+      max_memory_restart: '512M',
+    },
+    {
+      name: 'tiendi-web-ssr',
+      cwd: 'D:\\Proyectos\\ecommcerce-saas-sonet\\FUENTES\\tiendi-web\\dist\\tiendi-web',
+      script: 'server\\server.mjs',
+      env: { NODE_ENV: 'production', PORT: 4000 },
+      max_memory_restart: '512M',
+    },
+  ],
+};
+```
+
+> [!NOTE]
+> Las variables del `env` de pm2 **ganan sobre el `.env`** (dotenv no sobreescribe
+> `process.env`). Por eso `PORT=3001` y el `FRONTEND_URL` de producción viven acá
+> y no en el `.env` (que queda para dev en 4000).
+
+**6. Registrar todo en pm2**:
+
+```powershell
+pm2 start C:\tiendi\ecosystem.config.cjs                                  # API + SSR
+pm2 serve C:\tiendi\vendor\browser 4201 --name tiendi-vendor --spa
+pm2 serve C:\tiendi\admin\browser  4202 --name tiendi-admin --spa
+pm2 serve C:\tiendi\kipu\browser   4300 --name kipu-web --spa
+pm2 save                # snapshot para pm2 resurrect tras reinicio
+```
+
+> [!WARNING]
+> `pm2 delete` **no acepta lista separada por comas** — borrar de a un nombre.
+
+**7. Configurar el túnel** (dashboard Zero Trust → Networks → Tunnels → `tiendi-pc`
+→ Public Hostnames). Para cada hostname: **Type: `HTTP`** + URL `localhost:PUERTO`.
+
+| Hostname | Service (Type HTTP) |
+|---|---|
+| api.tiendi.pe | localhost:3001 |
+| vendor.tiendi.pe | localhost:4201 |
+| admin.tiendi.pe | localhost:4202 |
+| web.tiendi.pe | localhost:4000 |
+| kipu.tiendi.pe | localhost:4300 |
+| kipuapi.tiendi.pe | localhost:3000 |
+
+> [!IMPORTANT]
+> **La trampa que costó el único outage del deploy:** poner `Type: HTTPS` en el
+> Service. cloudflared intenta TLS contra un servicio HTTP local → handshake falla
+> → **502 en todos**. El visitante siempre ve `https://` (lo termina Cloudflare en
+> el borde); lo local es siempre **HTTP**.
+
+**8. CORS de kipu-api** (`FUENTES\tiendi-kipu\api\.env`) y reinicio:
+
+```ini
+FRONTEND_URL="https://kipu.tiendi.pe,http://localhost:4300,http://127.0.0.1:4300"
+```
+
+**9. Verificación end-to-end**:
+
+```powershell
+foreach ($u in 'https://api.tiendi.pe/api/v1/health','https://vendor.tiendi.pe',
+               'https://admin.tiendi.pe','https://web.tiendi.pe',
+               'https://kipu.tiendi.pe') {
+  try { "$u -> $((Invoke-WebRequest $u -UseBasicParsing -TimeoutSec 20).StatusCode)" }
+  catch { "$u -> FAIL" }
+}
+# logins reales por tunel:
+Invoke-RestMethod -Uri "https://api.tiendi.pe/api/v1/auth/login" -Method Post `
+  -ContentType "application/json" -Body '{"email":"admin@tiendi.app","password":"Admin2024!"}'
+Invoke-RestMethod -Uri "https://kipuapi.tiendi.pe/auth/login" -Method Post `
+  -ContentType "application/json" -Body '{"username":"admin","password":"changeme123"}'
+```
+
+### 14d. Errores reales de este deploy (y su solución)
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| `502 Bad Gateway` en todos | Service con `Type: HTTPS` hacia servicios HTTP | Type `HTTP` en los 6 |
+| `502` en un solo hostname | puerto equivocado (ej. `web` apuntando al 4200 viejo) | apuntar al puerto real (SSR = 4000) |
+| Panel por túnel carga pero login muere | `apiUrl` con `localhost` horneado en el build | rebuild con hostname público (14c paso 4) |
+| API no arranca bajo pm2 | `NODE_ENV=production` sin credenciales → `TWILIO_ACCOUNT_SID not set` | `NODE_ENV=development` (mocks) |
+| pm2 `online` con pid `N/A` | sirviendo un directorio que no existe | verificar el path del `pm2 serve` |
+| CPU al 100% sostenido | proceso node huérfano de un `ng serve` anterior | identificar por CommandLine → `taskkill /T /F` |
+| Puerto 4201/4202 "ocupado" por pm2 | el `ng serve` de dev sigue vivo (bindeó solo IPv6) | matar watchers de dev antes de `pm2 serve` |
+
+### 14e. Después de reiniciar Windows (esta PC)
+
+```powershell
+docker start tiendi-postgres tiendi-redis   # DB
+pm2 resurrect                               # restaura los 5 procesos del dump
+# cloudflared corre como servicio de Windows (se levanta solo)
+```
+
+### 14f. Pendientes de endurecimiento
+
+- [ ] Cloudflare Access o rate limiting sobre `api.tiendi.pe` y `kipuapi.tiendi.pe` (están públicos)
+- [ ] `NODE_ENV=production` cuando existan credenciales reales (Twilio, Firebase, Culqi, etc.)
+- [ ] kipu-api todavía corre con `nest start --watch` (dev): migrar a pm2 con build para paridad
+- [ ] Postgres/Redis siguen sin credenciales fuertes: no exponer 5432/6379 al túnel
+
+---
+
 ## Next step
 
 Para el flujo diario de publicación de cambios (orden de push submódulos,
 deploy a VM), ver [`GUIA_SETUP_PC_NUEVA.md`](GUIA_SETUP_PC_NUEVA.md) §7.
 Para el puente de liquidaciones tiendi→kipu, ver [`INTEGRACION-TIENDI.md`](INTEGRACION-TIENDI.md).
+Tras cualquier reinstalación, completar también el deploy del túnel (§14).
