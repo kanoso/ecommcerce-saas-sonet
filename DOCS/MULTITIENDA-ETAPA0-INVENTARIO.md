@@ -126,3 +126,13 @@ Implementada sobre `tiendi-api@origin/master` (sin commitear). Verificación: **
 - Migración aditiva: `prisma/migrations/20260921000000_store_employee_user_id_idx/migration.sql` (índice `StoreEmployee_userId_idx`), no ejecutada contra DB.
 
 **Pendiente Etapa 2 (actualizado):** pertenencia por conversación en `chat.service`, employment-check en `products.assertStoreAccess`, modelo `Complaint` + respond real, gateways chat/tracking (join-delivery-room, rider:location), naming `SettledPayout.ownerId`→storeId, matriz de capacidades por rol de empleado, decisiones de producto del §8.
+
+## 11. Resultado Etapa 3 (2026-09-22)
+
+Selector y contexto explícito en `tiendi-vendor` (rama `feat/multitienda-etapa1`, sin commitear al momento de la implementación). Verificación: api **58 suites / 591 tests**, tsc limpio; vendor **19 archivos / 160 tests** + `ng build` OK.
+
+- Backend aditivo: `GET /stores/by-id/:storeId` (JwtAuthGuard + StoreManagerGuard, no exige status ACTIVE) y **escrituras bloqueadas** en tiendas no ACTIVE (`update`/`remove` → 403 para no SUPER_ADMIN) — la política "suspendida = solo lectura" se aplica en server y UI.
+- Frontend: `ActiveStoreStore` (`/me/stores`), `storeContextGuard`, shell con doble montaje `''` (legado, siempre redirige) + `:storeId`; páginas `select-store`/`no-store`/`store-denied`; switcher en topbar con **recarga total** como transición v1 (secuencia incremental §5.4 diferida); login delega la política 0/1/N en el guard; los ~14 helpers `storeId()` ahora leen `activeStoreId`.
+- Aislamiento por pestaña via URL (+ `sessionStorage` por pestaña; `localStorage` solo como sugerencia validada). `loadAccessible` con caché + `force`; el flujo 0→1 tienda refresca el listado antes de recargar.
+
+**Pendiente Etapa 3 (diferido):** ~250 líneas de CSS duplicado entre páginas de contexto y switcher (refactor a stylesheet compartido); navegación interna legada sin prefijo `:storeId` en ~12 links (funciona vía resolución del guard; en modo degradado sin storage un usuario multitienda puede caer en el selector); secuencia §5.4 incremental; MINOR/INFO de review (logout no borra la sugerencia `localStorage` — validada contra el listado del nuevo usuario; `ownerId` visible para empleados por igualdad de shape con `findBySlug` público).
