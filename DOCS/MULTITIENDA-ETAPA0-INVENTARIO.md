@@ -136,3 +136,24 @@ Selector y contexto explícito en `tiendi-vendor` (rama `feat/multitienda-etapa1
 - Aislamiento por pestaña via URL (+ `sessionStorage` por pestaña; `localStorage` solo como sugerencia validada). `loadAccessible` con caché + `force`; el flujo 0→1 tienda refresca el listado antes de recargar.
 
 **Pendiente Etapa 3 (diferido):** ~250 líneas de CSS duplicado entre páginas de contexto y switcher (refactor a stylesheet compartido); navegación interna legada sin prefijo `:storeId` en ~12 links (funciona vía resolución del guard; en modo degradado sin storage un usuario multitienda puede caer en el selector); secuencia §5.4 incremental; MINOR/INFO de review (logout no borra la sugerencia `localStorage` — validada contra el listado del nuevo usuario; `ownerId` visible para empleados por igualdad de shape con `findBySlug` público).
+
+## 12. Resultado Etapa 4 (2026-09-22)
+
+Eventos y enlaces con contexto de tienda. Verificación: api **59 suites / 637 tests** + tsc limpio; vendor **20 archivos / 175 tests** + build OK; tiendi-web suite completa con 1 falla preexistente flaky (baseline).
+
+### Backend (tiendi-api)
+- `ChatGateway`: JWT obligatorio en handshake para todos los joins (`store:` vía `assertStoreAccess`; `conv:` con pertenencia por `conversation.storeId`; `customer:` solo el comprador dueño — sin link a tienda). `resolveUser` con catch → `Internal server error` y WARN por rechazo.
+- `TrackingGateway`: `join-delivery-room` autenticado con matriz (SUPER_ADMIN / vendor con acceso / rider asignado / customer del pedido); `rider:location` solo difunde para el rider **asignado** a la entrega.
+- `chat.service`: pertenencia del vendor en list/history/send (cierra el gap de etapa 2 de chat; el path CUSTOMER se conserva).
+- `GET /me/notifications`: agregado de todas las tiendas accesibles, orden `createdAt desc, id desc`, limit 20/50; SUPER_ADMIN → vacío (intencional). Payloads FCM vendor incluyen `storeId`/`storeName`.
+
+### Frontend
+- `tiendi-vendor`: `MeNotificationsStore` + badge multi-tienda en el switcher; click navega a `/vendor/:sid/notifications` (recarga total v1); socket de chat con `auth.token` + dedupe de `message.new`; badge se refresca al marcar lecturas.
+- `tiendi-web` (rama `feat/chat-socket-auth`): socket de chat del comprador con `auth.token` + dedupe.
+
+### Cambios de contrato (breaking) — reequire despliegue coordinado
+1. Gateways `/chat` y `/tracking` exigen `auth: { token }` en el handshake; sin token todo join falla con `error: Authentication required`. El rider app (externo a este workspace) debe actualizarse.
+2. `join-delivery-room` ya no lee `role` del payload (identidad resuelta server-side).
+3. `rider:location` sin asignación → `error: No estás asignado a esta entrega`.
+
+**Pendiente:** desplegar api + vendor + tiendi-web en lockstep; rider app externa pendiente de actualizar; verificación E2E del flujo completo (Etapa 5); diferidos de §11.
