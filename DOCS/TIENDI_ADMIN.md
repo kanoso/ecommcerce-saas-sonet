@@ -14,6 +14,7 @@ aliases:
 related:
   - "[[AUTENTICACION]]"
   - "[[REVOCACION_SESION]]"
+  - "[[TIENDI_ADMIN-LITE-MOBILE]]"
 ---
 
 # Tiendi Admin — Back-office de la plataforma
@@ -592,7 +593,7 @@ quadrantChart
 ### Fase 8 — Soporte
 
 - [x] Pantalla `/admin/support` con tickets escalados (`POST /admin/tickets/:ticketId/escalate` ya existe)
-- [x] Chat en vivo — **decisión: deferido**. No se habilita `socket.io` en el admin por ahora; el canal `AdminNotifier` sigue siendo un stub y sin push real no hay gatillo de tiempo real (§14). Reevaluar cuando [[NOTIFICACIONES]] resuelva el canal admin — habilitarlo después es barato porque la plataforma ya corre socket.io para el chat comprador-vendedor
+- [x] Chat en vivo — **decisión: deferido**. No se habilita `socket.io` en el admin por ahora; sigue siendo una decisión de alcance, no una limitación técnica — `AdminNotifier` ya no es un stub (resuelto 2026-08-25, ver [[NOTIFICACIONES]] §12). Reevaluar si el volumen de soporte lo justifica — habilitarlo después es barato porque la plataforma ya corre socket.io para el chat comprador-vendedor
 
 ### Fase 9 — Observabilidad y cierre
 
@@ -641,23 +642,24 @@ flowchart LR
 | Fusionar/verificar maestros del catálogo | Comparar lado a lado | **No** |
 | Ledger y conciliación | Densidad de escritorio | **No** |
 
-### 14.2 La dependencia que lo bloquea
+### 14.2 Dependencia resuelta — el gatillo ya existe
 
-> [!CAUTION]
-> **El lite no tiene gatillo sin push.**
-> Hoy el canal de notificación al Super Admin es un stub que solo loguea:
+> [!NOTE]
+> **Histórico — resuelto el 2026-08-25.** Esta subsección decía que el lite no tenía gatillo porque `AdminNotifier` era un stub que solo logueaba:
 >
 > ```typescript
-> // tiendi-api/src/modules/support/admin-notifier.service.ts
+> // tiendi-api/src/modules/support/admin-notifier.service.ts (código viejo, ya reemplazado)
 > async alertNewTicket(...) { this.logger.warn(`[ADMIN ALERT] ...`); } // ← STUB
 > ```
 >
-> Sin push/email real al admin, el celular no recibe nada que justifique abrir la app. El lite depende de resolver este stub primero (ver [[NOTIFICACIONES]] §9).
+> Eso ya no existe. Las Fases 1-4 de [[NOTIFICACIONES]] §12 están implementadas: email vía SendGrid y push FCM real a todos los `SUPER_ADMIN` con `fcmToken` registrado. Lo único pendiente es configuración operativa (`ADMIN_ALERT_EMAILS` en prod, proyecto Firebase web + VAPID key), no código.
+>
+> El bloqueo real hoy no es el canal de notificación — es que **el cliente mobile no existe todavía**: cero scaffolding, cero Capacitor/Ionic/nativo en el proyecto. El detalle completo de qué falta construir vive en [[TIENDI_ADMIN-LITE-MOBILE]].
 
 ### 14.3 Orden lógico
 
-1. Cablear `AdminNotifier` (push al Super Admin) — sin esto no hay gatillo.
-2. Recién después, la capa lite de confirmaciones (riders + soporte).
+1. ~~Cablear `AdminNotifier` (push al Super Admin)~~ — **hecho** (2026-08-25): email + push FCM en producción.
+2. Construir el cliente mobile (scaffolding, auth, inbox, las 5 acciones tap-confirm) — desarrollo completo en [[TIENDI_ADMIN-LITE-MOBILE]].
 
 > [!NOTE]
 > El lite **no contradice** D1 (desktop-first). El escritorio sigue siendo la casa de las operaciones densas; el lite es mejora progresiva para los flujos de "tap" urgente, análogo al escáner de código de barras del vendor.
@@ -673,6 +675,7 @@ flowchart LR
 - [[MODELO_NEGOCIO]] — modelo mayorista y su decisión **D5 sobre uso de datos de venta** (§9.4, resuelta: agregados con k ≥ 3). No confundir con la D5 de este documento, que es de autenticación
 - [[MODULOS_SISTEMA_TIENDI]] — roles y dashboard de administración (conceptual)
 - [[NOTIFICACIONES]] — sistema de notificaciones unificado (incluye el canal admin que habilita el lite)
+- [[TIENDI_ADMIN-LITE-MOBILE]] — desarrollo completo de la capa de aprobaciones móviles (norte de diseño de esta §14): decisiones L1-L4, stack, arquitectura y riesgos
 - [[REVOCACION_SESION]] — mitigación de revocación de sesión (cutoff `auth:revoked_before:{userId}` en Redis). Su mitigación fue absorbida por la **Fase 5 de [[AUTENTICACION]]** (rotación + reuse-detection + kill switch), ya implementada
 
 ### Archivos afectados (estado objetivo)

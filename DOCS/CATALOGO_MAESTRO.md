@@ -1533,6 +1533,7 @@ quadrantChart
 - [[MODELO_NEGOCIO]] — §8 brecha técnica del modelo mayorista, §12.1 acción A1
 - [[FLUJO_DINERO]] — diseño objetivo del flujo de dinero y cálculo de comisión
 - [[COSTOS_ESTIMADOS]] — estimación de infraestructura
+- [[CATALOGO_MAESTRO-PRELOAD]] — por qué no hay precarga/import masivo hoy y cómo construirlo cuando se decida
 
 ### 12.3 Archivos afectados
 

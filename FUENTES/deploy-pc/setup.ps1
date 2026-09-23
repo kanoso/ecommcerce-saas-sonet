@@ -66,6 +66,14 @@ if ($envText -match "REEMPLAZAR") {
     Set-Content $envPath $envText -NoNewline
     Ok "JWT secrets generados"
 }
+# CORS: orígenes de los paneles/tienda servidos por el tunnel (idempotente)
+if ($envText -match "FRONTEND_URL=") {
+    $envText = $envText -replace "FRONTEND_URL=.*", "FRONTEND_URL=https://web.tiendi.pe,https://admin.tiendi.pe,http://localhost:4200,http://localhost:4202"
+} else {
+    $envText = $envText + "`nFRONTEND_URL=https://web.tiendi.pe,https://admin.tiendi.pe,http://localhost:4200,http://localhost:4202"
+}
+Set-Content $envPath $envText -NoNewline
+Ok "FRONTEND_URL (CORS) configurado"
 Push-Location $Api
 npm ci --no-audit --no-fund 2>&1 | Select-Object -Last 1
 npx prisma generate 2>&1 | Select-String "Generated"
@@ -75,12 +83,14 @@ Pop-Location
 Ok "API lista"
 
 # ---------- 4. pm2 + servicios ----------
-Step "4. pm2: API + vendor (4201) + admin (4202)"
+Step "4. pm2: API + web (4200) + vendor (4201) + admin (4202)"
 npm i -g pm2 --silent 2>&1 | Select-Object -Last 1
 pm2 delete tiendi-platform-api 2>$null | Out-Null
+pm2 delete tiendi-web 2>$null | Out-Null
 pm2 delete tiendi-vendor 2>$null | Out-Null
 pm2 delete tiendi-admin 2>$null | Out-Null
 pm2 start (Join-Path $Api "ecosystem.config.cjs")
+pm2 start (Join-Path $Root "web-ecosystem.config.cjs")
 pm2 serve (Join-Path $Root "vendor") 4201 --name tiendi-vendor --spa
 pm2 serve (Join-Path $Root "admin") 4202 --name tiendi-admin --spa
 pm2 save
@@ -88,7 +98,7 @@ Ok "pm2 levantó los 3 procesos"
 
 # ---------- 5. Firewall (acceso desde la LAN) ----------
 Step "5. Firewall LAN: 3001, 4201, 4202"
-foreach ($port in 3001, 4201, 4202) {
+foreach ($port in 3001, 4200, 4201, 4202) {
     netsh advfirewall firewall add rule name="Tiendi $port" dir=in action=allow protocol=TCP localport=$port | Out-Null
 }
 Ok "Puertos abiertos en la red local"
@@ -97,14 +107,15 @@ Ok "Puertos abiertos en la red local"
 Step "6. Verificación"
 Start-Sleep -Seconds 8
 pm2 list
-foreach ($u in "http://localhost:3001/api/v1", "http://localhost:4201", "http://localhost:4202") {
+foreach ($u in "http://localhost:3001/api/v1", "http://localhost:4200", "http://localhost:4201", "http://localhost:4202") {
     try { $c = (Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 10).StatusCode; Ok "$u -> $c" }
     catch { Write-Warning "$u -> $($_.Exception.Message)" }
 }
 
 Write-Host "`n=== LISTO ===" -ForegroundColor Yellow
+Write-Host "Web:     http://localhost:4200   (tunnel: https://web.tiendi.pe)"
 Write-Host "Vendor:  http://localhost:4201   (también desde la LAN: http://$(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -like '192.168.1.*' -and $_.InterfaceAlias -like '*Ether*'} | Select-Object -First 1 -ExpandProperty IPAddress):4201)"
-Write-Host "Admin:   http://localhost:4202"
-Write-Host "API:     http://localhost:3001/api/v1"
+Write-Host "Admin:   http://localhost:4202   (tunnel: https://admin.tiendi.pe)"
+Write-Host "API:     http://localhost:3001/api/v1   (tunnel: https://api.tiendi.pe)"
 Write-Host ""
 Write-Host "Tras un REINICIO de Windows, correr:  pm2 resurrect"
