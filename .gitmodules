@@ -16,3 +16,6 @@
 [submodule "FUENTES/tiendi-site"]
 	path = FUENTES/tiendi-site
 	url = https://github.com/kanoso/tiendi-site.git
+[submodule "FUENTES/tiendi-valia"]
+	path = FUENTES/tiendi-valia
+	url = https://github.com/kanoso/tiendi-valia.git
