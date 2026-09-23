@@ -2,6 +2,15 @@
 .atl/
 .tokensave/
 
+# CodeGraph local index (cada repo lo gestiona en su propio .gitignore)
+.codegraph/
+FUENTES/.codegraph/
+FUENTES/.clawhub/
+
+# Binarios / artefactos empaquetados
+*.apk
+FUENTES/tiendi-valia.zip
+
 # Tooling scratch output
 .playwright-mcp/
 FUENTES/.playwright-mcp/
