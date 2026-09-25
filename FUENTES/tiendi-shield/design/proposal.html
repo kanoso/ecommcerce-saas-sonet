@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#04231E">
+<title>Tiendi Shield — Propuesta visual E1.2</title>
+<style>
+  :root {
+    --brand-deep: #00685F;
+    --brand-teal: #00C0A8;
+    --bg-0: #04231E;
+    --bg-1: #06332C;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-strong: rgba(255, 255, 255, 0.10);
+    --border: rgba(255, 255, 255, 0.14);
+    --text-hi: #F2FBF8;
+    --text-mid: #B8D8D0;
+    --text-low: #7FA79D;
+    --danger: #FF8A7A;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--font);
+    background:
+      radial-gradient(1100px 600px at 85% -10%, rgba(0, 192, 168, 0.16), transparent 60%),
+      radial-gradient(900px 700px at -15% 110%, rgba(0, 104, 95, 0.5), transparent 65%),
+      linear-gradient(160deg, var(--bg-0), var(--bg-1));
+    color: var(--text-hi);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--brand-teal); outline-offset: 3px; border-radius: 8px; }
+
+  .shell { max-width: 1080px; margin: 0 auto; padding: 24px 20px 64px; }
+
+  /* ---------- header ---------- */
+  .top { display: flex; align-items: center; gap: 14px; padding: 8px 0 40px; }
+  .top img { height: 34px; width: auto; }
+  .shield-chip {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .shield-chip svg { width: 14px; height: 14px; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 8px 0 48px; max-width: 640px; }
+  .hero h1 {
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(92deg, var(--brand-teal), #6FE6D2);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .hero p { margin-top: 18px; font-size: 1.06rem; color: var(--text-mid); max-width: 34em; }
+  .trust { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .trust span {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 0.82rem; color: var(--text-mid);
+  }
+  .trust svg { width: 14px; height: 14px; flex: none; }
+
+  /* ---------- apps grid ---------- */
+  .apps-title {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-low); margin: 0 0 18px 4px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+  .card {
+    position: relative;
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 26px 24px 24px;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+  .card:hover { transform: translateY(-3px); background: var(--surface-strong); border-color: rgba(0, 192, 168, 0.45); }
+  .card-top { display: flex; align-items: flex-start; gap: 14px; }
+  .app-icon {
+    flex: none;
+    width: 56px; height: 56px;
+    display: grid; place-items: center;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(0, 192, 168, 0.22), rgba(0, 104, 95, 0.35));
+    border: 1px solid rgba(0, 192, 168, 0.35);
+  }
+  .app-icon svg { width: 28px; height: 28px; }
+  .card-head { min-width: 0; }
+  .card-head h2 { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.01em; }
+  .card-head p { margin-top: 4px; font-size: 0.88rem; color: var(--text-mid); }
+  .badge {
+    position: absolute; top: 22px; right: 22px;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .badge-web { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); color: var(--text-mid); }
+  .badge-apk { background: rgba(0, 192, 168, 0.16); border: 1px solid rgba(0, 192, 168, 0.5); color: #6FE6D2; }
+
+  .cta {
+    margin-top: auto;
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    padding: 13px 18px;
+    border-radius: 14px;
+    font-size: 0.95rem; font-weight: 700;
+    text-decoration: none;
+    transition: filter 0.2s ease, background 0.2s ease;
+  }
+  .cta svg { width: 17px; height: 17px; }
+  .cta-web { background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.28); color: var(--text-hi); }
+  .cta-web:hover { border-color: var(--brand-teal); background: rgba(0, 192, 168, 0.08); }
+  .cta-apk { background: linear-gradient(135deg, var(--brand-teal), #00A892); border: none; color: #03231E; box-shadow: 0 8px 22px rgba(0, 192, 168, 0.28); }
+  .cta-apk:hover { filter: brightness(1.08); }
+  .cta-meta { font-size: 0.74rem; color: var(--text-low); text-align: center; }
+
+  /* ---------- states reference ---------- */
+  .states { margin-top: 56px; }
+  .states h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+  .states > p { font-size: 0.85rem; color: var(--text-low); margin-bottom: 18px; }
+  .state-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .state-card {
+    padding: 20px; border-radius: var(--radius-md);
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 0.85rem; color: var(--text-mid);
+  }
+  .state-card h3 { font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .state-card small { color: var(--text-low); display: block; margin-top: 8px; font-size: 0.76rem; line-height: 1.45; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dot-ok { background: var(--brand-teal); }
+  .dot-off { background: var(--text-low); }
+  .dot-err { background: var(--danger); }
+  .state-card.unavailable .state-cta {
+    display: block; margin-top: 12px; padding: 10px; text-align: center;
+    border-radius: 10px; border: 1.5px dashed rgba(255, 255, 255, 0.25);
+    color: var(--text-low); font-weight: 600; font-size: 0.85rem;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 56px; padding-top: 26px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center;
+    font-size: 0.8rem; color: var(--text-low);
+  }
+  footer strong { color: var(--text-mid); font-weight: 600; }
+
+  .demo-note {
+    margin-top: 40px; padding: 14px 18px;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgba(0, 192, 168, 0.5);
+    background: rgba(0, 192, 168, 0.06);
+    font-size: 0.8rem; color: var(--text-mid);
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 720px) {
+    .grid, .state-row { grid-template-columns: 1fr; }
+    .hero { padding-bottom: 36px; }
+    .top { padding-bottom: 28px; }
+    .shield-chip { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    .card:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <img src="assets/logotipo-tiendi-horizontal-blanco.png" alt="Tiendi">
+    <span class="shield-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z"/></svg>
+      Shield
+    </span>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">Todas tus apps Tiendi,<br><em>en un solo lugar</em></h1>
+      <p>Entrá a la tienda, gestioná tu negocio o descargá las apps móviles. Sin cuentas nuevas: cada aplicación usa su propio login, como siempre.</p>
+      <div class="trust" aria-label="Garantías de acceso">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#00C0A8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg> Sin login en Shield</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#00C0A8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg> Sin permisos concedidos</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#00C0A8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg> Acceso directo siempre disponible</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="apps-title">
+      <h2 class="apps-title" id="apps-title">Tus aplicaciones</h2>
+      <div class="grid">
+
+        <article class="card">
+          <span class="badge badge-web">Web</span>
+          <div class="card-top">
+            <span class="app-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6FE6D2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M3 4h2l2.4 11h10.2l2-8H6"/></svg>
+            </span>
+            <div class="card-head">
+              <h2>Tiendi Web</h2>
+              <p>Comprá en tus tiendas de barrio favoritas desde el navegador.</p>
+            </div>
+          </div>
+          <a class="cta cta-web" href="#" aria-describedby="url-note">
+            Abrir tienda
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          </a>
+        </article>
+
+        <article class="card">
+          <span class="badge badge-web">Web</span>
+          <div class="card-top">
+            <span class="app-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6FE6D2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 21V12h6v9"/></svg>
+            </span>
+            <div class="card-head">
+              <h2>Tiendi Vendor</h2>
+              <p>Panel del comerciante: pedidos, productos y pagos de tu tienda.</p>
+            </div>
+          </div>
+          <a class="cta cta-web" href="#" aria-describedby="url-note">
+            Abrir panel
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          </a>
+        </article>
+
+        <article class="card">
+          <span class="badge badge-apk">Android · APK</span>
+          <div class="card-top">
+            <span class="app-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6FE6D2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2.5"/><path d="M10 18h4"/></svg>
+            </span>
+            <div class="card-head">
+              <h2>Kipu</h2>
+              <p>Gastos, fiados y préstamos de tu negocio, incluso sin internet.</p>
+            </div>
+          </div>
+          <a class="cta cta-apk" href="#" aria-describedby="url-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            Descargar APK
+          </a>
+          <span class="cta-meta">Versión y origen verificados al habilitar</span>
+        </article>
+
+        <article class="card">
+          <span class="badge badge-apk">Android · APK</span>
+          <div class="card-top">
+            <span class="app-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6FE6D2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="15" r="5.5"/><path d="M12 12.5v3l2-1.5M10 3h4M12 3v4"/></svg>
+            </span>
+            <div class="card-head">
+              <h2>Tiendi Go</h2>
+              <p>App del repartidor: pedidos, entregas y ganancias en tu celular.</p>
+            </div>
+          </div>
+          <a class="cta cta-apk" href="#" aria-describedby="url-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            Descargar APK
+          </a>
+          <span class="cta-meta">Versión y origen verificados al habilitar</span>
+        </article>
+
+      </div>
+      <p id="url-note" class="demo-note">
+        <strong>Mockup E1.2 —</strong> los enlaces van a <code>#</code>: las URLs reales se conectan recién en E1.3, después de validar origen y disponibilidad (gate C02). Los estados "no disponible" y "error" se muestran abajo como referencia del sistema visual.
+      </p>
+    </section>
+
+    <section class="states" aria-labelledby="states-title">
+      <h2 id="states-title">Estados de una tarjeta</h2>
+      <p>Referencia del sistema visual — así se comporta una tarjeta cuando el destino no está listo.</p>
+      <div class="state-row">
+        <div class="state-card">
+          <h3><span class="dot dot-ok" aria-hidden="true"></span> Disponible</h3>
+          Enlace o descarga activa, con versión y origen verificados.
+        </div>
+        <div class="state-card unavailable">
+          <h3><span class="dot dot-off" aria-hidden="true"></span> No disponible</h3>
+          El APK aún no está publicado o verificado.
+          <span class="state-cta" aria-disabled="true">Descarga no disponible por ahora</span>
+          <small>Nunca se muestra un enlace ficticio ni se instala nada automáticamente.</small>
+        </div>
+        <div class="state-card">
+          <h3><span class="dot dot-err" aria-hidden="true"></span> Error de red</h3>
+          Fallo temporal al comprobar disponibilidad.
+          <small>La tarjeta explica el problema y ofrece reintentar; los enlaces directos a las apps siguen funcionando por fuera de Shield.</small>
+        </div>
+      </div>
+    </section>
+  </main>
+
+    <footer>
+      <strong>Tiendi Shield</strong> es solo un directorio de acceso: no pide login, no guarda contraseñas y no concede permisos. Cada aplicación mantiene su propia cuenta.
+    </footer>
+
+</div>
+</body>
+</html>

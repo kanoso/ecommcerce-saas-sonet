@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fff8f3">
+<title>Crear registro — Tiendi Shield</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="assets/logo-tiendi-icono.png">
+</head>
+<body>
+
+<header class="site">
+  <div class="container site-inner">
+    <a class="brand" href="./" aria-label="Tiendi Shield — inicio">
+      <img src="assets/logotipo-tiendi-horizontal.png" alt="Tiendi" width="120" height="30">
+      <span class="name">Shield</span>
+    </a>
+    <nav class="main" aria-label="Navegación principal">
+      <a href="./">Aplicaciones</a>
+      <a href="panel.html">Mi registro</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container auth-shell">
+  <section class="auth-card" aria-labelledby="reg-title">
+    <span class="kicker">Registro</span>
+    <h1 id="reg-title">Creá tu registro Tiendi</h1>
+    <p class="lead">Un registro te permite vincular tus cuentas existentes de las aplicaciones. No reemplaza ningún login y no crea cuentas nuevas.</p>
+
+    <div id="alert" class="alert ok" hidden role="status"></div>
+
+    <form id="register-form" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" required
+               placeholder="tu@email.com" inputmode="email">
+      </div>
+      <div class="field">
+        <label for="password">Contraseña del registro</label>
+        <input type="password" id="password" name="password" autocomplete="new-password"
+               minlength="8" required placeholder="Mínimo 8 caracteres">
+        <p class="hint">Es la contraseña de tu registro Shield, no de ninguna aplicación.</p>
+      </div>
+      <div class="field">
+        <label for="password2">Confirmar contraseña</label>
+        <input type="password" id="password2" name="password2" autocomplete="new-password" required>
+      </div>
+      <button class="cta full" type="submit" id="submit-btn">Crear registro</button>
+    </form>
+
+    <p class="auth-foot">¿Ya tenés registro? <a href="panel.html">Ingresá a tu panel</a></p>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="registro.js"></script>
+</body>
+</html>
