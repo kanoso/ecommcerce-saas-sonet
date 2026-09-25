@@ -311,7 +311,7 @@ La app maneja el ciclo completo en `useNotificationSetup.ts`: permisos, canales 
 
 | Evento | Canal | Estado |
 |--------|-------|--------|
-| Delivery sin rider | Email | ✅ `alertNoRiderFound` |
+| Delivery sin rider | Email | ✅ `alertNoRiderFound` — **conectado al matching desde 2026-09-24** (antes solo existía el método; `MatchingService.alertAdminNoRider` terminaba en un log con TODO PR5). Texto sin duración fija: puede disparar por agotamiento inmediato (< 5 min) o por el job diferido |
 | Nuevo ticket (P0/P1) | Email | ✅ `alertNewTicket` |
 | Ticket escalado | Email | ✅ `alertEscalation` |
 
@@ -376,6 +376,8 @@ export class AdminNotifier {
 > [!CAUTION]
 > ~~**El admin no recibe nada hoy.**~~
 > **Resuelto (Fase 1, 2026-08-25):** `AdminNotifier` envía los tres eventos (delivery sin rider, ticket P0/P1 nuevo, ticket escalado) por email a `ADMIN_ALERT_EMAILS`. Queda pendiente setear la variable en producción — mientras falte, degrada a log-only.
+>
+> **Resuelto (corrección 2026-09-24):** la brecha real era de CONEXIÓN, no de capacidad — el notificador existía pero nadie lo llamaba para delivery sin rider (`MatchingService.alertAdminNoRider` = log + TODO). Hoy `MatchingModule` importa `SupportModule` y `alertAdminNoRider` invoca `AdminNotifier.alertNoRiderFound` (inbox ADMIN + push + email, best-effort). El job diferido `admin-alert` valida vigencia antes de emitir: MANUAL → no alerta; `NO_RIDER` → ya alertó el agotamiento inmediato (no duplica); rider asignado o cancelado → no alerta estado obsoleto. El texto del aviso ya no afirma "5 minutos" fijo. **Probado con mocks (Jest), no verificado en dispositivo.**
 >
 > Lo que sigue bloqueado:
 > 1. La **capa lite móvil** de [[TIENDI_ADMIN]] §14 necesita **push** al Super Admin como gatillo (Fase 4 de este checklist), no solo email.
@@ -495,6 +497,28 @@ flowchart TD
 - [x] FCM web en `tiendi-admin` — `push.service.ts` + service worker (`public/firebase-messaging-sw.js`)
 - [x] Token de dispositivo del Super Admin — registro vía `POST /notifications/inbox/device-token` → `User.fcmToken`
 - [x] Push para tickets P0/P1 y escalados (+ delivery sin rider) — 5 tests nuevos; suite 452/452
+
+### Fase 4b — Corrección de notificaciones (GUIA_CORRECCION_NOTIFICACIONES, 2026-09-24)
+
+> [!NOTE]
+> **Implementada (2026-09-24), probada con mocks.** Dos brechas cerradas:
+>
+> 1. **Push nativo mobile ↔ sesión**: el push se habilitaba una sola vez al arrancar, condicionado a una sesión que se restauraba DESPUÉS (vía guard) → nunca se habilitaba. Ahora un único coordinador (`PushSessionCoordinator`) observa el usuario del `MobileAuthStore` con un `effect`: login/restauración/desbloqueo biométrico → `enable(userId)`; logout/bloqueada → `disable()`. `MobilePushService` es idempotente y serializado (no duplica listeners ni registra el mismo token dos veces), con contador de generación: callbacks tardíos de una sesión vieja se descartan y los POST en vuelo se cancelan (el token de A nunca queda asociado a B).
+> 2. **Baja del token al cerrar sesión**: endpoint nuevo `DELETE /notifications/inbox/device-token` (autenticado, SUPER_ADMIN). Solo limpia `User.fcmToken` si el token presentado coincide con la asociación vigente — no borra un token más nuevo de otro dispositivo. El APK lo llama en logout ANTES de limpiar la sesión, con el token guardado en storage seguro.
+>
+> Etiquetas honestas: **implementado + probado con mocks** (Jest: 89 tests matching/support/notifications; Vitest: 31 en admin). **NO verificado en dispositivo físico** (matriz manual §7 pendiente). La entrega real de FCM requiere credenciales Firebase del proyecto Android.
+>
+> ⚠️ Limitaciones documentadas: (1) logout sin red → la asociación remota puede persistir; la limpieza local no garantiza dejar de recibir pushes; (2) el backend mantiene un token por admin (último registro gana) — multidispositivo queda fuera de alcance; (3) sin garantía de persistencia previa al push (los tres canales corren en paralelo, §5 de la guía — endurecimiento propuesto como alcance separado).
+>
+> Kipu (registro con aprobación): NOTIFICACIONES de cuentas kipu quedan explícitamente FUERA de esta corrección (Fase 2 opcional de REGISTRO-CON-APROBACION.md; requiere aprobación de alcance).
+
+- [x] `MatchingService.alertAdminNoRider` conectado a `AdminNotifier.alertNoRiderFound` (matching module importa SupportModule)
+- [x] Guard de vigencia del job `admin-alert`: solo alerta si delivery sigue ASSIGNED sin rider y modo no MANUAL
+- [x] Texto de `alertNoRiderFound` sin duración fija ("lleva 5 minutos" era falso en el camino de agotamiento inmediato)
+- [x] `DELETE /notifications/inbox/device-token` — baja condicionada por coincidencia exacta de token
+- [x] `PushSessionCoordinator` + `MobilePushService` idempotente con generaciones (login/restore/unlock/logout/cambio A→B)
+- [x] Token FCM persistido en storage seguro (`SecureSessionService.saveFcmToken`) para la baja autenticada
+- [x] Tests: matching.service.spec (caller real), matching.processor.spec (vigencia), notifications-inbox.spec (ciclo de vida), push-session.coordinator.spec (lifecycle push/sesión)
 
 ### Criterios de aceptación
 

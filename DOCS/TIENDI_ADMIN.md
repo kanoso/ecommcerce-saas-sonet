@@ -654,7 +654,10 @@ flowchart LR
 >
 > Eso ya no existe. Las Fases 1-4 de [[NOTIFICACIONES]] §12 están implementadas: email vía SendGrid y push FCM real a todos los `SUPER_ADMIN` con `fcmToken` registrado. Lo único pendiente es configuración operativa (`ADMIN_ALERT_EMAILS` en prod, proyecto Firebase web + VAPID key), no código.
 >
+> **Corrección 2026-09-24 (GUIA_CORRECCION_NOTIFICACIONES):** dos brechas reales quedaron cerradas y una deuda quedó etiquetada. (1) `alertNoRiderFound` existía pero nadie lo llamaba — hoy `MatchingService` lo invoca (con guard de vigencia del job diferido); **probado con mocks, no verificado en producción**. (2) El push nativo del APK se habilitaba una vez al arrancar, antes de que la sesión existiera → nunca se habilitaba; hoy un coordinador único lo ata al ciclo de sesión (login/restore/unlock/logout). (3) Nuevo: baja del token FCM en logout (`DELETE /notifications/inbox/device-token`, condicionada por coincidencia). Detalle y límites: [[NOTIFICACIONES]] §12 Fase 4b y [[TIENDI_ADMIN-LITE-MOBILE]] §8. La **verificación en dispositivo físico** sigue pendiente.
+>
 > El bloqueo real hoy no es el canal de notificación — es que **el cliente mobile no existe todavía**: cero scaffolding, cero Capacitor/Ionic/nativo en el proyecto. El detalle completo de qué falta construir vive en [[TIENDI_ADMIN-LITE-MOBILE]].
+> *(Histórico: el cliente mobile ya fue construido — ver [[TIENDI_ADMIN-LITE-MOBILE]] §8 checklist.)*
 
 ### 14.3 Orden lógico
 
