@@ -14,8 +14,8 @@ import {
   truncate,
   MAX_MESSAGE_LENGTH,
   MAX_STACK_LENGTH,
-  type OtelLogLevel,
-} from '../index';
+} from '../redact';
+import type { OtelLogLevel } from '../contract';
 
 export interface MobileLogEvent {
   level: OtelLogLevel;

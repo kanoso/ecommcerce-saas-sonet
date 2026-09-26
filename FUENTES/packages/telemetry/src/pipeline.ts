@@ -4,6 +4,7 @@
  * LoggerProvider OTel cuando esta habilitado. La redaccion corre SIEMPRE,
  * tambien cuando el export esta apagado y el evento solo sale por stdout.
  */
+import * as api from '@opentelemetry/api';
 import type { Logger as OtelLogger, LogAttributes } from '@opentelemetry/api-logs';
 import { sanitizeLogFields, type RawLogEntry } from './redact';
 import { SEVERITY_BY_LEVEL, levelAtOrAbove, type Severity } from './severity';
@@ -14,6 +15,8 @@ export type { RawLogEntry } from './redact';
 export type LogSink = (record: {
   severity: Severity;
   fields: ReturnType<typeof sanitizeLogFields>;
+  /** Contexto EXPLICITO del evento (gateway: trace id original del cliente). */
+  context?: api.Context;
 }) => void;
 
 export class LogPipeline {
@@ -26,24 +29,30 @@ export class LogPipeline {
     return this.sink !== null;
   }
 
-  emit(entry: RawLogEntry & { level: OtelLogLevel }): void {
+  emit(
+    entry: RawLogEntry & { level: OtelLogLevel },
+    options?: { context?: api.Context },
+  ): void {
     if (!this.sink) return;
     const { level, ...rest } = entry;
     if (!levelAtOrAbove(level, this.threshold)) return;
     const severity = SEVERITY_BY_LEVEL[level];
     const fields = sanitizeLogFields(rest);
-    this.sink({ severity, fields });
+    this.sink({ severity, fields, context: options?.context });
   }
 }
 
 /** Convierte un sink en un OtelLogger OTel (emit con severidad + atributos). */
 export function otelLoggerSink(logger: OtelLogger): LogSink {
-  return ({ severity, fields }) => {
+  return ({ severity, fields, context }) => {
     logger.emit({
       severityNumber: severity.number,
       severityText: severity.text,
       body: fields.message,
       attributes: buildAttributes(fields) as LogAttributes,
+      // El gateway preserva el trace id ORIGINAL del evento cliente: no lo
+      // reemplaza por el span del request que transporta el batch (guia T5).
+      ...(context ? { context } : {}),
     });
   };
 }

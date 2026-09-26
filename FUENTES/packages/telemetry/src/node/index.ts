@@ -27,6 +27,12 @@ export { identityFromEnv, type TelemetryIdentity } from './identity';
 export { OtelWinstonTransport, type WinstonEmitFn, type OtelWinstonTransportOptions } from './winston-otel';
 export { createPinoOtelStream, PinoBridgeError, type PinoEmitFn } from './pino-otel';
 export { OtelContextMiddleware } from './otel-context.middleware';
+export {
+  createGatewayPipelineRegistry,
+  spanContextFromIds,
+  type GatewayRegistry,
+  type GatewayRegistryOptions,
+} from './gateway';
 
 export const DEFAULT_LOGS_ENDPOINT = 'http://otel-collector:4318/v1/logs';
 const DEFAULT_MAX_QUEUE = 512;
