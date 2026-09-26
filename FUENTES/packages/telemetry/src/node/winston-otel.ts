@@ -69,7 +69,9 @@ export class OtelWinstonTransport extends Transport {
     this.emitLog({
       level,
       message: String(info.message ?? ''),
-      eventName: 'log.record',
+      // El emisor puede nombrar el evento del contrato (p. ej.
+      // 'http.request.failed'); default generico para logs de negocio.
+      eventName: typeof info['eventName'] === 'string' ? info['eventName'] : 'log.record',
       attributes,
       error: info['error'],
     });
