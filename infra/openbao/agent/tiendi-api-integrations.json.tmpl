@@ -1,0 +1,4 @@
+{
+  "tiendi-kipu": {{ with secret "secret/data/dev/integrations/tiendi-kipu" }}{{ .Data.data | toJSON }}{{ end }},
+  "shield": {{ with secret "secret/data/dev/integrations/shield" }}{{ .Data.data | toJSON }}{{ end }}
+}

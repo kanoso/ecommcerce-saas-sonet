@@ -1,0 +1,40 @@
+{
+  "app": "tiendi-kipu-api",
+  "files": {
+    "runtime": "runtime.json",
+    "integrations": "integrations.json"
+  },
+  "heartbeat": "heartbeat.json",
+  "required": [
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "SEED_USERNAME",
+    "SEED_PASSWORD"
+  ],
+  "optional": [
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "MAIL_FROM",
+    "ANTHROPIC_API_KEY",
+    "OPENROUTER_API_KEY",
+    "TIENDI_SERVICE_TOKEN",
+    "SHIELD_SERVICE_TOKEN"
+  ],
+  "env": {
+    "DATABASE_URL":        ["runtime", "DATABASE_URL"],
+    "JWT_SECRET":          ["runtime", "JWT_SECRET"],
+    "SEED_USERNAME":       ["runtime", "SEED_USERNAME"],
+    "SEED_PASSWORD":       ["runtime", "SEED_PASSWORD"],
+    "SMTP_HOST":           ["runtime", "SMTP_HOST"],
+    "SMTP_PORT":           ["runtime", "SMTP_PORT"],
+    "SMTP_USER":           ["runtime", "SMTP_USER"],
+    "SMTP_PASS":           ["runtime", "SMTP_PASS"],
+    "MAIL_FROM":           ["runtime", "MAIL_FROM"],
+    "ANTHROPIC_API_KEY":   ["runtime", "ANTHROPIC_API_KEY"],
+    "OPENROUTER_API_KEY":  ["runtime", "OPENROUTER_API_KEY"],
+    "TIENDI_SERVICE_TOKEN": ["integrations", "tiendi-kipu.service_token"],
+    "SHIELD_SERVICE_TOKEN": ["integrations", "shield.service_token"]
+  }
+}

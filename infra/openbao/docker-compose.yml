@@ -1,0 +1,136 @@
+# OpenBao dev instance - Tiendi workspace.
+# Contract (DOCS/OPENBAO_IMPLEMENTATION_GUIDE.md section 3):
+# - Explicit server process, integrated Raft storage (single node), stable node_id, cluster_addr set, named volume.
+# - Image pinned to version AND digest (openbao/openbao 2.7.0, Docker Hub multi-arch digest verified 2026-09-25).
+# - No -dev mode, no BAO_DEV_ROOT_TOKEN_ID, no privileged, no docker socket, no 8201 published.
+# - API published only on 127.0.0.1:8200 (local exception, HTTP, dev credentials only).
+services:
+  # One-shot volume ownership init: image runs as uid 100 (openbao); named volumes
+  # start root-owned. Runs as root only to chown, then exits.
+  openbao-volume-init:
+    image: openbao/openbao:2.7.0@sha256:71156a1c6623a5fa3f5e61b0c6a8ead0faf0df29a778339188443551995d1315
+    user: "0"
+    command: ["sh", "-c", "chown -R openbao:openbao /openbao/data /openbao/logs && chmod 700 /openbao/data /openbao/logs"]
+    volumes:
+      - openbao_dev_data:/openbao/data
+      - openbao_dev_logs:/openbao/logs
+    restart: "no"
+
+  openbao:
+    image: openbao/openbao:2.7.0@sha256:71156a1c6623a5fa3f5e61b0c6a8ead0faf0df29a778339188443551995d1315
+    container_name: openbao-dev
+    depends_on:
+      openbao-volume-init:
+        condition: service_completed_successfully
+    restart: on-failure
+    # Invoke `bao server` directly: the image entrypoint special-cases a bare `server`
+    # command and would inject `-dev-root-token-id` + `-dev-listen-address` (a dev
+    # listener conflicting with the configured one). NEVER let the default CMD run.
+    command: ["bao", "server", "-config=/openbao/config"]
+    ports:
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - openbao_dev_data:/openbao/data
+      - openbao_dev_logs:/openbao/logs
+      - ./config/server-dev.hcl:/openbao/config/server-dev.hcl:ro
+      - ./policies:/openbao/policies:ro
+    networks:
+      - openbao-dev
+    cap_add:
+      - IPC_LOCK
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      # Liveness only: process is up. Readiness (initialized + unsealed + leader) is
+      # checked by scripts/status.ps1; sealed/never-init must NOT count as ready.
+      test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  openbao-agent-tiendi-api:
+    image: openbao/openbao:2.7.0@sha256:71156a1c6623a5fa3f5e61b0c6a8ead0faf0df29a778339188443551995d1315
+    container_name: openbao-agent-tiendi-api
+    restart: unless-stopped
+    command: ["bao", "agent", "-config=/openbao/agent/tiendi-api-agent.hcl"]
+    environment:
+      BAO_ADDR: http://openbao:8200
+    volumes:
+      - ./agent:/openbao/agent:ro
+      # Host dirs (outside the repo). ACLs enforced by NTFS on the host via icacls
+      # (scripts/issue-secretid.ps1); chmod inside a Windows bind is not meaningful.
+      # Verified during acceptance tests.
+      - ${OPENBAO_AGENT_ID_DIR}:/openbao/identity
+      - ${OPENBAO_RENDER_DIR}:/openbao/render
+    profiles: ["agent-tiendi-api"]
+    depends_on:
+      openbao:
+        condition: service_started
+    networks:
+      - openbao-dev
+    cap_add:
+      - IPC_LOCK
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  openbao-agent-tiendi-kipu-api:
+    image: openbao/openbao:2.7.0@sha256:71156a1c6623a5fa3f5e61b0c6a8ead0faf0df29a778339188443551995d1315
+    container_name: openbao-agent-tiendi-kipu-api
+    restart: unless-stopped
+    command: ["bao", "agent", "-config=/openbao/agent/tiendi-kipu-agent.hcl"]
+    environment:
+      BAO_ADDR: http://openbao:8200
+    volumes:
+      - ./agent:/openbao/agent:ro
+      - ${OPENBAO_KIPU_AGENT_ID_DIR}:/openbao/identity
+      - ${OPENBAO_KIPU_RENDER_DIR}:/openbao/render
+    profiles: ["agent-tiendi-kipu-api"]
+    depends_on:
+      openbao:
+        condition: service_started
+    networks:
+      - openbao-dev
+    cap_add:
+      - IPC_LOCK
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+networks:
+  openbao-dev:
+    name: openbao-dev
+    driver: bridge
+    internal: false # required to reach the image registry on pull; API is not exposed beyond loopback
+
+volumes:
+  openbao_dev_data:
+    name: openbao_dev_data
+  openbao_dev_logs:
+    name: openbao_dev_logs

@@ -22,3 +22,6 @@
 [submodule "FUENTES/tiendi-shield"]
 	path = FUENTES/tiendi-shield
 	url = https://github.com/kanoso/tiendi-shield.git
+[submodule "FUENTES/tiendi-kipu"]
+	path = FUENTES/tiendi-kipu
+	url = https://github.com/kanoso/tiendi-kipu.git

@@ -1,0 +1,45 @@
+# OpenBao TEST server configuration TEMPLATE (2.7.x) - NOT a deployable file.
+# Fill <placeholders> on the test host with real values from that host; the
+# private TLS key never lives in Git. Reference: guide section 3, docs/TEST_RUNBOOK.md.
+ui = true
+# OpenBao 2.7 dropped mlock support - `disable_mlock` must NOT be set.
+
+api_addr     = "https://<test-dns>:8200"
+cluster_addr = "https://<test-dns>:8201"
+
+listener "tcp" {
+  address         = "0.0.0.0:8200"
+  # TLS VALIDATED end-to-end: every consumer must trust this CA. Never
+  # BAO_SKIP_VERIFY. Key file mounted read-only, restricted OS permissions.
+  tls_cert_file      = "/openbao/tls/<test-dns>.crt"
+  tls_key_file       = "/openbao/tls/<test-dns>.key"
+  tls_min_version    = "tls12"
+  # SANs required on the certificate: <test-dns>, plus the names consumers use.
+  # disable_unauthed_generate_root_endpoints: keep default (true); see
+  # scripts/generate-root.ps1 for the temporary-enable emergency procedure.
+}
+
+storage "raft" {
+  path    = "/openbao/data"
+  node_id = "openbao-test-node-1"   # stable; single node = no HA
+}
+
+audit "file" "test-audit" {
+  description = "test audit log"
+  options {
+    file_path     = "/openbao/logs/audit.log"
+    format        = "json"
+    hmac_accessor = "true"
+    mode          = "0600"
+  }
+}
+
+telemetry {
+  disable_hostname = true
+}
+
+# Differences from dev (contract, guide section 3):
+# - Shamir shares/threshold agreed BEFORE init (separate custodians preferred).
+# - Distinct credentials from dev: dev credentials must FAIL against test.
+# - KV structure: secret/test/apps/<app>/<process> (environment segment differs).
+# - Same image/version+digest as dev unless a deliberate upgrade is decided.

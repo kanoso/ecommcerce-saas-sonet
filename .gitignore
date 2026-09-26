@@ -31,7 +31,6 @@ FUENTES/tiendi-go/coverage/
 # Sibling checkouts that carry their own .git. Tracking them from here would
 # record bare gitlinks with no matching .gitmodules entry, producing a commit
 # that cannot be cloned. Register them as real submodules before removing these.
-FUENTES/tiendi-kipu/
 FUENTES/tiendi-vendor-refactor/
 tiendi-vendor-fase14/
 
@@ -40,3 +39,8 @@ FUENTES/deploy-pc/api
 FUENTES/deploy-pc/vendor
 FUENTES/deploy-pc/admin
 FUENTES/deploy-pc/tiendi-deploy.zip
+
+# Analisis de datos y artefactos generados (no versionar): incluye prod.db
+FUENTES/db-analisis/
+output/
+
