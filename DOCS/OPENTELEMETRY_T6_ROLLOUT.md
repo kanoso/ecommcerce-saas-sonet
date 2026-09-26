@@ -69,7 +69,7 @@ Estado de Git: todos los cambios commiteados y pusheados por repo. Ninguna modif
 
 **Antes de activar en TEST (requiere autorización + topología del host):**
 1. ~~Conflicto puerto 3001 (PM2 API vs Grafana)~~ — **VERIFICADO RESUELTO EN HOST (2026-09-26 vía SSH)**: el compose desplegado en RupertaMini ya tiene Grafana en `3002:3000` (health 200); 3001 es del PM2 `tiendi-platform-api` (health 200). El compose del repo (dev) mantiene 3001 — documentar la diferencia al desplegar.
-2. Loki 3100 publicado sin auth — **verificado en host: sigue expuesto `0.0.0.0:3100`**. Restringir a loopback/firewall.
+2. ~~Loki 3100 publicado sin auth~~ — **CORREGIDO EN HOST (2026-09-26)**: remapeado a `127.0.0.1:3100:3100` y recreado (datos preservados, sin `down -v`). Verificado: `netstat` solo loopback, Grafana sigue 200 vía red Docker, API 3001 sin cambios, acceso desde la PC dev **cerrado**. Backups en host: `docker-compose.yml.bak-20260926` y `.env.bak-20260926` (el `.env` del host tenía `FRONTEND_URL` partida en dos líneas que rompía el parser de Compose — reescrita en una línea con el valor efectivo vigente). Rollback: restaurar `.bak` + `docker compose up -d loki`. El Compose del repo también quedó en loopback.
 3. Credenciales Grafana `admin/admin` — reemplazar (no verificadas en host; asumir vigentes).
 4. Confirmar qué runtimes están desplegados realmente — **parcialmente verificado (2026-09-26)**: PM2 con `tiendi-platform-api` (3001), `tiendi-kipu`, `tiendi-web`, `tiendi-vendor`, `tiendi-admin`, `tiendi-site`, `tiendi-valia`, `tiendi-shield`; Docker con postgres/redis/prometheus/loki/grafana/openbao-test. Falta: `tiendi-web-ssr` y `tiendi-shield-server` como procesos (no aparecieron en `pm2 ls`).
 5. Probar purga real de retención (7 días) sobre el volumen.
