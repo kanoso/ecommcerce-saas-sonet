@@ -68,13 +68,15 @@ Estado de Git: todos los cambios commiteados y pusheados por repo. Ninguna modif
 ## 6. Pendientes y rollout
 
 **Antes de activar en TEST (requiere autorización + topología del host):**
-1. Conflicto puerto 3001 (PM2 API vs Grafana) — decidir remap.
-2. Loki 3100 publicado sin auth — restringir a loopback/firewall.
-3. Credenciales Grafana `admin/admin` — reemplazar.
-4. Confirmar qué runtimes están desplegados realmente (matriz §1).
+1. ~~Conflicto puerto 3001 (PM2 API vs Grafana)~~ — **VERIFICADO RESUELTO EN HOST (2026-09-26 vía SSH)**: el compose desplegado en RupertaMini ya tiene Grafana en `3002:3000` (health 200); 3001 es del PM2 `tiendi-platform-api` (health 200). El compose del repo (dev) mantiene 3001 — documentar la diferencia al desplegar.
+2. Loki 3100 publicado sin auth — **verificado en host: sigue expuesto `0.0.0.0:3100`**. Restringir a loopback/firewall.
+3. Credenciales Grafana `admin/admin` — reemplazar (no verificadas en host; asumir vigentes).
+4. Confirmar qué runtimes están desplegados realmente — **parcialmente verificado (2026-09-26)**: PM2 con `tiendi-platform-api` (3001), `tiendi-kipu`, `tiendi-web`, `tiendi-vendor`, `tiendi-admin`, `tiendi-site`, `tiendi-valia`, `tiendi-shield`; Docker con postgres/redis/prometheus/loki/grafana/openbao-test. Falta: `tiendi-web-ssr` y `tiendi-shield-server` como procesos (no aparecieron en `pm2 ls`).
 5. Probar purga real de retención (7 días) sobre el volumen.
 6. Probar tiendi-go en dispositivo/emulador real.
 7. `service.version` en browsers: inyectar build ID de CI (hoy: appVersion/`unknown`).
+
+**Nota de acceso:** credenciales SSH en OpenBao dev (`secret/dev/infra/ssh-test-server`, user `tiendi-admin`). El runbook indica que la contraseña previa circuló por chat y está **pendiente de rotación** — rotarla en la próxima ventana y actualizar el KV.
 
 **Rollout propuesto (guía T6):** API piloto → Kipu/puente → una app browser → resto. Activación por flags de build; rollback = apagar export (los flags de export apagados garantizan cero conexiones). Nunca `docker compose down -v` como rollback.
 
