@@ -30,7 +30,7 @@ Estado de Git: todos los cambios commiteados y pusheados por repo. Ninguna modif
 | D3 | Retención 7 días con compactor activo | ⚙️ Configurada; **purga real por verificar en host** |
 | D4 | CORS: `traceparent`/`tracestate` + `X-Request-Id` expuesto | ✅ Implementado (tiendi-api; kipu pendiente si se propaga hacia kipu API) |
 | D5 | Puente Kipu: raíz nueva por emisión con vínculo por `origenExternoId` (sin cambio de esquema) | ✅ Implementado y probado |
-| D6 | Shield: sin instrumentar sin aprobación | ⏳ Pendiente de decisión |
+| D6 | Shield: sin instrumentar sin aprobación | ✅ **Aprobada como B (2026-09-26)**: solo el server (`server.mjs`) instrumentado — errores de server, path traversal, Range inválido y descargas de APK (`shield.apk.download`, sin IPs). El renderer **mantiene su contrato sin red**. Flags apagados = comportamiento idéntico al anterior. Nota rollout: el host necesita `npm install` en `tiendi-shield` (nueva dependencia `@kanoso/telemetry`). |
 | D7 | Flags `TIENDI_OTEL_*` con defaults seguros | ✅ Implementado (parseo estricto probado) |
 
 ## 3. Contrato implementado
