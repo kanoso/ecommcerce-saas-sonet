@@ -21,6 +21,7 @@ import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-ho
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { isTelemetryActive, type TelemetryEnv, type TelemetryFlags } from '../contract';
 import { LogPipeline, otelLoggerSink, type RawLogEntry } from '../pipeline';
+import { withTimeout } from '../time';
 import type { TelemetryIdentity } from './identity';
 
 export { identityFromEnv, type TelemetryIdentity } from './identity';
@@ -129,7 +130,9 @@ export function initNodeTelemetry(options: NodeTelemetryOptions): NodeTelemetry 
     tracer: (name = 'tiendi-telemetry') => tracerProviderRef.getTracer(name),
     emit: (entry) => pipeline.emit(entry),
     shutdown: (timeoutMs = 5000) =>
-      Promise.allSettled([loggerProvider?.shutdown()]).then(() => undefined),
+      // Acotado de verdad (guia T1): el plazo se aplica aunque el provider
+      // tarde o cuelgue; la falla de telemetria nunca bloquea el proceso.
+      withTimeout(Promise.allSettled([loggerProvider?.shutdown()]), timeoutMs),
   };
 }
 

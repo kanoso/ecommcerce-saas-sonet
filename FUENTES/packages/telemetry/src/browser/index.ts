@@ -16,6 +16,7 @@ import { AlwaysOffSampler, BasicTracerProvider } from '@opentelemetry/sdk-trace-
 import type { TelemetryFlags } from '../contract';
 import { loadTelemetryConfig } from '../contract';
 import { activeTraceIds } from '../context';
+import { withTimeout } from '../time';
 import { injectCarrierFromSpan } from '../index';
 import { LogPipeline, otelLoggerSink, type LogSink, type RawLogEntry } from '../pipeline';
 
@@ -106,6 +107,8 @@ export function initBrowserTelemetry(options: BrowserTelemetryOptions): BrowserT
       batcher = new GatewayLogBatcher(options.gatewayUrl, {
         maxSize: options.maxQueueSize ?? 128,
         flushIntervalMs: options.flushIntervalMs ?? 2000,
+        service: identity.serviceName,
+        version: identity.serviceVersion,
       });
       batcher.start();
     } else {
@@ -172,11 +175,16 @@ export function initBrowserTelemetry(options: BrowserTelemetryOptions): BrowserT
     tracer: (name = 'tiendi-telemetry') => tracerProvider!.getTracer(name),
     emit: (entry) => pipeline.emit(entry),
     shutdown: (timeoutMs = 3000) =>
-      Promise.allSettled([
-        loggerProvider?.shutdown(),
-        batcher?.flushNow(),
-        batcher?.stop(),
-      ]).then(() => undefined),
+      // Flush/shutdown acotado (guia T1): resuelve dentro del plazo aunque
+      // el provider o el flush tarden; nunca bloquea el cierre de la pagina.
+      withTimeout(
+        Promise.allSettled([
+          loggerProvider?.shutdown(),
+          batcher?.flushNow(),
+          batcher?.stop(),
+        ]),
+        timeoutMs,
+      ),
   };
 }
 
@@ -197,15 +205,26 @@ export class GatewayLogBatcher {
   private readonly queue: GatewayLogEvent[] = [];
   private readonly maxSize: number;
   private readonly flushIntervalMs: number;
+  private readonly service?: string;
+  private readonly version?: string;
   private timer: ReturnType<typeof setInterval> | null = null;
   private flushing = false;
 
   constructor(
     readonly url: string,
-    options: { maxSize?: number; flushIntervalMs?: number } = {},
+    options: {
+      maxSize?: number;
+      flushIntervalMs?: number;
+      /** service.name/version del contrato ClientLogsBody: sin service el
+       * gateway responde 400 y el lote se pierde. */
+      service?: string;
+      version?: string;
+    } = {},
   ) {
     this.maxSize = options.maxSize ?? 128;
     this.flushIntervalMs = options.flushIntervalMs ?? 2000;
+    this.service = options.service;
+    this.version = options.version;
   }
 
   size(): number {
@@ -239,7 +258,12 @@ export class GatewayLogBatcher {
       const res = await fetchImpl(this.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: batch }),
+        // Contrato ClientLogsBody del gateway: service + events.
+        body: JSON.stringify({
+          ...(this.service ? { service: this.service } : {}),
+          ...(this.version ? { version: this.version } : {}),
+          events: batch,
+        }),
         keepalive: batch.length <= 20,
       });
       return res.ok ? batch.length : 0;

@@ -34,6 +34,14 @@ export interface MobileBufferOptions {
   flushUrl?: string;
   /** Maximo de eventos por lote de envio. */
   batchSize?: number;
+  /**
+   * service.name del recurso (contrato del gateway ClientLogsBody):
+   * SIN este campo el gateway responde 400 y el lote se pierde. Es
+   * declaracion del emisor, no confianza: el gateway filtra por allowlist.
+   */
+  service?: string;
+  /** service.version del build (opcional, va al resource del gateway). */
+  version?: string;
 }
 
 const DEFAULTS = { maxSize: 100, ttlMs: 30 * 60_000, batchSize: 20 };
@@ -44,12 +52,16 @@ export class MobileLogBuffer {
   private readonly ttlMs: number;
   private readonly flushUrl?: string;
   private readonly batchSize: number;
+  private readonly service?: string;
+  private readonly version?: string;
 
   constructor(options: MobileBufferOptions = {}) {
     this.maxSize = options.maxSize ?? DEFAULTS.maxSize;
     this.ttlMs = options.ttlMs ?? DEFAULTS.ttlMs;
     this.flushUrl = options.flushUrl;
     this.batchSize = options.batchSize ?? DEFAULTS.batchSize;
+    this.service = options.service;
+    this.version = options.version;
   }
 
   size(): number {
@@ -96,7 +108,12 @@ export class MobileLogBuffer {
         const res = await fetchImpl(this.flushUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ events: batch }),
+          // Contrato ClientLogsBody del gateway: service (allowlist) + events.
+          body: JSON.stringify({
+            ...(this.service ? { service: this.service } : {}),
+            ...(this.version ? { version: this.version } : {}),
+            events: batch,
+          }),
         });
         if (!res.ok) continue;
         sent += batch.length;

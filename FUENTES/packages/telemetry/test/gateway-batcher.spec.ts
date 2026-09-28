@@ -23,11 +23,18 @@ describe('GatewayLogBatcher (T5: browser -> gateway JSON)', () => {
     const batcher = new GatewayLogBatcher('https://api.tiendi.pe/api/v1/telemetry/client-logs', {
       maxSize: 10,
       flushIntervalMs: 999_999,
+      service: 'tiendi-web',
+      version: 'abc1234',
     });
     batcher.push(EVENT);
     await expect(batcher.flushNow(impl)).resolves.toBe(1);
     expect(calls[0]!.url).toContain('/telemetry/client-logs');
-    expect(calls[0]!.body).toMatchObject({ events: [EVENT] });
+    // Contrato ClientLogsBody: sin service el gateway responde 400.
+    expect(calls[0]!.body).toMatchObject({
+      service: 'tiendi-web',
+      version: 'abc1234',
+      events: [EVENT],
+    });
     expect(batcher.size()).toBe(0);
   });
 

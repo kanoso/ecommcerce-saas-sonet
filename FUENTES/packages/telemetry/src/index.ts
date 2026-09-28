@@ -4,6 +4,10 @@ export * from './contract';
 export * from './redact';
 export * from './context';
 export * from './severity';
+export * from './time';
+// Solo entrada Node (browser/mobile usan subpaths): LogPipeline importa
+// @opentelemetry/api en runtime.
+export * from './pipeline';
 
 /**
  * Inyeccion W3C desde un span concreto (browser sin Zone/ALS): llena el

@@ -40,11 +40,22 @@ describe('buffer mobile (T1: sin SDK OTel en RN)', () => {
       return { ok: true } as Response;
     }) as unknown as typeof fetch;
 
-    const buffer = new MobileLogBuffer({ maxSize: 45, batchSize: 20, flushUrl: 'https://gw/v1/logs' });
+    const buffer = new MobileLogBuffer({
+      maxSize: 45,
+      batchSize: 20,
+      flushUrl: 'https://gw/v1/logs',
+      service: 'tiendi-go',
+      version: '1.0.0',
+    });
     for (let i = 0; i < 45; i++) buffer.push({ ...EVENT, message: `m${i}` }, i * 10);
     await expect(buffer.flush(fakeFetch, 60_000)).resolves.toBe(45);
     expect(posts.length).toBe(3); // 20 + 20 + 5
     expect(posts[0]!.url).toBe('https://gw/v1/logs');
+    // Contrato ClientLogsBody: sin service el gateway responde 400.
+    const first = JSON.parse(posts[0]!.body) as { service?: string; version?: string; events: unknown[] };
+    expect(first.service).toBe('tiendi-go');
+    expect(first.version).toBe('1.0.0');
+    expect(first.events).toHaveLength(20);
     expect(buffer.size()).toBe(0);
   });
 
