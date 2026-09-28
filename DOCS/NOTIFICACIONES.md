@@ -268,19 +268,20 @@ flowchart TD
 
 | Evento | Canal | Origen |
 |--------|-------|--------|
-| Nuevo pedido | Email + WhatsApp | `NotificationsService.onOrderCreated` |
-| Repartidor rechazó oferta | Push FCM | `NotificationDispatcher.notifyVendorRiderRejected` |
-| Repartidor aceptó oferta | Push FCM | `NotificationDispatcher.notifyVendorRiderAccepted` |
+| Nuevo pedido | **Push + In-app** | `OrdersService` → `NotificationGateway` (fase 4 del módulo central; el email+WhatsApp anterior era código muerto sin callers) |
+| Repartidor rechazó oferta | Push FCM + In-app | `NotificationGateway.notifyVendorRiderRejected` (fase 4) |
+| Repartidor aceptó oferta | Push FCM + In-app | `NotificationGateway.notifyVendorRiderAccepted` (fase 4) |
 | In-app (varios) | `Notification` | `NotificationsVendorService.create` |
 | Estado de pedido en vivo | WS `vendor:{storeId}` | `TrackingGateway.emitToVendor` |
+| **Mensaje nuevo de chat** | Push + In-app | 🔲 P2 del módulo central (PLAN-MODULO-CENTRAL-NOTIFICACIONES) — hoy solo WS |
 
 ### 6.2 `tiendi-web` (cliente)
 
 | Evento | Canal | Origen |
 |--------|-------|--------|
-| Pedido confirmado | Email | `NotificationsService.onOrderCreated` |
-| Estado de pedido actualizado | Email + WhatsApp | `NotificationsService.onOrderStatusChanged` |
-| Mensajes de chat | WS `customer:{id}` | `ChatGateway.emitNewMessage` |
+| Pedido confirmado | Email | `OrdersService` → `NotificationGateway` (email) — fase 4 |
+| Estado de pedido actualizado | Email | `NotificationDispatcher.onOrderStatusChanged` (sin callers aún — cableado en fase 5; WhatsApp retirado por catálogo 2026-09-28) |
+| Mensajes de chat | WS `customer:{id}` + notificación local del navegador | `ChatGateway` — 🔲 push vía P2 |
 | Feedback local | Toast PrimeNG | `notification.service.ts` |
 
 > [!NOTE]
@@ -531,6 +532,7 @@ flowchart TD
 
 ## Referencias
 
+- [[PLAN-MODULO-CENTRAL-NOTIFICACIONES]] — plan del módulo central de notificaciones (extiende este documento; inventario y decisiones de base en `DOCS/EVIDENCIAS-NOTIFICACIONES/FASE-0.md`)
 - [[TIENDI_ADMIN]] — back-office; §14 depende del canal admin de este documento
 - [[CATALOGO_MAESTRO]] — eventos de catálogo (merge/verify) que podrían notificar al admin
 - [[FACTURACION_Y_CONTABILIDAD]] — frontera por aplicación
