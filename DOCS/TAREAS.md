@@ -143,10 +143,10 @@ aliases:
 
 - [-] Endpoint `GET /users/me` — perfil propio → sustituido por `GET /auth/me`
 - [-] Endpoint `PUT /users/me` — actualizar perfil → sustituido por `PATCH /auth/me`
-- [ ] Endpoint `PUT /users/me/password` — cambiar contraseña (existe flujo forgot/reset, no cambio autenticado)
-- [ ] Endpoint `DELETE /users/me` — eliminar cuenta (soft delete) — solo riders lo tiene (`DELETE /riders/me`)
-- [ ] Endpoint `GET /users` — listar usuarios (solo super_admin)
-- [ ] Endpoint `PUT /users/:id/status` — suspender/activar (solo super_admin) — solo riders tiene status
+- [x] Endpoint `PUT /users/me/password` — cambiar contraseña (existe flujo forgot/reset, no cambio autenticado)
+- [x] Endpoint `DELETE /users/me` — eliminar cuenta (soft delete) — solo riders lo tiene (`DELETE /riders/me`)
+- [x] Endpoint `GET /users` — listar usuarios (solo super_admin)
+- [x] Endpoint `PUT /users/:id/status` — suspender/activar (solo super_admin) — solo riders tiene status
 
 ---
 
@@ -332,7 +332,7 @@ aliases:
 - [-] Endpoint `GET /admin/stores?status=pending` — tiendas pendientes → cubierto por `GET /stores/admin/list`
 - [-] Endpoint `PUT /admin/stores/:id/approve` — aprobar tienda → cubierto por `PUT /stores/:id/status`
 - [-] Endpoint `PUT /admin/stores/:id/suspend` — suspender tienda → ídem
-- [ ] Endpoint `GET /admin/users` — listar todos los usuarios
+- [x] Endpoint `GET /admin/users` — listar todos los usuarios
 - [ ] Endpoint `GET /admin/analytics` — métricas globales (parcial: existe `GET /admin/demand` de demanda por zona)
 - [ ] Endpoint `GET /admin/orders` — todos los pedidos de la plataforma
 
