@@ -318,12 +318,12 @@ aliases:
 
 ## Fase 10 — Suscripciones
 
-- [ ] Definir planes en seed: Gratuito, Pro, Enterprise — `seed.ts` no define `SubscriptionPlan`; planes residen en DB
+- [x] Definir planes en seed: Gratuito, Pro, Enterprise — definidos en `seed.ts` con precios, límites y features, y suscripción activa (Plan Pro) asignada a tiendas iniciales
 - [x] Endpoint `GET /subscription-plans` — listar planes públicos (`SubscriptionPlansController`)
 - [x] Endpoint `POST /subscriptions` — suscribirse a un plan — implementado como `POST /stores/:storeId/subscription/change` (+ `cancel` y `register-payment`)
 - [x] Endpoint `GET /subscriptions/my` — suscripción activa — implementado como `GET /stores/:storeId/subscription` (+ `payment-history`)
 - [x] Validar límites de plan (máx. productos, máx. pedidos/mes) — uso vs límites en `subscription.service`
-- [ ] Job BullMQ para renovación automática y notificación de vencimiento — `jobs/` solo tiene riders y wallet
+- [x] Job BullMQ para renovación automática y notificación de vencimiento — implementado en `BillingProcessor` (`subscription-billing` queue) con ciclo diario de cobro, dunning y recordatorios off-gateway D-7/3/1
 
 ---
 
