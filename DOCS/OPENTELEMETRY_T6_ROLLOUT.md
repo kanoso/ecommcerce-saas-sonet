@@ -66,6 +66,13 @@ Estado de Git: todos los cambios commiteados y pusheados por repo. Ninguna modif
 
 ## 6. Pendientes y rollout
 
+### 6.0 Para retomar en la próxima sesión (acordado 2026-09-29)
+
+1. **Desplegar tiendi-kipu en host** con `TIENDI_NOTIFICATIONS_URL=https://api.tiendi.pe/api/v1` + `TIENDI_NOTIFICATIONS_TOKEN=<el mismo de OpenBao v17, secret/dev/apps/tiendi-api/runtime>`: bundle/checkout en host, `npm install`, build, flags en su ecosystem PM2, restart. Contexto: el lado tiendi-api ya está listo (token activo, migraciones aplicadas); falta el cliente kipu.
+2. **Falso positivo del redactor**: fechas ISO en texto libre (`2026-09-28T09:22:11`) quedan como `[REDACTED]` — revisar el patrón del redactor en `packages/telemetry/src/redact.ts` (no tocar a ciegas: tiene specs con señuelos).
+3. **Activación de browsers en TEST**: rebuild de tiendi-web/vendor/admin/kipu-web con flags de build (telemetry en environment) + redeploy estático en `C:\tiendi\...` del host; site/valia con `ENABLED=true` si se aprueba.
+4. Menores: smoke Detox e2e de tiendi-go (3 suites requieren config de dispositivo); rotar la contraseña SSH que circuló por chat (pendiente histórico).
+
 ### 6.1 Sesión 2026-09-28 — correcciones y validación e2e real
 
 **Bugs corregidos (con pruebas):**
