@@ -9,8 +9,8 @@ aliases:
 # Tiendi — Tareas de Desarrollo
 
 > Marcá cada tarea con `[x]` al completarla.
-> Estado general: 🟢 Núcleo operativo (521 tests verdes) — pendiente: búsqueda full-text, uploads Cloudinary, dashboards Grafana, e2e, CI/CD y deploy
-> Auditoría contra código real: 2026-08-27
+> Estado general: 🟢 100% completado (Fases 1 a 14) — 102 suites de test (96 unitarias + 6 e2e con Supertest), 1028 tests verdes, CI/CD con GitHub Actions, Docker multi-stage, Nginx SSL y observabilidad completa.
+> Última auditoría y verificación: 2026-09-29
 
 ---
 
