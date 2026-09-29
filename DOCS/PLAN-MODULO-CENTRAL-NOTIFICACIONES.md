@@ -1,6 +1,6 @@
 # Plan de implementación — Módulo central de notificaciones Tiendi
 
-**Estado:** en ejecución. Fases 0–3 implementadas y verificadas con tests (79→82 suites, 829/829 verdes); evidencia reproducible en `EVIDENCIAS-NOTIFICACIONES/FASE-<n>.md`. Fase 4 en progreso. Pruebas en dispositivo real y envíos con proveedores productivos siguen pendientes (fases 4+).
+**Estado:** en ejecución. Fases 0–7 y P2 implementadas y verificadas con tests unitarios y de integración (86 suites, 871/871 verdes en `tiendi-api`). Pendientes operativos registrados: despliegue en servidor / VM de Oracle Cloud, generación de APK para `tiendi-kipu` y validación física en hardware real (A05), y posterior extracción independiente (Fase 8). Evidencias reproducibles en `EVIDENCIAS-NOTIFICACIONES/`.
 
 **Decisión de alcance:** centralizar las notificaciones como un módulo de `tiendi-api`, diseñado desde el inicio para extraerse posteriormente a una aplicación backend independiente, `tiendi-notifications`. No crear ese despliegue separado en la primera etapa. Reutilizar los proveedores existentes y migrar gradualmente a una interfaz común.
 
@@ -506,3 +506,39 @@ Decisiones de producto tomadas durante la ejecución:
   - **P4** — Email al cliente sobre su pedido: **se mantiene** (wiring de `order.created` email en `OrdersService`); las transiciones de estado se cablean en fase 5. Cuando tiendi-web tenga bandeja, migran a in-app.
   - **P5** — Email del admin: **solo delivery-sin-rider y ticket P0/P1 nuevo**; la escalación deja email (push + bandeja alcanzan). Implementado en `AdminNotifier.alertEscalation`.
 - **Retención (2026-09-28, CONFIRMADA)** — R1 instalaciones (INVALID 7d / INACTIVE 30d / ACTIVE inactivo 60d); R2 solicitudes (contenido a 30d, sello de idempotencia persiste); R3 tombstones de cancelación indefinidos (protección A06); R4 bandeja 90d o leídas+30d; R5 resultados de entrega 90d; R6 KipuEmission/logs fuera de alcance; R7 campañas (registro 12m, audiencia resuelta +30d). La ejecución del purgado es tarea de fase 7.
+
+## 15. Tareas pendientes: Despliegue en VM Oracle y Validación Mobile (APK)
+
+Registrado por requerimiento del usuario (2026-09-29):
+
+### 15.1 Despliegue en servidor / VM de Oracle Cloud
+1. **Infraestructura backend (`tiendi-api`)**:
+   - Ejecutar migraciones de base de datos (`notifications`, `notification_installations`, `notification_schedules`, `notification_outbox`, `campaigns`, etc.).
+   - Configurar variables de entorno productivas:
+     - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (o credenciales de cuenta de servicio de Firebase Cloud Messaging productivas).
+     - `ADMIN_ALERT_EMAILS` (destinatarios de alertas críticas de la plataforma).
+     - `NOTIFICATIONS_SERVICE_TOKEN` (token de autenticación interna para Kipu API / endpoints protegidos).
+     - Configuración SMTP / SES para envíos de email transaccional (`order.created`, etc.).
+   - Verificar ejecución de workers y cron jobs en el proceso del servidor:
+     - Cron de reintentos outbox y procesamiento duradero.
+     - Cron diario de recordatorios (09:00 AM configurable).
+     - Cron diario de purgado de retención (R1–R7).
+2. **Frontend administrativo (`tiendi-admin`)**:
+   - Build y despliegue del panel administrativo incluyendo:
+     - Panel de Campañas (`/admin/notifications/campaigns`).
+     - Panel de Operaciones / Auditoría (`/admin/notifications/operations`).
+   - Configuración de Service Worker para Web Push con FCM en dominio HTTPS productivo.
+
+### 15.2 Compilación de APK y Pruebas en Dispositivos Físicos (`tiendi-kipu`)
+1. **Generación de APK Android**:
+   - Compilación con Capacitor (`npx cap sync android` y build del APK/AAB en Android Studio / CI).
+   - Verificación de `google-services.json` correspondiente al proyecto FCM productivo en la carpeta Android de Kipu.
+2. **Matriz de pruebas en hardware real (Escenario A05)**:
+   - Registro de token FCM en inicio de sesión del usuario.
+   - Recepción de Push Notification con la app en primer plano (foreground), segundo plano (background) y cerrada/matada (force-stop / cold-start).
+   - Verificación de la navegación al tocar el push hacia el detalle de recordatorio/cuota.
+   - Sincronización de bandeja in-app y lectura offline/online.
+
+### 15.3 Extracción a microservicio independiente (Fase 8)
+- Extraer el módulo a una aplicación backend independiente (`tiendi-notifications`) una vez estabilizado y validado el tráfico en la VM de Oracle.
+
