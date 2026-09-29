@@ -186,15 +186,15 @@ Cada fase debe incluir migraciones compatibles cuando correspondan, pruebas de c
 
 **Objetivo:** enviar un mensaje a todas las apps integradas o a una audiencia específica.
 
-- [ ] Crear pantalla de campañas en Tiendi Admin con título, contenido, vista previa y programación.
-- [ ] Admitir alcance global, aplicación, grupo autorizado y usuario específico.
-- [ ] Mostrar estimación de destinatarios y distinguir cuentas, personas e instalaciones.
-- [ ] Exigir permiso específico para campañas globales y confirmación explícita del alcance antes de enviar.
-- [ ] Definir si la audiencia se calcula al programar o al ejecutar. Persistir el conjunto resuelto para reintentos estables y revalidar exclusiones/permisos al enviar.
-- [ ] Expandir audiencias por lotes con paginación estable, límites de concurrencia y cuotas; no cargar todos los usuarios en memoria.
-- [ ] Permitir cancelar trabajos aún pendientes; informar que no se retiran mensajes ya aceptados por el proveedor.
-- [ ] Auditar autor, audiencia, contenido, cambios, fecha y resultados.
-- [ ] Aplicar categorías y preferencias; diferenciar mensajes operativos de campañas promocionales.
+- [x] Crear pantalla de campañas en Tiendi Admin con título, contenido, vista previa y programación.
+- [x] Admitir alcance global, aplicación, grupo autorizado y usuario específico.
+- [x] Mostrar estimación de destinatarios y distinguir cuentas, personas e instalaciones.
+- [x] Exigir permiso específico para campañas globales y confirmación explícita del alcance antes de enviar.
+- [x] Definir si la audiencia se calcula al programar o al ejecutar. Persistir el conjunto resuelto para reintentos estables y revalidar exclusiones/permisos al enviar.
+- [x] Expandir audiencias por lotes con paginación estable, límites de concurrencia y cuotas; no cargar todos los usuarios en memoria.
+- [x] Permitir cancelar trabajos aún pendientes; informar que no se retiran mensajes ya aceptados por el proveedor.
+- [x] Auditar autor, audiencia, contenido, cambios, fecha y resultados.
+- [x] Aplicar categorías y preferencias; diferenciar mensajes operativos de campañas promocionales.
 
 **Políticas de entrega:**
 - Por aplicación: el usuario puede recibir una copia en cada app incluida.
@@ -461,8 +461,8 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | A06 | Una cancelación más reciente impide que una programación antigua reactive el aviso. | 5 | ✅ demostrado con tests (fase 5) |
 | A07 | Fin de mes, año bisiesto, cambio de zona y recurrencia quincenal tienen resultado definido y probado. | 5 | ✅ demostrado con tests (fase 5) |
 | A08 | Pago registrado offline: la UI distingue guardado local de cancelación remota confirmada; al sincronizar se reconcilia. | 5 | ✅ demostrado con tests (fase 5) |
-| A09 | Campaña por persona y por app respetan su política con múltiples instalaciones e identidades vinculadas/no vinculadas. | 6 |
-| A10 | Cancelar una campaña detiene trabajos no enviados sin afirmar que retira mensajes aceptados. | 6 |
+| A09 | Campaña por persona y por app respetan su política con múltiples instalaciones e identidades vinculadas/no vinculadas. | 6 | ✅ demostrado con tests (fase 6) |
+| A10 | Cancelar una campaña detiene trabajos no enviados sin afirmar que retira mensajes aceptados. | 6 | ✅ demostrado con tests (fase 6) |
 | A11 | Núcleo sin imports de dominios consumidores; adaptadores interno y remoto cumplen la misma suite de contrato. | 1–8 |
 | A12 | Extracción y rollback conservan identidades, programaciones y deduplicación, con una única autoridad emisora activa. | 8 |
 
@@ -486,7 +486,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | 3 — Entregas durables y bandeja común | ✅ Verificada con tests (829/829; outbox + leases + A03) | `EVIDENCIAS-NOTIFICACIONES/FASE-3.md` |
 | 4 — Integración gradual de las apps | 🔄 En progreso (pilotos vendor+wallet vía gateway; registro nativo Kipu y detección de versión listos en código; APK/dispositivo pendiente) | `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` |
 | 5 — Programación y recordatorios Kipu | ✅ Verificada con tests (tombstones A06, cálculo A07, cancelación por pago A08) | `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
-| 6 — Alertas generales y campañas | ⬜ Pendiente | — |
+| 6 — Alertas generales y campañas | ✅ Verificada con tests (PER_APP vs PER_PERSON A09, cancelación A10, panel Tiendi Admin) | `EVIDENCIAS-NOTIFICACIONES/FASE-6.md` |
 | 7 — Funciones ampliadas y operación | ⬜ Pendiente | — |
 | 8 — Extracción a tiendi-notifications | ⬜ Pendiente (precondición: fases previas estables) | — |
 
