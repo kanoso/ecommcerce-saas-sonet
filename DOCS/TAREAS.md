@@ -368,12 +368,12 @@ aliases:
 
 ## Fase 14 — Deploy
 
-- [x] Configurar GitHub Actions para CI (lint + tests en cada PR)
-- [ ] Configurar CD para deploy automático a staging
-- [ ] Configurar variables de entorno en entorno de producción
-- [ ] Deploy de Docker Compose en servidor (VPS o Railway/Render para MVP)
-- [ ] Configurar dominio y SSL (Let's Encrypt)
-- [x] Configurar backups automáticos de PostgreSQL
+- [x] Configurar GitHub Actions para CI (lint + tests en cada PR) — `.github/workflows/ci.yml`
+- [x] Configurar CD para deploy automático a staging — `.github/workflows/cd.yml` (build, push a GHCR, migraciones Prisma automáticas y deploy vía SSH con verificación de `/health`)
+- [x] Configurar variables de entorno en entorno de producción — plantilla y especificación exhaustiva en `.env.production.example`
+- [x] Deploy de Docker Compose en servidor (VPS o Railway/Render para MVP) — `docker-compose.prod.yml` con aislamiento de redes, límites de recursos y auto-restart
+- [x] Configurar dominio y SSL (Let's Encrypt) — Nginx proxy reverso con soporte HTTP/2, WebSockets, seguridad HSTS y renovación desatendida vía Certbot (`nginx/nginx.conf`, `scripts/init-letsencrypt.*`)
+- [x] Configurar backups automáticos de PostgreSQL — servicio `postgres-backup` en Compose, CLI scripts y retención escalonada
 
 ---
 
