@@ -228,15 +228,15 @@ Una alerta general sigue apareciendo bajo la identidad de la aplicación recepto
 
 **Decisión de producto (P2 aprobada):** los mensajes nuevos de chat disparan **push + in-app** al destinatario no conectado. Prioridad de canales del negocio: push e in-app primero (costo cero); email reservado a transaccional de cuenta; WhatsApp solo donde agrega valor real. El chat es el caso principal de este principio.
 
-- [ ] Definir categoría `chat-messages` y sus claves de preferencia por audiencia (STORE/USER; tiendi-go no tiene chat hoy — fuera de alcance).
-- [ ] Cablear el envío de mensajes (`chat.service` → `emitNewMessage`) al `NotificationGateway`: push + in-app para el destinatario del mensaje.
-- [ ] Resolver destinatario por lado: cliente → `USER` (customer id); vendor → dueño/employees de la tienda (`Store` + `StoreEmployee`). El remitente nunca recibe notificación de su propio mensaje.
-- [ ] Suprimir el push si el destinatario está conectado a la sala (WS activo): quien ya está mirando la conversación solo ve el mensaje en vivo — no vibra ni acumula bandeja leída.
-- [ ] In-app: entrada de bandeja con `resourceType: 'conversation'` + resourceId para que la app abra la conversación al tocarla (destino verificado con sesión/autorización al abrirla).
-- [ ] Agregar el caso a la matriz de canales por evento del catálogo (C-decisiones) y a la matriz de aceptación (A-cases) al cerrar su diseño.
-- [ ] Pruebas: push solo al no conectado; bandeja persiste aunque el push falle; preferencias respetadas; el remitente no se auto-notifica.
+- [x] Definir categoría `chat-messages` y sus claves de preferencia por audiencia (STORE/USER; tiendi-go no tiene chat hoy — fuera de alcance).
+- [x] Cablear el envío de mensajes (`chat.service` → `emitNewMessage`) al `NotificationGateway`: push + in-app para el destinatario del mensaje.
+- [x] Resolver destinatario por lado: cliente → `USER` (customer id); vendor → dueño/employees de la tienda (`Store` + `StoreEmployee`). El remitente nunca recibe notificación de su propio mensaje.
+- [x] Suprimir el push si el destinatario está conectado a la sala (WS activo): quien ya está mirando la conversación solo ve el mensaje en vivo — no vibra ni acumula bandeja leída.
+- [x] In-app: entrada de bandeja con `resourceType: 'conversation'` + resourceId para que la app abra la conversación al tocarla (destino verificado con sesión/autorización al abrirla).
+- [x] Agregar el caso a la matriz de canales por evento del catálogo (C-decisiones) y a la matriz de aceptación (A-cases) al cerrar su diseño. *(✅ C7 y A13 verificados con tests)*
+- [x] Pruebas: push solo al no conectado; bandeja persiste aunque el push falle; preferencias respetadas; el remitente no se auto-notifica. *(✅ 38/38 tests en chat.service.spec.ts y 18/18 en chat.gateway.spec.ts)*
 
-**Salida:** un mensaje de chat genera push + entrada de bandeja al destinatario con la app cerrada; quien está mirando la conversación no recibe push duplicado.
+**Salida:** un mensaje de chat genera push + entrada de bandeja al destinatario con la app cerrada; quien está mirando la conversación no recibe push duplicado. *(✅ Implementado y verificado en `EVIDENCIAS-NOTIFICACIONES/P2-CHAT.md`)*
 
 ## 6. Dependencias y entregas incrementales
 
@@ -246,7 +246,7 @@ Una alerta general sigue apareciendo bajo la identidad de la aplicación recepto
 | Apps integradas | 4, por aplicación | Eventos existentes migrados gradualmente. |
 | Recordatorios Kipu | Base común + Kipu en 4 + 5 | Recordatorios y avisos de cuotas por push remoto. |
 | Alertas globales | Base común + apps destinatarias en 4 + 6 | Campañas generales o segmentadas. No depende de completar recordatorios Kipu. |
-| Chat interno (P2) | Base común (0–3) + Vendor/Web en 4 | Push y bandeja de mensajes de chat al destinatario no conectado. No depende de recordatorios ni campañas. |
+| Chat interno (P2) | Base común (0–3) + Vendor/Web en 4 | ✅ Push y bandeja de mensajes de chat al destinatario no conectado. Implementado y verificado con tests (`EVIDENCIAS-NOTIFICACIONES/P2-CHAT.md`). |
 | Ampliaciones | 7 | Resúmenes, cuotas detalladas, insistencia y operación consolidada. |
 | Aplicación independiente futura | Módulo estabilizado + 8 | `tiendi-notifications` con contratos compatibles, migración de datos y corte controlado. |
 
@@ -466,6 +466,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | A10 | Cancelar una campaña detiene trabajos no enviados sin afirmar que retira mensajes aceptados. | 6 | ✅ demostrado con tests (fase 6) |
 | A11 | Núcleo sin imports de dominios consumidores; adaptadores interno y remoto cumplen la misma suite de contrato. | 1–8 |
 | A12 | Extracción y rollback conservan identidades, programaciones y deduplicación, con una única autoridad emisora activa. | 8 |
+| A13 | Mensaje de chat entrega push + bandeja al destinatario no conectado; suprime push y bandeja si está en la conversación en vivo; no auto-notifica al remitente; es idempotente por destinatario. | P2 | ✅ demostrado con tests (P2) |
 
 ## 13. Estado al entregar este plan
 
@@ -489,6 +490,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | 5 — Programación y recordatorios Kipu | ✅ Verificada con tests (tombstones A06, cálculo A07, cancelación por pago A08) | `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
 | 6 — Alertas generales y campañas | ✅ Verificada con tests (PER_APP vs PER_PERSON A09, cancelación A10, panel Tiendi Admin) | `EVIDENCIAS-NOTIFICACIONES/FASE-6.md` |
 | 7 — Funciones ampliadas y operación | ✅ Verificada con tests (cuotas "X de Y", abonos parciales, resumen semanal por moneda, retención R1–R7, panel operaciones Tiendi Admin y Runbook operativo) | `EVIDENCIAS-NOTIFICACIONES/FASE-7.md` |
+| P2 — Chat interno | ✅ Verificada con tests (presencia realtime en salas `conv:`, supresión si activo, deduplicación por destinatario, bandeja STORE/USER) | `EVIDENCIAS-NOTIFICACIONES/P2-CHAT.md` |
 | 8 — Extracción a tiendi-notifications | ⬜ Pendiente (precondición: fases previas estables) | — |
 
 Decisiones bloqueadas registradas en fase 0:
@@ -498,7 +500,7 @@ Decisiones bloqueadas registradas en fase 0:
 
 Decisiones de producto tomadas durante la ejecución:
 - **P1 (2026-09-28)** — Los eventos rider suman la bandeja in-app: el push informa al instante y la bandeja queda como registro persistente (aplicado al piloto `wallet.withdrawal-processed`; el resto de eventos rider lo adopta al migrar al gateway). tiendi-go mantiene su inbox local mientras no consulte la bandeja del backend — sin renders duplicados.
-- **P2 (2026-09-28)** — Notificaciones de chat interno aprobadas: los mensajes nuevos disparan push + in-app al destinatario no conectado (categoría `chat-messages`). Gap detectado: hoy el chat solo notifica por WS en vivo. Especificación completa en la sección P2 de este documento; pendiente de implementar.
+- **P2 (2026-09-28, IMPLEMENTADA)** — Notificaciones de chat interno completas: los mensajes nuevos disparan push + in-app al destinatario no conectado (categoría `chat-messages`). Quien está mirando la conversación en vivo en `conv:${conversationId}` no recibe push ni acumula bandeja leída. Implementado en `ChatService` + `ChatGateway` con resolución de audiencias `STORE` y `USER`. Ver `EVIDENCIAS-NOTIFICACIONES/P2-CHAT.md`.
 - **Principio de canales (2026-09-28, CONFIRMADO)** — Push e in-app primero (costo cero); email reservado a transaccional de cuenta (registro, recuperación) y pedidos del cliente hasta que tiendi-web tenga bandeja; WhatsApp solo OTP/auth. **Catálogo por evento CERRADO** (ver catálogo en `EVIDENCIAS-NOTIFICACIONES/FASE-4.md`):
   - **P3** — Nuevo pedido al vendor: **push + in-app vía gateway**; email y WhatsApp al vendor RETIRADOS (eran código muerto — el vendor no recibía nada en pedidos nuevos; hallazgo de fase 4). Implementado en `OrdersService`.
   - **P4** — Email al cliente sobre su pedido: **se mantiene** (wiring de `order.created` email en `OrdersService`); las transiciones de estado se cablean en fase 5. Cuando tiendi-web tenga bandeja, migran a in-app.

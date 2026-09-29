@@ -49,7 +49,7 @@ Principio: push + in-app primero (costo cero); email transaccional (cuenta + ped
 | C4 | escalación de ticket (admin) | push web + in-app (email RETIRADO) | `AdminNotifier.alertEscalation` (P5) |
 | C5 | delivery sin rider / ticket P0-P1 (admin) | push web + email + in-app | `AdminNotifier` (email reservado a críticos) |
 | C6 | estado de pedido → cliente | email (diseñado) | `onOrderStatusChanged` — WhatsApp retirado; wiring de transiciones en fase 5 |
-| C7 | mensaje de chat | push + in-app | 🔲 P2 (especificado, pendiente de implementar) |
+| C7 | `chat.message-created` (chat) | push + in-app | ✅ P2 (`ChatService` → `NotificationGateway`: suprime push e in-app si activo en `conv:`, destinatario resuelto por lado `STORE`/`USER`, idempotente por destinatario; ver `P2-CHAT.md`) |
 | C8 | recordatorios Kipu (fase 5) | push + in-app | vía API remota |
 
 ## Matriz de escenarios por app y plataforma
