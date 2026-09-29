@@ -201,9 +201,9 @@ aliases:
 
 ### 4.3 Búsqueda
 
-- [ ] Endpoint `GET /search?q=&store_id=` — búsqueda full-text en productos
-- [ ] Índices en PostgreSQL para búsqueda (`pg_trgm` o `tsvector`)
-- [ ] Caché de búsquedas frecuentes en Redis (TTL 5 min)
+- [x] Endpoint `GET /search?q=&store_id=` — búsqueda full-text en productos
+- [x] Índices en PostgreSQL para búsqueda (`pg_trgm` o `tsvector`)
+- [x] Caché de búsquedas frecuentes en Redis (TTL 5 min)
 
 ---
 
