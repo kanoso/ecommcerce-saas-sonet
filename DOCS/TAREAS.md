@@ -312,7 +312,7 @@ aliases:
 - [-] Endpoint `GET /vendor/dashboard` — resumen del día → cubierto por `GET /stores/:storeId/analytics/summary`
 - [-] Endpoint `GET /vendor/analytics?period=` — ventas por período → cubierto por `analytics/sales-chart` + `analytics/hourly` + `analytics/top-products`
 - [-] Endpoint `GET /vendor/reports/sales` — reporte exportable → cubierto por `GET /stores/:storeId/reports/sales`
-- [ ] Endpoint `GET /vendor/products/low-stock` — productos con stock bajo (sin equivalente)
+- [x] Endpoint `GET /vendor/products/low-stock` — productos con stock bajo (sin equivalente)
 
 ---
 
