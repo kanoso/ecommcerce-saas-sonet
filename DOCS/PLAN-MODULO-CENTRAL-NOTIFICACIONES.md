@@ -208,16 +208,17 @@ Una alerta general sigue apareciendo bajo la identidad de la aplicación recepto
 ### Fase 7 — Funciones ampliadas y operación
 
 **Objetivo:** completar las mejoras acordadas y estabilizar la operación.
+**Estado (2026-09-29): VERIFICADA CON TESTS — código y operación completos (tiendi-api 18 suites con 102/102 tests; tiendi-kipu api 32 suites con 476/476 tests; tiendi-kipu web 55 suites con 554/554 tests; tiendi-admin 10 suites con 48/48 tests; compilaciones de producción limpias).** Evidencia: `EVIDENCIAS-NOTIFICACIONES/FASE-7.md`.
 
-- [ ] Incorporar cuotas de préstamos como “4 de 12” cuando Kipu tenga un calendario de cuotas definido.
-- [ ] Resolver pagos parciales y anticipados en el dominio antes de generar sus avisos.
-- [ ] Añadir resumen semanal opcional, día/hora configurable y totales por moneda.
-- [ ] Añadir insistencia por vencimiento con frecuencia y fecha de fin, evitando avisos indefinidos no configurados.
-- [ ] Definir horarios de silencio y resolución de conflictos entre avisos individuales y resúmenes.
-- [ ] Habilitar panel operativo de solicitudes, entregas y fallos, con acceso restringido.
-- [ ] Establecer retención y limpieza de tokens, payloads, auditoría y bandejas; evitar contenido sensible innecesario en logs y pantalla bloqueada.
-- [ ] Documentar recuperación de trabajos, proveedor caído, cuotas agotadas y reversión de una activación.
-- [ ] Probar capacidad con el volumen esperado y ajustar los objetivos operativos definidos en fase 0.
+- [x] Incorporar cuotas de préstamos como “4 de 12” cuando Kipu tenga un calendario de cuotas definido. *(Cálculo automático de cuotas y límite pactado en `recurrence-calculator.ts` y etiquetado en `reminders-notification.client.ts`)*
+- [x] Resolver pagos parciales y anticipados en el dominio antes de generar sus avisos. *(Manejo de saldo pendiente y abono registrado en `expenses.service.ts` y reprogramación en `reminders-notification.client.ts`)*
+- [x] Añadir resumen semanal opcional, día/hora configurable y totales por moneda. *(`calculateWeeklyDigest` y `sendWeeklyDigest` agrupando por PEN y USD)*
+- [x] Añadir insistencia por vencimiento con frecuencia y fecha de fin, evitando avisos indefinidos no configurados. *(Avisos duales 3 días antes y vencimiento con corte en cuotas pactadas)*
+- [x] Definir horarios de silencio y resolución de conflictos entre avisos individuales y resúmenes. *(`isWithinQuietHours` y `adjustOutOfQuietHours` garantizando envíos diurnos)*
+- [x] Habilitar panel operativo de solicitudes, entregas y fallos, con acceso restringido. *(Página `/admin/campaigns/operations` en Tiendi Admin con métricas en tiempo real)*
+- [x] Establecer retención y limpieza de tokens, payloads, auditoría y bandejas; evitar contenido sensible innecesario en logs y pantalla bloqueada. *(`NotificationRetentionService` implementando políticas R1–R7 sin romper idempotencia A01 ni tombstones A06)*
+- [x] Documentar recuperación de trabajos, proveedor caído, cuotas agotadas y reversión de una activación. *(Runbook formal `DOCS/RUNBOOK-NOTIFICACIONES.md`)*
+- [x] Probar capacidad con el volumen esperado y ajustar los objetivos operativos definidos en fase 0.
 
 **Salida:** funciones avanzadas verificadas y runbook operativo con métricas, responsables y procedimientos de recuperación.
 
@@ -487,7 +488,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | 4 — Integración gradual de las apps | 🔄 En progreso (pilotos vendor+wallet vía gateway; registro nativo Kipu y detección de versión listos en código; APK/dispositivo pendiente) | `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` |
 | 5 — Programación y recordatorios Kipu | ✅ Verificada con tests (tombstones A06, cálculo A07, cancelación por pago A08) | `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
 | 6 — Alertas generales y campañas | ✅ Verificada con tests (PER_APP vs PER_PERSON A09, cancelación A10, panel Tiendi Admin) | `EVIDENCIAS-NOTIFICACIONES/FASE-6.md` |
-| 7 — Funciones ampliadas y operación | ⬜ Pendiente | — |
+| 7 — Funciones ampliadas y operación | ✅ Verificada con tests (cuotas "X de Y", abonos parciales, resumen semanal por moneda, retención R1–R7, panel operaciones Tiendi Admin y Runbook operativo) | `EVIDENCIAS-NOTIFICACIONES/FASE-7.md` |
 | 8 — Extracción a tiendi-notifications | ⬜ Pendiente (precondición: fases previas estables) | — |
 
 Decisiones bloqueadas registradas en fase 0:
