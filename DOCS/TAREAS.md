@@ -333,8 +333,8 @@ aliases:
 - [-] Endpoint `PUT /admin/stores/:id/approve` — aprobar tienda → cubierto por `PUT /stores/:id/status`
 - [-] Endpoint `PUT /admin/stores/:id/suspend` — suspender tienda → ídem
 - [x] Endpoint `GET /admin/users` — listar todos los usuarios
-- [ ] Endpoint `GET /admin/analytics` — métricas globales (parcial: existe `GET /admin/demand` de demanda por zona)
-- [ ] Endpoint `GET /admin/orders` — todos los pedidos de la plataforma
+- [x] Endpoint `GET /admin/analytics` — métricas globales
+- [x] Endpoint `GET /admin/orders` — todos los pedidos de la plataforma
 
 > El módulo `admin` cubre además: gestión de riders, tickets escalados, revocación de sesiones, reconciliación de depósitos, daily checks del ledger y procesamiento de settlements.
 
