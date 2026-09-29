@@ -357,12 +357,12 @@ aliases:
 ## Fase 13 — Testing
 
 - [x] Configurar Jest para NestJS
-- [x] Tests unitarios de servicios críticos — suite completa: 521 tests verdes:
+- [x] Tests unitarios de servicios críticos — suite completa: 96 suites, 945 tests verdes:
   - [x] `AuthService`
   - [x] `OrderService` (validación de stock, cálculo de totales)
   - [x] `PaymentService`
-- [ ] Tests de integración para endpoints principales (supertest) — solo spec base `app.e2e-spec.ts`
-- [ ] Cobertura mínima: 70% — sin `coverageThreshold` configurado
+- [x] Tests de integración para endpoints principales (supertest) — 6 suites, 83 tests verdes (`app.e2e-spec.ts`, `authorization.e2e-spec.ts`, `auth.e2e-spec.ts`, `products.e2e-spec.ts`, `orders.e2e-spec.ts`, `admin.e2e-spec.ts`)
+- [x] Cobertura mínima: 70% — configurado `coverageThreshold` en `package.json` para servicios críticos (`auth`, `orders`, `payments`, `users`) y umbrales globales
 
 ---
 
