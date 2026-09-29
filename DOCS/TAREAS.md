@@ -169,9 +169,8 @@ aliases:
 
 - [-] Endpoint `PUT /stores/:id/hours` — cubierto por `PUT/PATCH /stores/:id` (campo `openingHours`)
 - [-] Endpoint `PUT /stores/:id/delivery` — cubierto por `PUT/PATCH /stores/:id` (campo `deliveryConfig`)
-- [-] Endpoint `PUT /stores/:id/payment-methods` — cubierto por `PUT/PATCH /stores/:id` (campo `paymentMethods`)
-- [ ] Endpoint `POST /stores/:id/logo` — subir logo (Cloudinary) — `logoUrl` seteable por PATCH con URL, upload pendiente
-- [ ] Endpoint `POST /stores/:id/banner` — subir banner (Cloudinary) — ídem
+- [x] Endpoint `POST /stores/:id/logo` — subir logo (Cloudinary)
+- [x] Endpoint `POST /stores/:id/banner` — subir banner (Cloudinary)
 
 ### 3.3 Empleados
 
@@ -198,7 +197,7 @@ aliases:
 - [x] Endpoint `PUT /products/:id` — editar producto
 - [x] Endpoint `DELETE /products/:id` — eliminar producto (soft delete)
 - [x] Endpoint `PUT /products/:id/stock` — actualizar stock
-- [ ] Endpoint `POST /products/:id/images` — subir imágenes (Cloudinary, múltiples)
+- [x] Endpoint `POST /products/:id/images` — subir imágenes (Cloudinary, múltiples)
 
 ### 4.3 Búsqueda
 
