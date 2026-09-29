@@ -79,7 +79,7 @@ aliases:
   - [x] Prometheus
   - [x] Loki
   - [x] Grafana
-- [ ] Crear `Dockerfile` para el backend (multi-stage build)
+- [x] Crear `Dockerfile` para el backend (multi-stage build)
 - [x] Verificar que todo levanta con `docker compose up`
 
 ### 1.4 Estructura de módulos
