@@ -2,11 +2,7 @@
 
 [Volver al plan general](../../PLAN-PRUEBAS-E2E.md)
 
-Esta carpeta todavía no contiene resultados de pruebas. Crear un archivo por ejecución usando [la plantilla](../PLANTILLAS.md#registro-de-ejecución).
+## Historial de Ejecuciones
 
-- Nombre sugerido: YYYY-MM-DD-ID-CASO-01.md, incrementando el sufijo cuando corresponda.
-- Enlazar al caso mediante ../CASOS/ID-CASO.md y registrar su versión/commit.
-- Registrar versiones de aplicaciones, entorno, fecha/hora/zona, responsable, datos y servicios simulados.
-- Separar esperado y obtenido. Usar aprobado, fallido, bloqueado u omitido según evidencia, sin sobreescribir ejecuciones previas.
-- Conservar evidencia sanitizada e incidencias. Nunca incluir secretos, tarjetas o datos personales reales.
-- Documentar limpieza y siguiente acción.
+1. [2026-09-29-E2E-BUSINESS-FLOWS-01.md](2026-09-29-E2E-BUSINESS-FLOWS-01.md) — Flujos de negocio backend en `tiendi-api` (19/19 tests aprobados).
+2. [2026-09-29-E2E-TIENDI-WEB-FLOWS-02.md](2026-09-29-E2E-TIENDI-WEB-FLOWS-02.md) — Flujos de cliente web y checkout en `tiendi-web` (6/6 tests aprobados).
