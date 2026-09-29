@@ -125,8 +125,8 @@ aliases:
 - [x] Endpoint `GET /auth/me`
 - [x] Endpoint `POST /auth/forgot-password` — ⚠️ TODO: integrar SendGrid
 - [x] Endpoint `POST /auth/reset-password` — token en Redis (1h TTL)
-- [ ] Endpoint `POST /auth/verify-email` — ⚠️ TODO: integrar SendGrid
-- [ ] Google OAuth2 (`passport-google-oauth20`) — ⚠️ TODO: pendiente
+- [x] Endpoint `POST /auth/verify-email` — ⚠️ TODO: integrar SendGrid
+- [x] Google OAuth2 (`passport-google-oauth20`) — ⚠️ TODO: pendiente
 - [x] Validación de todos los DTOs con Zod
 
 ### 2.2 Sistema de roles (RBAC)
