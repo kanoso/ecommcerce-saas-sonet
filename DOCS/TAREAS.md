@@ -346,9 +346,9 @@ aliases:
 - [x] Rate limiting específico en auth (5 intentos / 15 min) — `@Throttle` en `auth.controller`
 - [x] Helmet.js para security headers
 - [x] CORS configurado correctamente por entorno
-- [ ] Sanitización de inputs (strip HTML, prevención XSS) — Zod valida tipos/formas pero no strip HTML
+- [x] Sanitización de inputs (strip HTML, prevención XSS) — `sanitize-html.util` integrado en `ZodValidationPipe` respetando campos sensibles (passwords, tokens, keys)
 - [x] Protección contra SQL injection (Prisma ya lo maneja, verificar raw queries) — única `$queryRaw` en `demand.service` usa tagged template parametrizado
-- [ ] Audit log: registrar acciones sensibles (login, cambio de contraseña, aprobación de tienda)
+- [x] Audit log: registrar acciones sensibles (login, cambio de contraseña, aprobación de tienda) — `AuditModule`, `AuditService` y endpoint `GET /admin/audit-logs`
 - [x] Rotación automática de refresh tokens — rotación + revocación en `auth.service`
 - [x] Blacklist de tokens en Redis al hacer logout — `logout`, `logout-all` y `POST /admin/users/:userId/revoke-sessions`
 
