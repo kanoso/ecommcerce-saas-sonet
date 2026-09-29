@@ -121,7 +121,7 @@ Estado de Git: todos los cambios commiteados y pusheados por repo. Ninguna modif
 - Scripts de despliegue usados: `scripts/host-telemetry-up.ps1`, `host-smoke-otlp.ps1`, `host-api-pilot-env.ps1`, `host-pilot-verify.ps1`, `host-retention-test.ps1`, `host-delete-req*.ps1`, `host-tunnel-diag.ps1`, `host-metrics.ps1` (en el repo, ejecutados vía SSH).
 - Rollback del piloto: `TIENDI_OTEL_LOGS_EXPORT_ENABLED=false` + `pm2 restart` (cero conexiones); stack puede quedarse sin tráfico.
 
-**Pendiente nuevo identificado:** setear `NOTIFICATIONS_SERVICE_TOKEN` en el API del host para activar el puente de instalaciones de Kipu/Go (fase 4 de notificaciones).
+**Pendiente nuevo identificado:** setear `NOTIFICATIONS_SERVICE_TOKEN` en el API del host para activar el puente de instalaciones de Kipu/Go (fase 4 de notificaciones). — **RESUELTO (2026-09-29)**: además de aplicar las migraciones del módulo a la DB de TEST (`npx prisma migrate deploy` — el 500 real de `/notifications/installations` era tabla inexistente, no token), el token de servicio se generó y guardó en OpenBao (`secret/dev/apps/tiendi-api/runtime`, v17), inyectado en el `.env` del API del host con `NOTIFICATIONS_ALLOWED_APPS=tiendi-kipu,tiendi-go`. Verificado: token incorrecto → 401 (deny-by-default), token real → guard pasa (400 con body ficticio esperable), login del app 201 y `POST /notifications/installations` **201** (registro dual funcionando). Pendiente del puente kipu→tiendi-api: desplegar tiendi-kipu en host con `TIENDI_NOTIFICATIONS_URL/TOKEN`.
 
 ### 6.3 Pendientes de host (restantes)
 
