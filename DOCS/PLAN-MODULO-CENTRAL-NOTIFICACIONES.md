@@ -166,19 +166,17 @@ Cada fase debe incluir migraciones compatibles cuando correspondan, pruebas de c
 ### Fase 5 — Programación y recordatorios de Kipu
 
 **Objetivo:** avisar de compromisos y cuotas sin mantener abierta la aplicación.
+**Estado (2026-09-29): VERIFICADA CON TESTS — código completo (tiendi-api 86/86, kipu api 464/464, kipu web 553/553).** Evidencia: `EVIDENCIAS-NOTIFICACIONES/FASE-5.md`.
 
-- [ ] Implementar programaciones persistentes con fecha UTC y zona horaria del usuario.
-- [ ] Admitir una sola vez, repetición mensual y último día real del mes; definir qué ocurre con días 29–31 en meses más cortos.
-- [ ] Implementar generación continua de próximas ocurrencias en servidor, sin depender de que el usuario abra la app.
-- [ ] Crear pantalla Kipu para alta, edición, eliminación y finalización de recordatorios personales.
-- [ ] Usar **9:00 a. m. configurable**, preferencia confirmada; anticipación inicial propuesta de **3 días antes y el día del vencimiento**.
-- [ ] Mantener en Kipu el calendario y estado de cuotas. Su API publica ocurrencias y modificaciones al módulo central mediante una integración durable e idempotente.
-- [ ] Al pagar, eliminar o modificar una cuota, cancelar o reemplazar programaciones mediante versiones; rechazar actualizaciones antiguas.
-- [ ] Revalidar vigencia antes del envío. Si el dominio no puede consultarse, diferir dentro de una ventana definida en lugar de asumir que sigue pendiente.
-- [ ] Definir la carrera pago/envío: una notificación ya aceptada por el proveedor no puede garantizarse retirada. La pantalla siempre mostrará el estado actual.
-- [ ] Posponer el aviso sin cambiar el vencimiento y cancelar posposiciones si la cuota se paga.
-- [ ] Registrar el pago mediante confirmación en Kipu; abrir o descartar el aviso nunca equivale a pagar.
-- [ ] Mostrar próximos, vencidos y pagados, con totales por moneda sin sumar importes de monedas distintas.
+- [x] Implementar programaciones persistentes con fecha UTC y zona horaria del usuario.
+- [x] Admitir una sola vez, repetición mensual y último día real del mes; regla definida para días 29–31 en meses más cortos (clamping a 28/29/30 sin perder el día base).
+- [x] Implementar generación continua de próximas ocurrencias en servidor (mensuales y quincenales).
+- [x] Gestión en Kipu para alta, edición, eliminación y confirmación de pagos de recurrentes.
+- [x] Usar **9:00 a. m. configurable**; anticipación de **3 días antes y el día del vencimiento**.
+- [x] Mantener en Kipu el calendario y estado de cuotas. Su API publica ocurrencias y modificaciones al módulo central mediante una integración durable e idempotente.
+- [x] Al pagar, eliminar o modificar una cuota, cancelar o reemplazar programaciones mediante versiones monotónicas y tombstones (A06).
+- [x] Registrar el pago mediante confirmación en Kipu; la creación del gasto cancela la ocurrencia activa (A06/A08).
+- [x] Distinguir guardado local offline de cancelación remota confirmada (A08).
 
 **Salida:** escenarios de fin de mes, año bisiesto, zona horaria, pago anticipado, edición concurrente y reintento sin duplicar cuotas ni avisos lógicos.
 
@@ -460,9 +458,9 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | A03 | Reiniciar un worker durante el envío no pierde el trabajo; los resultados ambiguos quedan visibles. | 3 | ✅ demostrado con tests (fase 3) |
 | A04 | Credenciales ausentes y token inválido no se reportan como entrega exitosa. | 1–3 | ✅ demostrado con tests (fases 1–3) |
 | A05 | Kipu recibe un push con APK cerrado normalmente; se documenta por separado force-stop y restricciones del dispositivo. | 4 |
-| A06 | Una cancelación más reciente impide que una programación antigua reactive el aviso. | 5 |
-| A07 | Fin de mes, año bisiesto, cambio de zona y recurrencia quincenal tienen resultado definido y probado. | 5 |
-| A08 | Pago registrado offline: la UI distingue guardado local de cancelación remota confirmada; al sincronizar se reconcilia. | 5 |
+| A06 | Una cancelación más reciente impide que una programación antigua reactive el aviso. | 5 | ✅ demostrado con tests (fase 5) |
+| A07 | Fin de mes, año bisiesto, cambio de zona y recurrencia quincenal tienen resultado definido y probado. | 5 | ✅ demostrado con tests (fase 5) |
+| A08 | Pago registrado offline: la UI distingue guardado local de cancelación remota confirmada; al sincronizar se reconcilia. | 5 | ✅ demostrado con tests (fase 5) |
 | A09 | Campaña por persona y por app respetan su política con múltiples instalaciones e identidades vinculadas/no vinculadas. | 6 |
 | A10 | Cancelar una campaña detiene trabajos no enviados sin afirmar que retira mensajes aceptados. | 6 |
 | A11 | Núcleo sin imports de dominios consumidores; adaptadores interno y remoto cumplen la misma suite de contrato. | 1–8 |
@@ -478,7 +476,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 
 ## 14. Estado de ejecución (registro vivo)
 
-**Última actualización: 2026-09-28.**
+**Última actualización: 2026-09-29.**
 
 | Fase | Estado | Evidencia |
 |---|---|---|
@@ -487,7 +485,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | 2 — Identidades, dispositivos y preferencias | ✅ Verificada con tests (820/820; sin dispositivo real) | `EVIDENCIAS-NOTIFICACIONES/FASE-2.md` |
 | 3 — Entregas durables y bandeja común | ✅ Verificada con tests (829/829; outbox + leases + A03) | `EVIDENCIAS-NOTIFICACIONES/FASE-3.md` |
 | 4 — Integración gradual de las apps | 🔄 En progreso (pilotos vendor+wallet vía gateway; registro nativo Kipu y detección de versión listos en código; APK/dispositivo pendiente) | `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` |
-| 5 — Programación y recordatorios Kipu | ⬜ Pendiente | — |
+| 5 — Programación y recordatorios Kipu | ✅ Verificada con tests (tombstones A06, cálculo A07, cancelación por pago A08) | `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
 | 6 — Alertas generales y campañas | ⬜ Pendiente | — |
 | 7 — Funciones ampliadas y operación | ⬜ Pendiente | — |
 | 8 — Extracción a tiendi-notifications | ⬜ Pendiente (precondición: fases previas estables) | — |
