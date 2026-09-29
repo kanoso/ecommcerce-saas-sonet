@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main, kanoso/* ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  tiendi-api:
+    name: Backend API (Lint, Build, Test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            FUENTES/packages/telemetry/package-lock.json
+            FUENTES/tiendi-api/package-lock.json
+
+      - name: Build telemetry package
+        working-directory: FUENTES/packages/telemetry
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install tiendi-api dependencies
+        working-directory: FUENTES/tiendi-api
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: FUENTES/tiendi-api
+        run: npx prisma generate
+
+      - name: Run Linter
+        working-directory: FUENTES/tiendi-api
+        run: npx eslint --quiet "src/**/*.ts"
+
+      - name: Build Application
+        working-directory: FUENTES/tiendi-api
+        run: npm run build
+
+      - name: Run Tests
+        working-directory: FUENTES/tiendi-api
+        run: npm test

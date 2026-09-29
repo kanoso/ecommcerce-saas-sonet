@@ -368,7 +368,7 @@ aliases:
 
 ## Fase 14 — Deploy
 
-- [ ] Configurar GitHub Actions para CI (lint + tests en cada PR)
+- [x] Configurar GitHub Actions para CI (lint + tests en cada PR)
 - [ ] Configurar CD para deploy automático a staging
 - [ ] Configurar variables de entorno en entorno de producción
 - [ ] Deploy de Docker Compose en servidor (VPS o Railway/Render para MVP)
