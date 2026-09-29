@@ -98,7 +98,32 @@ Estado de Git: todos los cambios commiteados y pusheados por repo. Ninguna modif
 
 **Procesos locales levantados para la prueba (en la PC dev, no en TEST):** emulador Pixel_8, Metro (puerto 8081), API tiendi-api (node dist/src/main.js, puerto 4000, secrets dummy), collector `tiendi-otel-collector` (127.0.0.1:4318). Detener cuando no se necesiten: `docker compose -f docker-compose.yml -f docker-compose.telemetry.yml stop otel-collector` (en FUENTES/tiendi-api), cerrar Metro/emulador y terminar el proceso node del API.
 
-### 6.2 Pendientes de host (originales)
+### 6.2 Despliegue del piloto en host TEST (2026-09-28, con autorización del usuario)
+
+**Estado de los pendientes de host:**
+
+| # | Pendiente | Estado |
+|---|---|---|
+| 3 | Credenciales Grafana `admin/admin` | ✅ **RESUELTO**: la contraseña previa no respondía (sin registro) — reseteada vía `grafana cli` dentro del contenedor, verificada por Basic Auth y guardada en OpenBao `secret/dev/infra/grafana-test` (nota de rotación 90d). |
+| 5 | Purga real de retención (7 días) | ✅ **PROBADA**: Loki recreado con `loki-config.yaml` montada (antes corría SIN config: retención en papel); `retention_enabled: true` + compactor activos. Se probó el mecanismo con `retention_period: 15m` temporal (config restaurada a 168h después). La data histórica previa (2 días, logs de prueba) dejó de ser consultable al aplicarse el schema nuevo — sin pérdida real. |
+| Piloto | Activación en TEST | ✅ **ACTIVO**: `tiendi-platform-api` con `TIENDI_OTEL_LOGS/EXPORT/CONTEXT_ENABLED=true`, endpoint `http://127.0.0.1:4318/v1/logs` (loopback), `TIENDI_DEPLOYMENT_ENV=test`, `service.version=<commit>`. Stack: `tiendi-otel-collector` (127.0.0.1:4318) + `tiendi-loki` 3.5.12 (127.0.0.1:3100, volumen preservado). Grafana: datasource `loki-tiendi` (health OK) + dashboard `/d/tiendi-otel-errores` provisionados por API. |
+
+**Validación e2e real (TEST, 2026-09-28):**
+- API: health 200; logs de arranque/cron → Loki con `env=test` y `service_version=<commit>` ✓.
+- Gateway cliente (público vía `api.tiendi.pe`): 202 → evento en Loki ✓; con `trace_id` fijo → consultable por `| trace_id="..."` ✓.
+- **tiendi-go real en emulador contra TEST**: login exitoso (Home/mapa); logout real generó eventos del app → gateway → Loki: `HTTP 401 POST /auth/refresh (logout forzado)` (fix B5 en producción), `HTTP 0 post /auth/logout-all` (falla de red capturada), y `HTTP 500 post /notifications/installations` (esperable: el módulo de notificaciones del API del host requiere `NOTIFICATIONS_SERVICE_TOKEN` — pendiente de setear).
+- 5 eventos del app con trace_id consultable en Loki ✓.
+
+**Notas operativas del host:**
+- El pull de Docker en sesión SSH no autentica (credential helper de sesión interactiva): imágenes transferidas con `docker save`/SCP/`docker load`.
+- PM2 del host arranca desde el config central `C:\tiendi\ecosystem.config.cjs`; para que los flags OTel lleguen al proceso hay que reiniciar con `pm2 restart <ecosystem del repo> --update-env`. Backups: `ecosystem.config.cjs.bak-20260928`, `loki-config.yaml.bak-20260928`, `docker-compose.yml.bak-20260928`.
+- El `.env` del API en el host no define `METRICS_SECRET` (lo aporta el `.env` del repo).
+- Scripts de despliegue usados: `scripts/host-telemetry-up.ps1`, `host-smoke-otlp.ps1`, `host-api-pilot-env.ps1`, `host-pilot-verify.ps1`, `host-retention-test.ps1`, `host-delete-req*.ps1`, `host-tunnel-diag.ps1`, `host-metrics.ps1` (en el repo, ejecutados vía SSH).
+- Rollback del piloto: `TIENDI_OTEL_LOGS_EXPORT_ENABLED=false` + `pm2 restart` (cero conexiones); stack puede quedarse sin tráfico.
+
+**Pendiente nuevo identificado:** setear `NOTIFICATIONS_SERVICE_TOKEN` en el API del host para activar el puente de instalaciones de Kipu/Go (fase 4 de notificaciones).
+
+### 6.3 Pendientes de host (restantes)
 
 **Antes de activar en TEST (requiere autorización + topología del host):**
 1. ~~Conflicto puerto 3001 (PM2 API vs Grafana)~~ — **VERIFICADO RESUELTO EN HOST (2026-09-26 vía SSH)**: el compose desplegado en RupertaMini ya tiene Grafana en `3002:3000` (health 200); 3001 es del PM2 `tiendi-platform-api` (health 200). El compose del repo (dev) mantiene 3001 — documentar la diferencia al desplegar.
