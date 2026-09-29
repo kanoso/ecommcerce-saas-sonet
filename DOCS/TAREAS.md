@@ -295,12 +295,12 @@ aliases:
 - [-] Integrar Pino como transport — descartado, Winston cubre el caso
 - [x] Exponer endpoint `GET /metrics` para Prometheus (prom-client)
 - [x] MetricsInterceptor global — registra `http_requests_total` y `http_request_duration_seconds`
-- [ ] Configurar dashboards en Grafana — `monitoring/` solo tiene `prometheus.yml` y `alerts.yml`; sin dashboards:
-  - [ ] Request rate y latencia
-  - [ ] Error rate
-  - [ ] Jobs de BullMQ
-  - [ ] Queries lentas de PostgreSQL
-- [ ] Configurar Better Uptime con el endpoint `/health`
+- [x] Configurar dashboards en Grafana — provisionado en `monitoring/grafana/provisioning/dashboards/tiendi-api-overview.json` y datasource Prometheus:
+  - [x] Request rate y latencia
+  - [x] Error rate
+  - [x] Jobs de BullMQ
+  - [x] Queries lentas de PostgreSQL
+- [x] Configurar Better Uptime con el endpoint `/health`
 - [x] Endpoint `GET /health` — health check (DB + memoria heap)
 
 ---
