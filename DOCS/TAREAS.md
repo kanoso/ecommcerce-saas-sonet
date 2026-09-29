@@ -373,7 +373,7 @@ aliases:
 - [ ] Configurar variables de entorno en entorno de producción
 - [ ] Deploy de Docker Compose en servidor (VPS o Railway/Render para MVP)
 - [ ] Configurar dominio y SSL (Let's Encrypt)
-- [ ] Configurar backups automáticos de PostgreSQL
+- [x] Configurar backups automáticos de PostgreSQL
 
 ---
 
