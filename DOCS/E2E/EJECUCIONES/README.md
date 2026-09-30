@@ -10,3 +10,4 @@
 4. [2026-09-29-E2E-TIENDI-GO-FLOWS-04.md](2026-09-29-E2E-TIENDI-GO-FLOWS-04.md) — Capa de integración, estados y contratos en `tiendi-go` (366/366 tests aprobados).
 5. [2026-09-29-E2E-TIENDI-ADMIN-FLOWS-05.md](2026-09-29-E2E-TIENDI-ADMIN-FLOWS-05.md) — Flujos de administración, revisión de repartidores y a11y en `tiendi-admin` (12/12 tests aprobados).
 6. [2026-09-29-E2E-TIENDI-KIPU-FLOWS-06.md](2026-09-29-E2E-TIENDI-KIPU-FLOWS-06.md) — Finanzas personales, sincronización offline y puente de liquidaciones en `tiendi-kipu` (1040/1040 tests aprobados).
+7. [2026-09-29-E2E-CROSS-SERVICE-FULL-LOOP-07.md](2026-09-29-E2E-CROSS-SERVICE-FULL-LOOP-07.md) — Ciclo cruzado completo de la plataforma en vivo: Web -> Vendor -> Go -> Admin/Ledger -> Puente -> Kipu (100% aprobado).
