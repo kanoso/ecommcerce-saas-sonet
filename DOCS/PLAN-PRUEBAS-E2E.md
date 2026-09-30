@@ -67,6 +67,7 @@ Todos los casos están **sin ejecutar** y tienen un diagrama de secuencia en su 
 | [REFUND-001](E2E/CASOS/REFUND-001.md) | Alta | Reembolsar una operación elegible | API y superficies disponibles | Compensación trazable sin duplicar devolución |
 | [ACCOUNTING-CLOSE-001](E2E/CASOS/ACCOUNTING-CLOSE-001.md) | Alta | Ejecutar controles de cierre | API contable; futura UI Admin | Saldos, asientos y controles omitidos explícitos |
 | [ACCESS-TENANT-001](E2E/CASOS/ACCESS-TENANT-001.md) | Alta | Aislar datos por negocio y rol | Kipu, Vendor, Admin y APIs | Un actor no accede a datos ajenos ni a operaciones no autorizadas |
+| [SHIELD-IDENTITY-001](E2E/EJECUCIONES/2026-09-29-E2E-TIENDI-SHIELD-FLOWS-08.md) | Alta | Registro global, launcher, activación y vinculación | Shield, API Tiendi, Kipu | Identidad global, prueba de control y cuentas aprovisionadas |
 
 
 ## Estructura actual y navegación
