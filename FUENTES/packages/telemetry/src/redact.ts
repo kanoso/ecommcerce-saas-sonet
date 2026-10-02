@@ -28,7 +28,9 @@ const JWT_PATTERN = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g;
 const BEARER_PATTERN = /bearer\s+[A-Za-z0-9._~+/=-]+/gi;
 const EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
 // Telefonos: 9+ digitos (con separadores comunes) — agresivo a proposito.
-const PHONE_PATTERN = /\b\+?\d[\d\s().-]{7,}\d\b/g;
+// Excluye fechas ISO/calendario (YYYY-MM-DD o DD-MM-YYYY) para evitar falsos positivos en texto libre.
+const PHONE_PATTERN =
+  /(?:\+?\b|\b\+?)(?!\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})\d[\d\s().-]{7,}\d\b/g;
 // Asignaciones de secretos en texto libre (auth=..., token: ..., api_key=…).
 const SECRET_ASSIGNMENT_PATTERN =
   /\b(auth|token|api[-_]?key|secret|password|pwd|credential|refresh[-_]?token|access[-_]?token)\b\s*[:=]\s*[^\s;,&"']+/gi;

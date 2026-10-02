@@ -13,12 +13,12 @@
 | [`PLAN-MODULO-CENTRAL-NOTIFICACIONES.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/PLAN-MODULO-CENTRAL-NOTIFICACIONES.md) | 2026-10-01 | Despliegue TEST/PROD, APK Kipu push, Fases 6 (Campañas), 7 (Purgas R1–R7) y 8 (Extracción). |
 | [`DISENO-TECNICO-CALENDARIO-CUOTAS-KIPU.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/DISENO-TECNICO-CALENDARIO-CUOTAS-KIPU.md) | 2026-09-30 | Diseño completado; implementación archivada en SDD `kipu-cuotas-calendario` (commit `1dfd371`). |
 | [`DECISIONES-CALENDARIO-CUOTAS-KIPU.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/DECISIONES-CALENDARIO-CUOTAS-KIPU.md) | 2026-09-30 | Decisiones C1–C7 cerradas. Reglas de reversión multi-préstamo documentadas. |
-| [`OPENTELEMETRY_T6_ROLLOUT.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/OPENTELEMETRY_T6_ROLLOUT.md) | 2026-09-29 | Deploy tiendi-kipu con variables de notificación en host, ajuste de falso positivo en redactor de fechas ISO, redeploy de browsers en TEST con flags de commit, rotación de SSH. |
+| [`OPENTELEMETRY_T6_ROLLOUT.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/OPENTELEMETRY_T6_ROLLOUT.md) | 2026-10-02 | Falso positivo de fechas ISO corregido en `@kanoso/telemetry`. Pendiente deploy tiendi-kipu, rebuild browsers con flags de commit y rotación SSH. |
 | [`NOTIFICACIONES.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/NOTIFICACIONES.md) | 2026-09-28 | Documento de diseño base (reemplazado por plan central). 27 ítems completados. |
 | [`OPENTELEMETRY_T0_INVENTORY.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/OPENTELEMETRY_T0_INVENTORY.md) | 2026-09-26 | Pendientes de verificación en host (`192.168.1.37`), ya resueltos en su mayoría en T6. |
 | [`OPENTELEMETRY_IMPLEMENTATION_GUIDE.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/OPENTELEMETRY_IMPLEMENTATION_GUIDE.md) | 2026-09-26 | 10 criterios formales de entrega (informe final de rollout OTel). |
 | [`OPENBAO_IMPLEMENTATION_GUIDE.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/OPENBAO_IMPLEMENTATION_GUIDE.md) | 2026-09-25 | 14 pruebas de aceptación obligatorias del unseal, tokens, rotación y canarios. |
-| [`TIENDI_ADMIN.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TIENDI_ADMIN.md) | 2026-09-25 | Fase 7: Pantalla `/admin/finance/ledger` (conciliación Culqi) y `/admin/finance/payouts`. |
+| [`TIENDI_ADMIN.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TIENDI_ADMIN.md) | 2026-10-01 | Fase 7 completada: Pantallas `/admin/finance/ledger` y `/admin/finance/payouts` implementadas y verificadas (commit `d11d965`). |
 | [`TIENDI_SHIELD_DISENO.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TIENDI_SHIELD_DISENO.md) | 2026-09-24 | 10 criterios de revisión visual, responsive (320px–1440px), accesibilidad y contraste. |
 | [`TIENDI_LAUNCHER_IMPLEMENTACION.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TIENDI_LAUNCHER_IMPLEMENTACION.md) | 2026-09-24 | Checklists de aceptación independientes para E1 (Launcher estático) y E2 (Sesión Shield). |
 | [`TIENDI_LAUNCHER.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TIENDI_LAUNCHER.md) | 2026-09-24 | Contratos de integración E1 y E2 pendientes de firma entre apps. |
@@ -65,7 +65,7 @@
 ### 2.3. `OPENTELEMETRY_T6_ROLLOUT.md` (2026-09-29)
 * **Tareas de Host y Despliegue:**
   - Desplegar `tiendi-kipu` en host con `TIENDI_NOTIFICATIONS_URL=https://api.tiendi.pe/api/v1` y su token de OpenBao (`secret/dev/apps/tiendi-api/runtime`).
-  - **Falso positivo en redactor de telemetría:** Fechas ISO en texto libre (`2026-09-28T09:22:11`) quedan enmascaradas como `[REDACTED]`. Ajustar regex en `packages/telemetry/src/redact.ts`.
+  - **Falso positivo en redactor de telemetría:** ✅ Resuelto en `@kanoso/telemetry` (commit con TDD y 71/71 tests verdes). Fechas ISO (`YYYY-MM-DD`, `YYYY-MM-DDTHH:mm:ss`, `YYYY-MM-DD HH:mm:ss`) y formato calendario no se enmascaran.
   - **Activación en navegadores en TEST:** Rebuild de `tiendi-web`, `tiendi-vendor`, `tiendi-admin` y `kipu-web` con flags de build que inyectan el commit en `service.version`.
   - Rotación de contraseña SSH del servidor de test que circuló en texto plano.
 
@@ -87,11 +87,11 @@
 
 ---
 
-### 2.6. `TIENDI_ADMIN.md` (2026-09-25)
-* **Fase 7 — Finanzas, Conciliación y Ledger:**
-  - Implementar pantalla `/admin/finance/ledger` con conciliación contra extracto de Culqi.
-  - Implementar pantalla `/admin/finance/payouts` conectada a `GET /stores/:storeId/payouts`.
-  - Test de invariante I8: Saldo de `Wallet` coincidente con el saldo derivado del libro contable.
+### 2.6. `TIENDI_ADMIN.md` (2026-10-01)
+* **Fase 7 — Finanzas, Conciliación y Ledger:** ✅ **Completado e integrado** (commits `cbe0d5e`, `d11d965`, `390c767`).
+  - Pantalla `/admin/finance/ledger` con conciliación contra extracto de Culqi, balance, invariantes, plan de cuentas y diario.
+  - Pantalla `/admin/finance/payouts` con lotes, corte semanal y reprocesamiento.
+  - 40/40 tests unitarios y de stores pasando en `tiendi-admin`. Invariante I8 planificado con migración de wallets en [[FLUJO_DINERO]].
 
 ---
 

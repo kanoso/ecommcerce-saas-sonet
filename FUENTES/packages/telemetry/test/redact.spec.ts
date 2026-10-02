@@ -32,6 +32,20 @@ describe('redaccion (guia §4: senuelos)', () => {
     expect(out).not.toContain(CANARY_PHONE);
   });
 
+  it('fechas ISO y timestamps en texto libre no se enmascaran como falsos positivos', () => {
+    const isoDate = '2026-09-28';
+    const isoDateTime = '2026-09-28T09:22:11';
+    const isoWithZ = '2026-09-28T09:22:11.123Z';
+    const isoWithSpace = '2026-09-28 09:22:11';
+    const ddmmyyyy = '28-09-2026';
+
+    expect(scrubText(`evento en fecha ${isoDate} ok`)).toBe(`evento en fecha ${isoDate} ok`);
+    expect(scrubText(`ocurrido a las ${isoDateTime} registrado`)).toBe(`ocurrido a las ${isoDateTime} registrado`);
+    expect(scrubText(`timestamp=${isoWithZ} finalizado`)).toBe(`timestamp=${isoWithZ} finalizado`);
+    expect(scrubText(`creado en ${isoWithSpace} por sistema`)).toBe(`creado en ${isoWithSpace} por sistema`);
+    expect(scrubText(`corte ${ddmmyyyy} completado`)).toBe(`corte ${ddmmyyyy} completado`);
+  });
+
   it('claves denegadas: password, cookie, authorization (case-insensitive)', () => {
     const out = redactValue({
       Password: 'hunter2',

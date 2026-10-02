@@ -582,8 +582,8 @@ quadrantChart
 - [x] Plan de migración del histórico de `Transaction` a asientos — documentado en [[FLUJO_DINERO]] Fase 7 (F7.1–F7.6, resuelto 2026-08-26)
 - [x] Implementar el ledger de partida doble de [[FLUJO_DINERO]] — módulo `ledger` con EntryGroups, idempotencia por key e invariantes I1/I2 (Fases 1/3/6); migración de wallets = Fase 7 (pendiente)
 - [x] Endpoints de ledger en `tiendi-api` — `GET /stores/:storeId/account-statement` y `POST /admin/ledger/run-daily-checks`
-- [ ] Pantalla `/admin/finance/ledger` con conciliación contra extracto de Culqi
-- [ ] Pantalla `/admin/finance/payouts` — el API ya expone `GET /stores/:storeId/payouts`
+- [x] Pantalla `/admin/finance/ledger` con conciliación contra extracto de Culqi
+- [x] Pantalla `/admin/finance/payouts` — el API ya expone `GET /stores/:storeId/payouts`
 - [x] Test: `SUM(asientos) == 0` como invariante — `ledger.service.spec.ts`: invariante I1 por grupo y suma global
 - [ ] Test: el saldo de `Wallet` coincide con el saldo derivado del ledger — invariante I8, planificado como [[FLUJO_DINERO]] F7.4
 
@@ -609,7 +609,7 @@ quadrantChart
 - [x] `/vendor/riders` ya no existe en `tiendi-vendor`
 - [x] Fusionar dos duplicados de catálogo no altera ningún reporte histórico
 - [x] El ranking de plataforma muestra datos reales, no un array vacío
-- [ ] El ledger concilia contra el extracto de Culqi y es auditable línea por línea
+- [x] El ledger concilia contra el extracto de Culqi y es auditable línea por línea
 - [x] Ninguna pantalla del admin se compila dentro del bundle del vendor
 
 ---
