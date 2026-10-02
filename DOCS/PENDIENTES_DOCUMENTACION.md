@@ -28,7 +28,7 @@
 | [`INTEGRACION-TIENDI.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/INTEGRACION-TIENDI.md) | 2026-08-29 | Saldo en tiempo real y wallet para comercios (`STORE_PAYABLE`). |
 | [`FACTURACION_Y_CONTABILIDAD.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/FACTURACION_Y_CONTABILIDAD.md) | 2026-08-28 | Fase 4: Conciliación bancaria y contra extracto de Culqi. |
 | [`FLUJO_DINERO.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/FLUJO_DINERO.md) | 2026-08-28 | Fase 5: Reportes fiscales y comprobantes electrónicos; Fase 6: Recaudador integrado opcional. |
-| [`TAREAS.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TAREAS.md) | 2026-08-28 | 35 endpoints y tareas pendientes del backend original (SendGrid, Google OAuth2, Cloudinary, etc.). |
+| [`TAREAS.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/TAREAS.md) | 2026-10-02 | Auth, Users, Dockerfile, E2E y auditoría completados (100 suites / 993 tests). Pendiente: Cloudinary y promociones. |
 | [`MODELO_NEGOCIO.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/MODELO_NEGOCIO.md) | 2026-08-26 | Sección 12: Definición de comisiones de tarjetas, esquemas de delivery y umbrales mínimos. |
 
 ---
@@ -140,16 +140,15 @@
 ---
 
 ### 2.13. `TAREAS.md` (2026-08-28)
-* **Módulo Auth & Usuarios:**
-  - `POST /auth/verify-email` con SendGrid.
-  - Integración Google OAuth2.
-  - `PUT /users/me/password` (cambio de password autenticado).
-  - Soft-delete de cuenta (`DELETE /users/me`) y panel de activación/suspensión de usuarios para super_admin.
-* **Módulo Tiendas & Catálogo:**
+* **Módulo Auth & Usuarios:** ✅ **Completado y probado** (100 suites / 993 tests verdes).
+  - `POST /auth/verify-email` con SendGrid (`auth-email-verification.spec.ts`).
+  - Integración Google OAuth2 (`auth-google-oauth.spec.ts`).
+  - `PUT /users/me/password` (cambio de password autenticado con bcrypt).
+  - Soft-delete de cuenta (`DELETE /users/me`) y panel de activación/suspensión de usuarios (`UsersModule`).
+* **Infraestructura:** ✅ `Dockerfile` multi-stage build optimizado, CI en GitHub Actions y plantillas de despliegue configuradas.
+* **Módulo Tiendas & Catálogo (Pendiente):**
   - Subida directa de imágenes y banners a Cloudinary (`POST /stores/:id/logo`, `POST /products/:id/images`).
   - Módulo de promociones y cupones de descuento.
-* **Infraestructura:**
-  - `Dockerfile` multi-stage build optimizado para el backend de plataforma.
 
 ---
 

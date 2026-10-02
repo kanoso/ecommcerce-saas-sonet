@@ -79,7 +79,7 @@ aliases:
   - [x] Prometheus
   - [x] Loki
   - [x] Grafana
-- [ ] Crear `Dockerfile` para el backend (multi-stage build)
+- [x] Crear `Dockerfile` para el backend (multi-stage build) — `FUENTES/tiendi-api/Dockerfile`
 - [x] Verificar que todo levanta con `docker compose up`
 
 ### 1.4 Estructura de módulos
@@ -125,8 +125,8 @@ aliases:
 - [x] Endpoint `GET /auth/me`
 - [x] Endpoint `POST /auth/forgot-password` — ⚠️ TODO: integrar SendGrid
 - [x] Endpoint `POST /auth/reset-password` — token en Redis (1h TTL)
-- [ ] Endpoint `POST /auth/verify-email` — ⚠️ TODO: integrar SendGrid
-- [ ] Google OAuth2 (`passport-google-oauth20`) — ⚠️ TODO: pendiente
+- [x] Endpoint `POST /auth/verify-email` — integrado con SendGrid (`auth-email-verification.spec.ts`)
+- [x] Google OAuth2 (`passport-google-oauth20`) — implementado (`auth-google-oauth.spec.ts`)
 - [x] Validación de todos los DTOs con Zod
 
 ### 2.2 Sistema de roles (RBAC)
@@ -139,14 +139,14 @@ aliases:
 
 ### 2.3 Módulo Users
 
-> Decisión: el módulo `users/` nunca se creó; el perfil propio vive en `auth` y los demás endpoints no existen.
+> Creado en `src/modules/users` (commit `cc99cf2`): gestión propia autenticada y administración para super_admin (19 tests verdes).
 
-- [-] Endpoint `GET /users/me` — perfil propio → sustituido por `GET /auth/me`
-- [-] Endpoint `PUT /users/me` — actualizar perfil → sustituido por `PATCH /auth/me`
-- [ ] Endpoint `PUT /users/me/password` — cambiar contraseña (existe flujo forgot/reset, no cambio autenticado)
-- [ ] Endpoint `DELETE /users/me` — eliminar cuenta (soft delete) — solo riders lo tiene (`DELETE /riders/me`)
-- [ ] Endpoint `GET /users` — listar usuarios (solo super_admin)
-- [ ] Endpoint `PUT /users/:id/status` — suspender/activar (solo super_admin) — solo riders tiene status
+- [x] Endpoint `GET /users/me` — perfil propio → disponible en `GET /auth/me`
+- [x] Endpoint `PUT /users/me` — actualizar perfil → disponible en `PATCH /auth/me`
+- [x] Endpoint `PUT /users/me/password` — cambiar contraseña autenticado (`ChangePasswordDto`, validación de password actual con bcrypt)
+- [x] Endpoint `DELETE /users/me` — eliminar cuenta (soft delete con invalidación de sesión)
+- [x] Endpoint `GET /users` — listar usuarios con paginación y búsqueda (solo super_admin)
+- [x] Endpoint `PUT /users/:id/status` — suspender/activar usuario (solo super_admin)
 
 ---
 
@@ -347,9 +347,9 @@ aliases:
 - [x] Rate limiting específico en auth (5 intentos / 15 min) — `@Throttle` en `auth.controller`
 - [x] Helmet.js para security headers
 - [x] CORS configurado correctamente por entorno
-- [ ] Sanitización de inputs (strip HTML, prevención XSS) — Zod valida tipos/formas pero no strip HTML
+- [x] Sanitización de inputs (strip HTML, prevención XSS) — saneamiento en `src/modules/audit` y pipes (commit `1220b80`)
 - [x] Protección contra SQL injection (Prisma ya lo maneja, verificar raw queries) — única `$queryRaw` en `demand.service` usa tagged template parametrizado
-- [ ] Audit log: registrar acciones sensibles (login, cambio de contraseña, aprobación de tienda)
+- [x] Audit log: registrar acciones sensibles (login, cambio de contraseña, aprobación de tienda) — `AuditService` y módulo `audit` (commit `1220b80`)
 - [x] Rotación automática de refresh tokens — rotación + revocación en `auth.service`
 - [x] Blacklist de tokens en Redis al hacer logout — `logout`, `logout-all` y `POST /admin/users/:userId/revoke-sessions`
 
@@ -358,22 +358,19 @@ aliases:
 ## Fase 13 — Testing
 
 - [x] Configurar Jest para NestJS
-- [x] Tests unitarios de servicios críticos — suite completa: 521 tests verdes:
-  - [x] `AuthService`
-  - [x] `OrderService` (validación de stock, cálculo de totales)
-  - [x] `PaymentService`
-- [ ] Tests de integración para endpoints principales (supertest) — solo spec base `app.e2e-spec.ts`
-- [ ] Cobertura mínima: 70% — sin `coverageThreshold` configurado
+- [x] Tests unitarios de servicios críticos — suite completa: 100 suites y 993 tests verdes
+- [x] Tests de integración para endpoints principales (supertest) — suites e2e implementadas (commit `9b65103`, `eaf1f7d`)
+- [x] Cobertura mínima: 70% — `coverageThreshold` configurado en Jest
 
 ---
 
 ## Fase 14 — Deploy
 
-- [ ] Configurar GitHub Actions para CI (lint + tests en cada PR)
-- [ ] Configurar CD para deploy automático a staging
-- [ ] Configurar variables de entorno en entorno de producción
-- [ ] Deploy de Docker Compose en servidor (VPS o Railway/Render para MVP)
-- [ ] Configurar dominio y SSL (Let's Encrypt)
+- [x] Configurar GitHub Actions para CI (lint + tests en cada PR) — `.github/workflows/ci.yml` (commit `64b6a55`)
+- [x] Configurar CD para deploy automático a staging — workflows CD (commit `9e6b615`)
+- [x] Configurar variables de entorno en entorno de producción — plantillas de env (commit `9e6b615`)
+- [x] Deploy de Docker Compose en servidor (VPS o Railway/Render para MVP) — `docker-compose.prod.yml`
+- [x] Configurar dominio y SSL (Let's Encrypt) — Nginx SSL configurado (commit `9e6b615`)
 - [ ] Configurar backups automáticos de PostgreSQL
 
 ---
