@@ -43,11 +43,11 @@
 * **Mobile / Validación de Dispositivos:**
   - Compilar APK de Kipu con `google-services.json` de su proyecto propio y validar recepción en foreground, background y arranque en frío.
   - Verificación móvil de `tiendi-go` con registro dual en dispositivo físico.
-* **Fases del Plan Pendientes de Desarrollo:**
-  - **Fase 6 — Campañas y Alertas Globales:**
-    - Pantalla de campañas en Tiendi Admin con título, cuerpo, vista previa y programación.
-    - Segmentación por app, grupo autorizado o usuarios específicos.
-    - Paginación y ejecución por lotes sin cargar audiencias masivas en memoria.
+* **Fases del Plan:**
+  - **Fase 6 — Campañas y Alertas Globales (COMPLETADA 2026-10-02):**
+    - [x] Pantalla de campañas en Tiendi Admin con título, cuerpo, vista previa móvil, estimación en vivo y programación (`/admin/campaigns`).
+    - [x] Segmentación por alcance global, app, rol o usuarios específicos con validación obligatoria para envíos globales.
+    - [x] Paginación, despacho por lotes (batches 50-100) y cancelación en vuelo protegida por `NotificationsAdminOrServiceGuard`.
   - **Fase 7 — Funciones Ampliadas y Operación:**
     - Ejecución de purgas automáticas según políticas de retención R1–R7 (instalaciones inválidas a 7d, logs/solicitudes a 30d, bandejas a 90d).
   - **Fase 8 — Extracción de Servicio:**

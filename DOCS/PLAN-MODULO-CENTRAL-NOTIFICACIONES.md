@@ -199,11 +199,12 @@ Cada fase debe incluir migraciones compatibles cuando correspondan, pruebas de c
 ### Fase 6 — Alertas generales y campañas entre aplicaciones
 
 **Objetivo:** enviar un mensaje a todas las apps integradas o a una audiencia específica.
+**Estado (2026-10-02): COMPLETADA — backend de campañas y estimación verificado, guard dual para SUPER_ADMIN/Service Token implementado, y UI de campañas completa en Tiendi Admin (`/admin/campaigns`) con estimación en vivo, previsualización push móvil, validación estricta de alcance global y suites 100% verdes.**
 
-- [ ] Crear pantalla de campañas en Tiendi Admin con título, contenido, vista previa y programación.
+- [x] Crear pantalla de campañas en Tiendi Admin con título, contenido, vista previa y programación (`/admin/campaigns`).
 - [x] Admitir alcance global, aplicación, grupo autorizado y usuario específico (implementado en `NotificationCampaignsService`).
 - [x] Mostrar estimación de destinatarios y distinguir cuentas, personas e instalaciones (`POST /notifications/campaigns/estimate`).
-- [x] Exigir permiso específico para campañas globales y confirmación explícita del alcance antes de enviar (`NotificationsServiceTokenGuard`).
+- [x] Exigir permiso específico para campañas globales y confirmación explícita del alcance antes de enviar (`NotificationsAdminOrServiceGuard` y confirmación modal en UI).
 - [x] Definir si la audiencia se calcula al programar o al ejecutar. Persistir el conjunto resuelto para reintentos estables y revalidar exclusiones/permisos al enviar (`NotificationCampaignRecipient`).
 - [x] Expandir audiencias por lotes con paginación estable, límites de concurrencia y cuotas; no cargar todos los usuarios en memoria (despacho por batches de 50-100).
 - [x] Permitir cancelar trabajos aún pendientes; informar que no se retiran mensajes ya aceptados por el proveedor (`POST /notifications/campaigns/:id/cancel`).
