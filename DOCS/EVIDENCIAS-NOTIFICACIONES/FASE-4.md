@@ -49,7 +49,7 @@ Principio: push + in-app primero (costo cero); email transaccional (cuenta + ped
 | C4 | escalación de ticket (admin) | push web + in-app (email RETIRADO) | `AdminNotifier.alertEscalation` (P5) |
 | C5 | delivery sin rider / ticket P0-P1 (admin) | push web + email + in-app | `AdminNotifier` (email reservado a críticos) |
 | C6 | estado de pedido → cliente | email (diseñado) | `onOrderStatusChanged` — WhatsApp retirado; wiring de transiciones en fase 5 |
-| C7 | mensaje de chat | push + in-app | 🔲 P2 (especificado, pendiente de implementar) |
+| C7 | mensaje de chat | push + in-app | ✅ **P2 IMPLEMENTADA (2026-09-28)**: `ChatService` → gateway tras el fanout WS; supresión por sala activa (`ChatGateway.isRoomActive`); vendor → push al dueño + bandeja STORE; cliente → push + bandeja USER; remitente nunca auto-notificado; 6 tests nuevos |
 | C8 | recordatorios Kipu (fase 5) | push + in-app | vía API remota |
 
 ## Matriz de escenarios por app y plataforma
@@ -104,3 +104,89 @@ Cada evento usa **un único camino de envío activo** en el backend (los 2 pilot
 - [ ] Probar recepción en primer plano, segundo plano y apertura con arranque en frío. *(Bloqueada: requiere APK/dispositivo.)*
 - [~] Verificar sesión y autorización antes de abrir el recurso: registro con JWT (A02) y sesión verificada en hydrate; el destino seguro de recordatorios se define en fase 5.
 - [ ] Retirar cada emisor legacy solo después de comparar resultados. *(Pendiente de entorno real — por diseño.)*
+## P2 — Notificaciones de chat interno (implementada 2026-09-28)
+
+### Cambios
+| Archivo | Cambio |
+|---|---|
+| src/modules/chat/chat.gateway.ts | isRoomActive(room): true si hay sockets vivos en la sala (etchSockets); fail-open a false (mejor push duplicado que aviso perdido). |
+| src/modules/chat/chat.service.ts | 
+otifyRecipientOfNewMessage(...) tras el fanout WS en sendMessage y sendStoreMessage: supresión (conv activa → nada; destinatario en sala personal → solo in-app; desconectado → push + in-app), best-effort con log, remitente nunca auto-notificado. |
+| src/modules/chat/chat.module.ts | Importa NotificationsModule (gateway). Sin ciclo. |
+| src/modules/chat/chat.service.spec.ts | 6 tests nuevos de P2 (offline/conectado/mirando/auto-notificación/idempotencia/resiliencia). |
+
+### Contrato del evento
+- ventType: 'chat.message-new', categoría chat-messages, idempotencia chat:msg:<messageId>.
+- Vendor destinatario: push → Store.ownerId (User), bandeja → ownerType STORE (resourceType store, conversationId en data).
+- Cliente destinatario: push + bandeja → USER (resourceType conversation).
+- Desviación v1 documentada: push a employees individuales queda fuera — la bandeja de tienda es visible para el staff.
+
+### Verificación
+| Caso | Resultado |
+|---|---|
+| chat.service.spec (36 tests, 6 nuevos P2) | ✅ |
+| Suite completa tiendi-api | **83 suites, 841/841** |
+| tsc filtrado + eslint módulo chat | ✅ limpio |
+
+## Multi-proyecto Firebase por app (2026-09-28)
+
+**Decisión**: el APK de Kipu usa proyecto Firebase propio. Un token FCM está ligado al proyecto emisor — las credenciales de tiendi no pueden enviar a tokens del proyecto Kipu.
+
+### Cambios
+| Archivo | Cambio |
+|---|---|
+| src/services/firebase.service.ts | Multi-proyecto: app default (tiendi) + apps nombradas (kipu); sendPush(..., project) y isProjectConfigured(alias); FIREBASE_PROJECT_BY_APP (tiendi-kipu → kipu). |
+| src/modules/notifications/infrastructure/firebase-push.adapter.ts | El proyecto se resuelve por el pp de cada instalación; proyecto sin credenciales → FAILED con irebase-project-not-configured (A04, nunca falso envío). |
+| src/config/env.validation.ts | FIREBASE_KIPU_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY (opcionales). |
+| Specs | +5 tests (firebase.service.spec 7, firebase-push.adapter.spec 5): app nombrada, no-configurado, fallback default, default ausente. |
+
+### Verificación
+- Suite completa: **83 suites, 847/847**.
+- tsc filtrado y eslint a paridad.
+
+### Config requerida por entorno (ops, fuera del repo)
+- FIREBASE_KIPU_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY — cuenta de servicio del proyecto Kipu.
+- NOTIFICATIONS_SERVICE_TOKEN (tiendi-api) = TIENDI_NOTIFICATIONS_TOKEN (kipu api) — mismo valor, generado 2026-09-28.
+- ADMIN_ALERT_EMAILS=tiendipe@gmail.com.
+- APK de Kipu compilado con el google-services.json de SU proyecto.
+
+## Migración de emisores Rider restantes y wire de onOrderStatusChanged (2026-09-29)
+
+Se completaron los pendientes técnicos de la Fase 4 (§14 ítems 6 y 7) para unificar la emisión bajo el camino único del módulo central:
+
+### 1. Métodos específicos en `NotificationGateway` (Catálogo C, Decisión P1)
+- Canales activos: `['push', 'in-app']` con categoría `rider-operations` o `rider-compliance`.
+- Claves de idempotencia estables y trazables:
+  - `notifyDeliveryOffer`: `delivery:offer:<deliveryId>:<riderId>`
+  - `notifyDeliveryAccepted`: `delivery:accepted:<deliveryId>:<riderId>`
+  - `notifyDeliveryCompleted`: `delivery:completed:<deliveryId>:<riderId>`
+  - `notifyDeliveryIncident`: `delivery:incident:<deliveryId>:<riderId>`
+  - `notifyAtStore`: `delivery:at-store:<deliveryId>:<riderId>`
+  - `notifyPauseWarning`: `rider:pause-warning:<riderId>:<windowMinutes>`
+  - `notifyPauseExpired`: `rider:pause-expired:<riderId>:<dayKey>`
+  - `notifyInactivityWarning`: `rider:inactivity-warning:<riderId>:<windowMinutes>`
+  - `notifyDeliveryCancelled`: `delivery:cancelled:<deliveryId>:<riderId>`
+  - `notifyCashPendingDeposit`: `rider:cash-deposit:<riderId>:<dayKey>`
+  - `notifyRiderStatusChanged`: `rider:status:<riderId>:<status>`
+- 11 tests unitarios nuevos en `notification-gateway.spec.ts` (26/26 tests pasando).
+
+### 2. Wire de `onOrderStatusChanged` (Pedidos → Email Cliente)
+- `OrdersService.updateStatus` y `OrdersService.markDeliveredBySystem`:
+  - Consultan `orderNumber` y `customerId` asociados al pedido.
+  - Emiten evento `order.status-changed` hacia `NotificationGateway` con canales `['email']` y categoría `order-updates`.
+  - Idempotencia: `order:status:<orderId>:<status>`.
+  - No bloquea la transacción del pedido en caso de degradación del outbox/gateway.
+- Tests unitarios en `orders.service.spec.ts` (26/26 tests pasando).
+
+### 3. Migración de emisores en servicios consumidores
+- `MatchingService`: `notifyDeliveryOffer` enrutado a `notificationGateway` con fallback seguro a dispatcher.
+- `DeliveryService`: `notifyAtStore`, `notifyDeliveryCompleted` y `notifyDeliveryCancelled` enrutados a `notificationGateway` con fallback seguro a dispatcher.
+- `RidersJobsService`: `notifyPauseExpired` y `notifyPauseWarning` enrutados a `notificationGateway`.
+- `WalletJobsService`: `notifyCashPendingDeposit` enrutado a `notificationGateway`.
+- `RidersService`: `notifyRiderStatusChanged` enrutado a `notificationGateway`.
+- `StoreRidersService`: Invitaciones de tienda (`store.invitation`) enrutadas a `notificationGateway`.
+- Inyección `@Optional()` en servicios consumidores para preservar compatibilidad con suites unitarias existentes.
+
+### Verificación
+- Suite completa `tiendi-api`: **83 suites, 857/857 pasando**.
+

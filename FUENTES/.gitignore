@@ -1,3 +1,9 @@
 
 # Graphify output
 graphify-out/
+
+# Secretos de servicios (cuentas Firebase/servidor) - NUNCA commitear
+secrets/
+
+node_modules/
+package-lock.json

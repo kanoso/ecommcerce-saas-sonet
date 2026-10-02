@@ -273,7 +273,7 @@ flowchart TD
 | Repartidor aceptó oferta | Push FCM + In-app | `NotificationGateway.notifyVendorRiderAccepted` (fase 4) |
 | In-app (varios) | `Notification` | `NotificationsVendorService.create` |
 | Estado de pedido en vivo | WS `vendor:{storeId}` | `TrackingGateway.emitToVendor` |
-| **Mensaje nuevo de chat** | Push + In-app | 🔲 P2 del módulo central (PLAN-MODULO-CENTRAL-NOTIFICACIONES) — hoy solo WS |
+| **Mensaje nuevo de chat** | Push + In-app | `ChatService` → `NotificationGateway` (P2 módulo central, 2026-09-28): push solo si el destinatario no está conectado; bandeja siempre que no esté mirando la conversación |
 
 ### 6.2 `tiendi-web` (cliente)
 
@@ -281,7 +281,7 @@ flowchart TD
 |--------|-------|--------|
 | Pedido confirmado | Email | `OrdersService` → `NotificationGateway` (email) — fase 4 |
 | Estado de pedido actualizado | Email | `NotificationDispatcher.onOrderStatusChanged` (sin callers aún — cableado en fase 5; WhatsApp retirado por catálogo 2026-09-28) |
-| Mensajes de chat | WS `customer:{id}` + notificación local del navegador | `ChatGateway` — 🔲 push vía P2 |
+| Mensajes de chat | WS `customer:{id}` + notificación local del navegador | `ChatGateway` — push vía `ChatService` → gateway (P2) cuando el cliente está desconectado |
 | Feedback local | Toast PrimeNG | `notification.service.ts` |
 
 > [!NOTE]
