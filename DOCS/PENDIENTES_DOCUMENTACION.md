@@ -10,7 +10,7 @@
 
 | Documento | Última Modif. | Pendientes Críticos / Checklists |
 |---|---|---|
-| [`PLAN-MODULO-CENTRAL-NOTIFICACIONES.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/PLAN-MODULO-CENTRAL-NOTIFICACIONES.md) | 2026-10-01 | Despliegue TEST/PROD, APK Kipu push, Fases 6 (Campañas), 7 (Purgas R1–R7) y 8 (Extracción). |
+| [`PLAN-MODULO-CENTRAL-NOTIFICACIONES.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/PLAN-MODULO-CENTRAL-NOTIFICACIONES.md) | 2026-10-02 | Fases 6 (Campañas) y 7 (Purgas R1–R7) completadas. Pendientes: despliegue TEST/PROD, prueba APK Kipu push en dispositivo y Fase 8 (Extracción). |
 | [`DISENO-TECNICO-CALENDARIO-CUOTAS-KIPU.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/DISENO-TECNICO-CALENDARIO-CUOTAS-KIPU.md) | 2026-09-30 | Diseño completado; implementación archivada en SDD `kipu-cuotas-calendario` (commit `1dfd371`). |
 | [`DECISIONES-CALENDARIO-CUOTAS-KIPU.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/DECISIONES-CALENDARIO-CUOTAS-KIPU.md) | 2026-09-30 | Decisiones C1–C7 cerradas. Reglas de reversión multi-préstamo documentadas. |
 | [`OPENTELEMETRY_T6_ROLLOUT.md`](file:///G:/PROYECTOS/ecommcerce-saas-sonet/DOCS/OPENTELEMETRY_T6_ROLLOUT.md) | 2026-10-02 | Falso positivo de fechas ISO corregido en `@kanoso/telemetry`. Pendiente deploy tiendi-kipu, rebuild browsers con flags de commit y rotación SSH. |
@@ -48,8 +48,10 @@
     - [x] Pantalla de campañas en Tiendi Admin con título, cuerpo, vista previa móvil, estimación en vivo y programación (`/admin/campaigns`).
     - [x] Segmentación por alcance global, app, rol o usuarios específicos con validación obligatoria para envíos globales.
     - [x] Paginación, despacho por lotes (batches 50-100) y cancelación en vuelo protegida por `NotificationsAdminOrServiceGuard`.
-  - **Fase 7 — Funciones Ampliadas y Operación:**
-    - Ejecución de purgas automáticas según políticas de retención R1–R7 (instalaciones inválidas a 7d, logs/solicitudes a 30d, bandejas a 90d).
+  - **Fase 7 — Funciones Ampliadas y Operación (COMPLETADA 2026-10-02):**
+    - [x] Ejecución de purgas automáticas programadas vía cron nocturno (`@Cron('30 3 * * *')`) según políticas de retención R1–R7 (instalaciones inválidas a 7d, solicitudes anonimizadas a 30d, bandejas a 90d, campañas históricas a 365d).
+    - [x] Endpoint de disparo manual (`POST /notifications/operations/purge`) y reporte de última ejecución (`GET /notifications/operations/purge/last-report`) protegidos por `NotificationsAdminOrServiceGuard`.
+    - [x] UI de observabilidad y ejecución manual de purgas en Tiendi Admin (`/admin/campaigns`).
   - **Fase 8 — Extracción de Servicio:**
     - Separación del módulo a microservicio independiente (`tiendi-notifications`) una vez estabilizado el monolito modular.
 

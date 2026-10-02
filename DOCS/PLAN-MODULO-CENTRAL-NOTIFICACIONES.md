@@ -537,8 +537,8 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | 3 — Entregas durables y bandeja común | ✅ Verificada con tests (outbox + leases + A03) | `EVIDENCIAS-NOTIFICACIONES/FASE-3.md` |
 | 4 — Integración gradual de las apps | ✅ Código completo (857/857; pilotos, P2 chat, multi-proyecto Firebase, emisores rider catálogo C y onOrderStatusChanged incluidos). **Pendiente solo verificación móvil en dispositivo** | `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` |
 | 5 — Programación y recordatorios Kipu | ✅ Código completo y verificado (recordatorios personales, calendario de cuotas/préstamos, snooze y resumen semanal opcional). **Pendiente verificación en APK físico** | `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
-| 6 — Alertas generales y campañas | ✅ Backend y contratos completos y verificados (estimación, políticas PER_APP/PER_PERSON A09, batching y cancelación en vuelo). Pendiente UI en Tiendi Admin | `EVIDENCIAS-NOTIFICACIONES/FASE-6.md` |
-| 7 — Funciones ampliadas y operación | ✅ Verificada con tests (purgas R1–R7, health check, runbook) | `EVIDENCIAS-NOTIFICACIONES/FASE-7.md` |
+| 6 — Alertas generales y campañas | ✅ Completa (backend, contratos y UI de campañas en Tiendi Admin con estimación, políticas PER_APP/PER_PERSON A09, batching y cancelación en vuelo) | `EVIDENCIAS-NOTIFICACIONES/FASE-6.md` |
+| 7 — Funciones ampliadas y operación | ✅ Completa y verificada con tests (purgas automáticas R1–R7 vía cron nocturno, endpoint manual y UI en Tiendi Admin, health check, runbook) | `EVIDENCIAS-NOTIFICACIONES/FASE-7.md` |
 | 8 — Extracción a tiendi-notifications | 📋 Plan y SOP de corte documentado (despliegue condicionado a volumen) | `PLAN-EXTRACCION-TIENDI-NOTIFICATIONS.md` |
 
 Decisiones bloqueadas registradas en fase 0:
