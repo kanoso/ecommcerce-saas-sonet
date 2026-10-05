@@ -46,7 +46,7 @@ Notes for test 17:
 - [ ] Dev credentials failing against test instance (no test host yet - blocked by authorization).
 - [ ] SecretID expired/revoked + re-issue window live test (issuance + restart verified; expiry sim skipped).
 - [ ] Full rotation cycle on a REAL credential with reload/restart of a real consumer (needs authorization to import real credentials).
-- [ ] Bundle/APK/image/ZIP canary scan (no build artifacts produced yet; recommended: scan `FUENTES/tiendi-go` APK output + `deploy-pc` ZIP).
+- [x] Bundle canary scan (executed 2026-10-03): scanned `tiendi-web`, `tiendi-vendor`, `tiendi-admin` dist bundles. Detected leak in `tiendi-admin` (`kipu.serviceToken = 'test-service-token-2026'`); remediated via BFF proxy `AdminKipuController` in `tiendi-api` + environment purge. Re-scanned: 0 leaks verified. (Pending only APK/ZIP scan).
 - [ ] Restore timing measurement and backup retention drill (runbook in `docs/TEST_RUNBOOK.md`).
 - [ ] JWT/bridge behavior after real credential import (blocked: no real credentials imported).
 
