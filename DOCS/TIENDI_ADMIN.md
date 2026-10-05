@@ -73,6 +73,7 @@ flowchart LR
     A --> D["Ledger y conciliación<br/>partida doble"]
     A --> E["Supervisión de repartidores"]
     A --> F["Soporte a tiendas"]
+    A --> V["Monitoreo de ventas<br/>KPIs y pedidos de plataforma"]
 
     B --> G["Modelo mayorista<br/>con fundamento técnico"]
     C --> G
@@ -86,10 +87,13 @@ flowchart LR
 | Incluye | No incluye |
 |---------|------------|
 | Curación del catálogo maestro | Alta/edición de productos de tienda (es del vendedor) |
-| Ranking de demanda de plataforma | Analytics por tienda (es del vendedor) |
+| Ranking de demanda de plataforma y monitoreo de ventas globales | Analytics por tienda (es del vendedor) |
 | Ledger completo, conciliación, payouts | Estado de cuenta del vendedor (es del vendedor) |
 | Supervisión de repartidores | Onboarding del repartidor (es del rider) |
 | Soporte escalado a tiendas | Chat comprador-vendedor (es de tiendi-web) |
+
+> [!NOTE]
+> El monitoreo de ventas de plataforma ([[TIENDI_ADMIN-VENTAS]]) expone métricas y KPIs agregados globales y listado operacional de pedidos para Super Admin. Los dashboards analíticos específicos de cada tienda permanecen exclusivamente en `tiendi-vendor`.
 
 ---
 
@@ -158,6 +162,10 @@ flowchart TD
 ```mermaid
 mindmap
   root)"tiendi-admin"(
+    Ventas
+      KPIs de plataforma
+      Top tiendas y productos
+      Lista y detalle de pedidos
     Catálogo
       Listar maestros
       Detalle + aliases
@@ -185,6 +193,7 @@ mindmap
 
 | Módulo | Pantalla | Estado |
 |--------|----------|--------|
+| Ventas | Monitoreo de ventas (`/admin/sales`, KPIs, estados, top y pedidos) | ✅ |
 | Catálogo | Lista de maestros (filtros por `status`, `brand`, búsqueda) | 🔲 |
 | Catálogo | Detalle de maestro (productos vinculados + aliases) | 🔲 |
 | Catálogo | Fusión de duplicados (comparar lado a lado) | 🔲 |
@@ -369,6 +378,7 @@ sequenceDiagram
 | Ruta | Módulo | Pantalla | Dependencia |
 |------|--------|----------|-------------|
 | `/admin/login` | auth | Login de Super Admin | — |
+| `/admin/sales` | sales | Monitoreo de ventas de plataforma | `GET /admin/analytics` + `GET /admin/orders` (✅ implementado) |
 | `/admin/catalog` | catalog | Lista de maestros | Fase 6 catálogo (✅ backend) |
 | `/admin/catalog/:id` | catalog | Detalle, corrección manual + aliases | Fase 6 catálogo (✅ backend) |
 | `/admin/catalog/merge` | catalog | Fusión de duplicados | Fase 6 catálogo (✅ backend) |
@@ -383,6 +393,7 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     A["tiendi-admin sidebar"] --> B["Dashboard"]
+    A --> S["Ventas"]
     A --> C["Catálogo"]
     A --> D["Demanda"]
     A --> E["Dinero"]
