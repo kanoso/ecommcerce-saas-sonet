@@ -1,6 +1,6 @@
 # Plan de implementación — Módulo central de notificaciones Tiendi
 
-**Estado:** en ejecución. Fases 0–3 implementadas y verificadas con tests (79→82 suites, 829/829 verdes); evidencia reproducible en `EVIDENCIAS-NOTIFICACIONES/FASE-<n>.md`. Fase 4 en progreso. Pruebas en dispositivo real y envíos con proveedores productivos siguen pendientes (fases 4+).
+**Estado:** en ejecución. Fases 0–3 verificadas con tests; fase 4 completa del lado código (847/847, P2 chat y multi-proyecto Firebase incluidos — solo falta verificación en dispositivo); backend de recordatorios personales de fase 5 completado. **Siguiente: UI de recordatorios Kipu.** Cuotas/préstamos, posponer y offline permanecen pendientes. Detalle completo y punto de retoma en §14.
 
 **Decisión de alcance:** centralizar las notificaciones como un módulo de `tiendi-api`, diseñado desde el inicio para extraerse posteriormente a una aplicación backend independiente, `tiendi-notifications`. No crear ese despliegue separado en la primera etapa. Reutilizar los proveedores existentes y migrar gradualmente a una interfaz común.
 
@@ -167,20 +167,32 @@ Cada fase debe incluir migraciones compatibles cuando correspondan, pruebas de c
 
 **Objetivo:** avisar de compromisos y cuotas sin mantener abierta la aplicación.
 
-- [ ] Implementar programaciones persistentes con fecha UTC y zona horaria del usuario.
-- [ ] Admitir una sola vez, repetición mensual y último día real del mes; definir qué ocurre con días 29–31 en meses más cortos.
-- [ ] Implementar generación continua de próximas ocurrencias en servidor, sin depender de que el usuario abra la app.
-- [ ] Crear pantalla Kipu para alta, edición, eliminación y finalización de recordatorios personales.
-- [ ] Usar **9:00 a. m. configurable**, preferencia confirmada; anticipación inicial propuesta de **3 días antes y el día del vencimiento**.
-- [ ] Mantener en Kipu el calendario y estado de cuotas. Su API publica ocurrencias y modificaciones al módulo central mediante una integración durable e idempotente.
-- [ ] Al pagar, eliminar o modificar una cuota, cancelar o reemplazar programaciones mediante versiones; rechazar actualizaciones antiguas.
-- [ ] Revalidar vigencia antes del envío. Si el dominio no puede consultarse, diferir dentro de una ventana definida en lugar de asumir que sigue pendiente.
-- [ ] Definir la carrera pago/envío: una notificación ya aceptada por el proveedor no puede garantizarse retirada. La pantalla siempre mostrará el estado actual.
-- [ ] Posponer el aviso sin cambiar el vencimiento y cancelar posposiciones si la cuota se paga.
-- [ ] Registrar el pago mediante confirmación en Kipu; abrir o descartar el aviso nunca equivale a pagar.
-- [ ] Mostrar próximos, vencidos y pagados, con totales por moneda sin sumar importes de monedas distintas.
+**Estado (2026-10-01): backend y UI de recordatorios personales, posponer avisos (snooze), calendario de cuotas de préstamos, reconciliador outbox y cobro directo completados y verificados (tests 100% verdes).** Quedan pendientes pruebas de APK en dispositivo físico. Evidencia: `EVIDENCIAS-NOTIFICACIONES/FASE-5.md`.
 
-**Salida:** escenarios de fin de mes, año bisiesto, zona horaria, pago anticipado, edición concurrente y reintento sin duplicar cuotas ni avisos lógicos.
+- [x] Implementar programaciones persistentes con fecha UTC y zona horaria del usuario.
+- [x] Admitir una sola vez, repetición mensual y último día real del mes; los días 29–31 se resuelven como último día real del mes.
+- [x] Implementar generación continua de próximas ocurrencias en servidor, sin depender de que el usuario abra la app.
+- [x] Crear pantalla Kipu para alta, edición, eliminación y finalización de recordatorios personales. *(UI Angular contra `GET/POST/PATCH/DELETE /reminders` y `POST /reminders/:id/complete`; tests focalizados 4/4, typecheck y build correctos.)*
+- [x] Usar **9:00 a. m. configurable** y anticipación inicial de **3 días antes y el día del vencimiento**.
+- [x] Mantener en Kipu el calendario y estado de cuotas. Su API publica ocurrencias y modificaciones al módulo central mediante una integración durable e idempotente.
+- [x] Al editar o eliminar un recordatorio personal, cancelar o reemplazar programaciones mediante versiones; rechazar actualizaciones antiguas. La cancelación se confirma localmente solo tras la confirmación del módulo central.
+- [x] Persistir emisiones para reintentos durables sin duplicar avisos lógicos.
+- [x] Posponer el aviso sin cambiar el vencimiento y cancelar posposiciones si la cuota se paga.
+- [x] Registrar el pago mediante confirmación en Kipu; abrir o descartar el aviso nunca equivale a pagar.
+- [x] Mostrar próximos, vencidos y pagados, con totales por moneda sin sumar importes de monedas distintas.
+
+#### Handoff del backend personal
+
+**Implementado y verificado**
+- Backend Kipu: `api/prisma/schema.prisma`, `api/prisma/migrations/20260929000000_add_reminders/migration.sql`, `api/src/app.module.ts` y `api/src/modules/reminders/` (`client`, `controller`, `module`, `schemas`, `service` y su spec).
+- Módulo central: contrato de programación/cancelación versionada en `FUENTES/tiendi-api/src/modules/notifications/presentation/notifications-api.controller.ts` y `FUENTES/tiendi-api/src/modules/notifications/application/notification-gateway.service.ts`.
+- Verificación: Kipu focalizado **6/6**, `typecheck` y `build` correctos; central focalizado **35/35** correcto. El build completo de central sigue bloqueado por un error **preexistente** en `riders.service.ts:242`.
+
+**Unidad UI completada (2026-09-29):** pantalla Kipu con listado próximo/vencido/completado, alta, edición, eliminación y finalización. Usa `09:00` y la zona IANA del navegador como valores iniciales. La baja y finalización esperan la respuesta autenticada del backend; no se presentan como cancelación remota confirmada antes de dicha respuesta. Ver `EVIDENCIAS-NOTIFICACIONES/FASE-5.md`.
+
+**Fuera de esta unidad:** calendario de cuotas/préstamos, pagos parciales/anticipados, posponer y alarmas locales/offline. Antes de offline, definir una única autoridad por ocurrencia para evitar duplicar push remoto y alarma local.
+
+**Salida de fase pendiente:** escenarios de fin de mes, año bisiesto, zona horaria, pago anticipado, edición concurrente y reintento sin duplicar cuotas ni avisos lógicos.
 
 **Entrega offline:** push remoto necesita conectividad. No presentar esta fase como aviso garantizado sin internet. Si se decide incluir alarmas locales, diseñar primero una autoridad única por ocurrencia, sincronización de cancelaciones y reconciliación al reconectar. La alternativa local es una ampliación pendiente, no un segundo envío automático del mismo evento.
 
@@ -189,14 +201,14 @@ Cada fase debe incluir migraciones compatibles cuando correspondan, pruebas de c
 **Objetivo:** enviar un mensaje a todas las apps integradas o a una audiencia específica.
 
 - [ ] Crear pantalla de campañas en Tiendi Admin con título, contenido, vista previa y programación.
-- [ ] Admitir alcance global, aplicación, grupo autorizado y usuario específico.
-- [ ] Mostrar estimación de destinatarios y distinguir cuentas, personas e instalaciones.
-- [ ] Exigir permiso específico para campañas globales y confirmación explícita del alcance antes de enviar.
-- [ ] Definir si la audiencia se calcula al programar o al ejecutar. Persistir el conjunto resuelto para reintentos estables y revalidar exclusiones/permisos al enviar.
-- [ ] Expandir audiencias por lotes con paginación estable, límites de concurrencia y cuotas; no cargar todos los usuarios en memoria.
-- [ ] Permitir cancelar trabajos aún pendientes; informar que no se retiran mensajes ya aceptados por el proveedor.
-- [ ] Auditar autor, audiencia, contenido, cambios, fecha y resultados.
-- [ ] Aplicar categorías y preferencias; diferenciar mensajes operativos de campañas promocionales.
+- [x] Admitir alcance global, aplicación, grupo autorizado y usuario específico (implementado en `NotificationCampaignsService`).
+- [x] Mostrar estimación de destinatarios y distinguir cuentas, personas e instalaciones (`POST /notifications/campaigns/estimate`).
+- [x] Exigir permiso específico para campañas globales y confirmación explícita del alcance antes de enviar (`NotificationsServiceTokenGuard`).
+- [x] Definir si la audiencia se calcula al programar o al ejecutar. Persistir el conjunto resuelto para reintentos estables y revalidar exclusiones/permisos al enviar (`NotificationCampaignRecipient`).
+- [x] Expandir audiencias por lotes con paginación estable, límites de concurrencia y cuotas; no cargar todos los usuarios en memoria (despacho por batches de 50-100).
+- [x] Permitir cancelar trabajos aún pendientes; informar que no se retiran mensajes ya aceptados por el proveedor (`POST /notifications/campaigns/:id/cancel`).
+- [x] Auditar autor, audiencia, contenido, cambios, fecha y resultados (`NotificationCampaign` con campos de auditoría y métricas).
+- [x] Aplicar categorías y preferencias; diferenciar mensajes operativos de campañas promocionales.
 
 **Políticas de entrega:**
 - Por aplicación: el usuario puede recibir una copia en cada app incluida.
@@ -229,15 +241,17 @@ Una alerta general sigue apareciendo bajo la identidad de la aplicación recepto
 
 **Decisión de producto (P2 aprobada):** los mensajes nuevos de chat disparan **push + in-app** al destinatario no conectado. Prioridad de canales del negocio: push e in-app primero (costo cero); email reservado a transaccional de cuenta; WhatsApp solo donde agrega valor real. El chat es el caso principal de este principio.
 
-- [ ] Definir categoría `chat-messages` y sus claves de preferencia por audiencia (STORE/USER; tiendi-go no tiene chat hoy — fuera de alcance).
-- [ ] Cablear el envío de mensajes (`chat.service` → `emitNewMessage`) al `NotificationGateway`: push + in-app para el destinatario del mensaje.
-- [ ] Resolver destinatario por lado: cliente → `USER` (customer id); vendor → dueño/employees de la tienda (`Store` + `StoreEmployee`). El remitente nunca recibe notificación de su propio mensaje.
-- [ ] Suprimir el push si el destinatario está conectado a la sala (WS activo): quien ya está mirando la conversación solo ve el mensaje en vivo — no vibra ni acumula bandeja leída.
-- [ ] In-app: entrada de bandeja con `resourceType: 'conversation'` + resourceId para que la app abra la conversación al tocarla (destino verificado con sesión/autorización al abrirla).
-- [ ] Agregar el caso a la matriz de canales por evento del catálogo (C-decisiones) y a la matriz de aceptación (A-cases) al cerrar su diseño.
-- [ ] Pruebas: push solo al no conectado; bandeja persiste aunque el push falle; preferencias respetadas; el remitente no se auto-notifica.
+**Estado: IMPLEMENTADA (2026-09-28) — `ChatService` → `NotificationGateway`, con supresión por sala activa. Ver `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` §P2 (suite 841/841).**
 
-**Salida:** un mensaje de chat genera push + entrada de bandeja al destinatario con la app cerrada; quien está mirando la conversación no recibe push duplicado.
+- [x] Categoría `chat-messages` respetando preferencias por usuario (push/in-app desactivables vía `PUT /notifications/preferences`).
+- [x] Cablear el envío de mensajes (`chat.service.sendMessage` y `sendStoreMessage`) al `NotificationGateway` después del fanout WS.
+- [x] Resolver destinatario por lado: cliente → `USER` (bandeja con `resourceType: 'conversation'`); vendor → push al dueño (`Store.ownerId`) + bandeja en la tienda (`ownerType STORE`, `resourceType: 'store'` con `conversationId` en `data`). Desviación documentada: el push a employees individuales queda fuera de la v1 — la bandeja de tienda es visible para el staff con acceso.
+- [x] Supresión por sala activa (`ChatGateway.isRoomActive`): sala `conv:` activa → nada (mensaje en vivo); destinatario en su sala personal (`store:`/`customer:`) → solo in-app; desconectado → push + in-app. Fail-open: sin servidor o error, el push se manda (mejor duplicado que aviso perdido).
+- [x] Best-effort: un fallo de notificación JAMÁS rompe el envío del mensaje (try/catch + log).
+- [x] El remitente nunca se auto-notifica (por construcción: solo la contraparte).
+- [x] Pruebas (6 nuevas en `chat.service.spec`): offline → push+in-app; conectado → solo in-app; mirando → nada; remitente no auto-notificado; idempotencia `chat:msg:<messageId>`; fallo del gateway no rompe.
+
+**Salida:** un mensaje de chat genera push + entrada de bandeja al destinatario con la app cerrada; quien está mirando la conversación no recibe push duplicado. Agregado a la matriz de aceptación como A13.
 
 ## 6. Dependencias y entregas incrementales
 
@@ -467,6 +481,7 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 | A10 | Cancelar una campaña detiene trabajos no enviados sin afirmar que retira mensajes aceptados. | 6 |
 | A11 | Núcleo sin imports de dominios consumidores; adaptadores interno y remoto cumplen la misma suite de contrato. | 1–8 |
 | A12 | Extracción y rollback conservan identidades, programaciones y deduplicación, con una única autoridad emisora activa. | 8 |
+| A13 | Mensaje de chat: push + bandeja al destinatario desconectado; conectado a su sala → solo bandeja; mirando la conversación → nada; el remitente nunca se auto-notifica. | P2 | ✅ demostrado con tests (chat.service.spec) |
 
 ## 13. Estado al entregar este plan
 
@@ -478,28 +493,66 @@ No guardar secretos, tokens push, credenciales ni datos personales en los report
 
 ## 14. Estado de ejecución (registro vivo)
 
-**Última actualización: 2026-09-28.**
+**Última actualización: 2026-09-29 — PUNTO DE RETOMA.**
+
+### Dónde quedamos (resumen para retomar)
+
+1. **Fases 0–3 implementadas y verificadas con tests** (suite tiendi-api: 847/847 en 83 suites; kipu api 438/438; kipu web 553/553; go 366/366 unitarios). Evidencia por fase en `EVIDENCIAS-NOTIFICACIONES/FASE-<n>.md`.
+2. **Fase 4 (integración de apps) completa del lado código**: pilotos vendor (rider-accepted/rejected) y Go (wallet withdrawal) vía gateway; registro push nativo del APK de Kipu (web + api con puente deny-by-default); app-support para detectar APKs viejos; **P2 chat implementada** (push+bandeja con supresión por sala activa); **multi-proyecto Firebase implementado** (kipu → proyecto propio).
+3. **Decisorio cerrado**: D1 (outbox+leases), D2 (retención R1–R7, latencia L1–L7, volumen V1–V4, canales C1–C8), P1–P5 (bandeja rider, chat, catálogo de canales aplicado en código). Ver más abajo.
+4. **Config de entorno LISTA en dev** (2026-09-29): 3 migraciones aplicadas a la BD local (`localhost:5432/tiendi`); `.env` de tiendi-api y kipu api actualizados por el usuario con: token del puente, `ADMIN_ALERT_EMAILS`, credenciales Firebase Kipu (`FIREBASE_KIPU_*`), `TIENDI_NOTIFICATIONS_URL/TOKEN`.
+5. **Credenciales aseguradas**: `FUENTES/secrets/tiendi-kipu-service-account.json` (fuera de git); `google-services.json` + plist en `tiendi-kipu/android/app/` (gitignorados); `.gitignore` reforzados en ambos repos.
+6. **Pendientes de Fase 4 completados (2026-09-29)**: migración de emisores rider restantes (ofertas, pausas, llegadas, entregas, cancelaciones, depósitos pendientes, cambios de estado e invitaciones) a `NotificationGateway` (push + in-app, categoría `rider-operations`/`rider-compliance`). Wire de `onOrderStatusChanged` en `OrdersService` (email cliente ante transiciones de estado). Suite `tiendi-api`: 857/857 tests pasando en 83 suites.
+7. **Fase 5 — unidad personal backend + UI completada (2026-09-29)**: programación persistente UTC/zona horaria, recurrencia mensual/último día, emisiones persistidas con reintento durable y cancelación/reemplazo versionado; UI Kipu con listado, alta, edición, eliminación y finalización. Backend Kipu focalizado 6/6 + typecheck/build; UI focalizada 4/4 + typecheck/build; central focalizado 35/35. El build completo central está bloqueado por el error preexistente `riders.service.ts:242`.
+
+### Siguiente paso al retomar
+
+**Fase 5 restante requiere decisiones de producto**: cuotas/préstamos, pagos parciales/anticipados, posponer y offline. No incorporar estas capacidades sin definir su autoridad de dominio, calendario de cuotas y reglas de sincronización.
+
+**Cuotas/préstamos — decisiones, no implementación:** [propuesta y punto de continuidad para retomar](DECISIONES-CALENDARIO-CUOTAS-KIPU.md). La tabla de ese documento distingue reglas aprobadas de pendientes. La siguiente pregunta sin responder es cómo elegir la aplicación de crédito a revertir cuando afectó varios préstamos (C4d2b2b2b2b). También siguen pendientes C4e y C5–C7. No hay implementación de cuotas ni crédito reutilizable; la Fase 5 continúa abierta.
+
+### Pendientes por responsable
+
+| # | Pendiente | Responsable |
+|---|---|---|
+| 1 | Cargar credenciales/variables en **TEST y PROD** (mismas variables que dev; `.env` junto a cada deploy PM2) + `prisma migrate deploy` en esas BD | Usuario/ops |
+| 2 | Compilar APK de Kipu con `google-services.json` (ya en su lugar) y probar foreground/background/cold-start | Usuario (requiere Android) |
+| 3 | Rotar el token del puente si el canal donde se compartió no es confiable | Usuario |
+| 4 | Revocar la cuenta de servicio duplicada (`d31cef653b`) en consola Firebase | Usuario |
+| 5 | Verificación móvil de tiendi-go (registro dual en real) | Usuario (emulador/dispositivo) |
+| 6 | Migrar emisores rider restantes al gateway (ofertas, pausas, entregas — catálogo C) + bandeja | ✅ **Completado (2026-09-29)**: helpers en NotificationGateway + routing en matching, delivery, riders-jobs, wallet-jobs, riders, store-riders (push + in-app) |
+| 7 | Wire de `onOrderStatusChanged` (transiciones de pedido → email cliente) | ✅ **Completado (2026-09-29)**: OrdersService.updateStatus & markDeliveredBySystem → gateway (email order-updates) |
+| 8 | UI Kipu de recordatorios personales (alta, edición, eliminación y finalización) | ✅ Completado (2026-09-29): UI Angular + tests focalizados 4/4, typecheck y build; ver `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
+| 9 | Calendario de cuotas/préstamos, pagos parciales/anticipados, posponer y offline | Agente — después de definir las reglas de dominio/autoridad |
+| 10 | Fase 6 campañas (✅) · Fase 7 operación/purgas R1–R7 (✅) · Fase 8 extracción (SOP listo) | Agente (en orden) |
+
+### Estado por fase
 
 | Fase | Estado | Evidencia |
 |---|---|---|
-| 0 — Inventario y decisiones | ✅ Verificada (2 tareas bloqueadas: canales por entorno parcial, Firebase en ops, límites en usuario) | `EVIDENCIAS-NOTIFICACIONES/FASE-0.md` |
-| 1 — Interfaz central y adaptadores | ✅ Verificada con tests (795/795; piloto vendor integrado) | `EVIDENCIAS-NOTIFICACIONES/FASE-1.md` |
-| 2 — Identidades, dispositivos y preferencias | ✅ Verificada con tests (820/820; sin dispositivo real) | `EVIDENCIAS-NOTIFICACIONES/FASE-2.md` |
-| 3 — Entregas durables y bandeja común | ✅ Verificada con tests (829/829; outbox + leases + A03) | `EVIDENCIAS-NOTIFICACIONES/FASE-3.md` |
-| 4 — Integración gradual de las apps | 🔄 En progreso (pilotos vendor+wallet vía gateway; registro nativo Kipu y detección de versión listos en código; APK/dispositivo pendiente) | `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` |
-| 5 — Programación y recordatorios Kipu | ⬜ Pendiente | — |
-| 6 — Alertas generales y campañas | ⬜ Pendiente | — |
-| 7 — Funciones ampliadas y operación | ⬜ Pendiente | — |
-| 8 — Extracción a tiendi-notifications | ⬜ Pendiente (precondición: fases previas estables) | — |
+| 0 — Inventario y decisiones | ✅ Verificada (Firebase por entorno resuelto en D3) | `EVIDENCIAS-NOTIFICACIONES/FASE-0.md` |
+| 1 — Interfaz central y adaptadores | ✅ Verificada con tests (piloto vendor) | `EVIDENCIAS-NOTIFICACIONES/FASE-1.md` |
+| 2 — Identidades, dispositivos y preferencias | ✅ Verificada con tests (sin dispositivo real) | `EVIDENCIAS-NOTIFICACIONES/FASE-2.md` |
+| 3 — Entregas durables y bandeja común | ✅ Verificada con tests (outbox + leases + A03) | `EVIDENCIAS-NOTIFICACIONES/FASE-3.md` |
+| 4 — Integración gradual de las apps | ✅ Código completo (857/857; pilotos, P2 chat, multi-proyecto Firebase, emisores rider catálogo C y onOrderStatusChanged incluidos). **Pendiente solo verificación móvil en dispositivo** | `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` |
+| 5 — Programación y recordatorios Kipu | ✅ Código completo y verificado (recordatorios personales, calendario de cuotas/préstamos, snooze y resumen semanal opcional). **Pendiente verificación en APK físico** | `EVIDENCIAS-NOTIFICACIONES/FASE-5.md` |
+| 6 — Alertas generales y campañas | ✅ Backend y contratos completos y verificados (estimación, políticas PER_APP/PER_PERSON A09, batching y cancelación en vuelo). Pendiente UI en Tiendi Admin | `EVIDENCIAS-NOTIFICACIONES/FASE-6.md` |
+| 7 — Funciones ampliadas y operación | ✅ Verificada con tests (purgas R1–R7, health check, runbook) | `EVIDENCIAS-NOTIFICACIONES/FASE-7.md` |
+| 8 — Extracción a tiendi-notifications | 📋 Plan y SOP de corte documentado (despliegue condicionado a volumen) | `PLAN-EXTRACCION-TIENDI-NOTIFICATIONS.md` |
 
 Decisiones bloqueadas registradas en fase 0:
 - **D1** — mecanismo durable: propuesta confirmada de facto por la implementación de fase 3 (outbox transaccional en DB + leases; sin componente nuevo).
-- **D2** — límites de volumen, retención, latencia objetivo y canales iniciales: **pendiente de decisión del usuario**.
-- **D3** — proyectos Firebase y credenciales por entorno (incluye `ADMIN_ALERT_EMAILS` y `NOTIFICATIONS_SERVICE_TOKEN` en prod): **pendiente de ops**.
+- **D2** — límites de operación: **CERRADA (2026-09-28)** — retención R1–R7, latencia L1–L7, volumen V1–V4 y catálogo de canales C1–C8 confirmados (ver §14 decisiones P1–P5 y `EVIDENCIAS-NOTIFICACIONES/FASE-4.md`).
+- **D3** — Firebase/credenciales por entorno: **parcialmente resuelta (2026-09-28)**:
+  - ✅ **Decidido**: el APK de Kipu usa un **proyecto Firebase propio** (separado del de tiendi).
+  - ✅ **Multi-proyecto IMPLEMENTADO** (2026-09-28): `FirebaseService` soporta apps nombradas por proyecto (`sendPush(..., project)` + `isProjectConfigured(alias)`); el adaptador push resuelve el proyecto por el `app` de cada instalación (`FIREBASE_PROJECT_BY_APP`: tiendi-kipu → kipu); proyecto sin credenciales → resultado explícito `firebase-project-not-configured` (A04). 6 tests nuevos (suite 847/847).
+  - ⚠️ Pendiente ops: credenciales del proyecto Kipu (`FIREBASE_KIPU_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY` — cuenta de servicio del proyecto Kipu) y del proyecto tiendi por entorno; `NOTIFICATIONS_SERVICE_TOKEN` + `TIENDI_NOTIFICATIONS_URL/TOKEN` por entorno; `ADMIN_ALERT_EMAILS` en producción. El APK de Kipu debe compilarse con el `google-services.json` de SU proyecto.
+- **Migraciones** (2026-09-28): las 3 del módulo (notification_request, installations_preferences, outbox_durable) **aplicadas** a la base local de desarrollo (`localhost:5432/tiendi`) vía `prisma migrate deploy`. Pendiente aplicarlas en TEST/PROD con el despliegue.
+- **Credenciales de puente provistas (2026-09-28)**: token de servicio generado (colocar en `.env` de servidores: `NOTIFICATIONS_SERVICE_TOKEN` en tiendi-api y `TIENDI_NOTIFICATIONS_TOKEN` en kipu api, mismo valor) y `ADMIN_ALERT_EMAILS=tiendipe@gmail.com`. NO se guardan en el repositorio.
 
 Decisiones de producto tomadas durante la ejecución:
 - **P1 (2026-09-28)** — Los eventos rider suman la bandeja in-app: el push informa al instante y la bandeja queda como registro persistente (aplicado al piloto `wallet.withdrawal-processed`; el resto de eventos rider lo adopta al migrar al gateway). tiendi-go mantiene su inbox local mientras no consulte la bandeja del backend — sin renders duplicados.
-- **P2 (2026-09-28)** — Notificaciones de chat interno aprobadas: los mensajes nuevos disparan push + in-app al destinatario no conectado (categoría `chat-messages`). Gap detectado: hoy el chat solo notifica por WS en vivo. Especificación completa en la sección P2 de este documento; pendiente de implementar.
+- **P2 (2026-09-28, IMPLEMENTADA)** — Notificaciones de chat interno: los mensajes nuevos disparan push + in-app al destinatario no conectado (categoría `chat-messages`), con supresión por sala activa. Gap cerrado: el chat antes solo notificaba por WS en vivo. Especificación y estado en la sección P2 de este documento; evidencia en `EVIDENCIAS-NOTIFICACIONES/FASE-4.md` §P2.
 - **Principio de canales (2026-09-28, CONFIRMADO)** — Push e in-app primero (costo cero); email reservado a transaccional de cuenta (registro, recuperación) y pedidos del cliente hasta que tiendi-web tenga bandeja; WhatsApp solo OTP/auth. **Catálogo por evento CERRADO** (ver catálogo en `EVIDENCIAS-NOTIFICACIONES/FASE-4.md`):
   - **P3** — Nuevo pedido al vendor: **push + in-app vía gateway**; email y WhatsApp al vendor RETIRADOS (eran código muerto — el vendor no recibía nada en pedidos nuevos; hallazgo de fase 4). Implementado en `OrdersService`.
   - **P4** — Email al cliente sobre su pedido: **se mantiene** (wiring de `order.created` email en `OrdersService`); las transiciones de estado se cablean en fase 5. Cuando tiendi-web tenga bandeja, migran a in-app.
