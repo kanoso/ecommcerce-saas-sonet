@@ -1,6 +1,7 @@
 # Tiendi Admin - Módulo "Ventas" (monitoreo de ventas de la plataforma)
 
-> **Estado:** especificación lista para implementar · **Fecha:** 2026-10-05
+> **Estado:** implementado y desplegado en TEST (`192.168.1.51` / `https://admin-test.tiendi.pe`) · **Fecha de cierre:** 2026-10-05
+> **Commits:** `20f547a` (`FUENTES/tiendi-admin`), `31549b8` (repo raíz)
 > **App:** `FUENTES/tiendi-admin` (Angular 21 + `@ngrx/signals` + SCSS/Tailwind 4)
 > **Backend:** `FUENTES/tiendi-api` — **sin cambios obligatorios** para el MVP
 > **Documento padre:** [[TIENDI_ADMIN]]
@@ -415,19 +416,19 @@ Runner: **Vitest** (ya configurado; ver `finance.stores.spec.ts` como referencia
 
 ## 10. Criterios de aceptación
 
-- [ ] `/admin/sales` accesible desde el sidebar y desde el dashboard; protegido por el `adminGuard` existente (ruta hija del shell).
-- [ ] Al entrar, se muestran los KPIs de "Hoy" con el delta vs. el período anterior y el rango real en hora Lima.
-- [ ] Los 5 períodos funcionan; "Personalizado" no permite enviar un rango incompleto o invertido.
-- [ ] "Pedidos por estado" suma todos los estados; "Ventas totales" tiene un tooltip que aclara que solo cuenta confirmados, despachados y entregados.
-- [ ] Top 5 tiendas/productos con la leyenda D5 (si D-V1 se aprueba).
-- [ ] La lista de pedidos pagina y filtra por estado, pago, tienda, fechas y búsqueda; los filtros viven en la URL.
-- [ ] Los montos de `/admin/orders` (strings) se muestran correctamente como PEN.
-- [ ] El panel de detalle muestra items, totales, delivery e historial; se cierra con `Esc`; email/teléfono solo aparecen ahí.
-- [ ] Auto-refresco de 60 s solo con "Hoy", que se pausa con la pestaña oculta y no corre con el detalle abierto ni fuera de la página 1.
-- [ ] Estados de carga, vacío y error en cada sección, sin romper las demás si una falla (KPIs y lista son independientes).
-- [ ] No se agregaron dependencias nuevas a `package.json`.
-- [ ] Vitest y Playwright en verde; `ng build` sin errores.
-- [ ] `DOCS/TIENDI_ADMIN.md` actualizado (D-V3).
+- [x] `/admin/sales` accesible desde el sidebar y desde el dashboard; protegido por el `adminGuard` existente (ruta hija del shell).
+- [x] Al entrar, se muestran los KPIs de "Hoy" con el delta vs. el período anterior y el rango real en hora Lima.
+- [x] Los 5 períodos funcionan; "Personalizado" no permite enviar un rango incompleto o invertido.
+- [x] "Pedidos por estado" suma todos los estados; "Ventas totales" tiene un tooltip que aclara que solo cuenta confirmados, despachados y entregados.
+- [x] Top 5 tiendas/productos con la leyenda D5 (si D-V1 se aprueba).
+- [x] La lista de pedidos pagina y filtra por estado, pago, tienda, fechas y búsqueda; los filtros viven en la URL.
+- [x] Los montos de `/admin/orders` (strings) se muestran correctamente como PEN.
+- [x] El panel de detalle muestra items, totales, delivery e historial; se cierra con `Esc`; email/teléfono solo aparecen ahí.
+- [x] Auto-refresco de 60 s solo con "Hoy", que se pausa con la pestaña oculta y no corre con el detalle abierto ni fuera de la página 1.
+- [x] Estados de carga, vacío y error en cada sección, sin romper las demás si una falla (KPIs y lista son independientes).
+- [x] No se agregaron dependencias nuevas a `package.json`.
+- [x] Vitest y Playwright en verde; `ng build` sin errores.
+- [x] `DOCS/TIENDI_ADMIN.md` actualizado (D-V3).
 
 ---
 
