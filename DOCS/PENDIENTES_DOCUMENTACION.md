@@ -22,7 +22,7 @@ flowchart TD
     end
 
     subgraph Desarrollo_Local ["Desarrollo Local Inmediato (Desbloqueado)"]
-        D1["Cloudinary: subida de logos, banners y fotos (Vendor + API)"]
+        D1["✅ Cloudinary: subida de logos, banners y fotos (Vendor + API)"]
         D2["Promociones y cupones de descuento"]
         D3["Facturación electrónica SUNAT / PSE"]
     end
@@ -32,7 +32,7 @@ flowchart TD
 |---|---|---|---|
 | **1. Infraestructura / TEST** | 🟢 **Habilitado y Operativo** | Servidor `192.168.1.51` reinstalado, 12 servicios arriba, 49 migraciones aplicadas y OpenBao unsealed. Resta solo configurar CNAMEs en Cloudflare DNS para `*-test.tiendi.pe`. | Agregar CNAMEs en Cloudflare DNS si se requiere acceso por dominio público. |
 | **2. Pruebas Móviles** | 🟡 Requiere Hardware | Verificación de push en APK Kipu físico y lectura de código de barras en cámara de smartphone. | Compilar APK Kipu con `google-services.json` propio. |
-| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Subidas directas Cloudinary (`POST /stores/:id/logo`, `POST /products/:id/images`), cupones y promociones. | **Iniciar integración de Cloudinary en `tiendi-vendor` y `tiendi-api`.** |
+| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary integrado (API + Vendor, 100% tests verdes). Siguen cupones/promociones y facturación SUNAT/PSE. | **Continuar con Promociones / Cupones o Facturación SUNAT.** |
 
 ---
 
@@ -87,7 +87,7 @@ flowchart TD
 
 ### 3.3. Desarrollo de Software (Features Desbloqueadas en Local)
 - **Módulo de Catálogo & Tiendas (`tiendi-api` / `tiendi-vendor`):**
-  - **Subida de imágenes con Cloudinary:** Implementación de endpoints directos (`POST /stores/:id/logo`, `POST /products/:id/images`), validación de formatos/tamaños, barra de progreso y previsualización.
+  - **✅ Subida de imágenes con Cloudinary (Completado):** Endpoints seguros con validación de magic bytes (JPEG/PNG/WebP) y límite de 5MB (`POST /stores/:id/logo`, `POST /stores/:id/banner`, `POST /stores/:id/product-images`, `POST /products/:id/images`). Integrado en `tiendi-vendor` con carga reactiva (Signals), spinners, previews y eliminación de blobs temporales y Base64 en base de datos. 100% tests unitarios pasando.
   - **Promociones y Descuentos:** Motor de cupones y reglas de descuento en carrito y checkout.
 - **Facturación y SUNAT (`FACTURACION_Y_CONTABILIDAD.md`):**
   - Integración con PSE/SUNAT para emisión de boletas y facturas electrónicas.
