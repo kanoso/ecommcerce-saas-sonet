@@ -23,7 +23,7 @@ flowchart TD
 
     subgraph Desarrollo_Local ["Desarrollo Local Inmediato (Desbloqueado)"]
         D1["✅ Cloudinary: subida de logos, banners y fotos (Vendor + API)"]
-        D2["Promociones y cupones de descuento"]
+        D2["✅ Promociones y cupones de descuento (API + Vendor + Web)"]
         D3["Facturación electrónica SUNAT / PSE"]
     end
 ```
@@ -32,7 +32,7 @@ flowchart TD
 |---|---|---|---|
 | **1. Infraestructura / TEST** | 🟢 **Habilitado y Operativo** | Servidor `192.168.1.51` reinstalado, 12 servicios arriba, 49 migraciones aplicadas y OpenBao unsealed. Resta solo configurar CNAMEs en Cloudflare DNS para `*-test.tiendi.pe`. | Agregar CNAMEs en Cloudflare DNS si se requiere acceso por dominio público. |
 | **2. Pruebas Móviles** | 🟡 Requiere Hardware | Verificación de push en APK Kipu físico y lectura de código de barras en cámara de smartphone. | Compilar APK Kipu con `google-services.json` propio. |
-| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary integrado (API + Vendor, 100% tests verdes). Siguen cupones/promociones y facturación SUNAT/PSE. | **Continuar con Promociones / Cupones o Facturación SUNAT.** |
+| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary y Cupones/Promociones integrados (100% tests verdes). Sigue facturación SUNAT/PSE. | **Continuar con Facturación electrónica SUNAT / PSE o Infraestructura TEST.** |
 
 ---
 
@@ -86,9 +86,9 @@ flowchart TD
   - Automatización en CI/CD con emulador Android headless para las suites de `tiendi-go`.
 
 ### 3.3. Desarrollo de Software (Features Desbloqueadas en Local)
-- **Módulo de Catálogo & Tiendas (`tiendi-api` / `tiendi-vendor`):**
+- **Módulo de Catálogo & Tiendas (`tiendi-api` / `tiendi-vendor` / `tiendi-web`):**
   - **✅ Subida de imágenes con Cloudinary (Completado):** Endpoints seguros con validación de magic bytes (JPEG/PNG/WebP) y límite de 5MB (`POST /stores/:id/logo`, `POST /stores/:id/banner`, `POST /stores/:id/product-images`, `POST /products/:id/images`). Integrado en `tiendi-vendor` con carga reactiva (Signals), spinners, previews y eliminación de blobs temporales y Base64 en base de datos. 100% tests unitarios pasando.
-  - **Promociones y Descuentos:** Motor de cupones y reglas de descuento en carrito y checkout.
+  - **✅ Promociones y Cupones de Descuento (Completado vía SDD):** Motor completo de cupones (`PERCENTAGE`, `FIXED_AMOUNT`), validaciones de cuotas de uso (global y por cliente), vigencia y compra mínima. Consumo atómico condicional en checkout de Prisma (`usedCount < maxUses`), recálculo tributario de IGV sobre base neta (`(subtotal - discount) * 18 / 118`) y reversión automática en pedidos rechazados. Gestión en `tiendi-vendor` con SignalStore y canje interactivo en tiempo real en `tiendi-web`. 126/126 tests pasando (verificación PASS, archivado en Engram).
 - **Facturación y SUNAT (`FACTURACION_Y_CONTABILIDAD.md`):**
   - Integración con PSE/SUNAT para emisión de boletas y facturas electrónicas.
   - Conciliación bancaria automatizada contra extractos de Culqi y bancos.
