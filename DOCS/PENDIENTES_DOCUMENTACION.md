@@ -24,15 +24,15 @@ flowchart TD
     subgraph Desarrollo_Local ["Desarrollo Local Inmediato (Desbloqueado)"]
         D1["✅ Cloudinary: subida de logos, banners y fotos (Vendor + API)"]
         D2["✅ Promociones y cupones de descuento (API + Vendor + Web)"]
-        D3["Facturación electrónica SUNAT / PSE"]
+        D3["✅ Facturación electrónica SUNAT / PSE (API + Vendor + Web)"]
     end
 ```
 
 | Frente | Estado | Tareas Clave | Siguiente Acción |
 |---|---|---|---|
-| **1. Infraestructura / TEST** | 🟢 **Habilitado y Operativo** | Servidor `192.168.1.51` reinstalado, 12 servicios arriba, 49 migraciones aplicadas y OpenBao unsealed. Resta solo configurar CNAMEs en Cloudflare DNS para `*-test.tiendi.pe`. | Agregar CNAMEs en Cloudflare DNS si se requiere acceso por dominio público. |
+| **1. Infraestructura / TEST** | 🟢 **Habilitado y Operativo** | Servidor `192.168.1.51` reinstalado, 12 servicios arriba, 49 migraciones aplicadas y OpenBao unsealed. Resta solo configurar CNAMEs en Cloudflare DNS para `*-test.tiendi.pe`. | Agregar CNAMEs en Cloudflare DNS para acceso por dominio público. |
 | **2. Pruebas Móviles** | 🟡 Requiere Hardware | Verificación de push en APK Kipu físico y lectura de código de barras en cámara de smartphone. | Compilar APK Kipu con `google-services.json` propio. |
-| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary y Cupones/Promociones integrados (100% tests verdes). Sigue facturación SUNAT/PSE. | **Continuar con Facturación electrónica SUNAT / PSE o Infraestructura TEST.** |
+| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary, Cupones/Promociones y Facturación SUNAT/PSE integrados (100% tests verdes). Resta conciliación bancaria. | **Configurar CNAMEs en Cloudflare DNS para TEST o Conciliación bancaria.** |
 
 ---
 
@@ -56,7 +56,7 @@ flowchart TD
 | [`TAREAS.md`](TAREAS.md) | 2026-10-02 | ✅ Fases 1 a 14 marcadas 100% completadas (102 suites / 1028 tests). Pendiente en módulo tiendas: Cloudinary y promociones. |
 | [`CATALOGO_MAESTRO.md`](CATALOGO_MAESTRO.md) | 2026-08-31 | Prueba física pendiente en Chrome Android y Safari iOS para captura de código de barras. |
 | [`INTEGRACION-TIENDI.md`](INTEGRACION-TIENDI.md) | 2026-08-29 | Saldo en tiempo real y wallet para comercios (`STORE_PAYABLE`). |
-| [`FACTURACION_Y_CONTABILIDAD.md`](FACTURACION_Y_CONTABILIDAD.md) | 2026-08-28 | Fase 4: Conciliación bancaria automatizada con extractos. Fase 5: Integración SUNAT/PSE. |
+| [`FACTURACION_Y_CONTABILIDAD.md`](FACTURACION_Y_CONTABILIDAD.md) | 2026-10-06 | ✅ Fase 5 (Integración SUNAT/PSE con Boletas y Facturas UBL 2.1) completada y archivada vía SDD (93 tests en API, 237 en Vendor, 136 en Web). Pendiente: Fase 4 (Conciliación bancaria automatizada con extractos). |
 | [`FLUJO_DINERO.md`](FLUJO_DINERO.md) | 2026-08-28 | Fase 5: Comprobantes electrónicos; Fase 6: Recaudador integrado opcional. |
 | [`MODELO_NEGOCIO.md`](MODELO_NEGOCIO.md) | 2026-08-26 | Sección 12: Definición de comisiones de tarjetas, esquemas de delivery y umbrales mínimos. |
 | [`GUIA_REINSTALACION_COMPLETA.md`](GUIA_REINSTALACION_COMPLETA.md) | 2026-08-31 | Tareas de endurecimiento en producción (firewall, SSL, backups automatizados). |
@@ -90,8 +90,8 @@ flowchart TD
   - **✅ Subida de imágenes con Cloudinary (Completado):** Endpoints seguros con validación de magic bytes (JPEG/PNG/WebP) y límite de 5MB (`POST /stores/:id/logo`, `POST /stores/:id/banner`, `POST /stores/:id/product-images`, `POST /products/:id/images`). Integrado en `tiendi-vendor` con carga reactiva (Signals), spinners, previews y eliminación de blobs temporales y Base64 en base de datos. 100% tests unitarios pasando.
   - **✅ Promociones y Cupones de Descuento (Completado vía SDD):** Motor completo de cupones (`PERCENTAGE`, `FIXED_AMOUNT`), validaciones de cuotas de uso (global y por cliente), vigencia y compra mínima. Consumo atómico condicional en checkout de Prisma (`usedCount < maxUses`), recálculo tributario de IGV sobre base neta (`(subtotal - discount) * 18 / 118`) y reversión automática en pedidos rechazados. Gestión en `tiendi-vendor` con SignalStore y canje interactivo en tiempo real en `tiendi-web`. 126/126 tests pasando (verificación PASS, archivado en Engram).
 - **Facturación y SUNAT (`FACTURACION_Y_CONTABILIDAD.md`):**
-  - Integración con PSE/SUNAT para emisión de boletas y facturas electrónicas.
-  - Conciliación bancaria automatizada contra extractos de Culqi y bancos.
+  - **✅ Facturación electrónica SUNAT / PSE (Completado vía SDD):** Emisión electrónica de comprobantes UBL 2.1 (Boleta 03 y Factura 01). Modelos Prisma `Invoice` e `InvoiceSequence` con correlativos consecutivos y monotonicidad atómica (`SELECT FOR UPDATE`), cifrado AES-256-GCM para tokens OSE en reposo en PostgreSQL, abstracción de proveedores (`MockInvoicingProvider` para test/CI y `NubefactProvider` para producción) con desglose de operaciones gravadas e IGV (18%). Hook asíncrono no bloqueante en transición de pedidos a `DELIVERED`. Portal de comercios en `tiendi-vendor` con persistencia de configuración SUNAT, listado reactivo con tags de estado y descarga PDF/XML. Selector de comprobante en storefront `tiendi-web` con validaciones de DNI (8 dígitos) y RUC (11 dígitos, prefijos 10/15/17/20) propagadas al backend. 100% tests unitarios pasando en los 3 subproyectos (verificación PASS, archivado en Engram).
+  - Conciliación bancaria automatizada contra extractos de Culqi y bancos (Fase 4).
 - **Microservicio `tiendi-notifications` (Fase 8):**
   - Desacoplar el módulo a servicio standalone según [`PLAN-EXTRACCION-TIENDI-NOTIFICATIONS.md`](PLAN-EXTRACCION-TIENDI-NOTIFICATIONS.md) una vez estabilizado el tráfico.
 
