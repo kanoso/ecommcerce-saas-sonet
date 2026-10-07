@@ -1,6 +1,6 @@
 # Relevamiento de Tareas y Pendientes en Documentación (DOCS)
 
-> **Fecha de última actualización:** 2026-10-05  
+> **Fecha de última actualización:** 2026-10-07  
 > **Criterio de orden:** Prioridad operativa y estado actual de ejecución.  
 > **Total de documentos analizados:** 46 archivos Markdown en `DOCS/`.
 
@@ -136,3 +136,37 @@ flowchart TD
 - `USER_STORIES.md` (Historias base implementadas)
 - `README.md` (Descripción general)
 - `PLANIFICACION.md` (Cronograma inicial)
+
+---
+
+## 5. Cierre Formal de Etapa y Guía de Continuidad
+
+> **Estado del Proyecto:** ✅ **Desarrollo de software en local 100% completado.**  
+> Todas las capacidades funcionales, modelos relacionales, motores de cálculo tributario/financiero, integraciones y paneles de administración fueron implementados y verificados con suites de pruebas unitarias e integración en verde.
+
+### Resumen de Entregas Clave de la Etapa:
+1. **Infraestructura y Conectividad DNS:**
+   - Servidor TEST operativo con 12 contenedores, 49 migraciones de base de datos y OpenBao unsealed.
+   - Enrutamiento Cloudflare verificado para subdominios TEST (`*-test.tiendi.pe`) y producción (`api.tiendi.pe`) con HTTP 200 OK en borde.
+2. **Catálogo y Media:**
+   - Subida segura de imágenes a Cloudinary con validación de magic bytes (logos, banners, productos) en `tiendi-api` y `tiendi-vendor`.
+3. **Marketing y Promociones:**
+   - Motor completo de cupones de descuento porcentuales y monto fijo con límites de uso atómicos, recálculo tributario de IGV y reversión en rechazos (API, Vendor y Web).
+4. **Facturación Electrónica SUNAT / PSE:**
+   - Emisión UBL 2.1 de Boletas y Facturas con correlativos atómicos, cifrado AES-256-GCM para credenciales OSE en reposo, proveedores Mock/Nubefact, selector de comprobante con validación DNI/RUC en checkout y portal de gestión en Vendor.
+5. **Conciliación Bancaria y Cierre Diario:**
+   - Ingesta multi-banco (BCP, BBVA, Interbank, Culqi) con sniffer de delimitadores/fechas y deduplicación SHA-256.
+   - Motor de conciliación determinista de 2 pasadas con generación de asientos de partida doble para comisiones bancarias e ITF (0.005%).
+   - Cierre de invariantes I4 (`GATEWAY_RECEIVABLE`) e I5 (`PLATFORM_CASH`) en `ReconciliationService` y workbench interactivo en `tiendi-admin`.
+
+### Guía de Handover (Para cuando se retome el proyecto):
+Cuando se decida reanudar las actividades, los frentes pendientes a abordar son:
+
+- **Frente A — Hardware y Dispositivos Reales:**
+  - Compilar el APK de Kipu inyectando el `google-services.json` correspondiente para validar la recepción de push notifications en segundo plano y arranque en frío.
+  - Ejecutar pruebas en smartphones físicos (Chrome en Android y Safari en iOS) para validar el escaneo de códigos de barras mediante cámara.
+- **Frente B — Despliegue y Hardening en Producción (PRD):**
+  - Cargar las variables de entorno definitivas en el host de producción (`ADMIN_ALERT_EMAILS`, credenciales de servicio de Firebase).
+  - Depurar cuentas de servicio huérfanas en Firebase Console (revocar `d31cef653b`).
+- **Frente C — Producto y Negocio:**
+  - Cerrar las definiciones comerciales de [`MODELO_NEGOCIO.md`](MODELO_NEGOCIO.md) §12 (esquema de absorción de comisiones de tarjeta 3.99% + IGV y matrices de costo de delivery por distancia).
