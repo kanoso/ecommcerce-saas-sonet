@@ -30,9 +30,9 @@ flowchart TD
 
 | Frente | Estado | Tareas Clave | Siguiente Acción |
 |---|---|---|---|
-| **1. Infraestructura / TEST** | 🟢 **Habilitado y Operativo** | Servidor `192.168.1.51` reinstalado, 12 servicios arriba, 49 migraciones aplicadas y OpenBao unsealed. Resta solo configurar CNAMEs en Cloudflare DNS para `*-test.tiendi.pe`. | Agregar CNAMEs en Cloudflare DNS para acceso por dominio público. |
+| **1. Infraestructura / TEST** | 🟢 **100% Operativo y Conectado** | Servidor `192.168.1.51` con 12 servicios arriba, 49 migraciones, OpenBao unsealed y todos los CNAMEs de Cloudflare DNS (`*-test.tiendi.pe` y PRD) verificados respondiendo HTTP 200. | Infraestructura completada. |
 | **2. Pruebas Móviles** | 🟡 Requiere Hardware | Verificación de push en APK Kipu físico y lectura de código de barras en cámara de smartphone. | Compilar APK Kipu con `google-services.json` propio. |
-| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary, Cupones/Promociones y Facturación SUNAT/PSE integrados (100% tests verdes). Resta conciliación bancaria. | **Configurar CNAMEs en Cloudflare DNS para TEST o Conciliación bancaria.** |
+| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary, Cupones/Promociones y Facturación SUNAT/PSE integrados (100% tests verdes). Resta conciliación bancaria. | **Continuar con Conciliación bancaria (Fase 4 de Facturación).** |
 
 ---
 
@@ -70,9 +70,8 @@ flowchart TD
   - Contenedores Docker levantados y saludables (`tiendi-test-api-1`, `kipu-api`, `web`, `shield`, `caddy`, `postgres`, `redis`, `loki`, `prometheus`, `grafana`, `otel-collector`).
   - Las 49 migraciones de Prisma fueron aplicadas exitosamente (incluyendo `notification_request`, `notification_installations_preferences`, `notification_outbox_durable` y `notification_campaigns`).
   - OpenBao inicializado y `unsealed` en `https://127.0.0.1:8200` (cluster healthy).
-  - Health check HTTP en `http://192.168.1.51/api/v1/health` respondiendo `{"status":"ok"}`.
-  - **Pendiente de Ops / Red:**
-    - Crear CNAMEs en Cloudflare DNS para `*-test.tiendi.pe` (apuntando al túnel Cloudflare activo en el servidor).
+  - **Ops / Red / Cloudflare:** ✅ **Completado y verificado:** CNAMEs en Cloudflare DNS configurados y verificados tanto para TEST (`*-test.tiendi.pe`) como para PRD (`api.tiendi.pe`). Ambos endpoints respondiendo HTTP 200 OK vía Cloudflare edge.
+  - **Pendiente menor de Ops:**
     - Cargar variables de entorno en producción cuando corresponda (`ADMIN_ALERT_EMAILS`, credenciales Firebase Kipu).
     - Revocar la cuenta de servicio duplicada (`d31cef653b`) en la consola de Firebase.
 
