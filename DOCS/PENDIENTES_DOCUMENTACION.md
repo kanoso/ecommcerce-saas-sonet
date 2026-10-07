@@ -21,10 +21,11 @@ flowchart TD
         H2["Cámara Vendor: escaneo de código de barras físico"]
     end
 
-    subgraph Desarrollo_Local ["Desarrollo Local Inmediato (Desbloqueado)"]
+    subgraph Desarrollo_Local ["Desarrollo Local Inmediato (Completado)"]
         D1["✅ Cloudinary: subida de logos, banners y fotos (Vendor + API)"]
         D2["✅ Promociones y cupones de descuento (API + Vendor + Web)"]
         D3["✅ Facturación electrónica SUNAT / PSE (API + Vendor + Web)"]
+        D4["✅ Conciliación bancaria automatizada (API + Admin)"]
     end
 ```
 
@@ -32,7 +33,7 @@ flowchart TD
 |---|---|---|---|
 | **1. Infraestructura / TEST** | 🟢 **100% Operativo y Conectado** | Servidor `192.168.1.51` con 12 servicios arriba, 49 migraciones, OpenBao unsealed y todos los CNAMEs de Cloudflare DNS (`*-test.tiendi.pe` y PRD) verificados respondiendo HTTP 200. | Infraestructura completada. |
 | **2. Pruebas Móviles** | 🟡 Requiere Hardware | Verificación de push en APK Kipu físico y lectura de código de barras en cámara de smartphone. | Compilar APK Kipu con `google-services.json` propio. |
-| **3. Desarrollo en Local** | 🟢 **Desbloqueado** | Cloudinary, Cupones/Promociones y Facturación SUNAT/PSE integrados (100% tests verdes). Resta conciliación bancaria. | **Continuar con Conciliación bancaria (Fase 4 de Facturación).** |
+| **3. Desarrollo en Local** | 🟢 **100% Completado** | Cloudinary, Cupones/Promociones, Facturación SUNAT/PSE y Conciliación bancaria automatizada integrados (100% tests verdes). | Siguiente paso de producto/negocio o despliegue según roadmap. |
 
 ---
 
@@ -56,8 +57,8 @@ flowchart TD
 | [`TAREAS.md`](TAREAS.md) | 2026-10-02 | ✅ Fases 1 a 14 marcadas 100% completadas (102 suites / 1028 tests). Pendiente en módulo tiendas: Cloudinary y promociones. |
 | [`CATALOGO_MAESTRO.md`](CATALOGO_MAESTRO.md) | 2026-08-31 | Prueba física pendiente en Chrome Android y Safari iOS para captura de código de barras. |
 | [`INTEGRACION-TIENDI.md`](INTEGRACION-TIENDI.md) | 2026-08-29 | Saldo en tiempo real y wallet para comercios (`STORE_PAYABLE`). |
-| [`FACTURACION_Y_CONTABILIDAD.md`](FACTURACION_Y_CONTABILIDAD.md) | 2026-10-06 | ✅ Fase 5 (Integración SUNAT/PSE con Boletas y Facturas UBL 2.1) completada y archivada vía SDD (93 tests en API, 237 en Vendor, 136 en Web). Pendiente: Fase 4 (Conciliación bancaria automatizada con extractos). |
-| [`FLUJO_DINERO.md`](FLUJO_DINERO.md) | 2026-08-28 | Fase 5: Comprobantes electrónicos; Fase 6: Recaudador integrado opcional. |
+| [`FACTURACION_Y_CONTABILIDAD.md`](FACTURACION_Y_CONTABILIDAD.md) | 2026-10-07 | ✅ Fase 4 (Conciliación bancaria automatizada con extractos BCP, BBVA, Interbank, Culqi, motor de 2 pasadas, invariantes I4/I5 y workbench Admin) y Fase 5 (Facturación SUNAT/PSE) completadas y archivadas vía SDD. |
+| [`FLUJO_DINERO.md`](FLUJO_DINERO.md) | 2026-10-07 | ✅ §18 Conciliación y cierre diario implementado: Invariantes I4 (`GATEWAY_RECEIVABLE`) e I5 (`PLATFORM_CASH`) activados en `ReconciliationService.runDailyChecks()`. |
 | [`MODELO_NEGOCIO.md`](MODELO_NEGOCIO.md) | 2026-08-26 | Sección 12: Definición de comisiones de tarjetas, esquemas de delivery y umbrales mínimos. |
 | [`GUIA_REINSTALACION_COMPLETA.md`](GUIA_REINSTALACION_COMPLETA.md) | 2026-08-31 | Tareas de endurecimiento en producción (firewall, SSL, backups automatizados). |
 
@@ -90,7 +91,7 @@ flowchart TD
   - **✅ Promociones y Cupones de Descuento (Completado vía SDD):** Motor completo de cupones (`PERCENTAGE`, `FIXED_AMOUNT`), validaciones de cuotas de uso (global y por cliente), vigencia y compra mínima. Consumo atómico condicional en checkout de Prisma (`usedCount < maxUses`), recálculo tributario de IGV sobre base neta (`(subtotal - discount) * 18 / 118`) y reversión automática en pedidos rechazados. Gestión en `tiendi-vendor` con SignalStore y canje interactivo en tiempo real en `tiendi-web`. 126/126 tests pasando (verificación PASS, archivado en Engram).
 - **Facturación y SUNAT (`FACTURACION_Y_CONTABILIDAD.md`):**
   - **✅ Facturación electrónica SUNAT / PSE (Completado vía SDD):** Emisión electrónica de comprobantes UBL 2.1 (Boleta 03 y Factura 01). Modelos Prisma `Invoice` e `InvoiceSequence` con correlativos consecutivos y monotonicidad atómica (`SELECT FOR UPDATE`), cifrado AES-256-GCM para tokens OSE en reposo en PostgreSQL, abstracción de proveedores (`MockInvoicingProvider` para test/CI y `NubefactProvider` para producción) con desglose de operaciones gravadas e IGV (18%). Hook asíncrono no bloqueante en transición de pedidos a `DELIVERED`. Portal de comercios en `tiendi-vendor` con persistencia de configuración SUNAT, listado reactivo con tags de estado y descarga PDF/XML. Selector de comprobante en storefront `tiendi-web` con validaciones de DNI (8 dígitos) y RUC (11 dígitos, prefijos 10/15/17/20) propagadas al backend. 100% tests unitarios pasando en los 3 subproyectos (verificación PASS, archivado en Engram).
-  - Conciliación bancaria automatizada contra extractos de Culqi y bancos (Fase 4).
+  - **✅ Conciliación bancaria automatizada (Completado vía SDD):** Ingesta multi-banco con sniffer de delimitadores (`,`/`;`), decimales y fechas para extractos BCP, BBVA, Interbank y reportes de liquidación Culqi con deduplicación por hash SHA-256 (HTTP 409) y validación de integridad de balance (`saldo inicial + créditos - débitos == saldo final`). Motor de matching determinista de 2 pasadas: Pass 1 por referencia de operación / cargo; Pass 2 por monto exacto y ventana de ±2 días hábiles con guardia estricta de unicidad (las colisiones escalan a `DISCREPANCY` con motivo `AMBIGUOUS_CANDIDATES`). Generación de asientos de ajuste contable de partida doble para comisiones bancarias (`+EXPENSE:BANK_FEE` / `−PLATFORM_CASH`) e impuesto ITF al 0.005% (`+EXPENSE:TAX_ITF` / `−PLATFORM_CASH`) preservando el invariante de suma cero. Cierre de invariantes diarios I4 (`GATEWAY_RECEIVABLE == Culqi pending`) e I5 (`PLATFORM_CASH == Bank balance`) con bloqueo de transferencias ante descuadre > S/ 0.01 PEN. Workbench de Back-Office en `tiendi-admin` con SignalStore (`@ngrx/signals`), dropzone CSV, 6 tarjetas KPI y modales de conciliación manual y resolución de discrepancias. 100% tests unitarios pasando en API y Admin (verificación PASS WITH WARNINGS, archivado en Engram #2132).
 - **Microservicio `tiendi-notifications` (Fase 8):**
   - Desacoplar el módulo a servicio standalone según [`PLAN-EXTRACCION-TIENDI-NOTIFICATIONS.md`](PLAN-EXTRACCION-TIENDI-NOTIFICATIONS.md) una vez estabilizado el tráfico.
 
