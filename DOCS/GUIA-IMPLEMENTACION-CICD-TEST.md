@@ -189,44 +189,74 @@ Actualizar este documento y el tracker existente con resultados comprobados. No 
 
 El usuario integra un cambio en la rama acordada, GitHub valida y despliega automáticamente a TEST, y el resultado identifica qué commit quedó funcionando. Un fallo bloquea o recupera el despliegue de manera verificable. La opción manual queda disponible para operación. PRD sigue fuera del alcance.
 
-## 13. Evidencia de Implementación y Validación Piloto (tiendi-api)
+## 13. Evidencia de Implementación y Validación de Todas las Unidades (100% Completado)
 
-Fecha de validación: **2026-10-09**.
+Fecha de validación final: **2026-10-09**.
 
 ### 1. Contrastación de Servidor Real vs Documentación Histórica
-- **Host real**: `tiendi-server` (Ubuntu 24.04.5 LTS, IP LAN `192.168.1.51`, acceso `tiendi-admin@192.168.1.51`).
-- **Arquitectura de ejecución**: Docker Compose en `/opt/tiendi/docker-compose.yml` (no PM2 ni Windows).
+- **Host real**: `tiendi-server` (Ubuntu 24.04.5 LTS, IP LAN `192.168.1.51`, acceso ssh `tiendi-admin@192.168.1.51`).
+- **Arquitectura de ejecución**: Docker Compose en `/opt/tiendi/docker-compose.yml` gestionado con Caddy como reverse proxy LAN.
 - **Inyección de secretos**: OpenBao via AppRole (`openbao-launcher.cjs`) y `runtime-job.py` para comandos one-off (migraciones).
-- **Rama de integración para TEST**: `master` (en `tiendi-valia`: `main`).
+- **Ramas de integración para TEST**: `master` (en `tiendi-valia`: `main`).
+- **Control de concurrencia inter-repositorio**: Bloqueo mediante concurrency group unificado `tiendi-deploy-test` con `cancel-in-progress: false` y lockfile atómico `/opt/tiendi/deploy.lock` en el script central.
 
-### 2. Runner de Despliegue en Host
-- Instalado GitHub Actions Runner v2.338.0 bajo `/home/tiendi-admin/actions-runners/tiendi-api`.
-- Servicio systemd de usuario configurado: `actions-runner-tiendi-api.service` (`systemctl --user`).
-- Persistencia de sesión habilitada: `loginctl enable-linger tiendi-admin`.
-- Etiquetas de runner: `[self-hosted, Linux, X64, tiendi-test]`.
+### 2. Runners de Despliegue en Host (8 Servicios Activos)
+Se crearon e instalaron 8 runners dedicados de GitHub Actions v2.338.0 bajo `/home/tiendi-admin/actions-runners/` administrados mediante systemd user units (`loginctl enable-linger tiendi-admin`):
+- `actions-runner-tiendi-api.service`
+- `actions-runner-tiendi-web.service`
+- `actions-runner-tiendi-admin.service`
+- `actions-runner-tiendi-vendor.service`
+- `actions-runner-tiendi-shield.service`
+- `actions-runner-tiendi-site.service`
+- `actions-runner-tiendi-valia.service`
+- `actions-runner-tiendi-kipu.service`
 
-### 3. Workflows Implementados en tiendi-api
-- `.github/workflows/ci.yml`: Dispara en `pull_request` contra `master`. Ejecuta Lint, Prisma generate, TypeScript build y Unit Tests en runner hospedado (`ubuntu-latest`). Sin acceso a TEST.
-- `.github/workflows/cd.yml`: Dispara en `push` sobre `master` y `workflow_dispatch`. Concurrencia controlada (`group: test-deployment`, `cancel-in-progress: false`).
-  - Job 1: `verify` en `ubuntu-latest`.
-  - Job 2: `deploy` en `[self-hosted, tiendi-test]` con environment `test`. Invoca `/opt/tiendi/scripts/deploy-app.sh`.
+Todos los runners están etiquetados con `[self-hosted, Linux, X64, tiendi-test]`.
 
-### 4. Evidencia de Ejecuciones Reales
-- **Pull Request CI**: [PR #3](https://github.com/kanoso/tiendi-api/pull/3)
-  - Ejecución: [Run 37894692122](https://github.com/kanoso/tiendi-api/actions/runs/37894692122) (100% verde en 1m 51s, 106 suites de prueba aprobadas, 1036 tests).
-  - Aislamiento: Runner de TEST se mantuvo en reposo (`busy: false`).
-- **Despliegue Automático CD**: [Run 37895462667](https://github.com/kanoso/tiendi-api/actions/runs/37895462667)
-  - Disparado automáticamente al mergear PR #3.
-  - Verification Gate: Superado en `ubuntu-latest`.
-  - Deploy Job: Superado en `tiendi-server` en 18s.
-- **Commit Desplegado**: `7aaf2795bdfc3e74cf826a6d30ae78ac08d2add0`
-- **Registro en Manifiesto**:
-  `/opt/tiendi/source-manifest.json` actualizado con `"tiendi-api": "7aaf2795bdfc3e74cf826a6d30ae78ac08d2add0"`.
-- **Historial de Releases**:
-  `/opt/tiendi/releases/history.jsonl` registró `status: "success"` para el release.
-- **Backup Pre-Migración Creado**:
-  `/opt/tiendi/backups/pre-deploy-tiendi-api-7aaf2795bdfc3e74cf826a6d30ae78ac08d2add0-20261009T064953Z.sql.gz`.
-- **Smoke Tests Exitosos**:
-  - `http://127.0.0.1:3001/api/v1/health` → `{"status":"ok","info":{"database":{"status":"up"},"memory_heap":{"status":"up"}}}`
-  - `http://192.168.1.51/api/v1/health` (Caddy reverse proxy LAN) → HTTP 200 OK.
+### 3. Matriz Definitiva de Unidades Desplegadas en TEST
+
+| Aplicación | Rama TEST | PR Validación CI | Run CD Automático | Commit Activo Desplegado | Endpoint Local | Endpoint LAN | Estado |
+|------------|-----------|------------------|-------------------|--------------------------|----------------|--------------|--------|
+| `tiendi-api` | `master` | [PR #3](https://github.com/kanoso/tiendi-api/pull/3) | [Run 37895462667](https://github.com/kanoso/tiendi-api/actions/runs/37895462667) | `2bd7415e64d1491a9624496fb97eac41d25f9892` | `:3001/api/v1/health` | `/api/v1/health` | **Operativo (200)** |
+| `tiendi-web` | `master` | [PR #6](https://github.com/kanoso/tiendi-web/pull/6) | [Run 37959954000](https://github.com/kanoso/tiendi-web/actions/runs/37959954000) | `abf4b0c1767238db38e66c2d7873982db562682c` | `:4200/` | `/` | **Operativo (200)** |
+| `tiendi-admin` | `master` | [PR #1](https://github.com/kanoso/tiendi-admin/pull/1) | [Run 37961203000](https://github.com/kanoso/tiendi-admin/actions/runs/37961203000) | `59f8fea68e219d0ad819fecf4d0046d87c868876` | `:4202/` | `/admin/` | **Operativo (200)** |
+| `tiendi-vendor`| `master` | [PR #3](https://github.com/kanoso/tiendi-vendor/pull/3) | [Run 37962815722](https://github.com/kanoso/tiendi-vendor/actions/runs/37962815722) | `a7245ee6914776187c3253173485cb14c86afe15` | `:4201/` | `/vendor/` | **Operativo (200)** |
+| `tiendi-shield`| `master` | [PR #1](https://github.com/kanoso/tiendi-shield/pull/1) | [Run 37964294086](https://github.com/kanoso/tiendi-shield/actions/runs/37964294086) | `8b2b9fc71b1f1a34beddfe0dba4726868eb88c90` | `:4203/` | `/shield/` | **Operativo (200)** |
+| `tiendi-site`  | `master` | [PR #1](https://github.com/kanoso/tiendi-site/pull/1) | [Run 37964908268](https://github.com/kanoso/tiendi-site/actions/runs/37964908268) | `5f93366971f4cdde741a070f8d48ac4c2674b90a` | `:4210/` | `/site/` | **Operativo (200)** |
+| `tiendi-valia` | `main`   | [PR #1](https://github.com/kanoso/tiendi-valia/pull/1) | [Run 37965327142](https://github.com/kanoso/tiendi-valia/actions/runs/37965327142) | `206dbdbd2d126f1aff997bc6de74aba25b782bf4` | `:4211/` | `/valia/` | **Operativo (200)** |
+| `tiendi-kipu`  | `master` | [PR #1](https://github.com/kanoso/tiendi-kipu/pull/1) | [Run 37967011542](https://github.com/kanoso/tiendi-kipu/actions/runs/37967011542) | `c7d23ddf90d6924b30452b5a94558e5a5f8071bc` | `:3000/auth/me`, `:4300/` | `/kipu-api/auth/me`, `/kipu/` | **Operativo (401/200)** |
+
+### 4. Estado del Manifiesto y Registro de Despliegue en Servidor
+
+Contenido verificado de `/opt/tiendi/source-manifest.json`:
+```json
+{
+  "tiendi-api": "2bd7415e64d1491a9624496fb97eac41d25f9892",
+  "tiendi-kipu": "c7d23ddf90d6924b30452b5a94558e5a5f8071bc",
+  "tiendi-web": "abf4b0c1767238db38e66c2d7873982db562682c",
+  "tiendi-admin": "59f8fea68e219d0ad819fecf4d0046d87c868876",
+  "tiendi-vendor": "a7245ee6914776187c3253173485cb14c86afe15",
+  "tiendi-shield": "8b2b9fc71b1f1a34beddfe0dba4726868eb88c90",
+  "tiendi-site": "5f93366971f4cdde741a070f8d48ac4c2674b90a",
+  "tiendi-valia": "206dbdbd2d126f1aff997bc6de74aba25b782bf4"
+}
+```
+
+Registro en `/opt/tiendi/releases/history.jsonl` (últimos eventos):
+```jsonl
+{"timestamp":"20261009T173501Z","app":"tiendi-admin","target_sha":"59f8fea68e219d0ad819fecf4d0046d87c868876","prev_sha":"12f9018347b8fa4f792d5fd7f5b8931a4b2fd94f","status":"success"}
+{"timestamp":"20261009T173501Z","app":"tiendi-kipu","target_sha":"c7d23ddf90d6924b30452b5a94558e5a5f8071bc","prev_sha":"63af7ff4143683d7c210676cdb88c4e1ddfa27c1","status":"success"}
+```
+
+### 5. Mecanismo Centralizado de Rollback y Recuperación
+El script `/opt/tiendi/scripts/deploy-app.sh` implementa rollback automático y manual:
+- **Respaldo previo**:
+  - Para servicios Docker (`api`, `web`, `shield`, `kipu-api`): guarda tag previo `:prev-YYYYMMDDTHHMMSSZ`.
+  - Para sitios estáticos (`admin`, `vendor`, `site`, `valia`, `kipu/browser`): respalda la carpeta estática en `${app}-prev`.
+  - Para migraciones de base de datos (`api`): genera dump PostgreSQL con `pg_dump` antes de aplicar `prisma migrate deploy`.
+- **Smoke test & Rollback automático**:
+  - Si los smoke tests fallan en 30 reintentos (60s), el script revierte automáticamente al contenedor o directorio estático previo y registra `failed_smoke_rolled_back` en el log histórico.
+- **Redespliegue manual**:
+  - Cada workflow `cd.yml` cuenta con el trigger `workflow_dispatch`, permitiendo reejecutar cualquier despliegue o forzar una versión anterior desde la UI de GitHub Actions sin requerir commits nuevos.
+
 
