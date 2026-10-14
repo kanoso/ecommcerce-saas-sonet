@@ -58,3 +58,13 @@ El primer despliegue utilizó snapshots de las fuentes locales modificadas. Los 
 | Vendor | `8f01264f5cae8a71ce108040c06423a41864b0e6` | [Run 38521768437](https://github.com/kanoso/tiendi-vendor/actions/runs/38521768437) |
 
 La comprobación local previa al push incluyó lint de los tres repositorios y las 311 pruebas completas de Vendor. Se corrigió el formato de una prueba de API para cumplir su regla Prettier.
+
+Los tres pipelines anteriores completaron las validaciones y el despliegue con resultado `success`. En la comprobación posterior, TEST ya tenía commits más recientes que incluyen los commits de apariencia como antecesores:
+
+| Aplicación | Commit activo verificado | Último despliegue exitoso |
+|---|---|---|
+| API | `608be33e25edf67207f09bd0bd705498060b907f` | [Run 38526101843](https://github.com/kanoso/tiendi-api/actions/runs/38526101843) |
+| Web | `7b479f70f8806b7438c8bc58e6baff5c609bf2c3` | [Run 38532448564](https://github.com/kanoso/tiendi-web/actions/runs/38532448564) |
+| Vendor | `727f07e6acf508e0d7440afcbbaadc54d4830a82` | [Run 38529202255](https://github.com/kanoso/tiendi-vendor/actions/runs/38529202255) |
+
+El manifiesto del servidor coincide con esos commits. La API responde saludable y la revisión Playwright de Web desplegada volvió a pasar en escritorio y móvil, incluyendo buscador, logo, paleta y visibilidad del banner mediante la simulación de navegador descrita arriba.
