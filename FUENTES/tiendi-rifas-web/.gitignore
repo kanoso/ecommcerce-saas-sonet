@@ -1,0 +1,11 @@
+/dist
+/tmp
+/out-tsc
+/node_modules
+npm-debug.log
+/.angular/cache
+/coverage
+/test-results/
+/playwright-report/
+.env
+.DS_Store

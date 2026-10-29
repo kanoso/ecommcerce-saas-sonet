@@ -1,0 +1,30 @@
+/* Visual tokens according to GUIA-IMPLEMENTACION-RIFAS §12.1 */
+:root {
+  --ink: #0F172A;
+  --muted: #475569;
+  --border: #CBD5E1;
+  --ground: #F1F5F9;
+  --surface: #FFFFFF;
+  --accent: #C2410C;
+  --accent-soft: #FFEDD5;
+  --verify: #1D4ED8;
+  --success: #047857;
+  --sold: #334155;
+  --reserved: #E2E8F0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background-color: var(--ground);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}

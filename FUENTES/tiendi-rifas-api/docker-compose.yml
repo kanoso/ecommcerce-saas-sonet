@@ -1,0 +1,36 @@
+services:
+  rifas-postgres:
+    image: postgres:15-alpine
+    container_name: tiendi-rifas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rifas
+    ports:
+      - "5432:5432"
+    volumes:
+      - rifas_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rifas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rifas-redis:
+    image: redis:7-alpine
+    container_name: tiendi-rifas-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - rifas_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rifas_postgres_data:
+  rifas_redis_data:
