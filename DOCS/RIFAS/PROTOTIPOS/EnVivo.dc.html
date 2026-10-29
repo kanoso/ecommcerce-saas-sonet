@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Sorteo en vivo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#FDBA74}a:hover{color:#FED7AA}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0F172A; font-family: Inter, system-ui, sans-serif; color: #F8FAFC; display: flex; flex-direction: column; overflow: hidden">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px">Smart TV 55"</span>
+      <span style="font-size: 12px; color: #94A3B8">Sorteo · 15 nov, 20:30</span>
+    </div>
+    <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #B91C1C; font-size: 12px; font-weight: 700; letter-spacing: 0.06em">
+      <span style="width: 8px; height: 8px; border-radius: 999px; background: #FFFFFF"></span>EN VIVO
+    </span>
+  </header>
+
+  <section style="margin: 8px 20px 0; padding: 28px 20px; border-radius: 20px; background: #1E293B; border: 1px solid #334155; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+    <sc-if value="{{esCuenta}}" hint-placeholder-val="{{ true }}">
+      <span style="font-size: 13px; color: #94A3B8">La ronda drand #5 204 117 se publica en</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 64px; line-height: 1; letter-spacing: -0.02em">{{reloj}}</span>
+      <span style="font-size: 12px; color: #94A3B8">Nadie conoce todavía el valor de esa ronda.</span>
+    </sc-if>
+    <sc-if value="{{esGirando}}" hint-placeholder-val="{{ false }}">
+      <span style="font-size: 13px; color: #94A3B8">Calculando en tu navegador…</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 72px; line-height: 1; color: #64748B">{{giro}}</span>
+    </sc-if>
+    <sc-if value="{{esResultado}}" hint-placeholder-val="{{ false }}">
+      <span style="font-size: 13px; color: #FDBA74; font-weight: 600; letter-spacing: 0.08em">NÚMERO GANADOR</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 80px; line-height: 1; color: #FFFFFF">427</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; background: #064E3B; color: #A7F3D0; font-size: 13px; font-weight: 600">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+        Coincide con el resultado oficial
+      </span>
+    </sc-if>
+  </section>
+
+  <section style="margin: 20px 20px 0; display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #94A3B8; letter-spacing: 0.06em">TU NAVEGADOR VERIFICÓ</h2>
+    <sc-for list="{{pasos}}" as="p" hint-placeholder-count="4">
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #1E293B; border: 1px solid #334155">
+        <span style="{{p.iconoEstilo}}">{{p.icono}}</span>
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <span style="font-size: 14px; font-weight: 600; color: {{p.color}}">{{p.titulo}}</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #94A3B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{p.detalle}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+
+  <div style="flex: 1"></div>
+
+  <footer style="padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 10px">
+    <sc-if value="{{esCuenta}}" hint-placeholder-val="{{ true }}">
+      <button type="button" onClick="{{simular}}" style="min-height: 48px; border-radius: 12px; border: 1px dashed #64748B; background: transparent; color: #CBD5E1; font: 600 14px Inter, sans-serif; cursor: pointer">Simular llegada de la ronda (prototipo)</button>
+    </sc-if>
+    <sc-if value="{{esResultado}}" hint-placeholder-val="{{ false }}">
+      <a href="Verificacion.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 12px; background: #F8FAFC; color: #0F172A; text-decoration: none; font-weight: 600; font-size: 15px">Ver verificación completa</a>
+      <button type="button" onClick="{{reiniciar}}" style="min-height: 44px; border-radius: 12px; border: 1px solid #334155; background: transparent; color: #CBD5E1; font: 600 14px Inter, sans-serif; cursor: pointer">Reiniciar demo</button>
+    </sc-if>
+    <span style="text-align: center; font-size: 12px; color: #94A3B8">1 284 espectadores calculando el mismo resultado</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"fase":{"editor":"enum","options":["cuenta","resultado"],"default":"cuenta"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { fase: props.fase ?? 'cuenta', restante: 252, giro: '000' };
+  }
+  componentDidMount() {
+    this.reloj = setInterval(() => {
+      if (this.state.fase === 'cuenta') {
+        this.setState({ restante: this.state.restante > 0 ? this.state.restante - 1 : 252 });
+      }
+    }, 1000);
+  }
+  componentDidUpdate(prev) {
+    if (prev.fase !== this.props.fase && this.props.fase) {
+      this.setState({ fase: this.props.fase });
+    }
+  }
+  componentWillUnmount() {
+    clearInterval(this.reloj);
+    clearInterval(this.ruleta);
+  }
+  renderVals() {
+    const fase = this.state.fase;
+    const ok = 'flex: none; width: 24px; height: 24px; border-radius: 999px; background: #047857; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;';
+    const espera = 'flex: none; width: 24px; height: 24px; border-radius: 999px; border: 2px dashed #64748B; color: #94A3B8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;';
+    const listo = fase !== 'cuenta';
+    const r = this.state.restante;
+    return {
+      esCuenta: fase === 'cuenta',
+      esGirando: fase === 'girando',
+      esResultado: fase === 'resultado',
+      reloj: String(Math.floor(r / 60)).padStart(2, '0') + ':' + String(r % 60).padStart(2, '0'),
+      giro: this.state.giro,
+      pasos: [
+        { titulo: 'La semilla coincide con el compromiso', detalle: 'sha256(semilla) = 9f2c4e81a7d03b56…', icono: '✓', iconoEstilo: ok, color: '#F8FAFC' },
+        { titulo: 'Lista congelada: 640 números vendidos', detalle: 'hash_lista = 3b7e19c0d4a2f865…', icono: '✓', iconoEstilo: ok, color: '#F8FAFC' },
+        { titulo: listo ? 'Ronda drand recibida y firma válida' : 'Esperando la ronda drand', detalle: listo ? 'ronda 5204117 · 7d21aa09e3c5b4f1…' : 'consultando api.drand.sh…', icono: listo ? '✓' : '…', iconoEstilo: listo ? ok : espera, color: listo ? '#F8FAFC' : '#94A3B8' },
+        { titulo: fase === 'resultado' ? 'Ganador calculado localmente' : 'Cálculo del ganador', detalle: fase === 'resultado' ? 'sha256(semilla‖drand‖id) mod 640 → índice 271 → 427' : 'pendiente', icono: fase === 'resultado' ? '✓' : '…', iconoEstilo: fase === 'resultado' ? ok : espera, color: fase === 'resultado' ? '#F8FAFC' : '#94A3B8' }
+      ],
+      simular: () => {
+        this.setState({ fase: 'girando' });
+        let vueltas = 0;
+        clearInterval(this.ruleta);
+        this.ruleta = setInterval(() => {
+          vueltas++;
+          if (vueltas > 18) {
+            clearInterval(this.ruleta);
+            this.setState({ fase: 'resultado', giro: '427' });
+            return;
+          }
+          this.setState({ giro: String(Math.floor(Math.random() * 1000)).padStart(3, '0') });
+        }, 90);
+      },
+      reiniciar: () => this.setState({ fase: 'cuenta', restante: 252 })
+    };
+  }
+}
+</script>
+</body>
+</html>

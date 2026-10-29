@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Case 1: Standard raffle with sequential sold tickets",
+    "seedHex": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "drandRandomnessHex": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+    "raffleId": "11111111-1111-4111-8111-111111111111",
+    "soldNumbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "expected": {
+      "commitmentHash": "4884fdaafea47c29fea7159d0daddd9c085d6200e1359e85bb81736af6b7c837",
+      "soldListHash": "d10434d8c3b61a402e8c5a9f2e64e628b1e9f8c1dd747e7f480dbe57eb79c425",
+      "digestHex": "51431b5cdb2205f0058716eca1cf52f8f8761482cecfb730ac70dcbef992857c",
+      "index": 2,
+      "winner": 3
+    }
+  },
+  {
+    "name": "Case 2: Sparse sold tickets with single-digit and large numbers",
+    "seedHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "drandRandomnessHex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "raffleId": "22222222-2222-4222-8222-222222222222",
+    "soldNumbers": [7, 42, 100, 500, 999],
+    "expected": {
+      "commitmentHash": "e0e77a507412b120f6ede61f62295b1a7b2ff19d3dcc8f7253e51663470c888e",
+      "soldListHash": "178234a150bcb4dfc80e256dd499e045bc10d341d15d8fd58a519bab483829c1",
+      "digestHex": "0dcf54be2b878363f44b1f3b6e394ef664b10d5869e0dc3bdfd5f18cc9a338b8",
+      "index": 4,
+      "winner": 999
+    }
+  },
+  {
+    "name": "Case 3: Single sold ticket (boundary condition index 0)",
+    "seedHex": "1000000000000000000000000000000000000000000000000000000000000001",
+    "drandRandomnessHex": "2000000000000000000000000000000000000000000000000000000000000002",
+    "raffleId": "33333333-3333-4333-8333-333333333333",
+    "soldNumbers": [42],
+    "expected": {
+      "commitmentHash": "e9a5fbe53c23e00e8eef72cbefc5933357155e28011f90821b88580f390dadd1",
+      "soldListHash": "73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+      "digestHex": "29286a9142b6160e0bf6af69e2cbe411c9e277a7a2eb49acc025fa70b1af1ff1",
+      "index": 0,
+      "winner": 42
+    }
+  },
+  {
+    "name": "Case 4: Real quicknet randomness sample from live drand beacon",
+    "seedHex": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8eef0c7412762a429d5b512c",
+    "drandRandomnessHex": "adbd8ec2f5f252740ee17306d0c8d78299691db70d01e1985f7d284f4654307c",
+    "raffleId": "a0b1c2d3-e4f5-4678-9abc-def012345678",
+    "soldNumbers": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    "expected": {
+      "commitmentHash": "59e3abc0ebb992be6f43b00b8f1aea41ce03b8985a75c3dc25c9ea9a88fce2f7",
+      "soldListHash": "ef16d6b9647ee57212c81e4018565ac0427aed3fbcb234cd1f21304528d2dcb1",
+      "digestHex": "7f4f901da6b482183b429031c1a3767f016f2225193f86aa3400f07ef78772ac",
+      "index": 4,
+      "winner": 50
+    }
+  },
+  {
+    "name": "Case 5: Large list of 100 sold numbers with non-trivial distribution",
+    "seedHex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "drandRandomnessHex": "0000000000000000000000000000000000000000000000000000000000000000",
+    "raffleId": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    "soldNumbers": [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108, 111, 114, 117, 120, 123, 126, 129, 132, 135, 138, 141, 144, 147, 150, 153, 156, 159, 162, 165, 168, 171, 174, 177, 180, 183, 186, 189, 192, 195, 198, 201, 204, 207, 210, 213, 216, 219, 222, 225, 228, 231, 234, 237, 240, 243, 246, 249, 252, 255, 258, 261, 264, 267, 270, 273, 276, 279, 282, 285, 288, 291, 294, 297, 300],
+    "expected": {
+      "commitmentHash": "af9613760f72635fbdb44a5a0a63c39f12af30f950a6ee5c971be188e89c4051",
+      "soldListHash": "ef473bd3c751b1a3deeb473654940e45811d605d75e8ac6568fb768cb8469569",
+      "digestHex": "245e5dde189f0b37ebc37cb594136a4ae6dcde9822e243d48e86dc2ac4b18e2e",
+      "index": 78,
+      "winner": 237
+    }
+  }
+]

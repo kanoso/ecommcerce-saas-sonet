@@ -12,7 +12,7 @@ export const envSchema = z.object({
   CULQI_PUBLIC_KEY: z.string().optional(),
   CULQI_WEBHOOK_SECRET: z.string().min(10).optional(),
 
-  DRAND_CHAIN_HASH: z.string().default('52db929800de6b1d61994484021644b370a7feb8365a9b7d536eb243802c2da8'),
+  DRAND_CHAIN_HASH: z.string().default('52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971'),
   DRAND_RELAYS: z.string().default('https://api.drand.sh,https://api2.drand.sh,https://drand.cloudflare.com'),
 
   SEED_ENCRYPTION_KEY_REF: z.string().optional(),
