@@ -1,0 +1,149 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  document  String?
+  role      String   @default("buyer")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders TicketOrder[]
+
+  @@map("User")
+}
+
+model Raffle {
+  id                      String    @id @default(uuid())
+  title                   String
+  prize                   String
+  ticketPrice             Decimal   @db.Decimal(10, 2)
+  numberMin               Int
+  numberMax               Int
+  status                  String    @default("DRAFT") // DRAFT, ACTIVE, CLOSED, DRAWN, CANCELLED
+  authorizationResolution String?
+  commitmentHash          String?
+  seedCiphertext          String?
+  seedRevealed            String?
+  drandRound              BigInt?
+  drandChainHash          String?
+  soldListHash            String?
+  salesCloseAt            DateTime?
+  drawAt                  DateTime?
+  cancellationReason      String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  tickets     Ticket[]
+  draw        Draw?
+  auditEvents AuditEvent[]
+
+  @@map("Raffle")
+}
+
+model Ticket {
+  id            String    @id @default(uuid())
+  raffleId      String
+  raffle        Raffle    @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  number        Int
+  status        String    @default("AVAILABLE") // AVAILABLE, RESERVED, SOLD, REFUNDED
+  orderId       String?
+  order         TicketOrder? @relation(fields: [orderId], references: [id])
+  reservedUntil DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  winningDraw Draw?
+
+  @@unique([raffleId, number])
+  @@index([raffleId, status])
+  @@index([orderId])
+  @@map("Ticket")
+}
+
+model TicketOrder {
+  id          String    @id @default(uuid())
+  raffleId    String
+  userId      String
+  user        User?     @relation(fields: [userId], references: [id])
+  numbers     Int[]
+  totalAmount Decimal   @db.Decimal(10, 2)
+  status      String    @default("PENDING") // PENDING, PAID, EXPIRED, REFUNDED
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tickets  Ticket[]
+  payments Payment[]
+
+  @@index([raffleId])
+  @@index([userId])
+  @@map("TicketOrder")
+}
+
+model Payment {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      TicketOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider   String
+  externalId String
+  status     String
+  payload    Json?
+  receivedAt DateTime @default(now())
+
+  @@unique([provider, externalId])
+  @@index([orderId])
+  @@map("Payment")
+}
+
+model Draw {
+  id               String   @id @default(uuid())
+  raffleId         String   @unique
+  raffle           Raffle   @relation(fields: [raffleId], references: [id])
+  algorithmVersion String   @default("v1")
+  seedRevealed     String
+  drandRandomness  String
+  drandRound       BigInt
+  digestHex        String
+  totalSold        Int
+  winningTicketId  String   @unique
+  winningTicket    Ticket   @relation(fields: [winningTicketId], references: [id])
+  winningNumber    Int
+  winnerIndex      Int
+  executedAt       DateTime @default(now())
+
+  @@map("Draw")
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  raffleId   String
+  raffle     Raffle   @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  type       String
+  data       Json
+  occurredAt DateTime @default(now())
+
+  @@index([raffleId])
+  @@index([type])
+  @@map("AuditEvent")
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  type        String?
+  payload     Json?
+  processedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@map("WebhookEvent")
+}
