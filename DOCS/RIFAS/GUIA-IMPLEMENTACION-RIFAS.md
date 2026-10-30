@@ -442,7 +442,7 @@ El agente actualiza esta tabla al cerrar cada fase.
 |---|---|---|---|
 | F0 | Completada | 2026-10-29 | `packages/raffle-draw`: lint + test ok (1/1); `tiendi-rifas-api`: lint + test ok (2/2), e2e health ok, test:integration ok; `tiendi-rifas-web`: lint + test ok (2/2), build ok |
 | F1 | Completada | 2026-10-29 | Cobertura 95.77% (20/20 tests ok, 10k seeds 9-11%, 5 vectores JSON); spike quicknet documentado en DT-01; dual build importado y verificado en Node (NestJS) y Angular (Vitest + build) |
-| F2 | Pendiente | | |
+| F2 | Completada | 2026-10-29 | `tiendi-rifas-api`: 72/72 tests unitarios ok (12 suites), cobertura de dominio y casos de uso 85.7% total / >97% modelos y reglas, 11 casos de uso probados con fakes en memoria, lint ok |
 | F3 | Pendiente | | |
 | F4 | Pendiente | | |
 | F5 | Pendiente | | |
