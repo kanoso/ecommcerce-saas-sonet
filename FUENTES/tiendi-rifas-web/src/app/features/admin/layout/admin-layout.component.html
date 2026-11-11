@@ -1,0 +1,193 @@
+<header class="admin-topbar">
+  <div class="admin-topbar__brand">
+    <a routerLink="/" class="admin-topbar__home" title="Ir a la tienda">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+    </a>
+    <h1 class="admin-topbar__title">Panel de administración</h1>
+  </div>
+
+  <div class="admin-topbar__actions">
+    <!-- Unread alerts button (DT-09) -->
+    <button
+      type="button"
+      class="alerts-trigger"
+      (click)="alertsStore.toggleDrawer()"
+      [attr.aria-label]="'Alertas (' + alertsStore.unreadCount() + ' sin leer)'"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+      <span class="alerts-trigger__label">Alertas</span>
+      @if (alertsStore.unreadCount() > 0) {
+        <span class="alerts-badge" aria-hidden="true">{{ alertsStore.unreadCount() }}</span>
+      }
+    </button>
+  </div>
+</header>
+
+<nav class="admin-nav" aria-label="Secciones de administración">
+  <ul class="admin-nav__list">
+    <li class="admin-nav__item">
+      <a
+        routerLink="/admin"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="admin-nav__link--active"
+        class="admin-nav__link"
+      >Tablero</a>
+    </li>
+    <li class="admin-nav__item">
+      <a
+        routerLink="/admin/rifas"
+        routerLinkActive="admin-nav__link--active"
+        class="admin-nav__link"
+      >Rifas</a>
+    </li>
+    <li class="admin-nav__item">
+      <a
+        routerLink="/admin/comprobantes"
+        routerLinkActive="admin-nav__link--active"
+        class="admin-nav__link"
+      >
+        <span>Comprobantes</span>
+        @if (alertsStore.pendingProofsCount() > 0) {
+          <span class="nav-badge" [attr.aria-label]="alertsStore.pendingProofsCount() + ' comprobantes pendientes'">
+            {{ alertsStore.pendingProofsCount() }}
+          </span>
+        }
+      </a>
+    </li>
+    <li class="admin-nav__item">
+      <a
+        routerLink="/admin/pagos-tardios"
+        routerLinkActive="admin-nav__link--active"
+        class="admin-nav__link"
+      >Pagos tardíos</a>
+    </li>
+    <li class="admin-nav__item">
+      <a
+        routerLink="/admin/reembolsos"
+        routerLinkActive="admin-nav__link--active"
+        class="admin-nav__link"
+      >Reembolsos</a>
+    </li>
+    <li class="admin-nav__item">
+      <a
+        routerLink="/admin/cuentas"
+        routerLinkActive="admin-nav__link--active"
+        class="admin-nav__link"
+      >Cuentas</a>
+    </li>
+  </ul>
+</nav>
+
+<!-- Alerts Drawer (DT-09) -->
+@if (alertsStore.isDrawerOpen()) {
+  <div class="drawer-backdrop" (click)="alertsStore.closeDrawer()" aria-hidden="true"></div>
+  <aside class="alerts-drawer" role="dialog" aria-label="Alertas pendientes">
+    <header class="alerts-drawer__header">
+      <h2 class="alerts-drawer__title">Alertas pendientes</h2>
+      <button
+        type="button"
+        class="alerts-drawer__close"
+        (click)="alertsStore.closeDrawer()"
+        aria-label="Cerrar alertas"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <div class="alerts-drawer__body">
+      @if (alertsStore.alerts().length === 0) {
+        <p class="alerts-empty">No hay alertas pendientes.</p>
+      } @else {
+        <ul class="alerts-list">
+          @for (alert of alertsStore.alerts(); track alert.id) {
+            <li class="alert-item">
+              <div class="alert-item__header">
+                <span class="alert-item__type" [attr.data-type]="alert.type">{{ alertTypeLabel(alert.type) }}</span>
+                <button
+                  type="button"
+                  class="btn-mark-read"
+                  (click)="alertsStore.markAsRead(alert.id)"
+                  aria-label="Marcar como leída"
+                >Marcar leída</button>
+              </div>
+
+              <div class="alert-item__time">
+                {{ alert.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </div>
+
+              @if (alert.reason) {
+                <p class="alert-item__reason">{{ alert.reason }}</p>
+              }
+
+              @if (alert.raffleTitle) {
+                <p class="alert-item__raffle">{{ alert.raffleTitle }}</p>
+              }
+
+              @if (alert.amount !== null) {
+                <p class="alert-item__amount">Monto: <strong>S/ {{ alert.amount.toFixed(2) }}</strong></p>
+              }
+
+              @if (alert.orderId) {
+                <p class="alert-item__meta font-mono">Orden: {{ alert.orderId }}</p>
+              }
+
+              @if (alert.paymentAccountId) {
+                <p class="alert-item__meta font-mono">Cuenta ID: {{ alert.paymentAccountId }}</p>
+              }
+
+              @if (alert.type === 'PAYMENT_ACCOUNT_CHANGE' || alert.type === 'PAYMENT_ACCOUNT_PROPOSED') {
+                <p class="alert-item__desc">
+                  Propuesta de cambio o actualización en cuenta de cobro pendiente de revisión (Control de 4 ojos).
+                </p>
+                <div class="alert-item__actions">
+                  <a
+                    routerLink="/admin/cuentas"
+                    (click)="alertsStore.closeDrawer()"
+                    class="btn-alert-link"
+                  >Ir a Cuentas de pago &rarr;</a>
+                </div>
+              } @else if (alert.type === 'LATE_PAYMENT_CLAIM') {
+                <div class="alert-item__actions">
+                  <a
+                    routerLink="/admin/pagos-tardios"
+                    (click)="alertsStore.closeDrawer()"
+                    class="btn-alert-link"
+                  >Revisar en Pagos tardíos &rarr;</a>
+                </div>
+              } @else if (alert.type === 'PROOF_VERIFICATION_TIMEOUT') {
+                <div class="alert-item__actions">
+                  <a
+                    routerLink="/admin/comprobantes"
+                    (click)="alertsStore.closeDrawer()"
+                    class="btn-alert-link"
+                  >Revisar en Comprobantes &rarr;</a>
+                </div>
+              } @else if (alert.type === 'DRAW_BLOCKED' || alert.type === 'CLOSE_BLOCKED') {
+                <div class="alert-item__actions">
+                  <a
+                    routerLink="/admin/rifas"
+                    (click)="alertsStore.closeDrawer()"
+                    class="btn-alert-link"
+                  >Revisar en Rifas &rarr;</a>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </aside>
+}
+
+<main class="admin-main">
+  <router-outlet></router-outlet>
+</main>

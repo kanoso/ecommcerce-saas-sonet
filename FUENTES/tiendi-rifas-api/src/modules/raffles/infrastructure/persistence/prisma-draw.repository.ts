@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { DrawExtraction } from '@kanoso/raffle-draw';
 import { Draw } from '../../domain';
 import { DrawRepository } from '../../application/ports';
 import { PrismaService } from './prisma.service';
@@ -20,6 +21,8 @@ export class PrismaDrawRepository implements DrawRepository {
       winningTicketId: draw.winningTicketId,
       winningNumber: draw.winningNumber,
       winnerIndex: draw.winnerIndex,
+      winningAttempt: draw.winningAttempt,
+      extractions: draw.extractions as unknown as object,
       executedAt: draw.executedAt,
     };
 
@@ -51,6 +54,8 @@ export class PrismaDrawRepository implements DrawRepository {
     winningTicketId: string;
     winningNumber: number;
     winnerIndex: number;
+    winningAttempt?: number;
+    extractions?: unknown;
     executedAt: Date;
   }): Draw {
     return new Draw({
@@ -65,6 +70,8 @@ export class PrismaDrawRepository implements DrawRepository {
       winningTicketId: record.winningTicketId,
       winningNumber: record.winningNumber,
       winnerIndex: record.winnerIndex,
+      winningAttempt: record.winningAttempt ?? 1,
+      extractions: (record.extractions as DrawExtraction[]) ?? [],
       executedAt: record.executedAt,
     });
   }

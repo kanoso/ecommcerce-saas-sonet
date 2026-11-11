@@ -1,0 +1,177 @@
+<header class="topbar">
+  <a class="topbar__back" [routerLink]="['/rifas', raffleId()]" aria-label="Volver a la rifa">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+  </a>
+  <h1 class="topbar__title">Reclamar pago tardío</h1>
+</header>
+
+@switch (status()) {
+  @case ('loading') {
+    <p class="state state__text" role="status">Cargando datos de la orden…</p>
+  }
+
+  @case ('not-found') {
+    <div class="state" role="alert">
+      <p class="state__text">No se encontró la orden solicitada.</p>
+      <a class="state__link" [routerLink]="['/rifas', raffleId()]">Volver a la rifa</a>
+    </div>
+  }
+
+  @case ('error') {
+    <div class="state" role="alert">
+      <p class="state__text">{{ errorMessage() }}</p>
+      <button type="button" class="state__action" (click)="loadOrder()">Reintentar</button>
+    </div>
+  }
+
+  @case ('submitted') {
+    <div class="state state--success" role="status">
+      <h2 class="state__title">Reclamo registrado exitosamente</h2>
+      <p class="state__text">
+        Tu orden ha entrado a la cola de revisión. Un operador verificará la transferencia y gestionará el reembolso de confirmarse el pago.
+      </p>
+      <div class="state__actions">
+        <a class="state__action" routerLink="/mis-boletos">Ver en Mis boletos</a>
+        <a class="state__link" [routerLink]="['/rifas', raffleId()]">Volver a la rifa</a>
+      </div>
+    </div>
+  }
+
+  @case ('ready') {
+    @if (order(); as ord) {
+      @if (ord.status === 'LATE_PAYMENT_REVIEW') {
+        <div class="state state--info" role="status">
+          <h2 class="state__title">Tu pago está en revisión</h2>
+          <p class="state__text">
+            Ya hemos recibido tu declaración de pago para esta orden. Un operador está revisando la transferencia bancaria.
+          </p>
+          <a class="state__action" routerLink="/mis-boletos">Ver en Mis boletos</a>
+        </div>
+      } @else if (ord.status !== 'EXPIRED') {
+        <div class="state" role="alert">
+          <p class="state__text">Esta orden no se encuentra en estado de reserva vencida.</p>
+          <a class="state__link" [routerLink]="['/rifas', raffleId()]">Volver a la rifa</a>
+        </div>
+      } @else {
+        <div class="claim-container">
+          <!-- Summary card -->
+          <section class="summary" aria-label="Resumen de la orden">
+            <h2 class="summary__title">Detalle de la reserva</h2>
+            <ul class="summary__numbers" aria-label="Números que tenías reservados">
+              @for (number of ord.numbers; track number) {
+                <li class="summary__number">{{ number }}</li>
+              }
+            </ul>
+            <p class="summary__total">
+              <span>Total de la orden</span>
+              <span class="summary__amount">{{ totalFormatted() }}</span>
+            </p>
+          </section>
+
+          <!-- Honest explanation notice (DT-07) -->
+          <section class="notice" role="note">
+            <p class="notice__heading">Tus números reservados fueron liberados</p>
+            <p class="notice__body">
+              Al vencer el tiempo de la reserva, los números volvieron a quedar disponibles públicamente y no se pueden recuperar.
+              Si realizaste la transferencia antes del vencimiento, ingresa aquí los datos de tu pago para que un operador verifique el dinero recibido y tramite el reembolso correspondiente.
+            </p>
+          </section>
+
+          <!-- Claim form -->
+          <form class="claim-form" (submit)="onSubmit(); $event.preventDefault()">
+            <h2 class="form__title">Datos de tu pago</h2>
+
+            @if (submitError()) {
+              <div class="form__error-banner" role="alert">
+                {{ submitError() }}
+              </div>
+            }
+
+            <div class="field">
+              <label for="claim-bank" class="field__label">Banco o billetera desde la que pagaste</label>
+              <select
+                id="claim-bank"
+                class="field__input"
+                [value]="bankOrWallet()"
+                (change)="bankOrWallet.set($any($event.target).value)"
+              >
+                <option value="">Selecciona una opción</option>
+                @for (bank of banks; track bank.value) {
+                  <option [value]="bank.value">{{ bank.label }}</option>
+                }
+              </select>
+              @if (fieldErrors().bank) {
+                <span class="field__error">{{ fieldErrors().bank }}</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="claim-op-number" class="field__label">N.° de operación (opcional)</label>
+              <input
+                id="claim-op-number"
+                type="text"
+                class="field__input font-mono"
+                autocomplete="off"
+                maxlength="100"
+                [value]="operationNumber()"
+                (input)="operationNumber.set($any($event.target).value)"
+              />
+            </div>
+
+            <div class="field">
+              <label for="claim-amount" class="field__label">Monto transferido (S/)</label>
+              <input
+                id="claim-amount"
+                type="text"
+                inputmode="decimal"
+                class="field__input font-mono"
+                [value]="declaredAmount()"
+                (input)="declaredAmount.set($any($event.target).value)"
+              />
+              @if (fieldErrors().amount) {
+                <span class="field__error">{{ fieldErrors().amount }}</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="claim-file" class="field__label">Comprobante de pago (opcional, máx 5 MB)</label>
+              <input
+                id="claim-file"
+                type="file"
+                accept="image/*,application/pdf"
+                class="field__file"
+                (change)="onFileChange($event)"
+              />
+              @if (fieldErrors().file) {
+                <span class="field__error">{{ fieldErrors().file }}</span>
+              }
+            </div>
+
+            <div class="field field--checkbox">
+              <label class="checkbox-label">
+                <input
+                  id="claim-terms"
+                  type="checkbox"
+                  [checked]="acceptedTerms()"
+                  (change)="acceptedTerms.set($any($event.target).checked)"
+                />
+                <span>Declaro que realicé el pago por los canales oficiales y que la información proporcionada es verídica.</span>
+              </label>
+              @if (fieldErrors().terms) {
+                <span class="field__error">{{ fieldErrors().terms }}</span>
+              }
+            </div>
+
+            <button
+              type="submit"
+              class="btn-submit"
+              [disabled]="submitting()"
+            >
+              {{ submitting() ? 'Enviando reclamo…' : 'Enviar reclamo de pago' }}
+            </button>
+          </form>
+        </div>
+      }
+    }
+  }
+}

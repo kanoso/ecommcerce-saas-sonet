@@ -96,6 +96,25 @@ describe('Ticket Domain Entity', () => {
     });
   });
 
+  describe('extendReservation', () => {
+    it('moves the end of a held reservation', () => {
+      const ticket = createAvailableTicket();
+      ticket.reserve('order-1', new Date('2026-11-01T10:15:00Z'));
+
+      ticket.extendReservation(new Date('2026-11-01T22:00:00Z'));
+
+      expect(ticket.status).toBe(TicketStatus.RESERVED);
+      expect(ticket.orderId).toBe('order-1');
+      expect(ticket.reservedUntil).toEqual(new Date('2026-11-01T22:00:00Z'));
+    });
+
+    it('rejects a ticket that is not reserved', () => {
+      expect(() =>
+        createAvailableTicket().extendReservation(new Date()),
+      ).toThrow(InvalidTicketTransitionError);
+    });
+  });
+
   describe('isReservationExpired', () => {
     it('returns true when now is after reservedUntil', () => {
       const ticket = createAvailableTicket();
@@ -118,6 +137,36 @@ describe('Ticket Domain Entity', () => {
     it('returns false when ticket is not RESERVED', () => {
       const ticket = createAvailableTicket();
       expect(ticket.isReservationExpired(new Date())).toBe(false);
+    });
+  });
+
+  describe('sellDirect', () => {
+    it('successfully transitions from AVAILABLE directly to SOLD with orderId', () => {
+      const ticket = createAvailableTicket();
+      ticket.sellDirect('order-pos-1');
+
+      expect(ticket.status).toBe(TicketStatus.SOLD);
+      expect(ticket.orderId).toBe('order-pos-1');
+      expect(ticket.reservedUntil).toBeNull();
+    });
+
+    it('rejects sellDirect if ticket is already RESERVED', () => {
+      const ticket = createAvailableTicket();
+      ticket.reserve('order-1', new Date());
+
+      expect(() => ticket.sellDirect('order-2')).toThrow(
+        InvalidTicketTransitionError,
+      );
+    });
+
+    it('rejects sellDirect if ticket is already SOLD', () => {
+      const ticket = createAvailableTicket();
+      ticket.reserve('order-1', new Date());
+      ticket.markSold();
+
+      expect(() => ticket.sellDirect('order-2')).toThrow(
+        InvalidTicketTransitionError,
+      );
     });
   });
 });

@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rifas activas</title>
 <script src="./support.js"></script>
 </head>
@@ -14,7 +15,7 @@ body{margin:0}
 a{color:#C2410C}a:hover{color:#9A3412}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F1F5F9; font-family: Inter, system-ui, sans-serif; color: #0F172A; display: flex; flex-direction: column; overflow: hidden">
+<div style="width: 100%; max-width: 390px; height: 844px; box-sizing: border-box; background: #F1F5F9; font-family: Inter, system-ui, sans-serif; color: #0F172A; display: flex; flex-direction: column; overflow: hidden">
   <header style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #FFFFFF; border-bottom: 1px solid #CBD5E1">
     <div style="display: flex; align-items: center; gap: 8px">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"></path><path d="M14 5v14" stroke-dasharray="2 2"></path></svg>
@@ -25,16 +26,16 @@ a{color:#C2410C}a:hover{color:#9A3412}
 
   <section style="padding: 24px 20px 16px; display: flex; flex-direction: column; gap: 10px">
     <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; line-height: 1.1; font-weight: 700">Rifas con sorteo verificable</h1>
-    <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #475569">Elige tus números, paga con tarjeta o Yape y mira el sorteo en vivo. Cualquiera puede recalcular el ganador.</p>
+    <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #475569">Elige tus números, paga por transferencia o Yape, envía tu comprobante y mira el sorteo en vivo. Cualquiera puede recalcular el ganador.</p>
     <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 10px 12px; background: #DBEAFE; border-radius: 10px; font-size: 13px; color: #1E3A8A; font-weight: 500">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"></path><path d="M9 12l2 2 4-4"></path></svg>
       Autorizado por Resolución [N.° RESOLUCIÓN]
     </div>
   </section>
 
-  <div style="padding: 0 20px 24px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+  <div style="flex: 1; min-height: 0; padding: 0 20px 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto">
     <sc-for list="{{rifas}}" as="r" hint-placeholder-count="3">
-      <article style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">
+      <article style="flex: none; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">
         <div style="height: 92px; background: #FFEDD5; display: flex; align-items: center; justify-content: center; position: relative">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"></rect><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"></path></svg>
           <span style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 999px; background: #0F172A; color: #FFFFFF; font-size: 12px; font-weight: 600">Cierra {{r.cierre}}</span>
@@ -62,7 +63,7 @@ class Component extends DCLogic {
   renderVals() {
     return {
       rifas: [
-        { titulo: 'Smart TV 55"', precio: 'S/ 10', cierre: '15 nov', avance: '64%', vendidos: '640 de 1000 números vendidos' },
+        { titulo: 'Smart TV 55"', precio: 'S/ 10', cierre: '15 nov, 20:00', avance: '64%', vendidos: '640 de 1000 números vendidos' },
         { titulo: 'Moto 150 cc', precio: 'S/ 25', cierre: '30 nov', avance: '22%', vendidos: '220 de 1000 números vendidos' },
         { titulo: 'Canasta navideña', precio: 'S/ 5', cierre: '20 dic', avance: '8%', vendidos: '40 de 500 números vendidos' }
       ]

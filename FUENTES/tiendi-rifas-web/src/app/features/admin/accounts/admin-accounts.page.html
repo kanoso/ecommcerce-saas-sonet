@@ -1,0 +1,311 @@
+<section class="admin-accounts" aria-labelledby="admin-accounts-title">
+  <header class="admin-accounts__header">
+    <div>
+      <h1 id="admin-accounts-title" class="admin-accounts__title">Cuentas de pago</h1>
+      <p class="admin-accounts__subtitle">
+        Gestión de cuentas para transferencias y billeteras. Control de 4 ojos obligatorio para cambios (DT-19).
+      </p>
+    </div>
+    <div class="admin-accounts__header-actions">
+      <button type="button" class="btn-refresh" (click)="loadAll()">
+        Actualizar
+      </button>
+      <button type="button" class="btn-propose" (click)="openProposeModal()">
+        + Proponer nueva cuenta
+      </button>
+    </div>
+  </header>
+
+  @if (actionSuccess()) {
+    <div class="feedback-banner feedback-banner--success" role="status">
+      {{ actionSuccess() }}
+    </div>
+  }
+
+  @if (actionError()) {
+    <div class="feedback-banner feedback-banner--error" role="alert">
+      {{ actionError() }}
+    </div>
+  }
+
+  <!-- Sección 1: Cambios pendientes (4 ojos) -->
+  <div class="accounts-section">
+    <h2 class="accounts-section__title">
+      Propuestas de cambios pendientes (Control de 4 ojos)
+      @if (pendingChanges().length > 0) {
+        <span class="count-badge">{{ pendingChanges().length }}</span>
+      }
+    </h2>
+
+    @if (pendingChanges().length === 0) {
+      <div class="state-box state-box--empty-sm">
+        <p>No hay propuestas de cuentas pendientes de revisión.</p>
+      </div>
+    } @else {
+      <ul class="changes-list" aria-label="Lista de propuestas de cambio de cuentas">
+        @for (change of pendingChanges(); track change.id) {
+          <li class="change-item">
+            <div class="change-item__main">
+              <div class="change-item__header">
+                <span class="change-type-badge" [attr.data-type]="change.kind">
+                  {{ change.kind }}
+                </span>
+                <span class="change-item__id">Solicitud: <code>{{ change.id }}</code></span>
+                <span class="change-item__proposer">Por: <code>{{ change.proposedBy }}</code></span>
+              </div>
+
+              @if (change.proposed) {
+                <div class="change-item__details">
+                  <strong>Propuesta:</strong> {{ change.proposed.method }} - {{ change.proposed.holder }}
+                  (N°: {{ change.proposed.number }})
+                  @if (change.proposed.cci) {
+                    <span>CCI: {{ change.proposed.cci }}</span>
+                  }
+                  <span>Orden: {{ change.proposed.order }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="change-item__actions">
+              @if (canApproveOrReject(change)) {
+                <button
+                  type="button"
+                  class="btn-action btn-action--approve"
+                  (click)="approveChange(change)"
+                >
+                  Aprobar cambio
+                </button>
+                <button
+                  type="button"
+                  class="btn-action btn-action--reject"
+                  (click)="rejectChange(change)"
+                >
+                  Rechazar
+                </button>
+              } @else {
+                <span class="four-eyes-note">
+                  Control de 4 ojos: propuesta por ti
+                </span>
+                <button
+                  type="button"
+                  class="btn-action btn-action--cancel"
+                  (click)="cancelChange(change)"
+                >
+                  Cancelar propuesta
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <!-- Sección 2: Cuentas registradas -->
+  <div class="accounts-section">
+    <h2 class="accounts-section__title">Cuentas configuradas</h2>
+
+    @if (loading()) {
+      <div class="state-box" aria-live="polite">
+        <p>Cargando cuentas...</p>
+      </div>
+    } @else if (error()) {
+      <div class="state-box state-box--error" role="alert">
+        <p>{{ error() }}</p>
+        <button type="button" class="btn-retry" (click)="loadAll()">
+          Reintentar
+        </button>
+      </div>
+    } @else if (accounts().length === 0) {
+      <div class="state-box state-box--empty">
+        <p>No hay cuentas de pago registradas en la plataforma.</p>
+      </div>
+    } @else {
+      <ul class="accounts-list" aria-label="Lista de cuentas de pago">
+        @for (account of accounts(); track account.id) {
+          <li class="account-item" [class.account-item--inactive]="!account.active">
+            <div class="account-item__info">
+              <div class="account-item__top">
+                <span class="method-tag">{{ account.label }}</span>
+                <span class="status-badge" [class.status-badge--active]="account.active">
+                  {{ account.active ? 'Activa' : 'Inactiva' }}
+                </span>
+                <span class="order-tag">Orden visual: {{ account.order }}</span>
+              </div>
+
+              <div class="account-item__details">
+                <p><strong>Titular:</strong> {{ account.holder }}</p>
+                <p><strong>Número:</strong> <code>{{ account.number }}</code></p>
+                @if (account.cci) {
+                  <p><strong>CCI:</strong> <code>{{ account.cci }}</code></p>
+                }
+              </div>
+            </div>
+
+            <div class="account-item__actions">
+              <button
+                type="button"
+                class="btn-action btn-action--edit"
+                (click)="openEditModal(account)"
+              >
+                Editar
+              </button>
+              @if (account.active) {
+                <button
+                  type="button"
+                  class="btn-action btn-action--deactivate"
+                  (click)="deactivateAccount(account)"
+                >
+                  Desactivar
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="btn-action btn-action--activate"
+                  (click)="activateAccount(account)"
+                >
+                  Activar (4 ojos)
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <!-- Modal Proponer Nueva Cuenta (DT-19 202) -->
+  @if (showProposeModal()) {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-propose-title">
+        <h2 id="modal-propose-title" class="modal-dialog__title">Proponer nueva cuenta de pago</h2>
+        <p class="modal-dialog__desc">
+          Por seguridad (control de 4 ojos), la cuenta nueva se propone y quedará pendiente de aprobación por otro administrador antes de ser pública.
+        </p>
+
+        <form [formGroup]="proposeForm" (ngSubmit)="submitPropose()" class="modal-form">
+          <div class="form-group">
+            <label for="propose-method">Método o Banco:</label>
+            <select id="propose-method" formControlName="method" class="form-control" required>
+              <option value="">Seleccione método...</option>
+              @for (b of banks; track b) {
+                <option [value]="b">{{ b }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="propose-holder">Titular de la cuenta:</label>
+            <input
+              id="propose-holder"
+              type="text"
+              formControlName="holder"
+              class="form-control"
+              placeholder="Ej. Tienda Rifas SAC"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="propose-number">Número (Celular o Cuenta):</label>
+            <input
+              id="propose-number"
+              type="text"
+              formControlName="number"
+              class="form-control"
+              placeholder="Sólo dígitos"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="propose-cci">CCI (Opcional para bancos):</label>
+            <input
+              id="propose-cci"
+              type="text"
+              formControlName="cci"
+              class="form-control"
+              placeholder="Código de cuenta interbancario"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="propose-order">Orden de presentación:</label>
+            <input
+              id="propose-order"
+              type="number"
+              formControlName="order"
+              class="form-control"
+              min="0"
+              required
+            />
+          </div>
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="submitting() || proposeForm.invalid">
+              {{ submitting() ? 'Enviando...' : 'Enviar propuesta (4 ojos)' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Editar Cuenta -->
+  @if (showEditModal()) {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-edit-title">
+        <h2 id="modal-edit-title" class="modal-dialog__title">Editar cuenta de pago</h2>
+        <p class="modal-dialog__desc">
+          Si sólo modificas el orden, se aplica al instante. Si modificas titular, número o método, se creará una propuesta que requiere aprobación de 4 ojos.
+        </p>
+
+        <form [formGroup]="editForm" (ngSubmit)="submitEdit()" class="modal-form">
+          <div class="form-group">
+            <label for="edit-method">Método o Banco:</label>
+            <select id="edit-method" formControlName="method" class="form-control">
+              <option value="">Mantener actual</option>
+              @for (b of banks; track b) {
+                <option [value]="b">{{ b }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-holder">Titular:</label>
+            <input id="edit-holder" type="text" formControlName="holder" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-number">Número:</label>
+            <input id="edit-number" type="text" formControlName="number" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-cci">CCI:</label>
+            <input id="edit-cci" type="text" formControlName="cci" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-order">Orden de presentación:</label>
+            <input id="edit-order" type="number" formControlName="order" class="form-control" min="0" />
+          </div>
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="submitting()">
+              {{ submitting() ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

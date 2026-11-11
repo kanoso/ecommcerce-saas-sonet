@@ -2,7 +2,9 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "setupFiles": ["<rootDir>/setup-integration.ts"],
+  "globalSetup": "<rootDir>/global-setup-integration.ts",
   "testRegex": ".integration-spec.ts$",
+  "testTimeout": 60000,
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },

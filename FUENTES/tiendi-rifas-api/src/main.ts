@@ -1,16 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
-import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { configureApp } from './app.setup';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
 
-  app.use(helmet());
-  app.enableCors();
+  // SIGTERM closes the BullMQ worker and queues: a job in progress finishes
+  // or is handed back instead of being cut in half.
+  app.enableShutdownHooks();
+  configureApp(app);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);

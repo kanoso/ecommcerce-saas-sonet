@@ -1,18 +1,13 @@
+import { randomUUID } from 'crypto';
 import {
+  ProofPolicy,
   RaffleNotActiveError,
+  RaffleNotFoundError,
   RaffleStatus,
   ReservationPolicy,
-  TicketNotAvailableError,
   TicketOrder,
-  TicketStatus,
 } from '../../domain';
-import {
-  AuditLog,
-  Clock,
-  OrderRepository,
-  RaffleRepository,
-  TicketRepository,
-} from '../ports';
+import { Clock, RaffleRepository, ReservationStore } from '../ports';
 
 export interface ReserveTicketsCommand {
   raffleId: string;
@@ -25,10 +20,9 @@ export class ReserveTicketsUseCase {
 
   constructor(
     private readonly raffleRepo: RaffleRepository,
-    private readonly ticketRepo: TicketRepository,
-    private readonly orderRepo: OrderRepository,
-    private readonly auditLog: AuditLog,
+    private readonly reservationStore: ReservationStore,
     private readonly clock: Clock,
+    private readonly proofPolicy: ProofPolicy,
     policy?: ReservationPolicy,
   ) {
     this.policy = policy ?? new ReservationPolicy();
@@ -37,80 +31,46 @@ export class ReserveTicketsUseCase {
   async execute(command: ReserveTicketsCommand): Promise<TicketOrder> {
     const raffle = await this.raffleRepo.findById(command.raffleId);
     if (!raffle) {
-      throw new Error(`Raffle ${command.raffleId} not found`);
+      throw new RaffleNotFoundError(command.raffleId);
     }
 
     if (raffle.status !== RaffleStatus.ACTIVE) {
       throw new RaffleNotActiveError(raffle.id, raffle.status);
     }
 
+    const numbers = [...new Set(command.numbers)].sort((a, b) => a - b);
+    this.policy.validateReservationRequest(numbers.length, 0);
+
     const now = this.clock.now();
 
-    // Check user limits
-    const currentActiveReservedCount =
-      await this.ticketRepo.countActiveReservedByUser(
-        raffle.id,
-        command.userId,
-        now,
-      );
-
-    this.policy.validateReservationRequest(
-      command.numbers.length,
-      currentActiveReservedCount,
-    );
-
-    // Fetch requested tickets
-    const tickets = await this.ticketRepo.findByRaffleAndNumbers(
-      raffle.id,
-      command.numbers,
-    );
-
-    if (tickets.length !== command.numbers.length) {
-      const foundNumbers = new Set(tickets.map((t) => t.number));
-      const missing = command.numbers.find((n) => !foundNumbers.has(n));
-      throw new TicketNotAvailableError(missing ?? command.numbers[0]);
-    }
-
-    // Verify all are AVAILABLE (or expired reservation)
-    for (const ticket of tickets) {
-      if (ticket.status !== TicketStatus.AVAILABLE) {
-        throw new TicketNotAvailableError(ticket.number);
-      }
-    }
-
-    const expiresAt = this.policy.calculateExpiration(now);
-    const orderId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const totalAmount = command.numbers.length * raffle.ticketPrice;
-
-    // Reserve all tickets (all or nothing)
-    for (const ticket of tickets) {
-      ticket.reserve(orderId, expiresAt);
-    }
-
-    await this.ticketRepo.updateBatch(tickets);
-
     const order = new TicketOrder({
-      id: orderId,
+      id: randomUUID(),
       raffleId: raffle.id,
       userId: command.userId,
-      numbers: command.numbers,
-      totalAmount,
+      numbers,
+      totalAmount: numbers.length * raffle.ticketPrice,
       createdAt: now,
-      expiresAt,
+      expiresAt: this.policy.calculateExpiration(now),
     });
 
-    await this.orderRepo.save(order);
-
-    await this.auditLog.record({
-      raffleId: raffle.id,
-      type: 'TICKETS_RESERVED',
-      data: {
-        orderId: order.id,
-        userId: order.userId,
-        numbers: order.numbers,
-        expiresAt: order.expiresAt.toISOString(),
+    await this.reservationStore.reserve(
+      order,
+      {
+        raffleId: raffle.id,
+        type: 'TICKETS_RESERVED',
+        data: {
+          orderId: order.id,
+          userId: order.userId,
+          numbers: order.numbers,
+          expiresAt: order.expiresAt.toISOString(),
+        },
       },
-    });
+      this.policy,
+      // The store checks the cutoff under the raffle lock, so a stale read
+      // here cannot let a reservation past it. The cutoff uses the TTL of
+      // this.policy, the one that set expiresAt (DT-05).
+      this.proofPolicy,
+    );
 
     return order;
   }

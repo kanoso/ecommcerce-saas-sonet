@@ -28,6 +28,30 @@ export interface ComputeWinnerOutput {
   digestHex: string;
 }
 
+export interface DrawExtraction {
+  attempt: number;
+  number: number;
+  index: number;
+  digestHex: string;
+  isWinner: boolean;
+}
+
+export interface ComputeWinnerSequenceInput {
+  seedHex: string;
+  drandRandomnessHex: string;
+  raffleId: string;
+  soldNumbers: number[];
+  winningAttempt?: number;
+}
+
+export interface ComputeWinnerSequenceOutput {
+  winningTicket: number;
+  winnerIndex: number;
+  digestHex: string;
+  winningAttempt: number;
+  extractions: DrawExtraction[];
+}
+
 /**
  * Encodes a Uint8Array into a lowercase hex string.
  */
@@ -175,6 +199,83 @@ export async function computeWinner(input: ComputeWinnerInput): Promise<ComputeW
     index,
     winner,
     digestHex,
+  };
+}
+
+/**
+ * Computes a sequential sampling of winning attempts without replacement.
+ *
+ * For k = 1: digest is SHA-256(seedBytes || drandRandomnessBytes || utf8(raffleId))
+ * For k > 1: digest is SHA-256(seedBytes || drandRandomnessBytes || utf8(raffleId) || utf8(":attempt:" + k))
+ *
+ * Each step k extracts a ticket from remaining tickets. The final extraction (k = winningAttempt)
+ * is marked isWinner: true ("Ganador Oficial"), while prior extractions are marked isWinner: false ("Al agua").
+ */
+export async function computeWinnerSequence(
+  input: ComputeWinnerSequenceInput,
+): Promise<ComputeWinnerSequenceOutput> {
+  const { seedHex, drandRandomnessHex, raffleId, soldNumbers } = input;
+  const winningAttempt = input.winningAttempt ?? 1;
+
+  if (!Number.isInteger(winningAttempt) || winningAttempt < 1 || winningAttempt > 5) {
+    throw new Error(
+      `Invalid winningAttempt: ${winningAttempt}. winningAttempt must be an integer between 1 and 5.`,
+    );
+  }
+
+  if (!Array.isArray(soldNumbers) || soldNumbers.length < winningAttempt) {
+    throw new Error(
+      `Cannot compute winner sequence: soldNumbers length (${soldNumbers ? soldNumbers.length : 0}) is less than winningAttempt (${winningAttempt}).`,
+    );
+  }
+
+  const seedBytes = hexToBytes(seedHex, 32);
+  const drandBytes = hexToBytes(drandRandomnessHex, 32);
+  const raffleIdBytes = new TextEncoder().encode(raffleId.toLowerCase().trim());
+
+  const basePayload = new Uint8Array(seedBytes.length + drandBytes.length + raffleIdBytes.length);
+  basePayload.set(seedBytes, 0);
+  basePayload.set(drandBytes, seedBytes.length);
+  basePayload.set(raffleIdBytes, seedBytes.length + drandBytes.length);
+
+  const remaining = [...soldNumbers];
+  const extractions: DrawExtraction[] = [];
+
+  for (let k = 1; k <= winningAttempt; k++) {
+    let payload = basePayload;
+    if (k > 1) {
+      const suffix = new TextEncoder().encode(`:attempt:${k}`);
+      const combined = new Uint8Array(basePayload.length + suffix.length);
+      combined.set(basePayload, 0);
+      combined.set(suffix, basePayload.length);
+      payload = combined;
+    }
+
+    const digestHex = await sha256(payload);
+    const digestBigInt = BigInt('0x' + digestHex);
+    const subIndex = Number(digestBigInt % BigInt(remaining.length));
+    const chosenNumber = remaining[subIndex];
+    const origIndex = soldNumbers.indexOf(chosenNumber);
+
+    remaining.splice(subIndex, 1);
+
+    extractions.push({
+      attempt: k,
+      number: chosenNumber,
+      index: origIndex,
+      digestHex,
+      isWinner: k === winningAttempt,
+    });
+  }
+
+  const winnerExtraction = extractions[extractions.length - 1];
+
+  return {
+    winningTicket: winnerExtraction.number,
+    winnerIndex: winnerExtraction.index,
+    digestHex: winnerExtraction.digestHex,
+    winningAttempt,
+    extractions,
   };
 }
 

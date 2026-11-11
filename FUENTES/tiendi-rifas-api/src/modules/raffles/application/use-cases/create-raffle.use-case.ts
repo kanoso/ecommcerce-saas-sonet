@@ -1,4 +1,4 @@
-import { Raffle } from '../../domain';
+import { DrawEffect, DrawMode, DrawSpeed, Raffle } from '../../domain';
 import { AuditLog, Clock, RaffleRepository } from '../ports';
 
 export interface CreateRaffleCommand {
@@ -8,6 +8,13 @@ export interface CreateRaffleCommand {
   ticketPrice: number;
   numberMin: number;
   numberMax: number;
+  winningAttempt?: number;
+  drawEffect?: DrawEffect;
+  drawMode?: DrawMode;
+  drawDurationSec?: number;
+  drawSpeed?: DrawSpeed;
+  prizeDescription?: string | null;
+  prizeImages?: string[];
 }
 
 export class CreateRaffleUseCase {
@@ -25,6 +32,13 @@ export class CreateRaffleUseCase {
       ticketPrice: command.ticketPrice,
       numberMin: command.numberMin,
       numberMax: command.numberMax,
+      winningAttempt: command.winningAttempt,
+      drawEffect: command.drawEffect,
+      drawMode: command.drawMode,
+      drawDurationSec: command.drawDurationSec,
+      drawSpeed: command.drawSpeed,
+      prizeDescription: command.prizeDescription,
+      prizeImages: command.prizeImages,
       createdAt: this.clock.now(),
       updatedAt: this.clock.now(),
     });
@@ -39,6 +53,10 @@ export class CreateRaffleUseCase {
         ticketPrice: raffle.ticketPrice,
         numberMin: raffle.numberMin,
         numberMax: raffle.numberMax,
+        winningAttempt: raffle.winningAttempt,
+        drawEffect: raffle.drawEffect,
+        prizeDescription: raffle.prizeDescription,
+        prizeImages: raffle.prizeImages,
       },
     });
 

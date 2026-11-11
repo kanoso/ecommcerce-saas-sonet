@@ -1,35 +1,37 @@
 import { Injectable } from '@nestjs/common';
-import { Payment } from '../../domain';
+import { Prisma } from '@prisma/client';
+import { DuplicatePaymentError, Payment } from '../../domain';
 import { PaymentRepository } from '../../application/ports';
 import { PrismaService } from './prisma.service';
-import { Prisma } from '@prisma/client';
+
+const UNIQUE_VIOLATION = 'P2002';
 
 @Injectable()
 export class PrismaPaymentRepository implements PaymentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async save(payment: Payment): Promise<void> {
-    await this.prisma.payment.upsert({
-      where: {
-        provider_externalId: {
+    try {
+      await this.prisma.payment.create({
+        data: {
+          id: payment.id,
+          orderId: payment.orderId,
           provider: payment.provider,
           externalId: payment.externalId,
+          status: payment.status,
+          payload: payment.payload as Prisma.InputJsonValue,
+          receivedAt: payment.receivedAt,
         },
-      },
-      create: {
-        id: payment.id,
-        orderId: payment.orderId,
-        provider: payment.provider,
-        externalId: payment.externalId,
-        status: payment.status,
-        payload: (payment.payload as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-        receivedAt: payment.receivedAt,
-      },
-      update: {
-        status: payment.status,
-        payload: (payment.payload as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-      },
-    });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === UNIQUE_VIOLATION
+      ) {
+        throw new DuplicatePaymentError(payment.externalId);
+      }
+      throw error;
+    }
   }
 
   async findByOrderId(orderId: string): Promise<Payment[]> {
@@ -38,24 +40,33 @@ export class PrismaPaymentRepository implements PaymentRepository {
       orderBy: { receivedAt: 'desc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaPaymentRepository.toDomain(r));
   }
 
-  async findByExternalId(
-    provider: string,
-    externalId: string,
-  ): Promise<Payment | null> {
+  async findById(id: string): Promise<Payment | null> {
+    const record = await this.prisma.payment.findUnique({ where: { id } });
+    return record && PrismaPaymentRepository.toDomain(record);
+  }
+
+  async findByExternalId(externalId: string): Promise<Payment | null> {
     const record = await this.prisma.payment.findUnique({
-      where: {
-        provider_externalId: { provider, externalId },
-      },
+      where: { externalId },
     });
 
     if (!record) return null;
-    return this.toDomain(record);
+    return PrismaPaymentRepository.toDomain(record);
   }
 
-  private toDomain(record: {
+  async findOperationCollisions(): Promise<Payment[]> {
+    const records = await this.prisma.payment.findMany({
+      where: { externalId: { contains: '#' } },
+      orderBy: { receivedAt: 'desc' },
+    });
+
+    return records.map((r) => PrismaPaymentRepository.toDomain(r));
+  }
+
+  static toDomain(record: {
     id: string;
     orderId: string;
     provider: string;

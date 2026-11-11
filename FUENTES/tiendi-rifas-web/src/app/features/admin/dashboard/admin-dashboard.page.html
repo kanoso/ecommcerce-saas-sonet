@@ -1,0 +1,66 @@
+<div class="dashboard">
+  <header class="dashboard__header">
+    <h2 class="dashboard__title">Panel de control</h2>
+    <p class="dashboard__subtitle">Gestión operativa de comprobantes, sorteos y rifas.</p>
+  </header>
+
+  <div class="dashboard__grid">
+    <!-- Alertas -->
+    <section class="card card--alerts">
+      <div class="card__header">
+        <h3 class="card__title">Alertas activas</h3>
+        <span class="card__count" [class.card__count--has-alerts]="alertsStore.unreadCount() > 0">
+          {{ alertsStore.unreadCount() }}
+        </span>
+      </div>
+      <p class="card__desc">Notificaciones operativas pendientes de atención.</p>
+      <button
+        type="button"
+        class="card__action card__action--btn"
+        (click)="alertsStore.openDrawer()"
+      >Ver alertas</button>
+    </section>
+
+    <!-- Comprobantes -->
+    <section class="card">
+      <div class="card__header">
+        <h3 class="card__title">Comprobantes</h3>
+        <span class="card__count" [class.card__count--has-alerts]="alertsStore.pendingProofsCount() > 0">
+          {{ alertsStore.pendingProofsCount() }}
+        </span>
+      </div>
+      <p class="card__desc">Revisión de transferencias bancarias y aprobación de órdenes pendientes.</p>
+      <a routerLink="/admin/comprobantes" class="card__action">Revisar comprobantes</a>
+    </section>
+
+    <!-- Pagos tardíos -->
+    <section class="card">
+      <div class="card__header">
+        <h3 class="card__title">Pagos tardíos</h3>
+      </div>
+      <p class="card__desc">Reclamos de compradores con reserva vencida y transferencias realizadas.</p>
+      <a routerLink="/admin/pagos-tardios" class="card__action">Ver reclamos</a>
+    </section>
+
+    <!-- Reembolsos -->
+    <section class="card">
+      <div class="card__header">
+        <h3 class="card__title">Reembolsos</h3>
+      </div>
+      <p class="card__desc">Cola de devoluciones pendientes con control de cuatro ojos.</p>
+      <a routerLink="/admin/reembolsos" class="card__action">Procesar reembolsos</a>
+    </section>
+
+    <!-- Rifas -->
+    <section class="card card--rifas">
+      <div class="card__header">
+        <h3 class="card__title">Rifas</h3>
+      </div>
+      <p class="card__desc">Creación, publicación, avance de ventas y ejecución de sorteos.</p>
+      <div class="card__actions">
+        <a routerLink="/admin/rifas" class="card__action">Ver rifas</a>
+        <a routerLink="/admin/rifas/nueva" class="card__action card__action--secondary">Crear rifa</a>
+      </div>
+    </section>
+  </div>
+</div>

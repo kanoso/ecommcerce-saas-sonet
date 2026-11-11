@@ -64,6 +64,19 @@ export class Ticket {
     this._updatedAt = new Date();
   }
 
+  extendReservation(reservedUntil: Date): void {
+    if (this._status !== TicketStatus.RESERVED) {
+      throw new InvalidTicketTransitionError(
+        this._status,
+        TicketStatus.RESERVED,
+        `Ticket ${this.number} is not reserved`,
+      );
+    }
+
+    this._reservedUntil = reservedUntil;
+    this._updatedAt = new Date();
+  }
+
   markSold(): void {
     if (this._status !== TicketStatus.RESERVED) {
       throw new InvalidTicketTransitionError(
@@ -75,6 +88,22 @@ export class Ticket {
 
     this._status = TicketStatus.SOLD;
     this._updatedAt = new Date();
+  }
+
+  sellDirect(orderId: string): Ticket {
+    if (this._status !== TicketStatus.AVAILABLE) {
+      throw new InvalidTicketTransitionError(
+        this._status,
+        TicketStatus.SOLD,
+        `Ticket ${this.number} is not available`,
+      );
+    }
+
+    this._status = TicketStatus.SOLD;
+    this._orderId = orderId;
+    this._reservedUntil = null;
+    this._updatedAt = new Date();
+    return this;
   }
 
   release(): void {

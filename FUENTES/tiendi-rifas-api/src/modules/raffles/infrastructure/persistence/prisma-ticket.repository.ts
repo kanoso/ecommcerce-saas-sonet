@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Ticket, TicketStatus } from '../../domain';
-import { TicketRepository } from '../../application/ports';
+import { TicketRepository, TicketStatusCounts, zeroTicketCounts } from '../../application/ports';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -31,7 +31,7 @@ export class PrismaTicketRepository implements TicketRepository {
       orderBy: { number: 'asc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaTicketRepository.toDomain(r));
   }
 
   async findByRaffleAndNumber(
@@ -45,7 +45,7 @@ export class PrismaTicketRepository implements TicketRepository {
     });
 
     if (!record) return null;
-    return this.toDomain(record);
+    return PrismaTicketRepository.toDomain(record);
   }
 
   async findByRaffleAndNumbers(
@@ -62,7 +62,7 @@ export class PrismaTicketRepository implements TicketRepository {
       orderBy: { number: 'asc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaTicketRepository.toDomain(r));
   }
 
   async findByOrderId(orderId: string): Promise<Ticket[]> {
@@ -71,7 +71,7 @@ export class PrismaTicketRepository implements TicketRepository {
       orderBy: { number: 'asc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaTicketRepository.toDomain(r));
   }
 
   async findSoldByRaffleId(raffleId: string): Promise<Ticket[]> {
@@ -83,7 +83,7 @@ export class PrismaTicketRepository implements TicketRepository {
       orderBy: { number: 'asc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaTicketRepository.toDomain(r));
   }
 
   async findExpiredReservations(
@@ -99,85 +99,30 @@ export class PrismaTicketRepository implements TicketRepository {
       orderBy: { number: 'asc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaTicketRepository.toDomain(r));
   }
 
-  async countActiveReservedByUser(
-    raffleId: string,
-    userId: string,
-    now: Date,
-  ): Promise<number> {
-    const count = await this.prisma.ticket.count({
-      where: {
-        raffleId,
-        status: TicketStatus.RESERVED,
-        reservedUntil: { gt: now },
-        order: { userId },
-      },
+  /** One GROUP BY over the (raffleId, status) index: no ticket rows leave the database. */
+  async countByStatus(raffleIds: string[]): Promise<Map<string, TicketStatusCounts>> {
+    const counts = new Map(raffleIds.map((id) => [id, zeroTicketCounts()]));
+    if (raffleIds.length === 0) return counts;
+
+    const groups = await this.prisma.ticket.groupBy({
+      by: ['raffleId', 'status'],
+      where: { raffleId: { in: raffleIds } },
+      _count: { _all: true },
     });
-
-    return count;
+    for (const group of groups) {
+      const forRaffle = counts.get(group.raffleId);
+      const status = group.status as TicketStatus;
+      if (forRaffle && status in forRaffle) {
+        forRaffle[status] = group._count._all;
+      }
+    }
+    return counts;
   }
 
-  async update(ticket: Ticket): Promise<void> {
-    await this.prisma.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        status: ticket.status,
-        orderId: ticket.orderId,
-        reservedUntil: ticket.reservedUntil,
-        updatedAt: ticket.updatedAt,
-      },
-    });
-  }
-
-  async updateBatch(tickets: Ticket[]): Promise<void> {
-    if (tickets.length === 0) return;
-
-    await this.prisma.$transaction(
-      tickets.map((ticket) =>
-        this.prisma.ticket.update({
-          where: { id: ticket.id },
-          data: {
-            status: ticket.status,
-            orderId: ticket.orderId,
-            reservedUntil: ticket.reservedUntil,
-            updatedAt: ticket.updatedAt,
-          },
-        }),
-      ),
-    );
-  }
-
-  /**
-   * Atomic conditional reservation using raw SQL with RETURNING.
-   * Guarantees that only tickets in AVAILABLE state are reserved.
-   * Returns the list of successfully reserved ticket numbers.
-   */
-  async reserveAtomic(
-    raffleId: string,
-    numbers: number[],
-    orderId: string,
-    reservedUntil: Date,
-  ): Promise<number[]> {
-    if (numbers.length === 0) return [];
-
-    const result = await this.prisma.$queryRaw<{ number: number }[]>`
-      UPDATE "Ticket"
-      SET status = 'RESERVED',
-          "orderId" = ${orderId},
-          "reservedUntil" = ${reservedUntil},
-          "updatedAt" = NOW()
-      WHERE "raffleId" = ${raffleId}
-        AND number = ANY(${numbers})
-        AND status = 'AVAILABLE'
-      RETURNING number;
-    `;
-
-    return result.map((r) => r.number);
-  }
-
-  private toDomain(record: {
+  static toDomain(record: {
     id: string;
     raffleId: string;
     number: number;

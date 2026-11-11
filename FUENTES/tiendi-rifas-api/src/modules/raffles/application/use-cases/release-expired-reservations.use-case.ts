@@ -1,66 +1,83 @@
+import { OrderStatus, TicketStatus } from '../../domain';
 import {
-  AuditLog,
   Clock,
-  OrderRepository,
-  RaffleRepository,
+  LedgerTransaction,
+  TicketLedger,
   TicketRepository,
 } from '../ports';
+import { groupTicketsByOrder } from './group-tickets-by-order';
 
 export class ReleaseExpiredReservationsUseCase {
   constructor(
-    private readonly raffleRepo: RaffleRepository,
     private readonly ticketRepo: TicketRepository,
-    private readonly orderRepo: OrderRepository,
-    private readonly auditLog: AuditLog,
+    private readonly ledger: TicketLedger,
     private readonly clock: Clock,
   ) {}
 
   async execute(raffleId: string): Promise<number> {
     const now = this.clock.now();
-    const expiredTickets = await this.ticketRepo.findExpiredReservations(
+    // Unlocked scan, only to learn which orders to lock. The transaction
+    // reads the tickets again, so one paid meanwhile is left alone.
+    const candidates = await this.ticketRepo.findExpiredReservations(
       raffleId,
       now,
     );
-
-    if (expiredTickets.length === 0) {
+    if (candidates.length === 0) {
       return 0;
     }
 
-    const affectedOrderIds = new Set<string>();
+    const orderIds = [
+      ...new Set(candidates.flatMap((t) => (t.orderId ? [t.orderId] : []))),
+    ];
 
-    for (const ticket of expiredTickets) {
-      if (ticket.orderId) {
-        affectedOrderIds.add(ticket.orderId);
-      }
-      ticket.release();
+    return this.ledger.run((tx) => this.release(tx, raffleId, orderIds, now));
+  }
+
+  private async release(
+    tx: LedgerTransaction,
+    raffleId: string,
+    orderIds: string[],
+    now: Date,
+  ): Promise<number> {
+    const orders = await tx.lockOrders(orderIds);
+    // A declared payment holds its numbers past the deadline: only the
+    // operator, the close of sales or a cancellation resolve it (DT-06).
+    const unpaid = orders.filter((o) => o.status === OrderStatus.PENDING);
+    const tickets = await tx.lockExpiredReservations(
+      raffleId,
+      unpaid.map((o) => o.id),
+      now,
+    );
+    if (tickets.length === 0) {
+      return 0;
     }
 
-    await this.ticketRepo.updateBatch(expiredTickets);
+    const releasedOrderIds = new Set<string | null>();
+    for (const [orderId, group] of groupTicketsByOrder(tickets)) {
+      group.forEach((ticket) => ticket.release());
+      await tx.transitionTickets(group, {
+        status: TicketStatus.RESERVED,
+        orderId,
+      });
+      releasedOrderIds.add(orderId);
+    }
 
-    for (const orderId of affectedOrderIds) {
-      const order = await this.orderRepo.findById(orderId);
-      if (order && !order.isExpired(now)) {
+    for (const order of unpaid) {
+      if (releasedOrderIds.has(order.id)) {
         order.markExpired();
-        await this.orderRepo.update(order);
-      } else if (order) {
-        try {
-          order.markExpired();
-          await this.orderRepo.update(order);
-        } catch {
-          // already marked expired or paid
-        }
+        await tx.saveOrder(order, OrderStatus.PENDING);
       }
     }
 
-    await this.auditLog.record({
+    await tx.recordAudit({
       raffleId,
       type: 'RESERVATIONS_RELEASED',
       data: {
-        releasedTicketsCount: expiredTickets.length,
-        numbers: expiredTickets.map((t) => t.number),
+        releasedTicketsCount: tickets.length,
+        numbers: tickets.map((t) => t.number),
       },
     });
 
-    return expiredTickets.length;
+    return tickets.length;
   }
 }

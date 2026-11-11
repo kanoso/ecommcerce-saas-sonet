@@ -1,12 +1,10 @@
 import { roundAt } from '@kanoso/raffle-draw';
-import { Raffle, Ticket } from '../../domain';
+import { Raffle, RaffleNotFoundError } from '../../domain';
 import {
-  AuditLog,
-  Clock,
   RaffleRepository,
   RandomnessBeacon,
   SeedVault,
-  TicketRepository,
+  TicketLedger,
 } from '../ports';
 
 export interface PublishRaffleCommand {
@@ -19,17 +17,15 @@ export interface PublishRaffleCommand {
 export class PublishRaffleUseCase {
   constructor(
     private readonly raffleRepo: RaffleRepository,
-    private readonly ticketRepo: TicketRepository,
+    private readonly ledger: TicketLedger,
     private readonly seedVault: SeedVault,
     private readonly beacon: RandomnessBeacon,
-    private readonly auditLog: AuditLog,
-    private readonly clock: Clock,
   ) {}
 
   async execute(command: PublishRaffleCommand): Promise<Raffle> {
     const raffle = await this.raffleRepo.findById(command.raffleId);
     if (!raffle) {
-      throw new Error(`Raffle ${command.raffleId} not found`);
+      throw new RaffleNotFoundError(command.raffleId);
     }
 
     const chainInfo = await this.beacon.getChainInfo();
@@ -50,47 +46,42 @@ export class PublishRaffleUseCase {
     const { commitmentHash, seedCiphertext } =
       await this.seedVault.generateAndStoreSeed(raffle.id);
 
-    raffle.publish({
-      authorizationResolution: command.authorizationResolution,
-      commitmentHash,
-      seedCiphertext,
-      drandRound,
-      drandChainHash: chainInfo.chainHash,
-      salesCloseAt: command.salesCloseAt,
-      drawAt: command.drawAt,
-      currentRoundAtSalesClose,
+    return this.ledger.run(async (tx) => {
+      const locked = await tx.lockRaffle(raffle.id);
+      if (!locked) {
+        throw new RaffleNotFoundError(raffle.id);
+      }
+
+      const previousStatus = locked.status;
+      locked.publish({
+        authorizationResolution: command.authorizationResolution,
+        commitmentHash,
+        seedCiphertext,
+        drandRound,
+        drandChainHash: chainInfo.chainHash,
+        salesCloseAt: command.salesCloseAt,
+        drawAt: command.drawAt,
+        currentRoundAtSalesClose,
+      });
+      await tx.saveRaffle(locked, previousStatus);
+
+      const totalTickets = await tx.createAvailableTickets(locked);
+
+      await tx.recordAudit({
+        raffleId: locked.id,
+        type: 'RAFFLE_PUBLISHED',
+        data: {
+          authorizationResolution: locked.authorizationResolution,
+          commitmentHash: locked.commitmentHash,
+          drandRound: locked.drandRound?.toString(),
+          drandChainHash: locked.drandChainHash,
+          salesCloseAt: locked.salesCloseAt?.toISOString(),
+          drawAt: locked.drawAt?.toISOString(),
+          totalTickets,
+        },
+      });
+
+      return locked;
     });
-
-    await this.raffleRepo.save(raffle);
-
-    // Pre-create tickets from numberMin to numberMax in AVAILABLE status
-    const ticketsToCreate: Ticket[] = [];
-    for (let num = raffle.numberMin; num <= raffle.numberMax; num++) {
-      ticketsToCreate.push(
-        new Ticket({
-          id: `${raffle.id}-${num}`,
-          raffleId: raffle.id,
-          number: num,
-          createdAt: this.clock.now(),
-        }),
-      );
-    }
-    await this.ticketRepo.createBatch(ticketsToCreate);
-
-    await this.auditLog.record({
-      raffleId: raffle.id,
-      type: 'RAFFLE_PUBLISHED',
-      data: {
-        authorizationResolution: raffle.authorizationResolution,
-        commitmentHash: raffle.commitmentHash,
-        drandRound: raffle.drandRound?.toString(),
-        drandChainHash: raffle.drandChainHash,
-        salesCloseAt: raffle.salesCloseAt?.toISOString(),
-        drawAt: raffle.drawAt?.toISOString(),
-        totalTickets: ticketsToCreate.length,
-      },
-    });
-
-    return raffle;
   }
 }

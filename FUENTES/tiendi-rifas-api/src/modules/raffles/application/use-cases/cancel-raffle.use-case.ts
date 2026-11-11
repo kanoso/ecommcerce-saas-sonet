@@ -1,12 +1,6 @@
-import { OrderStatus, Raffle } from '../../domain';
-import {
-  AuditLog,
-  Notifier,
-  OrderRepository,
-  PaymentGateway,
-  RaffleRepository,
-  TicketRepository,
-} from '../ports';
+import { Raffle, RaffleNotFoundError } from '../../domain';
+import { Clock, LedgerTransaction, TicketLedger } from '../ports';
+import { refundRaffleBuyers } from './refund-raffle-buyers';
 
 export interface CancelRaffleCommand {
   raffleId: string;
@@ -15,61 +9,40 @@ export interface CancelRaffleCommand {
 
 export class CancelRaffleUseCase {
   constructor(
-    private readonly raffleRepo: RaffleRepository,
-    private readonly ticketRepo: TicketRepository,
-    private readonly orderRepo: OrderRepository,
-    private readonly paymentGateway: PaymentGateway,
-    private readonly notifier: Notifier,
-    private readonly auditLog: AuditLog,
+    private readonly ledger: TicketLedger,
+    private readonly clock: Clock,
   ) {}
 
   async execute(command: CancelRaffleCommand): Promise<Raffle> {
-    const raffle = await this.raffleRepo.findById(command.raffleId);
+    return this.ledger.run((tx) => this.cancel(tx, command));
+  }
+
+  private async cancel(
+    tx: LedgerTransaction,
+    command: CancelRaffleCommand,
+  ): Promise<Raffle> {
+    const raffle = await tx.lockRaffle(command.raffleId);
     if (!raffle) {
-      throw new Error(`Raffle ${command.raffleId} not found`);
+      throw new RaffleNotFoundError(command.raffleId);
     }
 
+    const previousStatus = raffle.status;
     raffle.cancel(command.reason);
-    await this.raffleRepo.save(raffle);
+    await tx.saveRaffle(raffle, previousStatus);
 
-    // Find sold tickets and refund them
-    const soldTickets = await this.ticketRepo.findSoldByRaffleId(raffle.id);
-    for (const t of soldTickets) {
-      t.refund();
-    }
-    if (soldTickets.length > 0) {
-      await this.ticketRepo.updateBatch(soldTickets);
-    }
+    const { paidOrders, ordersInReview } = await refundRaffleBuyers(
+      tx,
+      raffle,
+      this.clock.now(),
+    );
 
-    // Find orders for this raffle
-    const orders = await this.orderRepo.findByRaffleId(raffle.id);
-    const paidOrders = orders.filter((o) => o.status === OrderStatus.PAID);
-
-    for (const order of paidOrders) {
-      order.markRefunded();
-      await this.orderRepo.update(order);
-
-      await this.paymentGateway.refund(
-        order.id,
-        order.totalAmount,
-        `Raffle cancelled: ${command.reason}`,
-      );
-
-      await this.notifier.sendRefundNotification(order.userId, {
-        orderId: order.id,
-        raffleTitle: raffle.title,
-        amount: order.totalAmount,
-        reason: command.reason,
-      });
-    }
-
-    await this.auditLog.record({
+    await tx.recordAudit({
       raffleId: raffle.id,
       type: 'RAFFLE_CANCELLED',
       data: {
         reason: command.reason,
-        refundedTicketsCount: soldTickets.length,
-        refundedOrdersCount: paidOrders.length,
+        paidOrdersCount: paidOrders.length,
+        ordersInReview: ordersInReview.map((order) => order.id),
       },
     });
 

@@ -1,0 +1,434 @@
+<section class="admin-receipts" aria-labelledby="admin-receipts-title">
+  <header class="admin-receipts__header">
+    <div>
+      <h1 id="admin-receipts-title" class="admin-receipts__title">Comprobantes pendientes</h1>
+      <p class="admin-receipts__subtitle">Cola global de verificación de transferencias y comprobantes de pago (RF-16).</p>
+    </div>
+    <button type="button" class="btn-refresh" (click)="loadProofs()">
+      Actualizar lista
+    </button>
+  </header>
+
+  @if (actionSuccess()) {
+    <div class="feedback-banner feedback-banner--success" role="status">
+      {{ actionSuccess() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-box" aria-live="polite">
+      <p>Cargando comprobantes pendientes...</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-box state-box--error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="loadProofs()">
+        Reintentar
+      </button>
+    </div>
+  } @else if (proofs().length === 0) {
+    <div class="state-box state-box--empty">
+      <p>No hay comprobantes pendientes de verificación.</p>
+    </div>
+  } @else {
+    <ul class="receipts-list" aria-label="Lista de comprobantes pendientes">
+      @for (proof of proofs(); track proof.id) {
+        <li class="receipt-item">
+          <div class="receipt-item__info">
+            <div class="receipt-item__top">
+              <span class="receipt-item__order">Orden: <code>{{ proof.id }}</code></span>
+              @if (proof.raffleTitle) {
+                <span class="receipt-item__raffle">Rifa: <strong>{{ proof.raffleTitle }}</strong></span>
+              }
+              <span class="badge badge--pending">Pendiente de verificación</span>
+            </div>
+
+            <div class="receipt-item__buyer">
+              <div class="receipt-item__buyer-header">
+                <span class="buyer-icon" aria-hidden="true">👤</span>
+                <span class="label">Pagado por / Comprador:</span>
+                <strong class="buyer-name">{{ proof.buyer?.name || 'Comprador sin nombre registrado' }}</strong>
+              </div>
+              @if (proof.buyer) {
+                <div class="receipt-item__buyer-details">
+                  @if (proof.buyer.document) {
+                    <span class="buyer-detail"><strong>DNI:</strong> {{ proof.buyer.document }}</span>
+                  }
+                  @if (proof.buyer.phone) {
+                    <span class="buyer-detail">
+                      <strong>Cel:</strong>
+                      <a [href]="'tel:' + proof.buyer.phone" class="buyer-phone-link">{{ proof.buyer.phone }}</a>
+                    </span>
+                  }
+                  @if (proof.buyer.email) {
+                    <span class="buyer-detail"><strong>Email:</strong> {{ proof.buyer.email }}</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="receipt-item__data-grid">
+              <div>
+                <span class="label">Total orden:</span>
+                <strong class="value highlight">S/ {{ proof.totalAmount | number:'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span class="label">Monto declarado:</span>
+                <span class="value">S/ {{ (proof.declaredAmount ?? proof.totalAmount) | number:'1.2-2' }}</span>
+              </div>
+              <div>
+                <span class="label">N° Operación:</span>
+                <span class="value"><code>{{ proof.operationNumber }}</code></span>
+              </div>
+              <div>
+                <span class="label">Medio de pago:</span>
+                <span class="value">{{ proof.bankOrWallet ?? 'No especificado' }}</span>
+              </div>
+              <div class="full-row">
+                <span class="label">Boletos reservados:</span>
+                <span class="value numbers-tag">{{ proof.numbers.join(', ') }}</span>
+              </div>
+              @if (proof.paidToAccount) {
+                <div class="full-row">
+                  <span class="label">Cuenta destino declarada:</span>
+                  <span class="value">
+                    {{ proof.paidToAccount.label }} - {{ proof.paidToAccount.holder }} ({{ proof.paidToAccount.number }})
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="receipt-item__actions">
+            @if (proof.hasProof) {
+              <a
+                [href]="proofUrl(proof.id)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-action btn-action--view"
+              >
+                Ver comprobante
+              </a>
+            }
+            <button
+              type="button"
+              class="btn-action btn-action--approve"
+              (click)="openApprove(proof)"
+            >
+              Aprobar pago
+            </button>
+            <button
+              type="button"
+              class="btn-action btn-action--reject"
+              (click)="openReject(proof)"
+            >
+              Rechazar
+            </button>
+            <button
+              type="button"
+              class="btn-action btn-action--extra"
+              (click)="openExtraTransfer(proof)"
+            >
+              Transferencia extra
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- Modal Aprobar -->
+  @if (activeModal() === 'approve') {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-approve-title">
+        <h2 id="modal-approve-title" class="modal-dialog__title">Aprobar comprobante</h2>
+        <p class="modal-dialog__desc">Confirma la operación y el monto recibido en la cuenta bancaria.</p>
+
+        @if (selectedProof(); as sp) {
+          <div class="modal-buyer-summary">
+            <div><strong>Orden:</strong> <code>{{ sp.id }}</code> @if (sp.raffleTitle) { · <strong>Rifa:</strong> {{ sp.raffleTitle }} }</div>
+            <div>
+              <strong>Comprador:</strong> {{ sp.buyer?.name || 'Sin nombre' }}
+              @if (sp.buyer?.document) { · DNI: {{ sp.buyer?.document }} }
+              @if (sp.buyer?.phone) { · Cel: {{ sp.buyer?.phone }} }
+            </div>
+          </div>
+        }
+
+        @if (actionError()) {
+          <div class="feedback-banner feedback-banner--error" role="alert">
+            {{ actionError() }}
+          </div>
+        }
+
+        <form [formGroup]="approveForm" (ngSubmit)="submitApprove()" class="modal-form">
+          <div class="form-group">
+            <label for="approve-op-num">Número de operación recibido:</label>
+            <input
+              id="approve-op-num"
+              type="text"
+              formControlName="operationNumber"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="approve-amount">Monto recibido (S/):</label>
+            <input
+              id="approve-amount"
+              type="number"
+              step="0.01"
+              formControlName="receivedAmount"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group form-group--checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="collisionActive" />
+              <span>Registrar colisión entre bancos (DT-12)</span>
+            </label>
+          </div>
+
+          @if (approveForm.controls.collisionActive.value) {
+            <div class="form-group">
+              <label for="approve-collision-reason">Motivo de colisión:</label>
+              <input
+                id="approve-collision-reason"
+                type="text"
+                formControlName="collisionReason"
+                class="form-control"
+                placeholder="Ej. Mismo número de operación en distinto banco"
+              />
+            </div>
+            <div class="form-group">
+              <label for="approve-collision-bank">Banco:</label>
+              <select id="approve-collision-bank" formControlName="collisionBank" class="form-control">
+                <option value="">Seleccione banco...</option>
+                @for (b of banks; track b) {
+                  <option [value]="b">{{ b }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="submitting() || approveForm.invalid">
+              {{ submitting() ? 'Aprobando...' : 'Confirmar aprobación' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Rechazar -->
+  @if (activeModal() === 'reject') {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-reject-title">
+        <h2 id="modal-reject-title" class="modal-dialog__title">Rechazar comprobante</h2>
+        <p class="modal-dialog__desc">
+          Si no se recibió dinero, los boletos se liberan. Si se recibió dinero (parcial o sobrepago), se abre un reembolso (DT-08).
+        </p>
+
+        @if (selectedProof(); as sp) {
+          <div class="modal-buyer-summary">
+            <div><strong>Orden:</strong> <code>{{ sp.id }}</code> @if (sp.raffleTitle) { · <strong>Rifa:</strong> {{ sp.raffleTitle }} }</div>
+            <div>
+              <strong>Comprador:</strong> {{ sp.buyer?.name || 'Sin nombre' }}
+              @if (sp.buyer?.document) { · DNI: {{ sp.buyer?.document }} }
+              @if (sp.buyer?.phone) { · Cel: {{ sp.buyer?.phone }} }
+            </div>
+          </div>
+        }
+
+        @if (actionError()) {
+          <div class="feedback-banner feedback-banner--error" role="alert">
+            {{ actionError() }}
+          </div>
+        }
+
+        <form [formGroup]="rejectForm" (ngSubmit)="submitReject()" class="modal-form">
+          <div class="form-group">
+            <label class="radio-label">
+              <input type="radio" [value]="false" formControlName="moneyReceived" />
+              <span><strong>No se recibió dinero</strong> (comprobante falso o ilegible)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" [value]="true" formControlName="moneyReceived" />
+              <span><strong>Sí se recibió dinero</strong> (abrir reembolso para devolver fondos)</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="reject-reason">Motivo de rechazo:</label>
+            <textarea
+              id="reject-reason"
+              formControlName="reason"
+              class="form-control"
+              rows="3"
+              required
+              placeholder="Explica la razón del rechazo..."
+            ></textarea>
+          </div>
+
+          @if (rejectForm.controls.moneyReceived.value) {
+            <div class="money-received-section">
+              <div class="form-group">
+                <label for="reject-amount">Monto recibido (S/):</label>
+                <input
+                  id="reject-amount"
+                  type="number"
+                  step="0.01"
+                  formControlName="receivedAmount"
+                  class="form-control"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="reject-bank">Banco o billetera:</label>
+                <select id="reject-bank" formControlName="bankOrWallet" class="form-control">
+                  <option value="">Seleccione medio...</option>
+                  @for (b of banks; track b) {
+                    <option [value]="b">{{ b }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="reject-op-num">Número de operación:</label>
+                <input
+                  id="reject-op-num"
+                  type="text"
+                  formControlName="operationNumber"
+                  class="form-control"
+                />
+              </div>
+
+              <div class="form-group form-group--checkbox">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="overpaymentConfirmed" />
+                  <span>Sobrepago confirmado (DT-14)</span>
+                </label>
+              </div>
+
+              @if (rejectForm.controls.overpaymentConfirmed.value) {
+                <div class="form-group">
+                  <label for="reject-overpayment-reason">Motivo del sobrepago:</label>
+                  <input
+                    id="reject-overpayment-reason"
+                    type="text"
+                    formControlName="overpaymentReason"
+                    class="form-control"
+                  />
+                </div>
+              }
+            </div>
+          }
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit btn-submit--danger" [disabled]="submitting() || rejectForm.invalid">
+              {{ submitting() ? 'Rechazando...' : 'Confirmar rechazo' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Transferencia Extra (DT-16) -->
+  @if (activeModal() === 'extra') {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-extra-title">
+        <h2 id="modal-extra-title" class="modal-dialog__title">Transferencia extra (DT-16)</h2>
+        <p class="modal-dialog__desc">
+          Registra una segunda transferencia real de una orden resuelta y abre su reembolso sin modificar los boletos.
+        </p>
+
+        @if (selectedProof(); as sp) {
+          <div class="modal-buyer-summary">
+            <div><strong>Orden:</strong> <code>{{ sp.id }}</code> @if (sp.raffleTitle) { · <strong>Rifa:</strong> {{ sp.raffleTitle }} }</div>
+            <div>
+              <strong>Comprador:</strong> {{ sp.buyer?.name || 'Sin nombre' }}
+              @if (sp.buyer?.document) { · DNI: {{ sp.buyer?.document }} }
+              @if (sp.buyer?.phone) { · Cel: {{ sp.buyer?.phone }} }
+            </div>
+          </div>
+        }
+
+        @if (actionError()) {
+          <div class="feedback-banner feedback-banner--error" role="alert">
+            {{ actionError() }}
+          </div>
+        }
+
+        <form [formGroup]="extraTransferForm" (ngSubmit)="submitExtraTransfer()" class="modal-form">
+          <div class="form-group">
+            <label for="extra-reason">Motivo:</label>
+            <input
+              id="extra-reason"
+              type="text"
+              formControlName="reason"
+              class="form-control"
+              placeholder="Ej. Comprador realizó segunda transferencia por error"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="extra-amount">Monto recibido (S/):</label>
+            <input
+              id="extra-amount"
+              type="number"
+              step="0.01"
+              formControlName="receivedAmount"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="extra-bank">Banco o billetera:</label>
+            <select id="extra-bank" formControlName="bankOrWallet" class="form-control" required>
+              <option value="">Seleccione medio...</option>
+              @for (b of banks; track b) {
+                <option [value]="b">{{ b }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="extra-op-num">Número de operación:</label>
+            <input
+              id="extra-op-num"
+              type="text"
+              formControlName="operationNumber"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="submitting() || extraTransferForm.invalid">
+              {{ submitting() ? 'Registrando...' : 'Registrar transferencia extra' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

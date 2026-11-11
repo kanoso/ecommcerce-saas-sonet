@@ -1,0 +1,849 @@
+<section class="raffle-detail" aria-labelledby="detail-title">
+  <div class="raffle-detail__top">
+    <a routerLink="/admin/rifas" class="back-link">← Volver a rifas</a>
+    @if (raffle(); as r) {
+      @if (r.status !== 'DRAFT') {
+        <a [routerLink]="['/rifas', r.id]" target="_blank" rel="noopener noreferrer" class="btn-public-link">
+          👁️ Ver página pública de la rifa ↗
+        </a>
+      }
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="state-box" aria-live="polite">
+      <p>Cargando información de la rifa...</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-box state-box--error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="loadData()">Reintentar</button>
+    </div>
+  } @else if (raffle(); as r) {
+    <!-- Header -->
+    <header class="detail-header">
+      <div class="detail-header__main">
+        <h1 id="detail-title" class="detail-header__title">{{ r.title }}</h1>
+        <div class="detail-header__actions">
+          <span class="status-badge" [attr.data-status]="r.status">
+            {{ statusLabel(r.status) }}
+          </span>
+          @if (r.status === 'ACTIVE') {
+            <button type="button" class="btn btn-primary btn-pos-trigger" (click)="openPosModal()">
+              🛒 Venta Presencial (POS)
+            </button>
+          }
+        </div>
+      </div>
+      <p class="detail-header__prize"><strong>Premio:</strong> {{ r.prize }}</p>
+      <div class="detail-header__grid">
+        <div class="meta-item">
+          <span class="meta-item__label">Precio por boleto</span>
+          <span class="meta-item__value">S/ {{ r.ticketPrice | number:'1.2-2' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-item__label">Rango de números</span>
+          <span class="meta-item__value">{{ r.numberMin }} al {{ r.numberMax }} ({{ r.totalNumbers }} total)</span>
+        </div>
+        @if (r.authorizationResolution) {
+          <div class="meta-item">
+            <span class="meta-item__label">Resolución</span>
+            <span class="meta-item__value">{{ r.authorizationResolution }}</span>
+          </div>
+        }
+        @if (r.salesCloseAt) {
+          <div class="meta-item">
+            <span class="meta-item__label">Cierre de ventas</span>
+            <span class="meta-item__value">{{ r.salesCloseAt | date:'short' }}</span>
+          </div>
+        }
+        @if (r.drawAt) {
+          <div class="meta-item">
+            <span class="meta-item__label">Fecha de sorteo</span>
+            <span class="meta-item__value">{{ r.drawAt | date:'short' }}</span>
+          </div>
+        }
+      </div>
+    </header>
+
+    @if (actionError()) {
+      <div class="alert alert--error" role="alert">
+        {{ actionError() }}
+      </div>
+    }
+
+    <!-- Sales Report (RF-12) -->
+    <section class="section-card sales-metrics" aria-labelledby="sales-title">
+      <div class="section-card__header">
+        <h2 id="sales-title" class="section-card__title">Métricas de Ventas (RF-12)</h2>
+        <a routerLink="/admin/comprobantes" class="section-card__link">Comprobantes pendientes</a>
+      </div>
+
+      @if (sales(); as s) {
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-card__label">Boletos vendidos</span>
+            <strong class="metric-card__value text-success">{{ s.ticketsSold }}</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-card__label">Boletos reservados</span>
+            <strong class="metric-card__value text-warning">{{ s.ticketsReserved }}</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-card__label">Boletos disponibles</span>
+            <strong class="metric-card__value text-muted">{{ s.ticketsAvailable }}</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-card__label">Recaudación verificada</span>
+            <strong class="metric-card__value text-primary">S/ {{ s.paidAmount | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+      }
+    </section>
+
+
+    <!-- Prize Gallery & Specifications Showcase (Batch 5) -->
+    <section class="section-card prize-showcase-section" aria-labelledby="prize-showcase-title">
+      <div class="section-card__header">
+        <div>
+          <h2 id="prize-showcase-title" class="section-card__title">Galería del Premio y Ficha Técnica</h2>
+          <p class="section-card__desc">Imágenes cargadas y especificaciones visibles para los compradores.</p>
+        </div>
+        @if (r.status === 'DRAFT') {
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            (click)="openEditShowcaseModal()"
+          >
+            ✏️ Editar Ficha y Galería
+          </button>
+        }
+      </div>
+
+      <div class="prize-showcase-body">
+        @if (r.prizeImages && r.prizeImages.length > 0) {
+          <div class="admin-gallery-preview">
+            <span class="preview-label">Vista previa del carrusel ({{ r.prizeImages.length }} fotos)</span>
+            <div class="admin-thumbs-strip">
+              @for (img of r.prizeImages; track $index) {
+                <div class="admin-thumb-card">
+                  <img [src]="img" [alt]="'Foto ' + ($index + 1)" class="admin-thumb-img" />
+                  <span class="thumb-tag">#{{ $index + 1 }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <p class="text-muted">No se han registrado imágenes del premio para esta rifa.</p>
+        }
+
+        @if (r.prizeDescription) {
+          <div class="admin-specs-container">
+            <h3 class="specs-heading">Ficha Técnica Publicada:</h3>
+            <p class="specs-text">{{ r.prizeDescription }}</p>
+          </div>
+        }
+
+        <div class="admin-specs-container">
+          <h3 class="specs-heading">Configuración del Sorteo en Vivo:</h3>
+          <p class="specs-text">
+            <strong>Modalidad:</strong> {{ drawModeLabel(r.drawMode) }} ·
+            <strong>Efecto:</strong> {{ r.drawEffect ?? 'SLOT_MACHINE' }} ·
+            <strong>Intento ganador:</strong> {{ r.winningAttempt ?? 1 }}° ·
+            <strong>Duración por intento:</strong> {{ r.drawDurationSec ?? 4 }} seg ·
+            <strong>Velocidad:</strong> {{ drawSpeedLabel(r.drawSpeed) }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Buyers & Sold Tickets Section -->
+    <section class="section-card orders-section" aria-labelledby="buyers-title">
+      <div class="section-card__header">
+        <div>
+          <h2 id="buyers-title" class="section-card__title">Boletos Vendidos y Compradores</h2>
+          <p class="section-card__desc">Lista detallada de compras, reservas y datos de contacto de compradores.</p>
+        </div>
+        @if (orders().length > 0) {
+          <div class="search-box">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Buscar por DNI, nombre, boleto u orden..."
+              [value]="orderSearchTerm()"
+              (input)="orderSearchTerm.set($any($event.target).value)"
+            />
+          </div>
+        }
+      </div>
+
+      @if (filteredOrders().length === 0) {
+        <div class="state-box state-box--empty-sm">
+          <p>{{ orders().length === 0 ? 'Aún no se han registrado órdenes ni boletos vendidos en esta rifa.' : 'No se encontraron resultados para la búsqueda ingresada.' }}</p>
+        </div>
+      } @else {
+        <div class="orders-cards-list" aria-label="Lista de boletos vendidos y compradores">
+          @for (ord of filteredOrders(); track ord.id) {
+            <article class="order-buyer-card">
+              <header class="order-buyer-card__header">
+                <div class="order-buyer-card__tickets">
+                  <span class="tickets-label">Boleto(s):</span>
+                  <div class="ticket-chips">
+                    @for (num of ord.numbers; track num) {
+                      <span class="ticket-chip">#{{ num }}</span>
+                    }
+                  </div>
+                </div>
+                <span class="order-status-badge" [attr.data-status]="ord.status">
+                  {{ orderStatusLabel(ord.status) }}
+                </span>
+              </header>
+
+              <div class="order-buyer-card__body">
+                <div class="buyer-section">
+                  <div class="buyer-name-header">
+                    <span class="buyer-icon" aria-hidden="true">👤</span>
+                    <strong class="buyer-name">{{ ord.buyer?.name || 'Comprador sin nombre' }}</strong>
+                  </div>
+
+                  <div class="buyer-fields">
+                    @if (ord.buyer?.document) {
+                      <div class="field-item">
+                        <span class="field-label">DNI / Doc:</span>
+                        <strong class="field-value">{{ ord.buyer?.document }}</strong>
+                      </div>
+                    }
+                    @if (ord.buyer?.phone) {
+                      <div class="field-item">
+                        <span class="field-label">Celular:</span>
+                        <a [href]="'tel:' + ord.buyer?.phone" class="phone-link">{{ ord.buyer?.phone }}</a>
+                      </div>
+                    }
+                    @if (ord.buyer?.email) {
+                      <div class="field-item">
+                        <span class="field-label">Email:</span>
+                        <span class="field-value text-break">{{ ord.buyer?.email }}</span>
+                      </div>
+                    }
+                    @if (!ord.buyer?.document && !ord.buyer?.phone && !ord.buyer?.email) {
+                      <span class="text-muted text-sm">Sin datos de contacto adicionales</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="payment-section">
+                  <div class="field-item">
+                    <span class="field-label">Total orden:</span>
+                    <strong class="amount-value">S/ {{ ord.totalAmount | number:'1.2-2' }}</strong>
+                  </div>
+                  @if (ord.operationNumber) {
+                    <div class="field-item">
+                      <span class="field-label">N° Operación:</span>
+                      <code>{{ ord.operationNumber }}</code>
+                    </div>
+                  }
+                  @if (ord.bankOrWallet) {
+                    <div class="field-item">
+                      <span class="field-label">Medio de pago:</span>
+                      <span class="bank-tag">{{ ord.bankOrWallet }}</span>
+                    </div>
+                  }
+                  <div class="field-item">
+                    <span class="field-label">Fecha:</span>
+                    <span class="field-value">{{ ord.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <footer class="order-buyer-card__footer">
+                <span class="order-meta">Orden: <code>{{ ord.id }}</code></span>
+                @if (ord.hasProof) {
+                  <a
+                    [href]="proofUrl(ord.id)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-view-proof"
+                  >
+                    Ver comprobante
+                  </a>
+                }
+              </footer>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Publish Section (RF-11) (DRAFT only) -->
+    @if (r.status === 'DRAFT') {
+      <section class="section-card" aria-labelledby="publish-title">
+        <h2 id="publish-title" class="section-card__title">Publicar Rifa (RF-11)</h2>
+        <p class="section-card__desc">
+          Al publicar la rifa, se genera el compromiso criptográfico (hash de semilla secreta) y se fija la ronda de drand. <strong>Esta acción es irreversible y no se podrá editar la rifa.</strong>
+        </p>
+
+        @if (publishSuccess(); as pub) {
+          <div class="alert alert--success" role="alert">
+            <p><strong>Rifa publicada exitosamente.</strong></p>
+            <p>Hash compromiso: <code>{{ pub.commitmentHash }}</code></p>
+            <p>Ronda drand fijada: <strong>{{ pub.drandRound }}</strong></p>
+          </div>
+        } @else {
+          <form [formGroup]="publishForm" (ngSubmit)="onPublish()" class="publish-form" novalidate>
+            <div class="field">
+              <label for="resolucion_autorizacion" class="field__label">Resolución de autorización *</label>
+              <input
+                id="resolucion_autorizacion"
+                type="text"
+                formControlName="resolucion_autorizacion"
+                class="field__input"
+                placeholder="Ej: RD-2026-MININTER-045"
+              />
+              @if (publishForm.get('resolucion_autorizacion')?.touched && publishForm.get('resolucion_autorizacion')?.hasError('required')) {
+                <span class="field__error">La resolución es obligatoria.</span>
+              }
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="cierre_ventas" class="field__label">Cierre de ventas *</label>
+                <input
+                  id="cierre_ventas"
+                  type="datetime-local"
+                  formControlName="cierre_ventas"
+                  class="field__input"
+                />
+              </div>
+
+              <div class="field">
+                <label for="fecha_sorteo" class="field__label">Fecha y hora de sorteo *</label>
+                <input
+                  id="fecha_sorteo"
+                  type="datetime-local"
+                  formControlName="fecha_sorteo"
+                  class="field__input"
+                />
+              </div>
+            </div>
+
+            @if (publishForm.hasError('drawBeforeClose')) {
+              <div class="alert alert--warning" role="alert">
+                La fecha del sorteo debe ser posterior al cierre de ventas.
+              </div>
+            }
+
+            <!-- Drand dynamic preview -->
+            @if (drandRoundPreview(); as preview) {
+              <div class="drand-preview">
+                <span class="drand-preview__title">Ronda estimada de drand (quicknet):</span>
+                <span class="drand-preview__round">#{{ preview.round }}</span>
+                <span class="drand-preview__time">Hora prevista: {{ preview.expectedTimeIso }}</span>
+              </div>
+            }
+
+            <div class="field-checkbox">
+              <input
+                id="confirm_publish"
+                type="checkbox"
+                formControlName="confirmado"
+                class="checkbox__input"
+              />
+              <label for="confirm_publish" class="checkbox__label">
+                Confirmo la publicación de la rifa. Esta acción fijará la semilla y ronda de drand.
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="submit"
+                [disabled]="publishForm.invalid || actionLoading()"
+                class="btn-action btn-publish"
+              >
+                @if (actionLoading()) { Publicando... } @else { Publicar rifa y fijar semilla }
+              </button>
+            </div>
+          </form>
+        }
+      </section>
+    }
+
+    <!-- Draw Section (RF-13) (ACTIVE or CLOSED) -->
+    @if (r.status === 'ACTIVE' || r.status === 'CLOSED' || r.status === 'DRAWN') {
+      <section class="section-card" aria-labelledby="draw-title">
+        <h2 id="draw-title" class="section-card__title">Sorteo de la Rifa (RF-13)</h2>
+
+        @if (drawResult(); as draw) {
+          <div class="alert alert--success" role="status">
+            <p><strong>Sorteo ejecutado exitosamente.</strong></p>
+            <p class="draw-winner">Número ganador: {{ draw.winningNumber }}</p>
+            <p>Ronda drand: {{ draw.drandRound }} | Ejecutado en: {{ draw.executedAt | date:'medium' }}</p>
+            <div class="draw-links">
+              <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
+              <a [routerLink]="['/rifas', r.id, 'verificacion']" class="draw-link">Verificar sorteo</a>
+            </div>
+          </div>
+        } @else if (r.status === 'DRAWN') {
+          <div class="alert alert--info" role="status">
+            <p>Esta rifa ya ha sido sorteada oficialmente.</p>
+            <div class="draw-links">
+              <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
+              <a [routerLink]="['/rifas', r.id, 'verificacion']" class="draw-link">Verificar sorteo</a>
+            </div>
+          </div>
+        } @else {
+          <p class="section-card__desc">
+            El sorteo automatizado se ejecuta en la fecha y hora programada una vez disponible la ronda de drand. Si el proceso programado falla, puedes ejecutarlo manualmente aquí.
+          </p>
+          @if (r.status === 'ACTIVE') {
+            <p class="section-card__desc" style="color: #64748b; font-size: 0.85rem;">
+              Nota: el sorteo oficial requiere que las ventas estén cerradas y que se haya alcanzado la fecha programada con la ronda de drand disponible.
+            </p>
+          }
+          <button
+            type="button"
+            [disabled]="actionLoading()"
+            class="btn-action btn-draw"
+            (click)="onDraw()"
+          >
+            @if (actionLoading()) { Ejecutando sorteo... } @else { Ejecutar sorteo manual }
+          </button>
+        }
+      </section>
+    }
+
+    <!-- Delete Draft Section (When status is DRAFT) -->
+    @if (r.status === 'DRAFT') {
+      <section class="section-card section-card--danger" aria-labelledby="draft-delete-title">
+        <h2 id="draft-delete-title" class="section-card__title text-danger">Eliminar Borrador de Rifa</h2>
+        <p class="section-card__desc">
+          Esta rifa se encuentra en estado borrador y aún no ha sido publicada. Puedes eliminarla por completo del sistema.
+        </p>
+
+        @if (!showDeleteDraftDialog()) {
+          <button
+            type="button"
+            class="btn-danger btn-cancel-prompt"
+            (click)="showDeleteDraftDialog.set(true)"
+          >
+            🗑️ Eliminar borrador...
+          </button>
+        } @else {
+          <div class="cancel-dialog" role="region" aria-label="Confirmación de eliminación">
+            <p class="delete-warning-text">
+              ¿Estás seguro de que deseas eliminar este borrador de rifa? Esta acción no se puede deshacer.
+            </p>
+            <div class="form-actions">
+              <button
+                type="button"
+                [disabled]="actionLoading()"
+                class="btn-danger btn-confirm-cancel"
+                (click)="onDeleteDraft()"
+              >
+                @if (actionLoading()) { Eliminando... } @else { Sí, eliminar borrador definitivamente }
+              </button>
+              <button
+                type="button"
+                class="btn-cancel"
+                (click)="showDeleteDraftDialog.set(false)"
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Cancel Section (RF-15 / DT-15) -->
+    @if (r.status !== 'DRAFT' && r.status !== 'CANCELLED' && r.status !== 'DRAWN') {
+      <section class="section-card section-card--danger" aria-labelledby="cancel-title">
+        <h2 id="cancel-title" class="section-card__title text-danger">Zona de Peligro: Cancelar Rifa (RF-15)</h2>
+        <p class="section-card__desc">
+          Cancelar una rifa abre reembolsos para todos los compradores con pagos aprobados y cancela órdenes pendientes (según DT-08 y DT-15).
+        </p>
+
+        @if (!showCancelDialog()) {
+          <button
+            type="button"
+            class="btn-danger btn-cancel-prompt"
+            (click)="showCancelDialog.set(true)"
+          >
+            Cancelar rifa...
+          </button>
+        } @else {
+          <div class="cancel-dialog" role="region" aria-label="Confirmación de cancelación">
+            <div class="field">
+              <label for="cancel_motivo" class="field__label">Motivo de cancelación *</label>
+              <textarea
+                id="cancel_motivo"
+                rows="3"
+                class="field__input"
+                [ngModel]="cancelReason()"
+                (ngModelChange)="cancelReason.set($event)"
+                placeholder="Ingresa el motivo legal, técnico o de fuerza mayor (obligatorio)"
+                maxlength="500"
+              ></textarea>
+            </div>
+
+            <div class="field-checkbox">
+              <input
+                id="confirm_cancel"
+                type="checkbox"
+                [ngModel]="cancelConfirmed()"
+                (ngModelChange)="cancelConfirmed.set($event)"
+                class="checkbox__input"
+              />
+              <label for="confirm_cancel" class="checkbox__label">
+                Confirmo la cancelación definitiva y la apertura de reembolsos para compradores verificados.
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="button"
+                [disabled]="!cancelReason().trim() || !cancelConfirmed() || actionLoading()"
+                class="btn-danger btn-confirm-cancel"
+                (click)="onCancel()"
+              >
+                @if (actionLoading()) { Cancelando... } @else { Confirmar y cancelar definitivamente }
+              </button>
+              <button
+                type="button"
+                class="btn-cancel"
+                (click)="showCancelDialog.set(false)"
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- POS Modal (In-Person Ticket Sale) -->
+    @if (showPosModal()) {
+      <div class="modal-backdrop" (click)="closePosModal()">
+        <div class="modal pos-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="pos-modal-title">
+          <div class="modal__header">
+            <h2 id="pos-modal-title" class="modal__title">Venta Presencial (POS)</h2>
+            <button type="button" class="modal__close" (click)="closePosModal()" aria-label="Cerrar modal">×</button>
+          </div>
+
+          <div class="modal__body">
+            @if (posSuccessOrder(); as order) {
+              <div class="pos-receipt">
+                <div class="pos-receipt__icon">✅</div>
+                <h3 class="pos-receipt__title">¡Venta Registrada Exitosamente!</h3>
+                <p class="pos-receipt__order-id">Orden #{{ order.id }}</p>
+                
+                <div class="pos-receipt__details">
+                  <div class="pos-receipt__row">
+                    <span>Boletos:</span>
+                    <strong>{{ order.numbers.join(', ') }}</strong>
+                  </div>
+                  <div class="pos-receipt__row">
+                    <span>Monto Total:</span>
+                    <strong>S/ {{ order.totalAmount | number:'1.2-2' }}</strong>
+                  </div>
+                  <div class="pos-receipt__row">
+                    <span>Método de Pago:</span>
+                    <strong>Efectivo</strong>
+                  </div>
+                  <div class="pos-receipt__row">
+                    <span>Estado:</span>
+                    <span class="status-badge" data-status="PAID">Pagado</span>
+                  </div>
+                </div>
+
+                <div class="modal__actions">
+                  <button type="button" class="btn btn-secondary" (click)="openPosModal()">Registrar otra venta</button>
+                  <button type="button" class="btn btn-primary" (click)="closePosModal()">Cerrar</button>
+                </div>
+              </div>
+            } @else {
+              <div class="pos-form">
+                @if (posError()) {
+                  <div class="alert alert--error pos-alert--error" role="alert">
+                    {{ posError() }}
+                  </div>
+                }
+
+                <div class="pos-available-section">
+                  <div class="pos-available-header">
+                    <span class="pos-available-title">Boletos disponibles ({{ posAvailableNumbers()?.length ?? 0 }})</span>
+                    <div class="pos-quick-actions">
+                      <button type="button" class="btn-pos-quick" (click)="pickRandomPos(1)">🎲 +1 al azar</button>
+                      <button type="button" class="btn-pos-quick" (click)="pickRandomPos(5)">🎲 +5 al azar</button>
+                      @if (parsedPosNumbers().length > 0) {
+                        <button type="button" class="btn-pos-clear" (click)="clearPosNumbers()">Limpiar</button>
+                      }
+                    </div>
+                  </div>
+                  @if (posLoadingAvailable()) {
+                    <div class="pos-loading-msg">Cargando boletos disponibles…</div>
+                  } @else if ((posAvailableNumbers()?.length ?? 0) === 0) {
+                    <div class="pos-empty-msg">No quedan boletos disponibles en esta rifa.</div>
+                  } @else {
+                    <div class="pos-numbers-grid" role="group" aria-label="Selección de boletos disponibles">
+                      @for (num of posAvailableNumbers(); track num) {
+                        <button
+                          type="button"
+                          class="pos-number-chip"
+                          [class.pos-number-chip--selected]="isPosNumberSelected(num)"
+                          (click)="togglePosNumber(num)"
+                          [attr.aria-pressed]="isPosNumberSelected(num)"
+                        >
+                          {{ num }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="field">
+                  <label for="pos_numbers" class="field__label">Boletos seleccionados *</label>
+                  <input
+                    id="pos_numbers"
+                    type="text"
+                    [ngModel]="posNumbersInput()"
+                    (ngModelChange)="posNumbersInput.set($event)"
+                    placeholder="Haz clic arriba o escribe: 5, 12, 42"
+                    class="field__input"
+                  />
+                  <span class="field__hint">
+                    @if (parsedPosNumbers().length > 0) {
+                      <strong>{{ parsedPosNumbers().length }}</strong> boleto(s): {{ parsedPosNumbers().join(', ') }} —
+                      Total: <strong>S/ {{ posTotalAmount() | number:'1.2-2' }}</strong>
+                    } @else {
+                      Haz clic en los boletos de arriba o ingresa números separados por comas o espacios.
+                    }
+                  </span>
+                </div>
+
+                <div class="field">
+                  <label for="pos_alias" class="field__label">Nombre / Alias del Comprador *</label>
+                  <input
+                    id="pos_alias"
+                    type="text"
+                    [ngModel]="posAlias()"
+                    (ngModelChange)="posAlias.set($event)"
+                    placeholder="Ej: Carlos Gómez"
+                    class="field__input"
+                  />
+                </div>
+
+                <div class="field">
+                  <label for="pos_phone" class="field__label">Teléfono / Celular *</label>
+                  <input
+                    id="pos_phone"
+                    type="tel"
+                    [ngModel]="posPhone()"
+                    (ngModelChange)="posPhone.set($event)"
+                    placeholder="Ej: +51 987654321"
+                    class="field__input"
+                  />
+                </div>
+
+                <div class="field">
+                  <label for="pos_document" class="field__label">DNI / Documento (Opcional)</label>
+                  <input
+                    id="pos_document"
+                    type="text"
+                    [ngModel]="posDocument()"
+                    (ngModelChange)="posDocument.set($event)"
+                    placeholder="Ej: 12345678"
+                    class="field__input"
+                  />
+                </div>
+
+                <div class="pos-summary">
+                  <span>Total a cobrar en efectivo:</span>
+                  <strong class="pos-summary__total">S/ {{ posTotalAmount() | number:'1.2-2' }}</strong>
+                </div>
+
+                <div class="modal__actions">
+                  <button type="button" class="btn btn-secondary" (click)="closePosModal()">Cancelar</button>
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-pos-submit"
+                    [disabled]="posLoading() || parsedPosNumbers().length === 0"
+                    (click)="submitPosSale()"
+                  >
+                    {{ posLoading() ? 'Registrando...' : 'Confirmar Venta en Efectivo' }}
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+    <!-- Modal: Editar Ficha Técnica y Galería -->
+    @if (showEditShowcaseModal()) {
+      <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-showcase-title">
+        <div class="modal-card edit-showcase-modal">
+          <div class="modal__header">
+            <h3 id="edit-showcase-title" class="modal__title">Editar Ficha Técnica y Galería del Premio</h3>
+            <button type="button" class="btn-close" (click)="closeEditShowcaseModal()" aria-label="Cerrar">×</button>
+          </div>
+
+          <div class="modal__body">
+            @if (editError()) {
+              <div class="alert alert--error" role="alert">
+                {{ editError() }}
+              </div>
+            }
+
+            <div class="field">
+              <label for="edit_desc" class="field__label">Ficha Técnica / Especificaciones</label>
+              <textarea
+                id="edit_desc"
+                [ngModel]="editPrizeDescription()"
+                (ngModelChange)="editPrizeDescription.set($event)"
+                class="field__input field__textarea"
+                rows="4"
+                placeholder="Especificaciones del premio, detalles, modelo, garantía..."
+                maxlength="10000"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="edit_img_url" class="field__label">
+                Galería de Fotos ({{ editPrizeImages().length }}/10)
+              </label>
+              <div class="image-input-row">
+                <input
+                  id="edit_img_url"
+                  type="url"
+                  [ngModel]="editNewImageUrl()"
+                  (ngModelChange)="editNewImageUrl.set($event)"
+                  (keydown.enter)="$event.preventDefault(); addEditImage()"
+                  class="field__input image-input-row__input"
+                  placeholder="https://ejemplo.com/foto-premio.jpg"
+                />
+                <button
+                  type="button"
+                  (click)="addEditImage()"
+                  class="btn btn-secondary"
+                  [disabled]="editPrizeImages().length >= 10 || !editNewImageUrl().trim()"
+                >
+                  Agregar foto
+                </button>
+              </div>
+
+              @if (editImageError()) {
+                <span class="field__error">{{ editImageError() }}</span>
+              }
+
+              @if (editPrizeImages().length > 0) {
+                <div class="thumbs-grid">
+                  @for (img of editPrizeImages(); track $index) {
+                    <div class="thumb-card">
+                      <img [src]="img" [alt]="'Foto ' + ($index + 1)" class="thumb-card__img" />
+                      <div class="thumb-card__footer">
+                        <span class="thumb-tag">#{{ $index + 1 }}</span>
+                        <button
+                          type="button"
+                          (click)="removeEditImage($index)"
+                          class="btn-remove-thumb"
+                          aria-label="Eliminar foto"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="field">
+              <label for="edit_modalidad" class="field__label">Modalidad del Sorteo</label>
+              <select
+                id="edit_modalidad"
+                [ngModel]="editDrawMode()"
+                (ngModelChange)="editDrawMode.set($event)"
+                class="field__input"
+              >
+                <option value="AUTOMATIC">Automático (se ejecuta solo a la hora programada)</option>
+                <option value="MANUAL">Manual en Vivo / Paso a paso (el administrador da Play en cada intento)</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="edit_efecto" class="field__label">Animación de Sorteo</label>
+                <select
+                  id="edit_efecto"
+                  [ngModel]="editDrawEffect()"
+                  (ngModelChange)="editDrawEffect.set($event)"
+                  class="field__input"
+                >
+                  <option value="SLOT_MACHINE">Tragamonedas / Rodillos (Slot Machine)</option>
+                  <option value="TOMBOLA">Tómbola Tradicional</option>
+                  <option value="SUSPENSE_CONFETTI">Lluvia de Confeti y Suspenso</option>
+                  <option value="SNAKE">Ruleta Serpiente</option>
+                  <option value="RADAR">Radar de Precisión</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="edit_intento" class="field__label">Intento Ganador (1 a 5)</label>
+                <input
+                  id="edit_intento"
+                  type="number"
+                  min="1"
+                  max="5"
+                  [ngModel]="editWinningAttempt()"
+                  (ngModelChange)="editWinningAttempt.set(+$event)"
+                  class="field__input"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="edit_duracion" class="field__label">Duración por intento (segundos)</label>
+                <input
+                  id="edit_duracion"
+                  type="number"
+                  min="1"
+                  max="60"
+                  [ngModel]="editDrawDurationSec()"
+                  (ngModelChange)="editDrawDurationSec.set(+$event)"
+                  class="field__input"
+                />
+              </div>
+
+              <div class="field">
+                <label for="edit_velocidad" class="field__label">Velocidad del Efecto</label>
+                <select
+                  id="edit_velocidad"
+                  [ngModel]="editDrawSpeed()"
+                  (ngModelChange)="editDrawSpeed.set($event)"
+                  class="field__input"
+                >
+                  <option value="SLOW">Lenta (Mayor suspenso)</option>
+                  <option value="NORMAL">Normal (Estándar)</option>
+                  <option value="FAST">Rápida (Alta velocidad)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="modal__actions">
+              <button type="button" class="btn btn-secondary" (click)="closeEditShowcaseModal()">Cancelar</button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="editSaving()"
+                (click)="saveEditShowcase()"
+              >
+                {{ editSaving() ? 'Guardando...' : 'Guardar Cambios' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</section>

@@ -1,5 +1,5 @@
 import { Ticket, TicketStatus } from '../../domain';
-import { TicketRepository } from '../ports/ticket.repository';
+import { TicketRepository, TicketStatusCounts, zeroTicketCounts } from '../ports/ticket.repository';
 
 export class InMemoryTicketRepository implements TicketRepository {
   // key: `${raffleId}:${number}`
@@ -70,31 +70,19 @@ export class InMemoryTicketRepository implements TicketRepository {
     return res;
   }
 
-  async countActiveReservedByUser(raffleId: string, userId: string, now: Date): Promise<number> {
-    let count = 0;
+  async countByStatus(raffleIds: string[]): Promise<Map<string, TicketStatusCounts>> {
+    const counts = new Map(raffleIds.map((id) => [id, zeroTicketCounts()]));
     for (const t of this.tickets.values()) {
-      if (
-        t.raffleId === raffleId &&
-        t.status === TicketStatus.RESERVED &&
-        !t.isReservationExpired(now)
-      ) {
-        count++;
+      const forRaffle = counts.get(t.raffleId);
+      if (forRaffle) {
+        forRaffle[t.status] += 1;
       }
     }
-    return count;
-  }
-
-  async update(ticket: Ticket): Promise<void> {
-    this.tickets.set(this.key(ticket.raffleId, ticket.number), ticket);
-  }
-
-  async updateBatch(tickets: Ticket[]): Promise<void> {
-    for (const t of tickets) {
-      this.tickets.set(this.key(t.raffleId, t.number), t);
-    }
+    return counts;
   }
 
   clear(): void {
     this.tickets.clear();
   }
 }
+

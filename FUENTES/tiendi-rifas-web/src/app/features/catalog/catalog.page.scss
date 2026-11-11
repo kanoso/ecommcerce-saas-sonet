@@ -1,0 +1,139 @@
+// Mobile first (RNF-10): base styles are for 360 px; wider screens only add
+// columns through min-width queries.
+:host {
+  display: block;
+  padding: 24px var(--page-gutter) 32px;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.hero__title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.hero__lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.catalog__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Equal-height cards in a row.
+.catalog__list > li {
+  display: grid;
+}
+
+.skeleton {
+  height: 260px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: linear-gradient(var(--accent-soft) 0 92px, var(--surface) 92px);
+  opacity: 0.6;
+}
+
+.state {
+  margin: 0;
+  padding: 24px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+.state--error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border-style: solid;
+  color: var(--ink);
+}
+
+.state__text {
+  margin: 0;
+}
+
+.state__action {
+  min-height: var(--touch-target);
+  padding: 0 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .hero__title {
+    font-size: 40px;
+  }
+
+  .hero__lead {
+    max-width: 60ch;
+    font-size: 17px;
+  }
+
+  .catalog__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :host {
+    padding-top: 40px;
+  }
+
+  .catalog__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.catalog-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-cell);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font: 600 14px var(--font-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+
+  &--active {
+    background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
+}

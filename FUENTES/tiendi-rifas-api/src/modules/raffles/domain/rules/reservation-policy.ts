@@ -14,7 +14,7 @@ export class ReservationPolicy {
   constructor(config?: ReservationPolicyConfig) {
     this.maxNumbersPerReservation = config?.maxNumbersPerReservation ?? 20;
     this.maxActiveReservedPerBuyer = config?.maxActiveReservedPerBuyer ?? 20;
-    this.reservationTtlMinutes = config?.reservationTtlMinutes ?? 10;
+    this.reservationTtlMinutes = config?.reservationTtlMinutes ?? 15;
   }
 
   calculateExpiration(from: Date): Date {

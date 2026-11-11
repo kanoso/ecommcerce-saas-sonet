@@ -1,0 +1,255 @@
+<header class="bar">
+  <a class="bar__back" [routerLink]="['/rifas', raffleId]" aria-label="Volver a la rifa">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+  </a>
+  <h1 class="bar__title">Verificación del sorteo</h1>
+</header>
+
+@switch (verification.state().kind) {
+  @case ('loaded') {
+    @if (verification.data(); as data) {
+      <div class="content">
+        @if (pinConflicts().length > 0) {
+          <div class="pins" role="alert">
+            <p class="pins__title">Atención: los datos de esta rifa cambiaron desde tu visita anterior</p>
+            <p class="pins__text">
+              Tu navegador guardó estos valores la primera vez que viste la rifa. La plataforma no debería poder cambiarlos:
+              no des este sorteo por válido.
+            </p>
+            <ul class="pins__list">
+              @for (conflict of pinConflicts(); track conflict.field) {
+                <li>
+                  <span class="pins__label">{{ conflict.label }}</span>
+                  <span class="hash">Antes: {{ conflict.pinned }}</span>
+                  <span class="hash">Ahora: {{ conflict.seen }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (!dataInvalid()) {
+          <section class="winner" [class.winner--verified]="winnerState() === 'verified'" aria-label="Resultado oficial">
+            <div class="winner__badge">
+              <span class="winner__label">
+                @switch (winnerState()) {
+                  @case ('verified') {
+                    Ganador verificado
+                  }
+                  @case ('unanchored') {
+                    Coincide con drand
+                  }
+                  @default {
+                    Resultado oficial (sin verificar)
+                  }
+                }
+              </span>
+              <span class="winner__number">{{ data.official.winningNumber }}</span>
+            </div>
+            <div class="winner__info">
+              <span class="winner__title">{{ data.title }}</span>
+              @if (drawnAt(); as drawn) {
+                <span class="winner__meta">{{ drawn }}</span>
+              }
+              @if (winnerState() === 'unanchored') {
+                <span class="winner__anchor">{{ anchorNote() }}</span>
+              }
+            </div>
+          </section>
+        }
+
+        @switch (verification.verdict()) {
+          @case ('match') {
+            <div class="verdict verdict--match" role="status">
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+              <div>
+                <p class="verdict__title">Tu navegador obtuvo el mismo ganador: {{ verification.localResult()?.winner }}</p>
+                <p class="verdict__text">Coincide con el resultado oficial.</p>
+                @if (ownNumbersSkipped(); as reason) {
+                  <p class="verdict__text">No se comprobaron tus números: {{ reason }}</p>
+                }
+              </div>
+            </div>
+          }
+          @case ('mismatch') {
+            <div class="verdict verdict--mismatch" role="alert">
+              <p class="verdict__title">El resultado oficial NO coincide con tu cálculo</p>
+              <p class="verdict__text">{{ failedCheck()?.detail }}</p>
+            </div>
+          }
+          @case ('failed') {
+            <div class="verdict verdict--failed" role="alert">
+              <p class="verdict__title">Verificación fallida</p>
+              <p class="verdict__text">{{ failedCheck()?.detail }}</p>
+            </div>
+          }
+        }
+
+
+        @if (extractions().length > 1) {
+          <section class="section extractions-audit" aria-label="Auditoría de intentos de extracción">
+            <h2 class="section__title">Auditoría de intentos sucesivos ({{ extractions().length }} intentos)</h2>
+            <div class="audit-stack">
+              @for (ext of extractions(); track ext.attempt) {
+                <div class="audit-card" [class.audit-card--winner]="ext.isWinner" [class.audit-card--al-agua]="!ext.isWinner">
+                  <div class="audit-card__head">
+                    <span class="audit-card__attempt">Intento #{{ ext.attempt }}</span>
+                    <span class="audit-card__badge">{{ ext.isWinner ? '¡Ganador Oficial!' : '¡Al agua!' }}</span>
+                  </div>
+                  <div class="audit-card__body">
+                    <span class="audit-card__num font-mono">Boleto #{{ ext.number }}</span>
+                    <span class="audit-card__hash font-mono">Digest: {{ ext.digestHex.slice(0, 20) }}…</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <section class="section">
+          <h2 class="section__title">Comprobaciones en tu navegador</h2>
+          <ul class="checks" aria-label="Comprobaciones en tu navegador">
+            @for (check of verification.checks(); track check.id) {
+              <li [class]="'check check--' + check.status">
+                <span class="check__head">
+                  <span class="check__label">{{ checkLabels[check.id] }}</span>
+                  <span class="check__status">{{ statusLabels[check.status] }}</span>
+                </span>
+                @if (check.detail) {
+                  <span class="check__detail">{{ check.detail }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+
+        <section class="section">
+          <h2 class="section__title">Datos públicos</h2>
+          <dl class="facts" aria-label="Datos públicos">
+            <div class="fact">
+              <dt>Compromiso (SHA-256 de la semilla)</dt>
+              <dd class="hash">{{ data.commitmentHash }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Semilla revelada (al cierre)</dt>
+              <dd class="hash">{{ data.seedRevealed }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Lista congelada · {{ data.soldNumbers.length }} vendidos</dt>
+              <dd class="hash">{{ data.soldListHash }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Ronda drand (fijada al publicar la rifa)</dt>
+              <dd class="hash">#{{ data.drandRound }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Valor drand de la ronda (resultado oficial)</dt>
+              <dd class="hash">{{ data.official.drandRandomness }}</dd>
+            </div>
+            @if (verification.round(); as round) {
+              <div class="fact">
+                <dt>Firma BLS</dt>
+                <dd class="hash">{{ round.signature }} · válida con la clave pública de drand</dd>
+              </div>
+            }
+            <div class="fact">
+              <dt>Cadena drand</dt>
+              <dd class="hash">{{ data.drandChainHash }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Versión del algoritmo</dt>
+              <dd class="hash">{{ data.algorithmVersion }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Resolución de autorización</dt>
+              <dd class="hash">{{ data.authorizationResolution ?? 'No informada' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="section anchor" aria-label="Datos para verificar tu sorteo">
+          <h2 class="section__title">Datos para verificar tu sorteo</h2>
+          <p class="anchor__text">
+            Si compraste boletos, el correo de pago aprobado trae una sección "Datos para verificar tu sorteo" con el
+            compromiso, la ronda de drand, la fecha del sorteo y el cierre de ventas. Ese correo llegó antes del cierre y
+            la plataforma ya no puede cambiarlo. Pega aquí los valores del correo para compararlos en tu navegador.
+          </p>
+          @for (input of emailInputs; track input.field) {
+            <label class="anchor__label" [for]="input.id">{{ input.label }}</label>
+            <input
+              class="anchor__input"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              [id]="input.id"
+              [value]="emailValues()[input.field] ?? ''"
+              (input)="pasteEmailValue(input.field, $event)"
+            />
+          }
+          @if (emailCheck(); as check) {
+            @if (check.status === 'failed') {
+              <p class="anchor__result anchor__result--mismatch" role="alert">{{ check.detail }}</p>
+            } @else if (check.status === 'passed') {
+              <p class="anchor__result anchor__result--match" role="status">{{ check.detail }}</p>
+            } @else if (check.detail) {
+              <p class="anchor__result" role="status">{{ check.detail }}</p>
+            }
+          }
+        </section>
+
+        <section class="section">
+          <h2 class="section__title">Algoritmo</h2>
+          <pre class="algorithm">h = sha256(semilla ‖ drand ‖ id_rifa)
+  = {{ data.official.digestHex }}
+i = h mod {{ data.soldNumbers.length }} = {{ data.official.winnerIndex }}
+ganador = vendidos[{{ data.official.winnerIndex }}] = {{ data.official.winningNumber }}</pre>
+        </section>
+      </div>
+
+      <footer class="actions">
+        <button
+          type="button"
+          class="actions__recompute"
+          [disabled]="verification.running()"
+          [attr.aria-busy]="verification.running()"
+          (click)="recompute()"
+        >
+          {{ verification.running() ? 'Recalculando…' : 'Recalcular en mi navegador' }}
+        </button>
+        @if (listFile(); as file) {
+          <div class="actions__links">
+            <a class="actions__link" [href]="file.href" [attr.download]="file.name">Descargar lista (CSV)</a>
+          </div>
+          <p class="actions__note">El SHA-256 del archivo es el hash de la lista publicada.</p>
+        }
+      </footer>
+    }
+  }
+  @case ('not-drawn') {
+    <div class="state" role="status">
+      <p class="state__text">{{ titleOf() }} aún no se sortea. La verificación estará disponible después del sorteo.</p>
+      <a class="state__link" [routerLink]="['/rifas', raffleId]">Ver la rifa</a>
+    </div>
+  }
+  @case ('cancelled') {
+    <div class="state" role="status">
+      <p class="state__text">{{ titleOf() }} fue cancelada y no tendrá sorteo.</p>
+      <a class="state__link" routerLink="/">Ver rifas activas</a>
+    </div>
+  }
+  @case ('not-found') {
+    <div class="state" role="alert">
+      <p class="state__text">No encontramos esta rifa.</p>
+      <a class="state__link" routerLink="/">Ver rifas activas</a>
+    </div>
+  }
+  @case ('error') {
+    <div class="state" role="alert">
+      <p class="state__text">{{ errorMessage() }}</p>
+      <button type="button" class="state__action" (click)="retry()">Reintentar</button>
+    </div>
+  }
+  @default {
+    <p class="state" role="status" aria-busy="true">Cargando la verificación…</p>
+  }
+}

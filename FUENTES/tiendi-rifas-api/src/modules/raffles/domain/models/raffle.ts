@@ -1,7 +1,8 @@
-import { RaffleStatus } from '../enums/raffle-status.enum';
+import { DrawEffect, DrawMode, DrawSpeed, RaffleStatus } from '../enums/raffle-status.enum';
 import {
   InvalidRaffleTransitionError,
   RaffleValidationError,
+  SoldListIntactError,
 } from '../errors/domain.errors';
 
 export interface RaffleProps {
@@ -11,6 +12,13 @@ export interface RaffleProps {
   ticketPrice: number;
   numberMin: number;
   numberMax: number;
+  winningAttempt?: number;
+  drawEffect?: DrawEffect;
+  drawMode?: DrawMode;
+  drawDurationSec?: number;
+  drawSpeed?: DrawSpeed;
+  prizeDescription?: string | null;
+  prizeImages?: string[];
   status?: RaffleStatus;
   authorizationResolution?: string | null;
   commitmentHash?: string | null;
@@ -39,11 +47,18 @@ export interface PublishRaffleParams {
 
 export class Raffle {
   readonly id: string;
-  readonly title: string;
-  readonly prize: string;
-  readonly ticketPrice: number;
+  private _title: string;
+  private _prize: string;
+  private _ticketPrice: number;
   readonly numberMin: number;
   readonly numberMax: number;
+  private _winningAttempt: number;
+  private _drawEffect: DrawEffect;
+  private _drawMode: DrawMode;
+  private _drawDurationSec: number;
+  private _drawSpeed: DrawSpeed;
+  private _prizeDescription: string | null;
+  private _prizeImages: string[];
   private _status: RaffleStatus;
   private _authorizationResolution: string | null;
   private _commitmentHash: string | null;
@@ -68,12 +83,46 @@ export class Raffle {
       throw new RaffleValidationError('Ticket price must be greater than zero');
     }
 
+    const winningAttempt = props.winningAttempt ?? 1;
+    if (
+      !Number.isInteger(winningAttempt) ||
+      winningAttempt < 1 ||
+      winningAttempt > 5
+    ) {
+      throw new RaffleValidationError(
+        'Winning attempt must be an integer between 1 and 5',
+      );
+    }
+
+    const prizeImages = props.prizeImages ?? [];
+    if (!Array.isArray(prizeImages) || prizeImages.length > 10) {
+      throw new RaffleValidationError('Cannot have more than 10 prize images');
+    }
+
+    const drawDurationSec = props.drawDurationSec ?? 4;
+    if (
+      !Number.isInteger(drawDurationSec) ||
+      drawDurationSec < 1 ||
+      drawDurationSec > 60
+    ) {
+      throw new RaffleValidationError(
+        'Draw duration must be an integer between 1 and 60 seconds',
+      );
+    }
+
     this.id = props.id;
-    this.title = props.title;
-    this.prize = props.prize;
-    this.ticketPrice = props.ticketPrice;
+    this._title = props.title;
+    this._prize = props.prize;
+    this._ticketPrice = props.ticketPrice;
     this.numberMin = props.numberMin;
     this.numberMax = props.numberMax;
+    this._winningAttempt = winningAttempt;
+    this._drawEffect = props.drawEffect ?? DrawEffect.SLOT_MACHINE;
+    this._drawMode = props.drawMode ?? DrawMode.AUTOMATIC;
+    this._drawDurationSec = drawDurationSec;
+    this._drawSpeed = props.drawSpeed ?? DrawSpeed.NORMAL;
+    this._prizeDescription = props.prizeDescription ?? null;
+    this._prizeImages = prizeImages;
     this._status = props.status ?? RaffleStatus.DRAFT;
     this._authorizationResolution = props.authorizationResolution ?? null;
     this._commitmentHash = props.commitmentHash ?? null;
@@ -87,6 +136,139 @@ export class Raffle {
     this._cancellationReason = props.cancellationReason ?? null;
     this.createdAt = props.createdAt ?? new Date();
     this._updatedAt = props.updatedAt ?? new Date();
+  }
+
+  get title(): string {
+    return this._title;
+  }
+
+  get prize(): string {
+    return this._prize;
+  }
+
+  get ticketPrice(): number {
+    return this._ticketPrice;
+  }
+
+  get winningAttempt(): number {
+    return this._winningAttempt;
+  }
+
+  get drawEffect(): DrawEffect {
+    return this._drawEffect;
+  }
+
+  get drawMode(): DrawMode {
+    return this._drawMode;
+  }
+
+  get drawDurationSec(): number {
+    return this._drawDurationSec;
+  }
+
+  get drawSpeed(): DrawSpeed {
+    return this._drawSpeed;
+  }
+
+  get prizeDescription(): string | null {
+    return this._prizeDescription;
+  }
+
+  get prizeImages(): string[] {
+    return this._prizeImages;
+  }
+
+  updateDraft(params: {
+    title?: string;
+    prize?: string;
+    ticketPrice?: number;
+    winningAttempt?: number;
+    drawEffect?: DrawEffect;
+    drawMode?: DrawMode;
+    drawDurationSec?: number;
+    drawSpeed?: DrawSpeed;
+    prizeDescription?: string | null;
+    prizeImages?: string[];
+  }): void {
+    if (this._status !== RaffleStatus.DRAFT) {
+      throw new InvalidRaffleTransitionError(
+        this._status,
+        this._status,
+        'Only DRAFT raffles can be modified',
+      );
+    }
+
+    if (params.title !== undefined) {
+      if (!params.title || params.title.trim() === '') {
+        throw new RaffleValidationError('Raffle title cannot be empty');
+      }
+      this._title = params.title.trim();
+    }
+
+    if (params.prize !== undefined) {
+      if (!params.prize || params.prize.trim() === '') {
+        throw new RaffleValidationError('Raffle prize cannot be empty');
+      }
+      this._prize = params.prize.trim();
+    }
+
+    if (params.ticketPrice !== undefined) {
+      if (typeof params.ticketPrice !== 'number' || params.ticketPrice <= 0) {
+        throw new RaffleValidationError('Ticket price must be greater than zero');
+      }
+      this._ticketPrice = params.ticketPrice;
+    }
+
+    if (params.winningAttempt !== undefined) {
+      if (
+        !Number.isInteger(params.winningAttempt) ||
+        params.winningAttempt < 1 ||
+        params.winningAttempt > 5
+      ) {
+        throw new RaffleValidationError(
+          'Winning attempt must be an integer between 1 and 5',
+        );
+      }
+      this._winningAttempt = params.winningAttempt;
+    }
+
+    if (params.drawEffect !== undefined) {
+      this._drawEffect = params.drawEffect;
+    }
+
+    if (params.drawMode !== undefined) {
+      this._drawMode = params.drawMode;
+    }
+
+    if (params.drawDurationSec !== undefined) {
+      if (
+        !Number.isInteger(params.drawDurationSec) ||
+        params.drawDurationSec < 1 ||
+        params.drawDurationSec > 60
+      ) {
+        throw new RaffleValidationError(
+          'Draw duration must be an integer between 1 and 60 seconds',
+        );
+      }
+      this._drawDurationSec = params.drawDurationSec;
+    }
+
+    if (params.drawSpeed !== undefined) {
+      this._drawSpeed = params.drawSpeed;
+    }
+
+    if (params.prizeDescription !== undefined) {
+      this._prizeDescription = params.prizeDescription ? params.prizeDescription.trim() : null;
+    }
+
+    if (params.prizeImages !== undefined) {
+      if (!Array.isArray(params.prizeImages) || params.prizeImages.length > 10) {
+        throw new RaffleValidationError('Cannot have more than 10 prize images');
+      }
+      this._prizeImages = params.prizeImages;
+    }
+
+    this._updatedAt = new Date();
   }
 
   get status(): RaffleStatus {
@@ -216,6 +398,29 @@ export class Raffle {
     }
 
     this._cancellationReason = reason ?? null;
+    this._status = RaffleStatus.CANCELLED;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * The only exit of a CLOSED raffle whose sold list no longer matches the
+   * frozen hash: no list can be trusted for a draw (DT-15).
+   * @param recomputedHash the hash of the sold list as it stands now.
+   * @throws SoldListIntactError if the list still matches.
+   */
+  cancelForAlteredList(recomputedHash: string, reason: string): void {
+    if (this._status !== RaffleStatus.CLOSED) {
+      throw new InvalidRaffleTransitionError(
+        this._status,
+        RaffleStatus.CANCELLED,
+        'Only a CLOSED raffle is cancelled for an altered sold list',
+      );
+    }
+    if (recomputedHash === this._soldListHash) {
+      throw new SoldListIntactError(this.id);
+    }
+
+    this._cancellationReason = reason;
     this._status = RaffleStatus.CANCELLED;
     this._updatedAt = new Date();
   }

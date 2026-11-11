@@ -7,8 +7,8 @@ describe('Payment, Draw, and AuditEvent Domain Models', () => {
     const payment = new Payment({
       id: 'pay-1',
       orderId: 'order-1',
-      provider: 'culqi',
-      externalId: 'chr_123',
+      provider: 'YAPE',
+      externalId: 'OP-123',
       status: 'PAID',
       payload: { amount: 5000 },
       receivedAt: new Date('2026-11-01T10:05:00Z'),
@@ -16,8 +16,8 @@ describe('Payment, Draw, and AuditEvent Domain Models', () => {
 
     expect(payment.id).toBe('pay-1');
     expect(payment.orderId).toBe('order-1');
-    expect(payment.provider).toBe('culqi');
-    expect(payment.externalId).toBe('chr_123');
+    expect(payment.provider).toBe('YAPE');
+    expect(payment.externalId).toBe('OP-123');
     expect(payment.status).toBe('PAID');
     expect(payment.payload).toEqual({ amount: 5000 });
     expect(payment.receivedAt).toEqual(new Date('2026-11-01T10:05:00Z'));

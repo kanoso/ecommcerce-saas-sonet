@@ -2,6 +2,7 @@ import { RaffleStatus } from '../enums/raffle-status.enum';
 import {
   InvalidRaffleTransitionError,
   RaffleValidationError,
+  SoldListIntactError,
 } from '../errors/domain.errors';
 import { Raffle } from './raffle';
 
@@ -197,6 +198,57 @@ describe('Raffle Domain Entity', () => {
 
       raffle.markDrawn();
       expect(() => raffle.cancel()).toThrow(InvalidRaffleTransitionError);
+    });
+  });
+
+  describe('cancelForAlteredList (DT-15)', () => {
+    const closedRaffle = () => {
+      const raffle = createDraftRaffle();
+      raffle.publish({
+        authorizationResolution: 'RES-1',
+        commitmentHash: 'commit123',
+        seedCiphertext: 'cipher123',
+        drandRound: 1000n,
+        drandChainHash: 'chain123',
+        salesCloseAt: new Date('2026-11-10T18:00:00Z'),
+        drawAt: new Date('2026-11-10T19:00:00Z'),
+        currentRoundAtSalesClose: 900n,
+      });
+      raffle.closeSales('frozen-hash', 'seed123');
+      return raffle;
+    };
+
+    it('cancels a CLOSED raffle whose sold list no longer matches', () => {
+      const raffle = closedRaffle();
+
+      raffle.cancelForAlteredList('other-hash', 'List altered after close');
+
+      expect(raffle.status).toBe(RaffleStatus.CANCELLED);
+      expect(raffle.cancellationReason).toBe('List altered after close');
+    });
+
+    it('refuses a CLOSED raffle whose sold list is intact', () => {
+      const raffle = closedRaffle();
+
+      expect(() =>
+        raffle.cancelForAlteredList('frozen-hash', 'No reason to cancel'),
+      ).toThrow(SoldListIntactError);
+      expect(raffle.status).toBe(RaffleStatus.CLOSED);
+      expect(raffle.cancellationReason).toBeNull();
+    });
+
+    it('refuses a raffle that is not CLOSED', () => {
+      const active = createDraftRaffle();
+      expect(() => active.cancelForAlteredList('other-hash', 'Reason')).toThrow(
+        InvalidRaffleTransitionError,
+      );
+
+      const drawn = closedRaffle();
+      drawn.markDrawn();
+      expect(() => drawn.cancelForAlteredList('other-hash', 'Reason')).toThrow(
+        InvalidRaffleTransitionError,
+      );
+      expect(drawn.status).toBe(RaffleStatus.DRAWN);
     });
   });
 });

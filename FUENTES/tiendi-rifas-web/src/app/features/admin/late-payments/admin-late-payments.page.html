@@ -1,0 +1,226 @@
+<section class="admin-late-payments" aria-labelledby="admin-late-payments-title">
+  <header class="admin-late-payments__header">
+    <div>
+      <h1 id="admin-late-payments-title" class="admin-late-payments__title">Pagos tardíos</h1>
+      <p class="admin-late-payments__subtitle">
+        Órdenes vencidas con comprobante enviado o reclamo de pago tardío (DT-07 / DT-10).
+      </p>
+    </div>
+    <button type="button" class="btn-refresh" (click)="loadClaims()">
+      Actualizar lista
+    </button>
+  </header>
+
+  @if (actionSuccess()) {
+    <div class="feedback-banner feedback-banner--success" role="status">
+      {{ actionSuccess() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-box" aria-live="polite">
+      <p>Cargando reclamos de pago tardío...</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-box state-box--error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="loadClaims()">
+        Reintentar
+      </button>
+    </div>
+  } @else if (claims().length === 0) {
+    <div class="state-box state-box--empty">
+      <p>No hay pagos tardíos en revisión.</p>
+    </div>
+  } @else {
+    <ul class="claims-list" aria-label="Lista de pagos tardíos">
+      @for (claim of claims(); track claim.id) {
+        <li class="claim-item">
+          <div class="claim-item__info">
+            <div class="claim-item__top">
+              <span class="claim-item__order">Orden: <code>{{ claim.id }}</code></span>
+              <span class="badge badge--warning">En revisión</span>
+            </div>
+
+            <div class="notice-box">
+              <p>
+                <strong>Atención:</strong> La reserva de esta orden venció. Sus boletos
+                (<code>{{ claim.numbers.join(', ') }}</code>) fueron <strong>liberados</strong> para que otros compradores puedan adquirirlos. Confirmar el pago abre un reembolso de fondos para el comprador.
+              </p>
+            </div>
+
+            <div class="claim-item__data-grid">
+              <div>
+                <span class="label">Total orden:</span>
+                <strong class="value highlight">S/ {{ claim.totalAmount | number:'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span class="label">Monto declarado:</span>
+                <span class="value">S/ {{ (claim.declaredAmount ?? claim.totalAmount) | number:'1.2-2' }}</span>
+              </div>
+              <div>
+                <span class="label">Medio de pago:</span>
+                <span class="value">{{ claim.bankOrWallet ?? 'No especificado' }}</span>
+              </div>
+              <div>
+                <span class="label">Boletos liberados:</span>
+                <span class="value numbers-tag">{{ claim.numbers.join(', ') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="claim-item__actions">
+            @if (claim.hasProof) {
+              <a
+                [href]="proofUrl(claim.id)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-action btn-action--view"
+              >
+                Ver comprobante
+              </a>
+            }
+            <button
+              type="button"
+              class="btn-action btn-action--confirm"
+              (click)="openConfirm(claim)"
+            >
+              Confirmar pago (reembolso)
+            </button>
+            <button
+              type="button"
+              class="btn-action btn-action--dismiss"
+              (click)="openDismiss(claim)"
+            >
+              Descartar reclamo
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- Modal Confirmar Pago Tardío -->
+  @if (activeModal() === 'confirm') {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-confirm-title">
+        <h2 id="modal-confirm-title" class="modal-dialog__title">Confirmar pago tardío</h2>
+        <p class="modal-dialog__desc">
+          Al confirmar la recepción de dinero para una orden vencida, se registrará el pago y se abrirá automáticamente un proceso de reembolso (DT-07).
+        </p>
+
+        @if (actionError()) {
+          <div class="feedback-banner feedback-banner--error" role="alert">
+            {{ actionError() }}
+          </div>
+        }
+
+        <form [formGroup]="confirmForm" (ngSubmit)="submitConfirm()" class="modal-form">
+          <div class="form-group">
+            <label for="confirm-amount">Monto recibido (S/):</label>
+            <input
+              id="confirm-amount"
+              type="number"
+              step="0.01"
+              formControlName="receivedAmount"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-bank">Banco o billetera:</label>
+            <select id="confirm-bank" formControlName="bankOrWallet" class="form-control" required>
+              <option value="">Seleccione medio...</option>
+              @for (b of banks; track b) {
+                <option [value]="b">{{ b }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-op-num">Número de operación:</label>
+            <input
+              id="confirm-op-num"
+              type="text"
+              formControlName="operationNumber"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group form-group--checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="overpaymentConfirmed" />
+              <span>Sobrepago confirmado (DT-14)</span>
+            </label>
+          </div>
+
+          @if (confirmForm.controls.overpaymentConfirmed.value) {
+            <div class="form-group">
+              <label for="confirm-overpayment-reason">Motivo del sobrepago:</label>
+              <input
+                id="confirm-overpayment-reason"
+                type="text"
+                formControlName="overpaymentReason"
+                class="form-control"
+              />
+            </div>
+          }
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="submitting() || confirmForm.invalid">
+              {{ submitting() ? 'Confirmando...' : 'Confirmar y abrir reembolso' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Descartar Reclamo -->
+  @if (activeModal() === 'dismiss') {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-dismiss-title">
+        <h2 id="modal-dismiss-title" class="modal-dialog__title">Descartar reclamo</h2>
+        <p class="modal-dialog__desc">
+          Indica el motivo por el cual se descarta el reclamo (por ejemplo, el dinero no llegó a la cuenta).
+        </p>
+
+        @if (actionError()) {
+          <div class="feedback-banner feedback-banner--error" role="alert">
+            {{ actionError() }}
+          </div>
+        }
+
+        <form [formGroup]="dismissForm" (ngSubmit)="submitDismiss()" class="modal-form">
+          <div class="form-group">
+            <label for="dismiss-reason">Motivo de descarte:</label>
+            <textarea
+              id="dismiss-reason"
+              formControlName="reason"
+              class="form-control"
+              rows="3"
+              required
+              placeholder="Explica por qué se descarta el reclamo..."
+            ></textarea>
+          </div>
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit btn-submit--danger" [disabled]="submitting() || dismissForm.invalid">
+              {{ submitting() ? 'Descartando...' : 'Descartar reclamo' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

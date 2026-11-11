@@ -1,3 +1,5 @@
+import type { DrawExtraction } from '@kanoso/raffle-draw';
+
 export interface DrawProps {
   id: string;
   raffleId: string;
@@ -10,6 +12,8 @@ export interface DrawProps {
   winningTicketId: string;
   winningNumber: number;
   winnerIndex: number;
+  winningAttempt?: number;
+  extractions?: DrawExtraction[];
   executedAt?: Date;
 }
 
@@ -25,6 +29,8 @@ export class Draw {
   readonly winningTicketId: string;
   readonly winningNumber: number;
   readonly winnerIndex: number;
+  readonly winningAttempt: number;
+  readonly extractions: DrawExtraction[];
   readonly executedAt: Date;
 
   constructor(props: DrawProps) {
@@ -39,6 +45,8 @@ export class Draw {
     this.winningTicketId = props.winningTicketId;
     this.winningNumber = props.winningNumber;
     this.winnerIndex = props.winnerIndex;
+    this.winningAttempt = props.winningAttempt ?? 1;
+    this.extractions = props.extractions ?? [];
     this.executedAt = props.executedAt ?? new Date();
   }
 }

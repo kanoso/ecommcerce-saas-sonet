@@ -1,4 +1,4 @@
-import { RaffleStatus } from '../../domain';
+import { RaffleNotDrawnError, RaffleNotFoundError, RaffleStatus } from '../../domain';
 import { AuditLog, Clock, RaffleRepository } from '../ports';
 
 export interface RecordPrizeDeliveryCommand {
@@ -19,13 +19,11 @@ export class RecordPrizeDeliveryUseCase {
   async execute(command: RecordPrizeDeliveryCommand): Promise<void> {
     const raffle = await this.raffleRepo.findById(command.raffleId);
     if (!raffle) {
-      throw new Error(`Raffle ${command.raffleId} not found`);
+      throw new RaffleNotFoundError(command.raffleId);
     }
 
     if (raffle.status !== RaffleStatus.DRAWN) {
-      throw new Error(
-        `Cannot record prize delivery: raffle is not in DRAWN status (current status: ${raffle.status})`,
-      );
+      throw new RaffleNotDrawnError(raffle.status);
     }
 
     await this.auditLog.record({

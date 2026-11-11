@@ -1,4 +1,4 @@
-import { Raffle } from '../../domain';
+import { Raffle, RaffleStatus } from '../../domain';
 import { RaffleRepository } from '../ports/raffle.repository';
 
 export class InMemoryRaffleRepository implements RaffleRepository {
@@ -14,6 +14,16 @@ export class InMemoryRaffleRepository implements RaffleRepository {
 
   async findAll(): Promise<Raffle[]> {
     return Array.from(this.raffles.values());
+  }
+
+  async findByStatus(statuses: RaffleStatus[]): Promise<Raffle[]> {
+    return Array.from(this.raffles.values()).filter((raffle) =>
+      statuses.includes(raffle.status),
+    );
+  }
+
+  async delete(id: string): Promise<void> {
+    this.raffles.delete(id);
   }
 
   clear(): void {

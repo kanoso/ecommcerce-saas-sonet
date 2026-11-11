@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Raffle, RaffleStatus } from '../../domain';
+import { DrawEffect, DrawMode, DrawSpeed, Raffle, RaffleStatus } from '../../domain';
 import { RaffleRepository } from '../../application/ports';
 import { PrismaService } from './prisma.service';
 
@@ -15,6 +15,13 @@ export class PrismaRaffleRepository implements RaffleRepository {
       ticketPrice: raffle.ticketPrice,
       numberMin: raffle.numberMin,
       numberMax: raffle.numberMax,
+      winningAttempt: raffle.winningAttempt,
+      drawEffect: raffle.drawEffect,
+      drawMode: raffle.drawMode,
+      drawDurationSec: raffle.drawDurationSec,
+      drawSpeed: raffle.drawSpeed,
+      prizeDescription: raffle.prizeDescription,
+      prizeImages: raffle.prizeImages,
       status: raffle.status,
       authorizationResolution: raffle.authorizationResolution,
       commitmentHash: raffle.commitmentHash,
@@ -48,7 +55,7 @@ export class PrismaRaffleRepository implements RaffleRepository {
       return null;
     }
 
-    return this.toDomain(record);
+    return PrismaRaffleRepository.toDomain(record);
   }
 
   async findAll(): Promise<Raffle[]> {
@@ -56,16 +63,37 @@ export class PrismaRaffleRepository implements RaffleRepository {
       orderBy: { createdAt: 'desc' },
     });
 
-    return records.map((r) => this.toDomain(r));
+    return records.map((r) => PrismaRaffleRepository.toDomain(r));
   }
 
-  private toDomain(record: {
+  async findByStatus(statuses: RaffleStatus[]): Promise<Raffle[]> {
+    const records = await this.prisma.raffle.findMany({
+      where: { status: { in: statuses } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return records.map((r) => PrismaRaffleRepository.toDomain(r));
+  }
+
+    async delete(id: string): Promise<void> {
+    await this.prisma.raffle.delete({
+      where: { id },
+    });
+  }
+
+  static toDomain(record: {
     id: string;
     title: string;
     prize: string;
     ticketPrice: unknown;
     numberMin: number;
     numberMax: number;
+    winningAttempt?: number;
+    drawEffect?: unknown;
+    drawMode?: unknown;
+    drawDurationSec?: number;
+    drawSpeed?: unknown;
+    prizeDescription?: string | null;
+    prizeImages?: string[];
     status: string;
     authorizationResolution: string | null;
     commitmentHash: string | null;
@@ -87,6 +115,13 @@ export class PrismaRaffleRepository implements RaffleRepository {
       ticketPrice: Number(record.ticketPrice),
       numberMin: record.numberMin,
       numberMax: record.numberMax,
+      winningAttempt: record.winningAttempt ?? 1,
+      drawEffect: (record.drawEffect as DrawEffect) ?? DrawEffect.SLOT_MACHINE,
+      drawMode: (record.drawMode as DrawMode) ?? DrawMode.AUTOMATIC,
+      drawDurationSec: record.drawDurationSec ?? 4,
+      drawSpeed: (record.drawSpeed as DrawSpeed) ?? DrawSpeed.NORMAL,
+      prizeDescription: record.prizeDescription ?? null,
+      prizeImages: record.prizeImages ?? [],
       status: record.status as RaffleStatus,
       authorizationResolution: record.authorizationResolution,
       commitmentHash: record.commitmentHash,

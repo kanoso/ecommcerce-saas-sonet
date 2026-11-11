@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: rifas
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - rifas_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,12 +17,34 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: tiendi-rifas-postgres-test
+    profiles: ["test"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rifas_test
+    ports:
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rifas_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # 55380, not 6379: another project's Redis uses 6379 on this machine.
   rifas-redis:
     image: redis:7-alpine
     container_name: tiendi-rifas-redis
     restart: unless-stopped
+    # AOF: the repeating jobs and the delayed closes and draws survive a
+    # Redis restart. The reconcile rebuilds closes and draws anyway.
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:55380:6379"
     volumes:
       - rifas_redis_data:/data
     healthcheck:
@@ -30,6 +52,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Disposable Redis for the integration tests (BullMQ jobs, F5).
+  redis-test:
+    image: redis:7-alpine
+    container_name: tiendi-rifas-redis-test
+    profiles: ["test"]
+    ports:
+      - "127.0.0.1:55379:6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
 
 volumes:
   rifas_postgres_data:
