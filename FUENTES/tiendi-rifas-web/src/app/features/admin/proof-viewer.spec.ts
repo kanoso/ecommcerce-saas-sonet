@@ -141,4 +141,64 @@ describe('ProofViewer', () => {
     expect(createObjectURL).not.toHaveBeenCalled();
     expect(popup.close).toHaveBeenCalled();
   });
+
+  describe('MIME allowlist', () => {
+    const clickCapture = () => {
+      const clicks: { href: string; download: string }[] = [];
+      const spy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+        this: HTMLAnchorElement,
+      ) {
+        clicks.push({ href: this.href, download: this.download });
+      });
+      return { clicks, restore: () => spy.mockRestore() };
+    };
+
+    it.each(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])(
+      'opens %s inline through a blob re-wrapped with that exact type',
+      (type) => {
+        adminApiMock.proofFile.mockReturnValue(of({ blob: new Blob(['x'], { type }), filename: 'comprobante' }));
+        const { viewer } = create();
+
+        viewer.view('ord-1');
+
+        const wrapped = createObjectURL.mock.calls[0][0] as Blob;
+        expect(wrapped.type).toBe(type);
+        expect(popup.location.href).toBe('blob:https://rifas.test/proof-1');
+        expect(popup.close).not.toHaveBeenCalled();
+      },
+    );
+
+    it('normalizes case and strips parameters before checking the type', () => {
+      adminApiMock.proofFile.mockReturnValue(
+        of({ blob: new Blob(['x'], { type: 'Image/PNG; charset=binary' }), filename: 'comprobante.png' }),
+      );
+      const { viewer } = create();
+
+      viewer.view('ord-1');
+
+      expect((createObjectURL.mock.calls[0][0] as Blob).type).toBe('image/png');
+      expect(popup.location.href).toBe('blob:https://rifas.test/proof-1');
+    });
+
+    it.each(['text/html', 'image/svg+xml', 'text/html; charset=utf-8', ''])(
+      'never navigates the tab to a %s blob: closes it and downloads it as octet-stream',
+      (type) => {
+        adminApiMock.proofFile.mockReturnValue(
+          of({ blob: new Blob(['<script>alert(1)</script>'], { type }), filename: 'evil.html' }),
+        );
+        const capture = clickCapture();
+        const { viewer } = create();
+
+        viewer.view('ord-7');
+
+        expect(popup.location.href).toBe('about:blank');
+        expect(popup.close).toHaveBeenCalled();
+        expect((createObjectURL.mock.calls[0][0] as Blob).type).toBe('application/octet-stream');
+        expect(capture.clicks).toEqual([
+          { href: 'blob:https://rifas.test/proof-1', download: 'comprobante-ord-7' },
+        ]);
+        capture.restore();
+      },
+    );
+  });
 });

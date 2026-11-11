@@ -6,6 +6,20 @@ import { ApiError } from '../../core/api/api-error';
 const FALLBACK_ERROR = 'No se pudo abrir el comprobante. Intenta nuevamente.';
 
 /**
+ * The only types rendered inline. Anything else (e.g. text/html or
+ * image/svg+xml) could run script in the app origin from a blob URL, so it is
+ * only ever downloaded as an opaque file.
+ */
+const INLINE_TYPES: ReadonlySet<string> = new Set(['image/png', 'image/jpeg', 'image/webp', 'application/pdf']);
+
+const SAFE_DOWNLOAD_TYPE = 'application/octet-stream';
+
+/** `Image/PNG; charset=x` -> `image/png`. */
+function essenceOf(type: string): string {
+  return type.split(';')[0].trim().toLowerCase();
+}
+
+/**
  * Opens a payment proof for an operator. The file is fetched with HttpClient
  * (the auth interceptor adds `Authorization: Bearer`) and shown through an
  * object URL, so the session token never appears in a URL.
@@ -49,14 +63,22 @@ export class ProofViewer {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ blob, filename }) => {
-          const url = URL.createObjectURL(blob);
-          this.objectUrls.push(url);
           if (tab) {
             this.pendingTabs.delete(tab);
-            tab.opener = null;
-            tab.location.href = url;
+          }
+          const type = essenceOf(blob.type);
+          if (INLINE_TYPES.has(type)) {
+            const url = this.objectUrlFor(new Blob([blob], { type }));
+            if (tab) {
+              tab.opener = null;
+              tab.location.href = url;
+            } else {
+              this.download(url, filename);
+            }
           } else {
-            this.download(url, filename);
+            tab?.close();
+            const url = this.objectUrlFor(new Blob([blob], { type: SAFE_DOWNLOAD_TYPE }));
+            this.download(url, `comprobante-${orderId}`);
           }
           this.loadingId.set(null);
         },
@@ -69,6 +91,12 @@ export class ProofViewer {
           this.loadingId.set(null);
         },
       });
+  }
+
+  private objectUrlFor(blob: Blob): string {
+    const url = URL.createObjectURL(blob);
+    this.objectUrls.push(url);
+    return url;
   }
 
   private download(url: string, filename: string): void {
