@@ -618,6 +618,15 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
 
       await http().get(`/api/ordenes/${orderId}/comprobante`).set(as(admin)).expect(200);
     });
+
+    it('never accepts the session token from the query string', async () => {
+      const admin = (await signIn('admin')).token;
+      const { orderId } = await orderInVerification(admin);
+
+      await http()
+        .get(`/api/ordenes/${orderId}/comprobante?token=${encodeURIComponent(admin)}`)
+        .expect(401);
+    });
   });
 
   // ---------------------------------------------------------- approvals
