@@ -347,7 +347,7 @@ describe('AuthService: magic link (D4)', () => {
         document: '11112222',
         role: 'admin',
       });
-      const setPassword = jest.spyOn(store, 'setPassword');
+      const setPassword = jest.spyOn(store, 'setPasswordIfUnset');
 
       await expect(
         service.register({
@@ -432,6 +432,21 @@ describe('AuthService: magic link (D4)', () => {
         service.setOwnPassword(session.user.id, 'Other123456'),
       ).rejects.toThrow(ConflictException);
       await expect(service.login('12345678', 'Password123')).resolves.toBeDefined();
+    });
+
+    it('refuses when a concurrent request set the password after the read', async () => {
+      const user = await store.createUser({ email: 'buyer@example.com' });
+      // The read sees no password; another request writes one before ours.
+      jest.spyOn(store, 'findUser').mockImplementationOnce(async () => {
+        const snapshot = { ...user };
+        user.passwordHash = 'first-writer-hash';
+        return snapshot;
+      });
+
+      await expect(
+        service.setOwnPassword(user.id, 'Password123'),
+      ).rejects.toThrow(ConflictException);
+      expect(user.passwordHash).toBe('first-writer-hash');
     });
 
     it('enforces the password rules', async () => {

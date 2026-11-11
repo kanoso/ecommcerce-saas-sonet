@@ -63,7 +63,11 @@ export interface AuthStore {
     passwordHash?: string | null;
     role?: string;
   }): Promise<AuthUser>;
-  setPassword(userId: string, passwordHash: string): Promise<void>;
+  /**
+   * Sets the password only if the user has none, in one atomic statement.
+   * @returns false when the user already had one (or does not exist).
+   */
+  setPasswordIfUnset(userId: string, passwordHash: string): Promise<boolean>;
   addSession(session: {
     id: string;
     userId: string;

@@ -99,11 +99,13 @@ export class InMemoryAuthStore implements AuthStore {
     return user;
   }
 
-  async setPassword(userId: string, passwordHash: string): Promise<void> {
+  async setPasswordIfUnset(userId: string, passwordHash: string): Promise<boolean> {
     const user = this.users.find((u) => u.id === userId);
-    if (user) {
-      user.passwordHash = passwordHash;
+    if (!user || user.passwordHash) {
+      return false;
     }
+    user.passwordHash = passwordHash;
+    return true;
   }
 
   async addSession(session: Omit<StoredSession, 'revokedAt'>): Promise<void> {

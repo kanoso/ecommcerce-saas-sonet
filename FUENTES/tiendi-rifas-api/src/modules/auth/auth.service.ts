@@ -250,10 +250,12 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('A valid session is required');
     }
-    if (user.passwordHash) {
+    // The read only tells a missing user apart; the write decides the race.
+    const written = !user.passwordHash &&
+      (await this.store.setPasswordIfUnset(user.id, hashPassword(password)));
+    if (!written) {
       throw new ConflictException('Esta cuenta ya tiene una contraseña');
     }
-    await this.store.setPassword(user.id, hashPassword(password));
   }
 
   async login(identifier: string, password: string): Promise<OpenedSession> {

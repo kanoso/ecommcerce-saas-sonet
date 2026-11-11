@@ -13,6 +13,7 @@ const knownError = (code: string) =>
 describe('PrismaAuthStore (no database)', () => {
   const user = {
     create: jest.fn(),
+    updateMany: jest.fn(),
   };
   const store = new PrismaAuthStore({ user } as unknown as PrismaService);
 
@@ -36,6 +37,24 @@ describe('PrismaAuthStore (no database)', () => {
       await expect(
         store.createUser({ document: '12345678', passwordHash: 'h' }),
       ).rejects.toBe(other);
+    });
+  });
+
+  describe('setPasswordIfUnset', () => {
+    it('writes only where no password is set, in one statement', async () => {
+      user.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(store.setPasswordIfUnset('u-1', 'hash')).resolves.toBe(true);
+      expect(user.updateMany).toHaveBeenCalledWith({
+        where: { id: 'u-1', passwordHash: null },
+        data: { passwordHash: 'hash' },
+      });
+    });
+
+    it('reports false when the user already had a password', async () => {
+      user.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(store.setPasswordIfUnset('u-1', 'hash')).resolves.toBe(false);
     });
   });
 });

@@ -159,11 +159,13 @@ export class PrismaAuthStore implements AuthStore {
     }
   }
 
-  async setPassword(userId: string, passwordHash: string): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
+  async setPasswordIfUnset(userId: string, passwordHash: string): Promise<boolean> {
+    // Conditional on the row's state: of two concurrent requests, one writes.
+    const { count } = await this.prisma.user.updateMany({
+      where: { id: userId, passwordHash: null },
       data: { passwordHash },
     });
+    return count === 1;
   }
 
   async addSession(session: {
