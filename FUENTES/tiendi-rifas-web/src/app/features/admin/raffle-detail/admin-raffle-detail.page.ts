@@ -22,6 +22,7 @@ import {
   RaffleSummary,
 } from '../../../core/api/api.models';
 import { QUICKNET } from '../../../core/drand/quicknet';
+import { ProofViewer } from '../proof-viewer';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador',
@@ -62,11 +63,13 @@ function datesOrderValidator(control: AbstractControl): ValidationErrors | null 
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
   templateUrl: './admin-raffle-detail.page.html',
   styleUrl: './admin-raffle-detail.page.scss',
+  providers: [ProofViewer],
 })
 export class AdminRaffleDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminApi = inject(AdminApi);
+  readonly proofViewer = inject(ProofViewer);
   private readonly fb = inject(FormBuilder);
 
   readonly raffleId = this.route.snapshot.paramMap.get('id') ?? '';
@@ -493,10 +496,6 @@ export class AdminRaffleDetailPage implements OnInit {
 
   orderStatusLabel(status: string): string {
     return ORDER_STATUS_LABELS[status] ?? status;
-  }
-
-  proofUrl(orderId: string): string {
-    return this.adminApi.proofFileUrl(orderId);
   }
 
   drawModeLabel(mode?: string): string {

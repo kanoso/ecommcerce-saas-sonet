@@ -72,6 +72,12 @@
       </div>
     }
 
+    @if (proofViewer.error(); as proofError) {
+      <div class="alert alert--error proof-error" role="alert">
+        {{ proofError }}
+      </div>
+    }
+
     <!-- Sales Report (RF-12) -->
     <section class="section-card sales-metrics" aria-labelledby="sales-title">
       <div class="section-card__header">
@@ -258,14 +264,14 @@
               <footer class="order-buyer-card__footer">
                 <span class="order-meta">Orden: <code>{{ ord.id }}</code></span>
                 @if (ord.hasProof) {
-                  <a
-                    [href]="proofUrl(ord.id)"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
                     class="btn-view-proof"
+                    [disabled]="proofViewer.loadingId() === ord.id"
+                    (click)="proofViewer.view(ord.id)"
                   >
-                    Ver comprobante
-                  </a>
+                    {{ proofViewer.loadingId() === ord.id ? 'Abriendo comprobante…' : 'Ver comprobante' }}
+                  </button>
                 }
               </footer>
             </article>

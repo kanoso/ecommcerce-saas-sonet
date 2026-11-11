@@ -5,6 +5,7 @@ import { AdminApi } from '../../../core/api/admin-api';
 import { RejectPaymentRequestDto } from '../../../core/api/api.dto';
 import { BankOrWallet, PendingProof } from '../../../core/api/api.models';
 import { AdminAlertsStore } from '../alerts/admin-alerts.store';
+import { ProofViewer } from '../proof-viewer';
 
 @Component({
   selector: 'app-admin-receipts',
@@ -12,9 +13,11 @@ import { AdminAlertsStore } from '../alerts/admin-alerts.store';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admin-receipts.page.html',
   styleUrl: './admin-receipts.page.scss',
+  providers: [ProofViewer],
 })
 export class AdminReceiptsPage implements OnInit {
   private readonly adminApi = inject(AdminApi);
+  readonly proofViewer = inject(ProofViewer);
   private readonly alertsStore = inject(AdminAlertsStore, { optional: true });
 
   readonly proofs = signal<PendingProof[]>([]);
@@ -79,10 +82,6 @@ export class AdminReceiptsPage implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  proofUrl(orderId: string): string {
-    return this.adminApi.proofFileUrl(orderId);
   }
 
   openApprove(proof: PendingProof): void {

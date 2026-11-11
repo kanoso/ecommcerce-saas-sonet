@@ -15,6 +15,12 @@
     </div>
   }
 
+  @if (proofViewer.error(); as proofError) {
+    <div class="feedback-banner feedback-banner--error proof-error" role="alert">
+      {{ proofError }}
+    </div>
+  }
+
   @if (loading()) {
     <div class="state-box" aria-live="polite">
       <p>Cargando comprobantes pendientes...</p>
@@ -101,14 +107,14 @@
 
           <div class="receipt-item__actions">
             @if (proof.hasProof) {
-              <a
-                [href]="proofUrl(proof.id)"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
                 class="btn-action btn-action--view"
+                [disabled]="proofViewer.loadingId() === proof.id"
+                (click)="proofViewer.view(proof.id)"
               >
-                Ver comprobante
-              </a>
+                {{ proofViewer.loadingId() === proof.id ? 'Abriendo comprobante…' : 'Ver comprobante' }}
+              </button>
             }
             <button
               type="button"

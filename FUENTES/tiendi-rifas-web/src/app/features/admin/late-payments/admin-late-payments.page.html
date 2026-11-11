@@ -17,6 +17,12 @@
     </div>
   }
 
+  @if (proofViewer.error(); as proofError) {
+    <div class="feedback-banner feedback-banner--error proof-error" role="alert">
+      {{ proofError }}
+    </div>
+  }
+
   @if (loading()) {
     <div class="state-box" aria-live="polite">
       <p>Cargando reclamos de pago tardío...</p>
@@ -71,14 +77,14 @@
 
           <div class="claim-item__actions">
             @if (claim.hasProof) {
-              <a
-                [href]="proofUrl(claim.id)"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
                 class="btn-action btn-action--view"
+                [disabled]="proofViewer.loadingId() === claim.id"
+                (click)="proofViewer.view(claim.id)"
               >
-                Ver comprobante
-              </a>
+                {{ proofViewer.loadingId() === claim.id ? 'Abriendo comprobante…' : 'Ver comprobante' }}
+              </button>
             }
             <button
               type="button"

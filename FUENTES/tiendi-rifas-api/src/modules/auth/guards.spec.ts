@@ -44,16 +44,33 @@ describe('SessionGuard', () => {
     expect(req.principal).toEqual(principal);
   });
 
-  it('authenticates with query parameter token when header is absent', async () => {
-    authService.authenticate.mockResolvedValueOnce(principal);
+  it('rejects a session token sent as a ?token= query parameter (401)', async () => {
+    authService.authenticate.mockResolvedValue(principal);
     const ctx = mockContext({}, { token: 'query-token-123' });
 
-    const result = await guard.canActivate(ctx);
+    const failure = guard.canActivate(ctx);
 
-    expect(result).toBe(true);
-    expect(authService.authenticate).toHaveBeenCalledWith('query-token-123');
+    await expect(failure).rejects.toThrow(UnauthorizedException);
+    await expect(failure).rejects.toMatchObject({ status: 401 });
+    expect(authService.authenticate).not.toHaveBeenCalled();
     const req = ctx.switchToHttp().getRequest() as { principal?: Principal };
-    expect(req.principal).toEqual(principal);
+    expect(req.principal).toBeUndefined();
+  });
+
+  it('uses only the Authorization header even when a ?token= query parameter is also present', async () => {
+    authService.authenticate.mockResolvedValueOnce(principal);
+    const ctx = mockContext({ authorization: 'Bearer header-token' }, { token: 'query-token-123' });
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(authService.authenticate).toHaveBeenCalledTimes(1);
+    expect(authService.authenticate).toHaveBeenCalledWith('header-token');
+  });
+
+  it('rejects a non-Bearer Authorization scheme', async () => {
+    const ctx = mockContext({ authorization: 'Basic abc' }, { token: 'query-token-123' });
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    expect(authService.authenticate).not.toHaveBeenCalled();
   });
 
   it('throws UnauthorizedException when no token is present', async () => {

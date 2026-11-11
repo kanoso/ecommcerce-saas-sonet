@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { AdminApi } from '../../../core/api/admin-api';
+import { ApiError } from '../../../core/api/api-error';
 import { Order } from '../../../core/api/api.models';
 import { AdminLatePaymentsPage } from './admin-late-payments.page';
 
@@ -11,7 +12,7 @@ describe('AdminLatePaymentsPage (DT-07 / DT-10)', () => {
     latePaymentClaims: ReturnType<typeof vi.fn>;
     confirmLatePayment: ReturnType<typeof vi.fn>;
     dismissLatePayment: ReturnType<typeof vi.fn>;
-    proofFileUrl: ReturnType<typeof vi.fn>;
+    proofFile: ReturnType<typeof vi.fn>;
   };
 
   const mockClaim: Order = {
@@ -33,7 +34,7 @@ describe('AdminLatePaymentsPage (DT-07 / DT-10)', () => {
       latePaymentClaims: vi.fn().mockReturnValue(of([mockClaim])),
       confirmLatePayment: vi.fn().mockReturnValue(of(undefined)),
       dismissLatePayment: vi.fn().mockReturnValue(of(undefined)),
-      proofFileUrl: vi.fn().mockReturnValue('https://api.example.com/ordenes/ord-200/comprobante'),
+      proofFile: vi.fn().mockReturnValue(of({ blob: new Blob(['png'], { type: 'image/png' }), filename: 'comprobante.png' })),
     };
 
     await TestBed.configureTestingModule({
@@ -81,5 +82,40 @@ describe('AdminLatePaymentsPage (DT-07 / DT-10)', () => {
     expect(adminApiMock.dismissLatePayment).toHaveBeenCalledWith('ord-200', {
       motivo: 'No se encontró el abono en el extracto bancario',
     });
+  });
+
+  it('opens the proof as an authenticated blob instead of a tokenized link', () => {
+    const popup = { location: { href: 'about:blank' }, opener: window as unknown, close: vi.fn() };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    Object.defineProperty(URL, 'createObjectURL', { value: vi.fn(() => 'blob:proof-ord-200'), configurable: true, writable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true, writable: true });
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelector('.btn-action--view') as HTMLButtonElement;
+
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.getAttribute('href')).toBeNull();
+    expect(el.innerHTML).not.toContain('token=');
+
+    button.click();
+
+    expect(adminApiMock.proofFile).toHaveBeenCalledWith('ord-200');
+    expect(popup.location.href).toBe('blob:proof-ord-200');
+    openSpy.mockRestore();
+  });
+
+  it('shows the API message when the proof cannot be opened', () => {
+    const popup = { location: { href: 'about:blank' }, opener: window as unknown, close: vi.fn() };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    adminApiMock.proofFile.mockReturnValue(
+      throwError(() => new ApiError(401, 'UNAUTHORIZED', 'Tu sesión terminó. Ingresa de nuevo.')),
+    );
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.btn-action--view') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(popup.close).toHaveBeenCalled();
+    expect(el.querySelector('.proof-error')?.textContent).toContain('Tu sesión terminó. Ingresa de nuevo.');
+    openSpy.mockRestore();
   });
 });

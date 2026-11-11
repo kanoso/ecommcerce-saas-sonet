@@ -15,6 +15,11 @@ export const AUTH_SERVICE = Symbol('AUTH_SERVICE');
 
 type AuthedRequest = Request & { principal?: Principal };
 
+/**
+ * The session token, read ONLY from `Authorization: Bearer`. Never from the
+ * query string: URLs end up in proxy/server logs, browser history and
+ * Referer headers, which would leak a long-lived session token.
+ */
 function bearerOf(request: Request): string | null {
   const header = request.headers.authorization;
   if (typeof header === 'string') {
@@ -22,10 +27,6 @@ function bearerOf(request: Request): string | null {
     if (scheme === 'Bearer' && token) {
       return token;
     }
-  }
-  const queryToken = (request.query as Record<string, unknown> | undefined)?.token;
-  if (typeof queryToken === 'string' && queryToken) {
-    return queryToken;
   }
   return null;
 }

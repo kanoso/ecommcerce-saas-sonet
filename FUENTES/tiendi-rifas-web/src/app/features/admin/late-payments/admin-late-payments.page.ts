@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApi } from '../../../core/api/admin-api';
 import { BankOrWallet, Order } from '../../../core/api/api.models';
+import { ProofViewer } from '../proof-viewer';
 
 @Component({
   selector: 'app-admin-late-payments',
@@ -10,9 +11,11 @@ import { BankOrWallet, Order } from '../../../core/api/api.models';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admin-late-payments.page.html',
   styleUrl: './admin-late-payments.page.scss',
+  providers: [ProofViewer],
 })
 export class AdminLatePaymentsPage implements OnInit {
   private readonly adminApi = inject(AdminApi);
+  readonly proofViewer = inject(ProofViewer);
 
   readonly claims = signal<Order[]>([]);
   readonly loading = signal(true);
@@ -56,10 +59,6 @@ export class AdminLatePaymentsPage implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  proofUrl(orderId: string): string {
-    return this.adminApi.proofFileUrl(orderId);
   }
 
   openConfirm(claim: Order): void {
