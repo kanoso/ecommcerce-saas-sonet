@@ -104,6 +104,34 @@ describe('AuthController (HTTP)', () => {
     });
   });
 
+  describe('rate limit on the password and Google routes', () => {
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ['/auth/login', { identifier: 'nobody@example.com', password: 'x' }],
+      ['/auth/registro', { identifier: 'new@example.com', password: 'Password123' }],
+      ['/auth/google', { idToken: 'not-a-real-google-token' }],
+      ['/auth/contrasena', { password: 'Password123' }],
+    ];
+
+    it.each(cases)('limits %s per client IP', async (path, body) => {
+      const statuses: number[] = [];
+      for (let i = 0; i <= AUTH_LIMIT; i++) {
+        statuses.push((await http().post(path).send(body)).status);
+      }
+
+      expect(statuses.slice(0, AUTH_LIMIT)).not.toContain(429);
+      expect(statuses[AUTH_LIMIT]).toBe(429);
+    });
+
+    it('does not count the magic-link routes against the auth limit', async () => {
+      for (let i = 0; i <= AUTH_LIMIT; i++) {
+        const res = await http()
+          .post('/auth/sesion')
+          .send({ token: 'A'.repeat(43) });
+        expect(res.status).not.toBe(429);
+      }
+    });
+  });
+
   /** Opens a session for a user the way a magic link would. */
   async function sessionTokenFor(userId: string): Promise<string> {
     const user = await store.findUser(userId);

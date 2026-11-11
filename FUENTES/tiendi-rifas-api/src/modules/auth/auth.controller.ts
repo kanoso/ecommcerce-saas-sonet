@@ -79,6 +79,7 @@ export class AuthController {
   /** Logs in or signs up via Google ID Token. */
   @Post('google')
   @HttpCode(200)
+  @RateLimit('auth')
   async loginWithGoogle(@Body() body: unknown) {
     const { idToken } = parseWith(googleRequest, body);
     const session = await this.auth.loginWithGoogle(idToken);
@@ -96,6 +97,7 @@ export class AuthController {
   /** Registers a buyer with DNI, phone or email + password. */
   @Post('registro')
   @HttpCode(200)
+  @RateLimit('auth')
   async register(@Body() body: unknown) {
     const input = parseWith(registerRequest, body);
     const session = await this.auth.register(input);
@@ -116,6 +118,7 @@ export class AuthController {
   /** Logs in with DNI, phone or email + password. */
   @Post('login')
   @HttpCode(200)
+  @RateLimit('auth')
   async login(@Body() body: unknown) {
     const { identifier, password } = parseWith(loginRequest, body);
     const session = await this.auth.login(identifier, password);
@@ -137,6 +140,8 @@ export class AuthController {
   @Post('contrasena')
   @HttpCode(204)
   @UseGuards(SessionGuard)
+  // Below SessionGuard: decorators apply bottom-up, so the limit runs first.
+  @RateLimit('auth')
   async setPassword(
     @CurrentUser() principal: Principal,
     @Body() body: unknown,
