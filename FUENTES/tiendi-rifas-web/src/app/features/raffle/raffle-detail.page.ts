@@ -119,9 +119,10 @@ export class RaffleDetailPage implements OnInit {
 
   // Register form controls
   protected readonly regName = new FormControl('', { nonNullable: true });
+  // DNI or phone only: email accounts are created by the link or Google.
   protected readonly regIdentifier = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required],
+    validators: [Validators.required, Validators.pattern(/^(\d{8}|9\d{8})$/)],
   });
   protected readonly regPassword = new FormControl('', {
     nonNullable: true,
@@ -205,7 +206,7 @@ export class RaffleDetailPage implements OnInit {
   protected submitModalRegister(): void {
     this.regIdentifier.setValue(this.regIdentifier.value.trim());
     if (this.regIdentifier.invalid || this.regPassword.invalid) {
-      this.authError.set('Ingresa un DNI (8 dígitos), celular (9 dígitos) o correo, y una contraseña de al menos 6 caracteres.');
+      this.authError.set('Ingresa un DNI (8 dígitos) o celular (9 dígitos), y una contraseña de al menos 6 caracteres. Con correo, usa Google o el enlace de acceso.');
       return;
     }
     this.authStatus.set('sending');

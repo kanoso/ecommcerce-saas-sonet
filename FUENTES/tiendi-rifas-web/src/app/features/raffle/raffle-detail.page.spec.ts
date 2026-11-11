@@ -215,6 +215,33 @@ describe('RaffleDetailPage', () => {
     expect(reserveCalls[0].numbers).toEqual([7]);
   });
 
+  it('does not register with an email in the modal: email accounts use the link or Google', async () => {
+    const { harness, el } = await open();
+    cellButton(el, 'Número 007').click();
+    harness.detectChanges();
+    reserveButton(el).click();
+    harness.detectChanges();
+    (el.querySelectorAll('.auth-modal .auth-tab')[1] as HTMLButtonElement).click();
+    harness.detectChanges();
+
+    expect(el.querySelector('.auth-modal')?.textContent).not.toContain('DNI, Celular o Correo');
+
+    const inputs = el.querySelectorAll('.auth-modal input[type="text"]');
+    const idInput = inputs[inputs.length - 1] as HTMLInputElement;
+    const pwdInput = el.querySelector('.auth-modal input[type="password"]') as HTMLInputElement;
+    idInput.value = 'buyer@example.com';
+    idInput.dispatchEvent(new Event('input'));
+    pwdInput.value = 'password123';
+    pwdInput.dispatchEvent(new Event('input'));
+    harness.detectChanges();
+
+    (el.querySelector('.auth-modal button[type="submit"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+
+    expect(regCalls).toHaveLength(0);
+    expect(el.querySelector('.auth-modal [role="alert"]')?.textContent).toContain('DNI (8 dígitos) o celular (9 dígitos)');
+  });
+
   it('reserves and opens the payment page of the new order', async () => {
     signIn();
     const { harness, el } = await open();
