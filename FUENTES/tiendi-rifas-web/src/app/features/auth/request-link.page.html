@@ -1,0 +1,153 @@
+<section class="auth-card">
+  <div class="auth-tabs" role="tablist">
+    <button
+      type="button"
+      role="tab"
+      class="auth-tab"
+      [class.auth-tab--active]="tab() === 'login'"
+      (click)="setTab('login')"
+    >
+      Ingresar
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="auth-tab"
+      [class.auth-tab--active]="tab() === 'register'"
+      (click)="setTab('register')"
+    >
+      Crear cuenta
+    </button>
+  </div>
+
+  @if (status() === 'sent') {
+    <div class="auth-card__notice" role="status">
+      <p>Revisa tu correo. Enviamos un enlace de acceso a <strong>{{ sentTo() }}</strong>.</p>
+      <p class="auth-card__hint">El enlace sirve una sola vez y vence en unos minutos.</p>
+      <button type="button" class="auth-link-btn" (click)="resetStatus()">Volver</button>
+    </div>
+  } @else if (tab() === 'login') {
+    <p class="auth-card__lead">Accedé con Google o con tu DNI, celular o correo.</p>
+
+    <div class="google-auth-container">
+      <div id="google-btn-container"></div>
+    </div>
+
+    <div class="auth-divider">
+      <span>o con contraseña</span>
+    </div>
+
+    <form class="auth-form" novalidate (submit)="submitLogin(); $event.preventDefault()">
+      <label class="auth-form__label" for="login-id">DNI, celular o correo</label>
+      <input
+        id="login-id"
+        class="auth-form__input"
+        type="text"
+        autocomplete="username"
+        [formControl]="loginIdentifier"
+        [attr.aria-invalid]="showInvalid()"
+      />
+
+      <label class="auth-form__label" for="login-pwd">Contraseña</label>
+      <input
+        id="login-pwd"
+        class="auth-form__input"
+        type="password"
+        autocomplete="current-password"
+        [formControl]="loginPassword"
+        [attr.aria-invalid]="showInvalid()"
+      />
+
+      @if (showInvalid()) {
+        <p class="auth-form__error">Completa tu identificador y contraseña.</p>
+      }
+
+      @if (status() === 'error') {
+        <p class="auth-card__alert" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <button class="auth-form__submit" type="submit" [disabled]="status() === 'sending'">
+        {{ status() === 'sending' ? 'Ingresando…' : 'Ingresar' }}
+      </button>
+
+      <button type="button" class="auth-secondary-btn" (click)="toggleMagicLink()">
+        {{ showMagicLink() ? 'Ocultar enlace por correo' : '¿Preferís recibir un enlace a tu correo?' }}
+      </button>
+
+      @if (showMagicLink()) {
+        <div class="magic-link-section">
+          <label class="auth-form__label" for="magic-email">Tu correo</label>
+          <div class="magic-link-input-group">
+            <input
+              id="magic-email"
+              class="auth-form__input"
+              type="email"
+              [formControl]="email"
+            />
+            <button
+              type="button"
+              class="auth-form__submit auth-form__submit--compact"
+              (click)="submitMagicLink()"
+              [disabled]="status() === 'sending'"
+            >
+              Enviar
+            </button>
+          </div>
+        </div>
+      }
+    </form>
+  } @else {
+    <p class="auth-card__lead">Creá tu cuenta con tu DNI, celular o correo.</p>
+
+    <div class="google-auth-container">
+      <div id="google-btn-container-reg"></div>
+    </div>
+
+    <div class="auth-divider">
+      <span>o completa tus datos</span>
+    </div>
+
+    <form class="auth-form" novalidate (submit)="submitRegister(); $event.preventDefault()">
+      <label class="auth-form__label" for="reg-name">Nombre completo (opcional)</label>
+      <input
+        id="reg-name"
+        class="auth-form__input"
+        type="text"
+        autocomplete="name"
+        [formControl]="regName"
+      />
+
+      <label class="auth-form__label" for="reg-id">DNI, celular o correo</label>
+      <input
+        id="reg-id"
+        class="auth-form__input"
+        type="text"
+        placeholder="Ej: 72345678 o 987654321"
+        [formControl]="regIdentifier"
+        [attr.aria-invalid]="showInvalid()"
+      />
+
+      <label class="auth-form__label" for="reg-pwd">Contraseña (mínimo 6 caracteres)</label>
+      <input
+        id="reg-pwd"
+        class="auth-form__input"
+        type="password"
+        autocomplete="new-password"
+        [formControl]="regPassword"
+        [attr.aria-invalid]="showInvalid()"
+      />
+
+      @if (showInvalid()) {
+        <p class="auth-form__error">Ingresa tu DNI/celular y una contraseña de al menos 6 caracteres.</p>
+      }
+
+      @if (status() === 'error') {
+        <p class="auth-card__alert" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <button class="auth-form__submit" type="submit" [disabled]="status() === 'sending'">
+        {{ status() === 'sending' ? 'Creando cuenta…' : 'Crear cuenta y entrar' }}
+      </button>
+    </form>
+  }
+</section>

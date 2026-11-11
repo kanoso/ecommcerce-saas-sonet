@@ -1,0 +1,10 @@
+<section class="auth-card">
+  @if (errorMessage(); as message) {
+    <h1 class="auth-card__title">No pudimos validar tu enlace</h1>
+    <p class="auth-card__alert" role="alert">{{ message }}</p>
+    <a class="auth-card__link" routerLink="/ingresar">Pedir un enlace nuevo</a>
+  } @else {
+    <h1 class="auth-card__title">Validando tu enlace…</h1>
+    <p class="auth-card__lead" role="status">Un momento, estamos abriendo tu sesión.</p>
+  }
+</section>

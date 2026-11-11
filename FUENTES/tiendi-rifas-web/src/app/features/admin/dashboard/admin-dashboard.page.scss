@@ -1,0 +1,121 @@
+.dashboard {
+  &__header {
+    margin-bottom: 24px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: 900px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 12px;
+    background: #E2E8F0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+
+    &--has-alerts {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+  }
+
+  &__desc {
+    flex: 1;
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    background: var(--ground);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: #E2E8F0;
+    }
+
+    &--btn {
+      width: 100%;
+    }
+
+    &--secondary {
+      background: var(--surface);
+      color: var(--accent);
+      border-color: var(--accent);
+
+      &:hover {
+        background: var(--accent-soft);
+      }
+    }
+  }
+}

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prototipo 5: Efecto SPOTLIGHT — Sorteo en Vivo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-main: #0F172A;
+      --border-light: #CBD5E1;
+      --my-ticket-bg: #ECFDF5;
+      --my-ticket-border: #10B981;
+      --my-ticket-text: #047857;
+      --sold-bg: #253245;
+      --sold-text: #F8FAFC;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      padding-bottom: 60px;
+    }
+
+    .proto-nav {
+      background: #0F172A;
+      color: #F8FAFC;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+    .proto-nav__title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; }
+    .proto-nav__links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .proto-link {
+      text-decoration: none;
+      color: #CBD5E1;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid #334155;
+      transition: all 0.2s;
+    }
+    .proto-link:hover { background: #1E293B; color: #FFF; }
+    .proto-link.active {
+      background: #EC4899;
+      color: #FFFFFF;
+      border-color: #EC4899;
+      font-weight: 700;
+    }
+
+    .container { max-width: 820px; margin: 28px auto; padding: 0 20px; }
+
+    .control-bar {
+      background: #0F172A;
+      color: #F8FAFC;
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .control-bar__info h1 {
+      margin: 0 0 4px 0;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      color: #F472B6;
+    }
+    .control-bar__info p { margin: 0; font-size: 13px; color: #94A3B8; }
+    .control-bar__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ctrl-select {
+      background: #1E293B;
+      color: #F8FAFC;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+    }
+    .btn-play {
+      background: linear-gradient(135deg, #EC4899, #DB2777);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);
+    }
+    .btn-play:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-reset {
+      background: #334155;
+      color: #E2E8F0;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .live-hud {
+      background: linear-gradient(135deg, #1E1B4B, #31102F);
+      border-radius: 16px;
+      padding: 20px 24px;
+      color: #FDF2F8;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border: 1px solid #831843;
+    }
+    .hud-status { font-size: 18px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; color: #FBCFE8; }
+    .hud-sub { font-size: 13px; color: #F9A8D4; margin-top: 4px; }
+    .hud-number-box {
+      background: #0F0714;
+      border: 2px solid #EC4899;
+      border-radius: 14px;
+      padding: 10px 22px;
+      text-align: center;
+      min-width: 130px;
+    }
+    .hud-number-label { font-size: 10px; letter-spacing: 0.1em; color: #F472B6; display: block; }
+    .hud-number-val { font-family: 'JetBrains Mono', monospace; font-size: 38px; font-weight: 800; color: #FDE047; }
+
+    .attempts-bar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .attempt-pill {
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .attempt-pill.agua { background: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; }
+    .attempt-pill.win { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+
+    .raffle-board-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+      transition: background-color 0.5s, border-color 0.5s;
+    }
+    /* Modo teatro: apaga las luces de la sala y deja solo los boletos finalistas brillando */
+    .raffle-board-card.stage-dark {
+      background: #090A10;
+      border-color: #31102F;
+      color: #F8FAFC;
+    }
+
+    .my-tickets-banner {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      color: #064E3B;
+    }
+    .my-tickets-banner__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .my-tickets-banner__title { font-weight: 700; font-size: 15px; }
+    .my-tickets-banner__link { color: #047857; font-size: 13px; font-weight: 600; }
+    .my-tickets-chips { display: flex; gap: 8px; }
+    .my-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      background: #DCFCE7;
+      border: 1px solid #86EFAC;
+      color: #047857;
+    }
+
+    .board-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .board-header__title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; margin: 0; }
+    .range-pill {
+      background: #0F172A;
+      color: #FFFFFF;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 10px;
+    }
+
+    .numbers-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 600px) { .numbers-grid { grid-template-columns: repeat(5, 1fr); } }
+
+    .cell {
+      height: 54px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-light);
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      position: relative;
+      transition: all 0.25s;
+    }
+    .cell.my-ticket {
+      background: var(--my-ticket-bg);
+      border-color: var(--my-ticket-border);
+      color: var(--my-ticket-text);
+    }
+    .cell.my-ticket::after {
+      content: '★';
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 10px;
+      color: #059669;
+    }
+    .cell.sold {
+      background: var(--sold-bg);
+      border-color: var(--sold-bg);
+      color: var(--sold-text);
+      text-decoration: line-through;
+    }
+
+    /* En modo teatro, los boletos vacíos se apagan casi por completo */
+    .stage-dark .cell:not(.my-ticket):not(.sold) {
+      background: #11131F;
+      border-color: #1E2030;
+      color: #2E3248;
+      opacity: 0.35;
+    }
+    /* Los 5 boletos vendidos quedan encendidos como finalistas */
+    .stage-dark .cell.my-ticket,
+    .stage-dark .cell.sold {
+      text-decoration: none;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.12);
+    }
+
+    /* Haz del reflector sobre un finalista */
+    .cell.spotlight-beam {
+      background: radial-gradient(circle, #FEF08A 0%, #F59E0B 100%) !important;
+      border-color: #FFFFFF !important;
+      color: #0F172A !important;
+      transform: scale(1.16);
+      z-index: 25;
+      box-shadow: 0 0 32px rgba(250, 204, 21, 0.95), 0 -18px 40px rgba(254, 240, 138, 0.65) !important;
+    }
+
+    .cell.al-agua {
+      background: #3B0819 !important;
+      border-color: #BE123C !important;
+      color: #FDA4AF !important;
+      text-decoration: line-through !important;
+      opacity: 0.65 !important;
+      transform: scale(0.94);
+    }
+    .cell.al-agua .tag-status {
+      position: absolute;
+      bottom: 2px;
+      font-size: 8px;
+      font-weight: 800;
+      color: #FDA4AF;
+    }
+
+    .cell.winner-cell {
+      background: linear-gradient(135deg, #10B981, #047857) !important;
+      border: 2.5px solid #FEF08A !important;
+      color: #FFFFFF !important;
+      transform: scale(1.22);
+      z-index: 30;
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.95), 0 0 20px rgba(16, 185, 129, 0.95) !important;
+    }
+    .cell.winner-cell .tag-status {
+      position: absolute;
+      bottom: 2px;
+      font-size: 8px;
+      font-weight: 800;
+      color: #FEF08A;
+    }
+
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti-canvas"></canvas>
+
+  <nav class="proto-nav">
+    <div class="proto-nav__title">🎯 Prototipos de Efectos de Sorteo (Referencia: Rifa 01–30)</div>
+    <div class="proto-nav__links">
+      <a href="prototipo-1-snake.html" class="proto-link">1. SNAKE (Serpiente)</a>
+      <a href="prototipo-2-radar.html" class="proto-link">2. RADAR (Mira Táctica)</a>
+      <a href="prototipo-3-slot-machine.html" class="proto-link">3. SLOT MACHINE (Tragamonedas)</a>
+      <a href="prototipo-4-tombola.html" class="proto-link">4. TÓMBOLA (Bolillero Físico)</a>
+      <a href="prototipo-5-spotlight.html" class="proto-link active">5. SPOTLIGHT (Eliminación Casino)</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="control-bar">
+      <div class="control-bar__info">
+        <h1>Propuesta 5: Efecto SPOTLIGHT (Reflector de Finalistas y Eliminación)</h1>
+        <p>Se apagan las luces sobre los boletos no vendidos, dejando iluminados solo a los 5 boletos participantes mientras el reflector salta entre ellos.</p>
+      </div>
+      <div class="control-bar__actions">
+        <select id="attemptSelect" class="ctrl-select">
+          <option value="3" selected>Sale al 3° intento (2 ¡Al agua! + Ganador)</option>
+          <option value="1">Sale al 1° intento (Directo)</option>
+        </select>
+        <button id="btnPlay" class="btn-play" onclick="startSpotlightDraw()">🔦 Encender Reflector</button>
+        <button class="btn-reset" onclick="resetSpotlight()">Reiniciar</button>
+      </div>
+    </section>
+
+    <section class="live-hud">
+      <div>
+        <div id="hudStatus" class="hud-status">SALA LISTA PARA EL DUELO FINAL</div>
+        <div id="hudSub" class="hud-sub">5 boletos vendidos entran al reflector: 01, 18, 23, 25, 28</div>
+      </div>
+      <div class="hud-number-box">
+        <span class="hud-number-label">EN EL REFLECTOR</span>
+        <span id="hudNumber" class="hud-number-val">--</span>
+      </div>
+    </section>
+
+    <div id="attemptsBar" class="attempts-bar"></div>
+
+    <section id="boardCard" class="raffle-board-card">
+      <div class="my-tickets-banner">
+        <div class="my-tickets-banner__top">
+          <span class="my-tickets-banner__title">🎟️ Tus boletos en esta rifa (3):</span>
+          <a href="javascript:void(0)" class="my-tickets-banner__link">Ver en Mis boletos →</a>
+        </div>
+        <div class="my-tickets-chips">
+          <span class="my-chip">01</span>
+          <span class="my-chip">23</span>
+          <span class="my-chip">28</span>
+        </div>
+      </div>
+
+      <div class="board-header">
+        <h2 class="board-header__title">Elige tus números</h2>
+        <span class="range-pill">01–30</span>
+      </div>
+
+      <div id="grid" class="numbers-grid"></div>
+    </section>
+  </main>
+
+  <script>
+    const TOTAL = 30;
+    const MY_TICKETS = [1, 23, 28];
+    const OTHER_SOLD = [18, 25];
+    let timers = [];
+    let audioCtx = null;
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function initGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= TOTAL; i++) {
+        const cell = document.createElement('div');
+        cell.id = 'cell-' + i;
+        cell.className = 'cell';
+        if (MY_TICKETS.includes(i)) cell.classList.add('my-ticket');
+        else if (OTHER_SOLD.includes(i)) cell.classList.add('sold');
+        cell.innerHTML = `<span>${pad(i)}</span><span class="tag-status" id="tag-${i}"></span>`;
+        grid.appendChild(cell);
+      }
+    }
+
+    function playDrumBeat(freq = 220, dur = 0.07) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+
+    function resetSpotlight() {
+      timers.forEach(t => clearTimeout(t));
+      timers = [];
+      document.getElementById('btnPlay').disabled = false;
+      document.getElementById('boardCard').classList.remove('stage-dark');
+      document.getElementById('hudStatus').textContent = 'SALA LISTA PARA EL DUELO FINAL';
+      document.getElementById('hudSub').textContent = '5 boletos vendidos entran al reflector: 01, 18, 23, 25, 28';
+      document.getElementById('hudNumber').textContent = '--';
+      document.getElementById('attemptsBar').innerHTML = '';
+      initGrid();
+    }
+
+    function startSpotlightDraw() {
+      resetSpotlight();
+      document.getElementById('btnPlay').disabled = true;
+      document.getElementById('boardCard').classList.add('stage-dark');
+
+      const mode = Number(document.getElementById('attemptSelect').value);
+      const sequence = mode === 3
+        ? [
+            { num: 18, isWinner: false },
+            { num: 25, isWinner: false },
+            { num: 23, isWinner: true }
+          ]
+        : [{ num: 23, isWinner: true }];
+
+      let remainingPool = [1, 18, 23, 25, 28];
+
+      const runRound = (idx) => {
+        if (idx >= sequence.length) {
+          document.getElementById('btnPlay').disabled = false;
+          return;
+        }
+        const item = sequence[idx];
+        document.getElementById('hudStatus').textContent = `🔦 Reflector saltando entre los ${remainingPool.length} boletos en juego (Intento #${idx + 1})…`;
+
+        // El reflector salta exclusivamente entre los boletos vendidos que siguen vivos
+        const jumps = [];
+        for (let i = 0; i < 16; i++) {
+          jumps.push(remainingPool[i % remainingPool.length]);
+        }
+        jumps.push(item.num);
+
+        let delay = 0;
+        jumps.forEach((n, step) => {
+          const isLast = step === jumps.length - 1;
+          delay += step > 11 ? 230 : 110;
+
+          const t = setTimeout(() => {
+            document.querySelectorAll('.cell.spotlight-beam').forEach(el => el.classList.remove('spotlight-beam'));
+            const cell = document.getElementById('cell-' + n);
+            cell.classList.add('spotlight-beam');
+            document.getElementById('hudNumber').textContent = pad(n);
+            playDrumBeat(isLast ? 880 : 280 + (step % 5) * 60, isLast ? 0.25 : 0.06);
+
+            if (isLast) {
+              const tagEl = document.getElementById('tag-' + item.num);
+              const bar = document.getElementById('attemptsBar');
+
+              if (!item.isWinner) {
+                cell.classList.remove('spotlight-beam');
+                cell.classList.add('al-agua');
+                tagEl.textContent = '¡AL AGUA!';
+                remainingPool = remainingPool.filter(x => x !== item.num);
+                document.getElementById('hudStatus').textContent = `💧 Boleto #${pad(item.num)} eliminado (¡AL AGUA!). Quedan ${remainingPool.length} boletos vivos…`;
+
+                const pill = document.createElement('div');
+                pill.className = 'attempt-pill agua';
+                pill.innerHTML = `<span>#${idx + 1}: Boleto ${pad(item.num)}</span> <strong>¡AL AGUA!</strong>`;
+                bar.appendChild(pill);
+
+                timers.push(setTimeout(() => runRound(idx + 1), 1500));
+              } else {
+                cell.classList.remove('spotlight-beam');
+                cell.classList.add('winner-cell');
+                tagEl.textContent = '¡GANADOR!';
+                document.getElementById('hudStatus').textContent = `🎉 ¡REFLECTOR FIJADO EN EL GANADOR #${pad(item.num)}! (★ TU BOLETO)`;
+                document.getElementById('hudSub').textContent = 'Tus boletos resistieron todas las rondas y #23 se lleva el premio.';
+
+                const pill = document.createElement('div');
+                pill.className = 'attempt-pill win';
+                pill.innerHTML = `<span>#${idx + 1}: Boleto ${pad(item.num)}</span> <strong>🏆 ¡GANADOR!</strong>`;
+                bar.appendChild(pill);
+
+                fireConfetti();
+                document.getElementById('btnPlay').disabled = false;
+              }
+            }
+          }, delay);
+          timers.push(t);
+        });
+      };
+
+      runRound(0);
+    }
+
+    function fireConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const pieces = Array.from({ length: 100 }, () => ({
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        vx: (Math.random() - 0.5) * 15,
+        vy: (Math.random() - 0.8) * 15,
+        color: ['#10B981', '#F59E0B', '#EC4899', '#3B82F6', '#FDE047'][Math.floor(Math.random() * 5)],
+        size: Math.random() * 8 + 4
+      }));
+      let frame = 0;
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.35;
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+        if (++frame < 110) requestAnimationFrame(loop);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      loop();
+    }
+
+    initGrid();
+  </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+// Mobile first (RNF-10): base styles are for 360 px; wider screens only add
+// room through min-width queries.
+:host {
+  display: block;
+  padding: 24px var(--page-gutter) 32px;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.raffle {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.raffle__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.raffle__title {
+  min-width: 0;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.raffle__link,
+.order__pay,
+.state__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.raffle__orders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.order:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.order__status {
+  align-self: flex-start;
+  margin: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--reserved);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.order[data-phase='awaiting-proof'] .order__status {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.order[data-phase='verifying'] .order__status,
+.order[data-phase='late-review'] .order__status {
+  background: var(--verify-soft);
+  color: var(--verify-ink);
+}
+
+.order[data-phase='paid'] .order__status {
+  background: var(--success);
+  color: var(--surface);
+}
+
+.order__numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order__number {
+  min-width: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-cell);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  text-align: center;
+}
+
+.order__total,
+.order__deadline {
+  margin: 0;
+  font-size: 15px;
+}
+
+.order__total {
+  font-weight: 600;
+}
+
+.order__deadline {
+  color: var(--accent-strong);
+}
+
+.order__pay {
+  align-self: stretch;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 24px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+.state--error {
+  border-style: solid;
+  color: var(--ink);
+}
+
+.state__text {
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .title {
+    font-size: 36px;
+  }
+
+  .raffle {
+    padding: 20px;
+  }
+
+  .order__pay {
+    align-self: flex-start;
+  }
+}
+
+@media (min-width: 1024px) {
+  :host {
+    padding-top: 40px;
+  }
+}

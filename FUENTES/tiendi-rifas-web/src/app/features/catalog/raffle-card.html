@@ -1,0 +1,70 @@
+<article class="card" [attr.aria-labelledby]="'raffle-' + raffle().id">
+  <div class="card__media">
+    <svg class="card__icon" width="40" height="40" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="8" width="18" height="13" rx="2"></rect>
+      <path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"></path>
+    </svg>
+    @if (closeDate(); as closeDate) {
+      <span class="card__close">Cierra {{ closeDate }}</span>
+    }
+  </div>
+
+  <div class="card__body">
+    <div class="card__heading">
+      <h2 class="card__title" [id]="'raffle-' + raffle().id">{{ raffle().title }}</h2>
+      <span class="card__price">{{ price() }}</span>
+    </div>
+    <p class="card__prize">{{ raffle().prize }}</p>
+
+    @if (raffle().authorizationResolution; as resolution) {
+      <p class="card__resolution">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"></path>
+          <path d="M9 12l2 2 4-4"></path>
+        </svg>
+        Autorizado por Resolución {{ resolution }}
+      </p>
+    }
+
+    @if (sales(); as sales) {
+      <div class="card__sales">
+        <div
+          class="card__track"
+          role="progressbar"
+          aria-label="Avance de ventas"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="sales.percent"
+        >
+          <div class="card__fill" [style.width.%]="sales.percent"></div>
+        </div>
+        <span class="card__meta">{{ sales.sold }} de {{ totalNumbers() }} números vendidos</span>
+      </div>
+    } @else {
+      <span class="card__meta">{{ totalNumbers() }} números en juego</span>
+    }
+
+    @if (available(); as available) {
+      <span class="card__available" [class.card__available--none]="available.count === 0">
+        @if (available.count === 0) {
+          Sin números disponibles
+        } @else {
+          {{ available.text }} disponibles
+        }
+      </span>
+    }
+
+    @if (raffle().status === 'DRAWN' || raffle().status === 'CLOSED') {
+      <div class="card__actions-row">
+        <a class="card__action card__action--live" [routerLink]="['/rifas', raffle().id, 'en-vivo']">
+          📺 Ver sorteo
+        </a>
+        <a class="card__action card__action--verify" [routerLink]="['/rifas', raffle().id, 'verificacion']">
+          🛡️ Verificación
+        </a>
+      </div>
+    } @else {
+      <a class="card__action" [routerLink]="['/rifas', raffle().id]">Elegir números</a>
+    }
+  </div>
+</article>

@@ -6,4 +6,3 @@ graphify-out/
 secrets/
 
 node_modules/
-package-lock.json

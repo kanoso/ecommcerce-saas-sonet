@@ -1,0 +1,64 @@
+<h1 class="title">Mis boletos</h1>
+
+<section class="tickets" aria-label="Tus boletos" [attr.aria-busy]="store.status() === 'loading'">
+  @switch (store.status()) {
+    @case ('error') {
+      <div class="state state--error" role="alert">
+        <p class="state__text">{{ store.errorMessage() }}</p>
+        <button type="button" class="state__action" (click)="retry()">Reintentar</button>
+      </div>
+    }
+    @case ('ready') {
+      @if (store.isEmpty()) {
+        <div class="state">
+          <p class="state__text">Aún no tienes boletos.</p>
+          <a class="state__action" routerLink="/">Ver rifas activas</a>
+        </div>
+      } @else {
+        @for (group of store.groups(); track group.raffleId) {
+          <section class="raffle" [attr.aria-labelledby]="'raffle-' + group.raffleId">
+            <div class="raffle__head">
+              <h2 class="raffle__title" [id]="'raffle-' + group.raffleId">{{ group.raffleTitle }}</h2>
+              <a class="raffle__link" [routerLink]="['/rifas', group.raffleId]" [attr.aria-label]="'Ver rifa ' + group.raffleTitle">
+                Ver rifa
+              </a>
+            </div>
+            <ul class="raffle__orders">
+              @for (order of group.orders; track order.orderId) {
+                <li class="order" [attr.data-phase]="order.phase">
+                  <p class="order__status">{{ order.statusLabel }}</p>
+                  <ul class="order__numbers" aria-label="Números">
+                    @for (number of order.numbers; track number) {
+                      <li class="order__number">{{ number }}</li>
+                    }
+                  </ul>
+                  <p class="order__total">Total {{ formatCents(order.totalCents) }}</p>
+                  @if (deadline(order); as text) {
+                    <p class="order__deadline">{{ text }}</p>
+                  }
+                  @if (order.needsPayment) {
+                    <a
+                      class="order__pay"
+                      [routerLink]="['/rifas', order.raffleId, 'pago', order.orderId]"
+                      [attr.aria-label]="payLabel(group.raffleTitle, order)"
+                    >Completar pago</a>
+                  }
+                  @if (order.canClaimLatePayment) {
+                    <a
+                      class="order__pay order__pay--claim"
+                      [routerLink]="['/rifas', order.raffleId, 'pago', order.orderId, 'reclamo']"
+                      [attr.aria-label]="claimLabel(group.raffleTitle, order)"
+                    >Reclamar pago</a>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+    }
+    @default {
+      <p class="state state__text" role="status">Cargando tus boletos…</p>
+    }
+  }
+</section>

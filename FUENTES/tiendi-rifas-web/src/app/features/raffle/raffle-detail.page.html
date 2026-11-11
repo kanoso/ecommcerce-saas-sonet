@@ -1,0 +1,387 @@
+@if (expiredNotice) {
+  <aside class="expired-notice">
+    <p class="expired-notice__message" role="status">{{ expiredNotice }}</p>
+    <p class="expired-notice__claim">¿Ya habías transferido? Revisa tu orden en <a routerLink="/mis-boletos">Mis boletos</a> para registrar tu comprobante.</p>
+  </aside>
+}
+
+@switch (store.loadStatus()) {
+  @case ('error') {
+    <div class="state" role="alert">
+      <p class="state__text">{{ store.errorMessage() }}</p>
+      <div class="state__actions">
+        <button type="button" class="state__action" (click)="retry()">Reintentar</button>
+        <a class="state__link" routerLink="/">Ver rifas activas</a>
+      </div>
+    </div>
+  }
+  @case ('ready') {
+    @if (store.raffle(); as raffle) {
+      <div class="raffle">
+        <header class="raffle__header">
+          <a class="raffle__back" routerLink="/" aria-label="Volver a las rifas">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+          </a>
+          <h1 class="raffle__title">{{ raffle.title }}</h1>
+        </header>
+
+        <p class="raffle__prize">{{ raffle.prize }}</p>
+
+        <div class="draw-mode-banner" aria-label="Modalidad y reglas del sorteo">
+          <span
+            class="draw-pill"
+            [class.draw-pill--manual]="raffle.drawMode === 'MANUAL'"
+            [class.draw-pill--auto]="raffle.drawMode !== 'MANUAL'"
+          >
+            {{ raffle.drawMode === 'MANUAL' ? '🎥 Sorteo Manual en Vivo (Paso a paso)' : '⚡ Sorteo Automático Verificable' }}
+          </span>
+          <span class="draw-pill">
+            🎯 {{ (raffle.winningAttempt ?? 1) === 1 ? 'Sale al 1° intento' : 'Sale al ' + raffle.winningAttempt + '° intento' }}
+          </span>
+          <span class="draw-pill">
+            ✨ Efecto: {{ effectLabel(raffle.drawEffect) }} · {{ raffle.drawDurationSec ?? 4 }}s ({{ speedLabel(raffle.drawSpeed) }})
+          </span>
+        </div>
+
+        @if (hasSpecs()) {
+          <div class="detail-nav-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              class="tab-btn"
+              [class.tab-btn--active]="activeTab() === 'boletos'"
+              [attr.aria-selected]="activeTab() === 'boletos'"
+              (click)="activeTab.set('boletos')"
+            >
+              Comprar Boletos
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab-btn"
+              [class.tab-btn--active]="activeTab() === 'ficha'"
+              [attr.aria-selected]="activeTab() === 'ficha'"
+              (click)="activeTab.set('ficha')"
+            >
+              Ficha Técnica y Fotos
+            </button>
+          </div>
+        }
+
+
+        <dl class="facts">
+          <div class="facts__item">
+            <dt>Precio</dt>
+            <dd class="facts__price">{{ price() }}</dd>
+          </div>
+          <div class="facts__item">
+            <dt>Cierre</dt>
+            <dd>{{ closeDate() ?? 'Por definir' }}</dd>
+          </div>
+          <div class="facts__item">
+            <dt>Sorteo</dt>
+            <dd>{{ drawDate() ?? 'Por definir' }}</dd>
+          </div>
+        </dl>
+
+        <section class="commitment" aria-label="Compromiso del sorteo">
+          @if (store.commitment()?.commitmentHash; as hash) {
+            <p class="commitment__title">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+              </svg>
+              Compromiso publicado
+              @if (round(); as round) {
+                · ronda drand #{{ round }}
+              }
+            </p>
+            <p class="commitment__hash">sha256: {{ hash }}</p>
+          } @else {
+            <p class="commitment__title">El compromiso del sorteo aún no está disponible.</p>
+          }
+        </section>
+
+        @if (store.closedMessage(); as closed) {
+          <p class="alert" role="alert">{{ closed }}</p>
+        }
+
+
+        @if (activeTab() === 'ficha') {
+          <section class="specs-section" aria-label="Ficha Técnica y Fotos del Premio">
+            @if (raffle.prizeImages; as images) {
+              @if (images.length > 0) {
+                <div class="prize-carousel">
+                  <div class="carousel__viewport">
+                    <img
+                      [src]="images[activeImageIndex()]"
+                      [alt]="raffle.prize"
+                      class="carousel__img"
+                    />
+                    @if (images.length > 1) {
+                      <button type="button" class="carousel__btn prev" (click)="prevImage()" aria-label="Anterior">❮</button>
+                      <button type="button" class="carousel__btn next" (click)="nextImage()" aria-label="Siguiente">❯</button>
+                      <span class="carousel__badge">{{ activeImageIndex() + 1 }} / {{ images.length }}</span>
+                    }
+                  </div>
+                  @if (images.length > 1) {
+                    <div class="carousel__thumbs">
+                      @for (img of images; track $index) {
+                        <button
+                          type="button"
+                          class="carousel__thumb-btn"
+                          [class.active]="$index === activeImageIndex()"
+                          (click)="setImage($index)"
+                        >
+                          <img [src]="img" [alt]="'Miniatura ' + ($index + 1)" />
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+
+            <div class="specs-card">
+              <h3 class="specs-card__title">Ficha Técnica</h3>
+              <p class="specs-card__desc">{{ raffle.prizeDescription || 'No se cuenta con descripción detallada para este premio.' }}</p>
+              <dl class="specs-card__dl">
+                <div class="spec-row">
+                  <dt>Premio:</dt>
+                  <dd>{{ raffle.prize }}</dd>
+                </div>
+                <div class="spec-row">
+                  <dt>Regla del sorteo:</dt>
+                  <dd>{{ (raffle.winningAttempt ?? 1) === 1 ? 'Sale al primer intento' : 'Sale al ' + raffle.winningAttempt + '° intento' }}</dd>
+                </div>
+                <div class="spec-row">
+                  <dt>Modalidad del sorteo:</dt>
+                  <dd>{{ raffle.drawMode === 'MANUAL' ? 'Manual en Vivo (Paso a paso)' : 'Automático Verificable' }}</dd>
+                </div>
+                <div class="spec-row">
+                  <dt>Duración por intento:</dt>
+                  <dd>{{ raffle.drawDurationSec ?? 4 }} segundos ({{ speedLabel(raffle.drawSpeed) }})</dd>
+                </div>
+                <div class="spec-row">
+                  <dt>Efecto visual:</dt>
+                  <dd>{{ raffle.drawEffect ?? 'SLOT_MACHINE' }}</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+        }
+
+        <section class="picker" [style.display]="activeTab() === 'boletos' ? 'block' : 'none'" aria-labelledby="picker-title">
+          <div class="picker__toolbar">
+            <button
+              type="button"
+              class="btn-random-pick"
+              [disabled]="!store.canSelect() || store.reserving() || store.scanningRandomTicket()"
+              (click)="store.pickRandomTicket()"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <circle cx="15.5" cy="15.5" r="1.5"></circle>
+                <circle cx="15.5" cy="8.5" r="1.5"></circle>
+                <circle cx="8.5" cy="15.5" r="1.5"></circle>
+                <circle cx="12" cy="12" r="1.5"></circle>
+              </svg>
+              <span>{{ store.scanningRandomTicket() ? 'Eligiendo al azar…' : 'Elegir al azar' }}</span>
+            </button>
+          </div>
+          @if (store.myNumbers().length > 0) {
+            <div class="my-tickets-summary">
+              <div class="my-tickets-summary__header">
+                <span class="my-tickets-summary__icon" aria-hidden="true">🎟️</span>
+                <span class="my-tickets-summary__title">Tus boletos en esta rifa ({{ store.myNumbers().length }}):</span>
+                <a routerLink="/mis-boletos" class="my-tickets-summary__link">Ver en Mis boletos →</a>
+              </div>
+              <div class="my-tickets-summary__chips">
+                @for (num of store.formattedMyNumbers(); track num) {
+                  <span class="my-tickets-summary__chip">{{ num }}</span>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="picker__head">
+            <h2 id="picker-title" class="picker__title">Elige tus números</h2>
+            <div class="ranges" role="group" aria-label="Rangos de números">
+              @for (range of store.ranges(); track range.page) {
+                <button
+                  type="button"
+                  class="ranges__item"
+                  [class.ranges__item--current]="range.page === store.page()"
+                  [attr.aria-pressed]="range.page === store.page()"
+                  (click)="store.goToPage(range.page)"
+                >{{ range.label }}</button>
+              }
+            </div>
+          </div>
+
+          @if (store.gridError(); as gridError) {
+            <p class="alert" role="alert">{{ gridError }}</p>
+          }
+
+          <div class="grid" role="group" aria-label="Números del rango">
+            @for (cell of store.cells(); track cell.number) {
+              <button
+                type="button"
+                class="grid__cell"
+                [class.grid__cell--available]="cell.status === 'AVAILABLE' && !cell.selected && !cell.isMine"
+                [class.grid__cell--selected]="cell.selected"
+                [class.grid__cell--reserved]="cell.status === 'RESERVED' && !cell.isMine"
+                [class.grid__cell--sold]="cell.status === 'SOLD' && !cell.isMine"
+                [class.grid__cell--unavailable]="cell.status === 'UNAVAILABLE' && !cell.isMine"
+                [class.grid__cell--mine]="cell.isMine"
+                [class.grid__cell--scanning]="store.scannedCandidate() === cell.number"
+                [disabled]="!cell.selectable"
+                [attr.aria-pressed]="cell.selectable ? cell.selected : null"
+                [attr.aria-label]="cell.label"
+                (click)="store.toggle(cell.number)"
+              >{{ cell.text }}</button>
+            }
+          </div>
+
+          <ul class="legend" aria-label="Estados de los números">
+            <li><span class="legend__swatch grid__cell--available" aria-hidden="true"></span>Disponible</li>
+            <li><span class="legend__swatch grid__cell--selected" aria-hidden="true"></span>Tu elección</li>
+            <li><span class="legend__swatch grid__cell--mine" aria-hidden="true"></span>Tus boletos</li>
+            <li><span class="legend__swatch grid__cell--reserved" aria-hidden="true"></span>Reservado</li>
+            <li><span class="legend__swatch grid__cell--sold" aria-hidden="true"></span>Vendido</li>
+            <li><span class="legend__swatch grid__cell--unavailable" aria-hidden="true"></span>No disponible</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="bottom-bar" aria-label="Tu selección">
+        <!-- Always in the DOM, so screen readers announce what appears in it. -->
+        <p class="notice" role="status" [class.notice--shown]="store.notice()">{{ store.notice() }}</p>
+        @if (store.reserveError(); as reserveError) {
+          <p class="alert" role="alert">{{ reserveError }}</p>
+        }
+        <div class="bottom-bar__row">
+          <div class="bottom-bar__summary">
+            <span class="bottom-bar__count">{{ store.summary() }}</span>
+            <span class="bottom-bar__total">{{ total() }}</span>
+          </div>
+          <button type="button" class="bottom-bar__action" [disabled]="!store.canReserve()" (click)="reserve()">
+            {{ store.reserving() ? 'Reservando…' : reserveLabel }}
+          </button>
+        </div>
+      </section>
+    }
+  }
+  @default {
+    <p class="state" role="status">Cargando la rifa…</p>
+  }
+}
+
+@if (showAuthModal()) {
+  <div class="auth-backdrop" (click)="closeAuthModal()">
+    <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="modal-auth-title" (click)="$event.stopPropagation()">
+      <header class="auth-modal__header">
+        <div class="auth-modal__title-group">
+          <h2 id="modal-auth-title" class="auth-modal__title">Identifícate para continuar</h2>
+          <p class="auth-modal__subtitle">Para asegurar tus {{ store.summary() }} ({{ total() }})</p>
+        </div>
+        <button type="button" class="auth-modal__close" (click)="closeAuthModal()" aria-label="Cerrar modal">✕</button>
+      </header>
+
+      <div class="auth-tabs" role="tablist">
+        <button
+          type="button"
+          class="auth-tab"
+          [class.auth-tab--active]="authTab() === 'login'"
+          (click)="setAuthTab('login')"
+        >Ingresar</button>
+        <button
+          type="button"
+          class="auth-tab"
+          [class.auth-tab--active]="authTab() === 'register'"
+          (click)="setAuthTab('register')"
+        >Crear cuenta</button>
+      </div>
+
+      <div class="google-auth-container" id="modal-google-btn-container"></div>
+      <div class="auth-divider"><span>o con tus datos</span></div>
+
+      @if (authTab() === 'login') {
+        <form (ngSubmit)="submitModalLogin()" class="auth-form" novalidate>
+          <label class="auth-field">
+            <span>DNI, Celular o Correo</span>
+            <input
+              type="text"
+              [formControl]="loginIdentifier"
+              placeholder="Ej: 72345678, 987654321 o tú@correo.com"
+              autocomplete="username"
+              inputmode="text"
+            />
+          </label>
+          <label class="auth-field">
+            <span>Contraseña</span>
+            <input
+              type="password"
+              [formControl]="loginPassword"
+              placeholder="Tu contraseña"
+              autocomplete="current-password"
+            />
+          </label>
+
+          @if (authError()) {
+            <p class="auth-modal__alert" role="alert">{{ authError() }}</p>
+          }
+
+          <button type="submit" class="auth-submit" [disabled]="authStatus() === 'sending'" (click)="submitModalLogin()">
+            {{ authStatus() === 'sending' ? 'Ingresando…' : 'Ingresar y Reservar' }}
+          </button>
+        </form>
+      } @else {
+        <form (ngSubmit)="submitModalRegister()" class="auth-form" novalidate>
+          <label class="auth-field">
+            <span>Nombre (opcional)</span>
+            <input
+              type="text"
+              [formControl]="regName"
+              placeholder="Tu nombre completo"
+              autocomplete="name"
+            />
+          </label>
+          <label class="auth-field">
+            <span>DNI, Celular o Correo</span>
+            <input
+              type="text"
+              [formControl]="regIdentifier"
+              placeholder="Ej: 72345678, 987654321 o tú@correo.com"
+              autocomplete="username"
+              inputmode="text"
+            />
+          </label>
+          <label class="auth-field">
+            <span>Contraseña</span>
+            <input
+              type="password"
+              [formControl]="regPassword"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password"
+            />
+          </label>
+
+          @if (authError()) {
+            <p class="auth-modal__alert" role="alert">{{ authError() }}</p>
+          }
+
+          <button type="submit" class="auth-submit" [disabled]="authStatus() === 'sending'" (click)="submitModalRegister()">
+            {{ authStatus() === 'sending' ? 'Creando cuenta…' : 'Crear cuenta y Reservar' }}
+          </button>
+        </form>
+      }
+
+      <p class="auth-modal__fallback">
+        ¿Prefieres ingresar con enlace a tu correo?
+        <a [routerLink]="['/ingresar']" [queryParams]="{ volver: '/rifas/' + raffleId }">Ingresar por correo</a>
+      </p>
+    </div>
+  </div>
+}

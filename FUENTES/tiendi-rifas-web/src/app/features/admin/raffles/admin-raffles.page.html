@@ -1,0 +1,64 @@
+<section class="admin-raffles" aria-labelledby="admin-raffles-title">
+  <header class="admin-raffles__header">
+    <div>
+      <h1 id="admin-raffles-title" class="admin-raffles__title">Rifas</h1>
+      <p class="admin-raffles__subtitle">Gestión y seguimiento de rifas en la plataforma.</p>
+    </div>
+    <a routerLink="/admin/rifas/nueva" class="admin-raffles__new-btn">
+      + Nueva rifa
+    </a>
+  </header>
+
+  @if (loading()) {
+    <div class="state-box" aria-live="polite">
+      <p>Cargando rifas...</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-box state-box--error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="loadRaffles()">
+        Reintentar
+      </button>
+    </div>
+  } @else if (raffles().length === 0) {
+    <div class="state-box state-box--empty">
+      <p>No hay rifas registradas en la plataforma.</p>
+      <a routerLink="/admin/rifas/nueva" class="btn-action">
+        Crear la primera rifa
+      </a>
+    </div>
+  } @else {
+    <ul class="raffles-list" aria-label="Lista de rifas">
+      @for (raffle of raffles(); track raffle.id) {
+        <li class="raffle-item">
+          <div class="raffle-item__main">
+            <div class="raffle-item__header">
+              <h2 class="raffle-item__title">{{ raffle.title }}</h2>
+              <span class="status-badge" [attr.data-status]="raffle.status">
+                {{ statusLabel(raffle.status) }}
+              </span>
+            </div>
+            <p class="raffle-item__prize"><strong>Premio:</strong> {{ raffle.prize }}</p>
+            <div class="raffle-item__metrics">
+              <span><strong>Precio:</strong> S/ {{ raffle.ticketPrice | number:'1.2-2' }}</span>
+              <span><strong>Rango:</strong> {{ raffle.numberMin }} - {{ raffle.numberMax }}</span>
+              @if (raffle.soldCount !== null) {
+                <span><strong>Vendidos:</strong> {{ raffle.soldCount }} / {{ raffle.totalNumbers }}</span>
+              }
+            </div>
+          </div>
+          <div class="raffle-item__actions">
+            @if (raffle.status !== 'DRAFT') {
+              <a [routerLink]="['/rifas', raffle.id]" target="_blank" rel="noopener noreferrer" class="raffle-item__public-btn" title="Ver página pública de la rifa">
+                👁️ Ver pública ↗
+              </a>
+            }
+            <a [routerLink]="['/admin/rifas', raffle.id]" class="raffle-item__manage-btn">
+              Gestionar rifa
+            </a>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

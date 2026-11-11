@@ -1,0 +1,553 @@
+<div class="live-layout">
+  <main class="live-container" role="main">
+    <header class="live-header">
+      <div class="title-group">
+        <h1 class="raffle-title">{{ data()?.title || 'Sorteo en vivo' }}</h1>
+        @if (drawDateFormatted()) {
+          <span class="raffle-subtitle">
+            Sorteo · {{ drawDateFormatted() }}
+          </span>
+        }
+      </div>
+      <span class="live-badge" aria-label="Transmisión en vivo">
+        <span class="live-dot" aria-hidden="true"></span>
+        EN VIVO
+      </span>
+    </header>
+
+    @if (winningAttempt() > 1 && (phase() === 'spinning' || phase() === 'result' || betweenAttempts())) {
+      <div class="attempt-indicator" aria-live="polite">
+        <span class="attempt-tag">Regla: Sale al {{ winningAttempt() }}° intento</span>
+        <span class="attempt-current">
+          Intento {{ (currentAttemptIndex() + 1) > winningAttempt() ? winningAttempt() : (currentAttemptIndex() + 1) }} de {{ winningAttempt() }}
+        </span>
+      </div>
+    }
+
+    <!-- Main Stage Card -->
+    <section class="main-card" aria-live="polite">
+      <canvas #confettiCanvas class="confetti-canvas" aria-hidden="true"></canvas>
+
+      @switch (phase()) {
+        @case ('loading') {
+          <div class="state-card loading-state">
+            <span class="state-subtitle">Cargando datos del sorteo…</span>
+            <div class="spinner" aria-hidden="true"></div>
+          </div>
+        }
+
+        @case ('waiting-close') {
+          <div class="state-card">
+            <span class="state-subtitle">Esperando cierre de ventas</span>
+            <p class="state-description">
+              Las ventas aún no han cerrado. El sorteo iniciará automáticamente cuando cierre la venta de boletos.
+            </p>
+          </div>
+        }
+
+        @case ('waiting-manual-draw') {
+          <div class="state-card">
+            <span class="presenter-badge">🎥 SORTEO MANUAL EN VIVO</span>
+            <span class="state-subtitle">Esperando inicio del sorteo en vivo</span>
+            <p class="state-description">
+              Este sorteo es en modalidad Manual en Vivo. El administrador iniciará la extracción de boletos en breve. Esta pantalla se actualizará automáticamente apenas comience.
+            </p>
+            <div class="spinner" aria-hidden="true"></div>
+          </div>
+        }
+
+        @case ('cancelled') {
+          <div class="state-card">
+            <span class="state-subtitle text-danger">Sorteo cancelado</span>
+            <p class="state-description">
+              Esta rifa ha sido cancelada. Los fondos se reembolsarán de acuerdo a los términos y condiciones.
+            </p>
+          </div>
+        }
+
+        @case ('verification-failed') {
+          <div class="state-card">
+            <span class="state-subtitle text-danger">Verificación preliminar fallida</span>
+            <p class="state-description error-detail">{{ failureReason() }}</p>
+          </div>
+        }
+
+        @case ('countdown') {
+          <div class="state-card countdown-state">
+            <span class="state-subtitle">
+              La ronda drand #{{ data()?.drandRound }} se publica en
+            </span>
+            <span class="big-counter font-mono" aria-label="Tiempo restante">{{ countdownText() }}</span>
+            <span class="state-note">Nadie conoce todavía el valor de esa ronda.</span>
+          </div>
+        }
+
+        @case ('polling') {
+          <div class="state-card polling-state">
+            <span class="state-subtitle">Consultando drand…</span>
+            <span class="big-counter font-mono">...</span>
+            <span class="state-note">Esperando publicación de la ronda #{{ data()?.drandRound }} en la red drand quicknet.</span>
+          </div>
+        }
+
+        @case ('spinning') {
+          <div class="state-card spinning-state" [attr.data-effect]="selectedEffect()">
+            @if (waitingForAdminClick() && !betweenAttempts()) {
+              <div class="presenter-ready-card">
+                <span class="presenter-badge">🎥 MODO TRANSMISIÓN EN VIVO (PASO A PASO)</span>
+                <h2 class="presenter-title">Sorteo verificado y listo para iniciar</h2>
+                <p class="presenter-desc">
+                  La ronda drand #{{ data()?.drandRound }} y los {{ data()?.soldNumbers?.length || 0 }} boletos participantes están listos. Presiona Play cuando estés al aire.
+                </p>
+                <div class="presenter-actions">
+                  <button type="button" class="btn-presenter-play" (click)="triggerNextStep()">
+                    ▶ Iniciar Sorteo — {{ winningAttempt() > 1 ? 'Lanzar Intento #1 de ' + winningAttempt() : '¡Extraer Boleto Ganador!' }}
+                  </button>
+                  <button type="button" class="btn-presenter-auto" (click)="switchToAutoPlay()">
+                    ⚡ Reproducir en automático sin pausas
+                  </button>
+                </div>
+              </div>
+            } @else if (betweenAttempts()) {
+              <div class="al-agua-banner">
+                <span class="al-agua-stamp">¡AL AGUA!</span>
+                <span class="al-agua-ticket font-mono">Boleto #{{ padNumber(spunNumber()) }}</span>
+                <span class="al-agua-buyer">👤 {{ buyerNameFor(spunNumber()) || 'Participante verificado' }}</span>
+                @if (waitingForAdminClick()) {
+                  <span class="al-agua-note">
+                    Sorteo en pausa para la transmisión. Haz clic para lanzar el siguiente intento.
+                  </span>
+                  <div class="presenter-actions">
+                    <button type="button" class="btn-presenter-play" (click)="triggerNextStep()">
+                      ▶ Lanzar Intento #{{ currentAttemptIndex() + 2 }} de {{ winningAttempt() }} {{ (currentAttemptIndex() + 2) === winningAttempt() ? '(¡Por el Premio!)' : '(Al agua)' }}
+                    </button>
+                  </div>
+                } @else {
+                  <span class="al-agua-note">Este número no gana. Preparando siguiente intento…</span>
+                }
+              </div>
+            } @else {
+              <div class="fx-viewport" [ngSwitch]="selectedEffect()">
+                <!-- 1. SNAKE HUD -->
+                <div *ngSwitchCase="'SNAKE'" class="proto-hud proto-hud--snake">
+                  <div class="proto-hud__left">
+                    <span class="proto-badge">🐍 EFECTO SNAKE EN VIVO</span>
+                    <div class="proto-status">
+                      {{ winningAttempt() > 1 ? 'Extrayendo intento #' + (currentAttemptIndex() + 1) + ' de ' + winningAttempt() + '…' : 'La serpiente recorre el tablero buscando al ganador…' }}
+                    </div>
+                    <div class="proto-sub">
+                      {{ data()?.soldNumbers?.length || 0 }} boletos vendidos participan en el sorteo
+                    </div>
+                  </div>
+                  <div class="proto-number-box">
+                    <span class="proto-number-label">CASILLA ACTUAL</span>
+                    <span class="proto-number-val font-mono">{{ padNumber(spunNumber()) }}</span>
+                  </div>
+                </div>
+
+                <!-- 2. RADAR HUD -->
+                <div *ngSwitchCase="'RADAR'" class="proto-hud proto-hud--radar">
+                  <div class="proto-hud__left">
+                    <span class="proto-badge proto-badge--cyan">📡 ESCÁNER TÁCTICO 360°</span>
+                    <div class="proto-status proto-status--cyan">
+                      ESCANEANDO OBJETIVO #{{ currentAttemptIndex() + 1 }} DE {{ winningAttempt() }}…
+                    </div>
+                    <div class="proto-sub font-mono">
+                      COORDENADAS X:{{ reticlePos().x }}% Y:{{ reticlePos().y }}% · BOLETO #{{ padNumber(spunNumber()) }}
+                    </div>
+                  </div>
+                  <div class="proto-number-box proto-number-box--cyan">
+                    <span class="proto-number-label">TARGET LOCK</span>
+                    <span class="proto-number-val font-mono">{{ padNumber(spunNumber()) }}</span>
+                  </div>
+                </div>
+
+                <!-- 3. SLOT MACHINE 3D CABINET -->
+                <div *ngSwitchCase="'SLOT_MACHINE'" class="slot-cabinet">
+                  <div class="slot-cabinet__info">
+                    <div class="slot-bulb-strip" aria-hidden="true">
+                      <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
+                      <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
+                    </div>
+                    <div class="slot-status">
+                      @if (slotDecadeLocked()) {
+                        🔥 ¡Decena clavada en [{{ slotDecadeDigit() }}_]! Definiendo unidad…
+                      } @else {
+                        🎰 Girando rodillos — Intento #{{ currentAttemptIndex() + 1 }} de {{ winningAttempt() }}…
+                      }
+                    </div>
+                    <div class="slot-sub">
+                      @if (slotDecadeLocked()) {
+                        Observa los boletos {{ slotDecadeDigit() }}0–{{ slotDecadeDigit() }}9 iluminados en el tablero inferior.
+                      } @else {
+                        Primero frena el rodillo de DECENA y luego el de UNIDAD.
+                      }
+                    </div>
+                  </div>
+                  <div class="reels-frame">
+                    <div class="reel-col">
+                      <span class="reel-label">DECENA</span>
+                      <div class="reel-window" [class.spinning]="!slotDecadeLocked()" [class.locked]="slotDecadeLocked()">
+                        <span class="reel-digit font-mono">{{ slotDecadeDigit() }}</span>
+                      </div>
+                    </div>
+                    <div class="reel-col">
+                      <span class="reel-label">UNIDAD</span>
+                      <div class="reel-window" [class.spinning]="!slotUnitLocked()" [class.locked]="slotUnitLocked()">
+                        <span class="reel-digit font-mono">{{ slotUnitDigit() }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. TOMBOLA SPHERICAL DRUM -->
+                <div *ngSwitchCase="'TOMBOLA'" class="tombola-stage">
+                  <div class="tombola-drum-wrap">
+                    <canvas #tombolaCanvas width="230" height="230" class="tombola-canvas"></canvas>
+                    <div class="air-nozzle">▲ AIRE ▲</div>
+                  </div>
+                  <div class="tombola-info">
+                    <div class="tombola-status">
+                      🌪️ Turbina de aire al máximo — Extracción #{{ currentAttemptIndex() + 1 }} de {{ winningAttempt() }}…
+                    </div>
+                    <div class="tombola-sub">
+                      Las bolillas rebotan impulsadas por el chorro inferior de aire comprimido.
+                    </div>
+                    <div class="extracted-ball-slot">
+                      <div class="big-ball font-mono">{{ padNumber(spunNumber()) }}</div>
+                      <div class="extracted-ball-meta">
+                        <div class="extracted-ball-title">CÁMARA DE EXTRACCIÓN</div>
+                        <div class="extracted-ball-caption">Mezclando bolillas en la esfera…</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 5. SUSPENSE / SPOTLIGHT HUD -->
+                <div *ngSwitchCase="'SUSPENSE_CONFETTI'" class="proto-hud proto-hud--spotlight">
+                  <div class="proto-hud__left">
+                    <span class="proto-badge proto-badge--pink">🔦 REFLECTOR DE FINALISTAS</span>
+                    <div class="proto-status proto-status--pink">
+                      Reflector saltando entre los {{ remainingSoldCount() }} boletos en juego…
+                    </div>
+                    <div class="proto-sub">
+                      Las luces del escenario se apagan y solo brillan los boletos participantes.
+                    </div>
+                  </div>
+                  <div class="proto-number-box proto-number-box--pink">
+                    <span class="proto-number-label">EN EL REFLECTOR</span>
+                    <span class="proto-number-val font-mono">{{ padNumber(spunNumber()) }}</span>
+                  </div>
+                </div>
+
+                <!-- Default Fallback -->
+                <div *ngSwitchDefault class="fx-default">
+                  <span class="big-counter font-mono spinning-number">{{ spunNumber() }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @case ('result') {
+          <div class="state-card result-state">
+            @if (selectedEffect() === 'TOMBOLA') {
+              <div class="tombola-stage tombola-stage--result">
+                <div class="tombola-drum-wrap">
+                  <canvas #tombolaCanvas width="230" height="230" class="tombola-canvas"></canvas>
+                  <div class="air-nozzle">▲ AIRE ▲</div>
+                </div>
+                <div class="tombola-info">
+                  <span class="winner-label">NÚMERO GANADOR</span>
+                  <div class="extracted-ball-slot winner-slot">
+                    <div class="big-ball pop mine font-mono" aria-label="Número ganador">{{ localResult()?.winner }}</div>
+                    <div class="extracted-ball-meta">
+                      <div class="extracted-ball-title">CÁMARA DE EXTRACCIÓN</div>
+                      <div class="extracted-ball-caption">
+                        ¡Bolilla ganadora #{{ padNumber(localResult()?.winner) }} confirmada!
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <span class="winner-label">NÚMERO GANADOR</span>
+              <span class="winner-number font-mono" aria-label="Número ganador">{{ localResult()?.winner }}</span>
+            }
+
+            <div class="winner-buyer-name">
+              🏆 Ganador(a): <strong>{{ buyerNameFor(localResult()?.winner) || 'Participante verificado' }}</strong>
+            </div>
+
+            @if (myNumbersSet().has(localResult()?.winner ?? -1)) {
+              <div class="my-winner-callout" role="status">
+                🎉 ¡Felicidades! El boleto ganador #{{ padNumber(localResult()?.winner) }} es uno de tus boletos.
+              </div>
+            }
+
+            @if (officialMatch() === 'match') {
+              <div class="badge-match" role="status">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Coincide con el resultado oficial</span>
+              </div>
+            }
+
+            @if (officialMatch() === 'mismatch') {
+              <div class="badge-mismatch" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>Discrepancia con el resultado oficial</span>
+              </div>
+            }
+
+            @if (officialMatch() === 'pending') {
+              <div class="badge-pending" role="status">
+                <span>Esperando confirmación oficial de la plataforma…</span>
+              </div>
+            }
+
+            <div class="replay-actions">
+              <button type="button" class="btn-replay" (click)="replayAuto()">
+                🔄 Repetir sorteo en vivo
+              </button>
+              @if (isAdmin()) {
+                <button type="button" class="btn-replay btn-replay--manual" (click)="replayManual()">
+                  🎥 Repetir paso a paso (Modo Transmisión)
+                </button>
+              }
+            </div>
+
+            <!-- Multi-attempt extraction sequence audit trail -->
+            @if (completedExtractions().length > 1) {
+              <div class="extractions-trail" aria-label="Secuencia de extracciones">
+                <h4 class="trail-title">Secuencia de intentos</h4>
+                <div class="trail-list">
+                  @for (ext of completedExtractions(); track ext.attempt) {
+                    <div class="trail-item" [class.trail-winner]="ext.isWinner" [class.trail-al-agua]="!ext.isWinner">
+                      <span class="trail-attempt">Intento #{{ ext.attempt }}</span>
+                      <span class="trail-num font-mono">Boleto {{ padNumber(ext.number) }}</span>
+                      <span class="trail-buyer">👤 {{ buyerNameFor(ext.number) || 'Participante verificado' }}</span>
+                      <span class="trail-badge">{{ ext.isWinner ? '🏆 ¡Ganador!' : '💧 Al agua' }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @case ('error') {
+          <div class="state-card">
+            <span class="state-subtitle text-danger">Error de comunicación</span>
+            <p class="state-description">{{ failureReason() || 'No se pudo completar la verificación.' }}</p>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- Interactive Live Raffle Board (matching Prototypes 1..5) -->
+    @if (showLiveBoard()) {
+      <section
+        class="raffle-board-card"
+        [class.scanning-mode]="selectedEffect() === 'RADAR' && phase() === 'spinning'"
+        [class.stage-dark]="selectedEffect() === 'SUSPENSE_CONFETTI' && phase() === 'spinning'"
+        aria-label="Tablero de boletos en vivo"
+      >
+        @if (myNumbers().length > 0) {
+          <div class="my-tickets-banner">
+            <div class="my-tickets-banner__top">
+              <span class="my-tickets-banner__title">
+                🎟️ Tus boletos en esta rifa ({{ myNumbers().length }}):
+              </span>
+              <a routerLink="/mis-boletos" class="my-tickets-banner__link">Ver en Mis boletos →</a>
+            </div>
+            <div class="my-tickets-chips">
+              @for (myNum of myNumbers(); track myNum) {
+                <span class="my-chip font-mono" [class.active-hit]="isActiveMyChip(myNum)">
+                  {{ padNumber(myNum) }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="board-header">
+          <h2 class="board-header__title">Tablero del sorteo</h2>
+          <span class="range-pill font-mono">{{ boardRangeLabel() }}</span>
+        </div>
+
+        <div class="grid-wrapper">
+          @if (selectedEffect() === 'RADAR') {
+            <div class="radar-overlay" aria-hidden="true"></div>
+            <div
+              class="reticle"
+              [class.visible]="phase() === 'spinning' || phase() === 'result'"
+              [class.locked]="radarLocked() || phase() === 'result'"
+              [style.left.%]="reticlePos().x"
+              [style.top.%]="reticlePos().y"
+              aria-hidden="true"
+            ></div>
+          }
+
+          <div class="numbers-grid">
+            @for (num of boardNumbers(); track num) {
+              <div
+                class="cell font-mono"
+                [class.my-ticket]="myNumbersSet().has(num)"
+                [class.sold]="!myNumbersSet().has(num) && soldNumbersSet().has(num)"
+                [ngClass]="snakeClassFor(num)"
+                [class.radar-ping]="isRadarPing(num)"
+                [class.decade-match]="isSlotDecadeMatch(num)"
+                [class.dimmed]="isSlotDimmed(num)"
+                [class.unit-scan]="isSlotUnitScan(num)"
+                [class.spotlight-beam]="isSpotlightBeam(num)"
+                [class.al-agua]="discardedNumbersSet().has(num)"
+                [class.winner-cell]="winningCellNumber() === num"
+              >
+                <span>{{ padNumber(num) }}</span>
+                @if (winningCellNumber() === num) {
+                  <span class="tag-status">¡GANADOR!</span>
+                } @else if (discardedNumbersSet().has(num)) {
+                  <span class="tag-status">¡AL AGUA!</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item"><span class="swatch swatch--avail"></span> Disponible</span>
+          @if (myNumbers().length > 0) {
+            <span class="legend-item"><span class="swatch swatch--mine"></span> Tus boletos (★)</span>
+          }
+          <span class="legend-item"><span class="swatch swatch--sold"></span> Boleto participante</span>
+          @if (winningAttempt() > 1) {
+            <span class="legend-item"><span class="swatch swatch--agua"></span> ¡Al Agua!</span>
+          }
+          <span class="legend-item"><span class="swatch swatch--win"></span> ¡Ganador!</span>
+        </div>
+      </section>
+    }
+
+    <!-- Verification Steps -->
+    <section class="checks-section" aria-label="Verificaciones locales">
+      <h2 class="checks-heading">TU NAVEGADOR VERIFICÓ</h2>
+
+      <div class="checks-list">
+        <!-- Step 1: Commitment -->
+        <article class="check-item" [attr.data-status]="checks().commitment">
+          <span class="check-icon" [ngClass]="checks().commitment">
+            @if (checks().commitment === 'passed') {
+              ✓
+            } @else if (checks().commitment === 'failed') {
+              ✕
+            } @else {
+              …
+            }
+          </span>
+          <div class="check-content">
+            <span class="check-title">La semilla coincide con el compromiso</span>
+            @if (truncatedCommitment()) {
+              <span class="check-detail font-mono">
+                sha256(semilla) = {{ truncatedCommitment() }}
+              </span>
+            }
+          </div>
+        </article>
+
+        <!-- Step 2: Sold List -->
+        <article class="check-item" [attr.data-status]="checks().soldList">
+          <span class="check-icon" [ngClass]="checks().soldList">
+            @if (checks().soldList === 'passed') {
+              ✓
+            } @else if (checks().soldList === 'failed') {
+              ✕
+            } @else {
+              …
+            }
+          </span>
+          <div class="check-content">
+            <span class="check-title">
+              Lista congelada: {{ data()?.soldNumbers?.length || 0 }} números vendidos
+            </span>
+            @if (truncatedSoldListHash()) {
+              <span class="check-detail font-mono">
+                hash_lista = {{ truncatedSoldListHash() }}
+              </span>
+            }
+          </div>
+        </article>
+
+        <!-- Step 3: Drand Round -->
+        <article class="check-item" [attr.data-status]="checks().drandRound">
+          <span class="check-icon" [ngClass]="checks().drandRound">
+            @if (checks().drandRound === 'passed') {
+              ✓
+            } @else if (checks().drandRound === 'failed') {
+              ✕
+            } @else {
+              …
+            }
+          </span>
+          <div class="check-content">
+            <span class="check-title">
+              {{ checks().drandRound === 'passed' ? 'Ronda drand recibida y firma válida' : 'Esperando la ronda drand' }}
+            </span>
+            <span class="check-detail font-mono">
+              {{ checks().drandRound === 'passed' ? 'ronda #' + data()?.drandRound + ' · firma BLS verificada' : 'consultando relays de quicknet…' }}
+            </span>
+          </div>
+        </article>
+
+        <!-- Step 4: Local Computation -->
+        <article class="check-item" [attr.data-status]="checks().winner">
+          <span class="check-icon" [ngClass]="checks().winner">
+            @if (checks().winner === 'passed') {
+              ✓
+            } @else if (checks().winner === 'failed') {
+              ✕
+            } @else {
+              …
+            }
+          </span>
+          <div class="check-content">
+            <span class="check-title">
+              {{ checks().winner === 'passed' ? (phase() === 'spinning' ? 'Cálculo del ganador en curso' : 'Ganador calculado localmente') : 'Cálculo del ganador' }}
+            </span>
+            <span class="check-detail font-mono">
+              @if (checks().winner === 'passed') {
+                {{ phase() === 'spinning' ? 'Semilla y ronda listas · revelando en el sorteo…' : 'sha256(semilla‖drand‖id) mod ' + (data()?.soldNumbers?.length || 0) + ' → ' + localResult()?.winner }}
+              } @else {
+                pendiente
+              }
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Footer Actions -->
+    <footer class="live-footer">
+      @if (phase() === 'result') {
+        <a
+          [routerLink]="['/rifas', raffleId(), 'verificacion']"
+          class="btn-verification"
+        >
+          Ver verificación completa
+        </a>
+      }
+      <a
+        [routerLink]="['/rifas', raffleId()]"
+        class="btn-back"
+      >
+        Volver a la rifa
+      </a>
+      <span class="live-caption">Tu navegador verifica el sorteo en tiempo real sin intermediarios</span>
+    </footer>
+  </main>
+</div>

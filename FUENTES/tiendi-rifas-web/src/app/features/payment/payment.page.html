@@ -1,0 +1,272 @@
+<header class="topbar">
+  <a class="topbar__back" [routerLink]="['/rifas', raffleId]" aria-label="Volver a la rifa">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+  </a>
+  <h1 class="topbar__title">Pagar boletos</h1>
+</header>
+
+@switch (store.loadStatus()) {
+  @case ('not-found') {
+    <div class="state" role="alert">
+      <p class="state__text">{{ store.errorMessage() }}</p>
+      <a class="state__link" [routerLink]="['/rifas', raffleId]">Volver a la rifa</a>
+    </div>
+  }
+  @case ('error') {
+    <div class="state" role="alert">
+      <p class="state__text">{{ store.errorMessage() }}</p>
+      <div class="state__actions">
+        <button type="button" class="state__action" (click)="retry()">Reintentar</button>
+        <a class="state__link" [routerLink]="['/rifas', raffleId]">Volver a la rifa</a>
+      </div>
+    </div>
+  }
+  @case ('ready') {
+    @if (store.order(); as order) {
+      @if (store.phase() === 'awaiting-proof') {
+        <div class="countdown">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg>
+          <div class="countdown__text">
+            <span class="countdown__title">Tus números están reservados</span>
+            <span class="countdown__hint">Envía tu comprobante a tiempo o vuelven a quedar libres.</span>
+          </div>
+          <span class="countdown__clock" role="timer" aria-label="Tiempo restante de la reserva">{{ store.countdown() }}</span>
+        </div>
+      }
+
+      <div class="payment">
+        <section class="summary" aria-label="Resumen de tu orden">
+          <ul class="summary__numbers" aria-label="Tus números">
+            @for (number of order.numbers; track number) {
+              <li class="summary__number">{{ number }}</li>
+            }
+          </ul>
+          <p class="summary__total">
+            <span>Total</span>
+            <span class="summary__amount">{{ total() }}</span>
+          </p>
+        </section>
+
+        @if (store.phase() === 'awaiting-proof') {
+          <section class="block accounts" aria-labelledby="accounts-title">
+            <h2 class="block__title" id="accounts-title">1. Transfiere el total</h2>
+            @switch (store.accountsStatus()) {
+              @case ('loading') {
+                <p class="accounts__loading" role="status">Cargando las cuentas de pago…</p>
+              }
+              @case ('ready') {
+                @if (store.accounts().length > 0) {
+                  <ul class="accounts__list" aria-label="Cuentas de pago">
+                    @for (account of store.accounts(); track account.id) {
+                      <li class="accounts__item">
+                        <span class="accounts__name">{{ account.label }}</span>
+                        <span class="accounts__number">{{ account.number }}</span>
+                        @if (account.cci) {
+                          <span class="accounts__detail">CCI {{ account.cci }}</span>
+                        }
+                        <span class="accounts__detail">Titular: {{ account.holder }}</span>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="accounts__missing" role="alert">
+                    Las cuentas de pago no están disponibles por ahora. No transfieras todavía y vuelve a intentarlo más tarde.
+                  </p>
+                }
+              }
+              @case ('error') {
+                <div class="accounts__missing" role="alert">
+                  <p>No pudimos cargar las cuentas de pago. No transfieras todavía.</p>
+                  <button type="button" class="accounts__retry" (click)="retryAccounts()">Reintentar</button>
+                </div>
+              }
+            }
+          </section>
+
+          @if (store.canSendProof()) {
+            <form class="block proof" novalidate aria-labelledby="proof-title" (submit)="submit(); $event.preventDefault()">
+              <h2 class="block__title" id="proof-title">2. Envía tu comprobante</h2>
+
+              <div class="proof__field">
+                <label class="proof__label" for="paid-to-account">Cuenta a la que transferiste</label>
+                <select
+                  id="paid-to-account"
+                  class="proof__input"
+                  required
+                  [value]="paymentAccountId()"
+                  (change)="onText($event.target, 'paymentAccountId')"
+                  [attr.aria-invalid]="error('paymentAccount') ? true : null"
+                  [attr.aria-describedby]="describedBy('paymentAccount')"
+                >
+                  <option value="">Elige la cuenta</option>
+                  @for (account of store.accounts(); track account.id) {
+                    <option [value]="account.id" [selected]="account.id === paymentAccountId()">{{ account.label }} · {{ account.number }}</option>
+                  }
+                </select>
+                @if (error('paymentAccount'); as message) {
+                  <p class="proof__error" id="paid-to-account-error">{{ message }}</p>
+                }
+              </div>
+
+              <div class="proof__field">
+                <label class="proof__label" for="bank-or-wallet">Banco o billetera desde la que pagaste</label>
+                <select
+                  id="bank-or-wallet"
+                  class="proof__input"
+                  [value]="bankOrWallet()"
+                  (change)="onText($event.target, 'bankOrWallet')"
+                  [attr.aria-invalid]="error('bankOrWallet') ? true : null"
+                  [attr.aria-describedby]="describedBy('bankOrWallet')"
+                >
+                  <option value="">Elige una opción</option>
+                  @for (bank of banks; track bank.value) {
+                    <option [value]="bank.value">{{ bank.label }}</option>
+                  }
+                </select>
+                @if (error('bankOrWallet'); as message) {
+                  <p class="proof__error" id="bank-or-wallet-error">{{ message }}</p>
+                }
+              </div>
+
+              <div class="proof__pair">
+                <div class="proof__field">
+                  <label class="proof__label" for="operation-number">N.° de operación</label>
+                  <input
+                    id="operation-number"
+                    class="proof__input proof__input--mono"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    maxlength="100"
+                    [value]="operationNumber()"
+                    (input)="onText($event.target, 'operationNumber')"
+                    [attr.aria-invalid]="error('operationNumber') ? true : null"
+                    [attr.aria-describedby]="describedBy('operationNumber', error('file') ? 'proof-file-error' : '')"
+                  />
+                  @if (error('operationNumber'); as message) {
+                    <p class="proof__error" id="operation-number-error">{{ message }}</p>
+                  }
+                </div>
+                <div class="proof__field">
+                  <label class="proof__label" for="declared-amount">Monto pagado (S/)</label>
+                  <input
+                    id="declared-amount"
+                    class="proof__input proof__input--mono"
+                    type="text"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    [attr.placeholder]="total()"
+                    [value]="declaredAmount()"
+                    (input)="onText($event.target, 'declaredAmount')"
+                    [attr.aria-invalid]="error('declaredAmount') ? true : null"
+                    [attr.aria-describedby]="describedBy('declaredAmount')"
+                  />
+                  @if (error('declaredAmount'); as message) {
+                    <p class="proof__error" id="declared-amount-error">{{ message }}</p>
+                  }
+                </div>
+              </div>
+
+              <div class="proof__field">
+                <label class="proof__upload" for="proof-file">
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path></svg>
+                  Subir foto o PDF del comprobante
+                </label>
+                <input
+                  id="proof-file"
+                  class="visually-hidden"
+                  type="file"
+                  [accept]="accept"
+                  (change)="onFile($event)"
+                  [attr.aria-invalid]="error('file') ? true : null"
+                  [attr.aria-describedby]="describedBy('file', 'proof-file-hint')"
+                />
+                <p class="proof__hint" id="proof-file-hint">
+                  @if (file(); as chosen) {
+                    Archivo elegido: {{ chosen.name }}
+                  } @else {
+                    Imagen PNG, JPEG o WEBP, o PDF, de hasta 5 MB. Si no tienes el archivo, basta con el número de operación.
+                  }
+                </p>
+                @if (error('file'); as message) {
+                  <p class="proof__error" id="proof-file-error">{{ message }}</p>
+                }
+              </div>
+
+              <div class="proof__field">
+                <label class="proof__terms">
+                  <input
+                    id="accept-terms"
+                    type="checkbox"
+                    [checked]="acceptedTerms()"
+                    (change)="onTerms($event)"
+                    [attr.aria-invalid]="error('acceptedTerms') ? true : null"
+                    [attr.aria-describedby]="describedBy('acceptedTerms')"
+                  />
+                  <span>Acepto los términos de la rifa y declaro que los datos del pago son correctos.</span>
+                </label>
+                @if (error('acceptedTerms'); as message) {
+                  <p class="proof__error" id="accept-terms-error">{{ message }}</p>
+                }
+              </div>
+
+              @if (store.submitError(); as message) {
+                <p class="proof__alert" role="alert">{{ message }}</p>
+              }
+
+              <button class="proof__submit" type="submit" [disabled]="store.submitting()">
+                {{ store.submitting() ? 'Enviando…' : 'Enviar comprobante' }}
+              </button>
+            </form>
+          }
+        } @else {
+          <section class="outcome" role="status" aria-labelledby="outcome-title" [attr.data-phase]="store.phase()">
+            <h2 class="outcome__title" id="outcome-title">{{ outcomeTitle() }}</h2>
+            @switch (store.phase()) {
+              @case ('verifying') {
+                <p>Tus números siguen reservados mientras revisamos que el dinero haya llegado. Te avisaremos por correo.</p>
+              }
+              @case ('paid') {
+                <p>Tus boletos están confirmados. Te enviamos el detalle por correo.</p>
+              }
+              @case ('rejected') {
+                @if (order.rejectionReason; as reason) {
+                  <p>Motivo: {{ reason }}</p>
+                }
+                <p>Tus números se liberaron.</p>
+              }
+              @case ('refund-pending') {
+                @if (order.rejectionReason; as reason) {
+                  <p>Motivo: {{ reason }}</p>
+                }
+                <p>Tus números se liberaron. Tu reembolso está pendiente: te avisaremos por correo cuando se realice.</p>
+              }
+              @case ('refunded') {
+                @if (order.rejectionReason; as reason) {
+                  <p>Motivo: {{ reason }}</p>
+                }
+                <p>Te devolvimos el dinero de esta orden.</p>
+              }
+              @case ('late-review') {
+                <p>Un operador está revisando tu pago. Te avisaremos por correo cuando tenga una respuesta.</p>
+              }
+              @case ('late-dismissed') {
+                <p>El operador revisó tu pago y cerró el caso. Te enviamos el detalle por correo.</p>
+              }
+            }
+            @if (declared(); as declaration) {
+              <p class="outcome__declared">Declaraste: {{ declaration }}</p>
+            }
+            @if (paidTo(); as account) {
+              <p class="outcome__declared">Transferiste a: {{ account }}</p>
+            }
+          </section>
+          <a class="payment__back" [routerLink]="['/rifas', raffleId]">Volver a la rifa</a>
+        }
+      </div>
+    }
+  }
+  @default {
+    <p class="state state__text" role="status">Cargando tu orden…</p>
+  }
+}

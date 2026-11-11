@@ -1,0 +1,12 @@
+-- CreateEnum
+CREATE TYPE "DrawEffect" AS ENUM ('SLOT_MACHINE', 'TOMBOLA', 'SUSPENSE_CONFETTI', 'SNAKE', 'RADAR');
+
+-- AlterTable
+ALTER TABLE "Raffle" ADD COLUMN "winningAttempt" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN "drawEffect" "DrawEffect" NOT NULL DEFAULT 'SLOT_MACHINE',
+ADD COLUMN "prizeDescription" TEXT,
+ADD COLUMN "prizeImages" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+-- AlterTable
+ALTER TABLE "Draw" ADD COLUMN "winningAttempt" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN "extractions" JSONB;

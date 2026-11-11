@@ -1,0 +1,30 @@
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" routerLink="/">
+      <svg class="brand__icon" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"></path>
+        <path d="M14 5v14" stroke-dasharray="2 2"></path>
+      </svg>
+      <span class="brand__name">Tiendi Rifas</span>
+    </a>
+
+    <nav class="topbar__nav" aria-label="Cuenta">
+      @if (session.isAuthenticated()) {
+        <span class="topbar__email">{{ session.user()?.email }}</span>
+        @if (isAdmin()) {
+          <a class="topbar__action" routerLink="/admin" routerLinkActive="topbar__action--active">Administración</a>
+        }
+        <a class="topbar__action" routerLink="/" routerLinkActive="topbar__action--active" [routerLinkActiveOptions]="{ exact: true }">Rifas</a>
+        <a class="topbar__action" routerLink="/mis-boletos" routerLinkActive="topbar__action--active" ariaCurrentWhenActive="page">Mis boletos</a>
+        <button type="button" class="topbar__action" (click)="signOut()">Salir</button>
+      } @else {
+        <a class="topbar__action" routerLink="/" routerLinkActive="topbar__action--active" [routerLinkActiveOptions]="{ exact: true }">Rifas</a>
+        <a class="topbar__action" routerLink="/ingresar">Ingresar</a>
+      }
+    </nav>
+  </div>
+</header>
+
+<main class="app-container">
+  <router-outlet></router-outlet>
+</main>

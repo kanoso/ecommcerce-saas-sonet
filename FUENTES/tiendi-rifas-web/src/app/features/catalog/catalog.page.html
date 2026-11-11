@@ -1,0 +1,74 @@
+<section class="hero">
+  <h1 class="hero__title">Rifas con sorteo verificable</h1>
+  <p class="hero__lead">
+    Elige tus números, paga por transferencia o Yape, envía tu comprobante y mira el sorteo en vivo.
+    Cualquiera puede recalcular el ganador.
+  </p>
+</section>
+
+<div class="catalog-tabs" role="tablist">
+  <button
+    type="button"
+    role="tab"
+    class="tab-btn"
+    [class.tab-btn--active]="activeTab() === 'activas'"
+    [attr.aria-selected]="activeTab() === 'activas'"
+    (click)="activeTab.set('activas')"
+  >
+    Rifas Activas ({{ store.raffles().length }})
+  </button>
+  <button
+    type="button"
+    role="tab"
+    class="tab-btn"
+    [class.tab-btn--active]="activeTab() === 'finalizadas'"
+    [attr.aria-selected]="activeTab() === 'finalizadas'"
+    (click)="activeTab.set('finalizadas')"
+  >
+    Sorteos Realizados ({{ store.finishedRaffles().length }})
+  </button>
+</div>
+
+<section class="catalog" aria-labelledby="catalog-title" [attr.aria-busy]="store.status() === 'loading'">
+  <h2 id="catalog-title" class="visually-hidden">Catálogo de rifas</h2>
+
+  @switch (store.status()) {
+    @case ('error') {
+      <div class="state state--error" role="alert">
+        <p class="state__text">{{ store.errorMessage() }}</p>
+        <button type="button" class="state__action" (click)="retry()">Reintentar</button>
+      </div>
+    }
+    @case ('ready') {
+      @if (activeTab() === 'activas') {
+        @if (store.isEmpty()) {
+          <p class="state">No hay rifas activas por ahora. Vuelve pronto.</p>
+        } @else {
+          <ul class="catalog__list">
+            @for (raffle of store.raffles(); track raffle.id) {
+              <li><app-raffle-card [raffle]="raffle" /></li>
+            }
+          </ul>
+        }
+      } @else {
+        @if (store.finishedRaffles().length === 0) {
+          <p class="state">Aún no hay sorteos finalizados para mostrar.</p>
+        } @else {
+          <ul class="catalog__list">
+            @for (raffle of store.finishedRaffles(); track raffle.id) {
+              <li><app-raffle-card [raffle]="raffle" /></li>
+            }
+          </ul>
+        }
+      }
+    }
+    @default {
+      <p class="visually-hidden" role="status">Cargando rifas…</p>
+      <ul class="catalog__list" aria-hidden="true">
+        @for (placeholder of [1, 2, 3]; track placeholder) {
+          <li class="skeleton"></li>
+        }
+      </ul>
+    }
+  }
+</section>

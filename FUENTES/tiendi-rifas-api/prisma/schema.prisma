@@ -1,0 +1,348 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum DrawEffect {
+  SLOT_MACHINE
+  TOMBOLA
+  SUSPENSE_CONFETTI
+  SNAKE
+  RADAR
+}
+
+enum DrawMode {
+  AUTOMATIC
+  MANUAL
+}
+
+enum DrawSpeed {
+  SLOW
+  NORMAL
+  FAST
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?
+  name      String?
+  document     String?  @unique
+  role      String   @default("buyer")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders       TicketOrder[]
+  authSessions AuthSession[]
+
+  @@map("User")
+}
+
+/// One access link sent by email (D4). Only the SHA-256 of the token is kept.
+/// It names an address, not a user: the user is created when the link is used.
+model AuthMagicLink {
+  id        String    @id @default(uuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@map("AuthMagicLink")
+}
+
+/// A session opened by a magic link. Revoked on logout; a JWT names it.
+model AuthSession {
+  id        String    @id @default(uuid())
+  userId    String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("AuthSession")
+}
+
+model Raffle {
+  id                      String     @id @default(uuid())
+  title                   String
+  prize                   String
+  ticketPrice             Decimal    @db.Decimal(10, 2)
+  numberMin               Int
+  numberMax               Int
+  winningAttempt          Int        @default(1)
+  drawEffect              DrawEffect @default(SLOT_MACHINE)
+  drawMode                DrawMode   @default(AUTOMATIC)
+  drawDurationSec         Int        @default(4)
+  drawSpeed               DrawSpeed  @default(NORMAL)
+  prizeDescription        String?    @db.Text
+  prizeImages             String[]   @default([])
+  status                  String     @default("DRAFT") // DRAFT, ACTIVE, CLOSED, DRAWN, CANCELLED
+  authorizationResolution String?
+  commitmentHash          String?
+  seedCiphertext          String?
+  seedRevealed            String?
+  drandRound              BigInt?
+  drandChainHash          String?
+  soldListHash            String?
+  salesCloseAt            DateTime?
+  drawAt                  DateTime?
+  cancellationReason      String?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+
+  tickets     Ticket[]
+  draw        Draw?
+  auditEvents AuditEvent[]
+
+  @@map("Raffle")
+}
+
+model Ticket {
+  id            String       @id @default(uuid())
+  raffleId      String
+  raffle        Raffle       @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  number        Int
+  status        String       @default("AVAILABLE") // AVAILABLE, RESERVED, SOLD, REFUNDED
+  orderId       String?
+  // Restrict: SET NULL would leave a SOLD ticket without its order (DT-13).
+  order         TicketOrder? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  reservedUntil DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  winningDraw Draw?
+
+  @@unique([raffleId, number])
+  @@index([raffleId, status])
+  @@index([orderId])
+  @@map("Ticket")
+}
+
+model TicketOrder {
+  id                String    @id @default(uuid())
+  raffleId          String
+  userId            String
+  user              User?     @relation(fields: [userId], references: [id])
+  numbers           Int[]
+  totalAmount       Decimal   @db.Decimal(10, 2)
+  status            String    @default("PENDING") // PENDING, PENDING_VERIFICATION, PAID, EXPIRED, LATE_PAYMENT_REVIEW, LATE_PAYMENT_DISMISSED, REJECTED, REFUND_PENDING, REFUNDED
+  proofUrl          String? // Storage key of the file, never a public URL
+  operationNumber   String?
+  bankOrWallet      String? // YAPE, PLIN, BCP, BBVA, INTERBANK
+  declaredAmount    Decimal?  @db.Decimal(10, 2)
+  rejectionReason   String?
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  verificationDueAt DateTime? // Operator review deadline: nothing lapses then
+  overdueAlertedAt  DateTime?
+  // The operator account the buyer declared paying to, copied then (DT-19).
+  // A trigger keeps both once set.
+  paidToAccountId   String?
+  paidToAccount     Json?
+  expiresAt         DateTime
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tickets       Ticket[]
+  payments      Payment[]
+  refunds       Refund[]
+  alerts        OperatorAlert[]
+  notifications NotificationOutbox[]
+
+  @@index([raffleId])
+  @@index([userId])
+  @@index([status, verificationDueAt])
+  @@map("TicketOrder")
+}
+
+model Payment {
+  id         String      @id @default(uuid())
+  orderId    String
+  order      TicketOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider   String
+  externalId String      @unique // Normalized operation number, across all providers (DT-12)
+  status     String
+  payload    Json?
+  receivedAt DateTime    @default(now())
+  refund     Refund?
+
+  @@index([orderId])
+  @@map("Payment")
+}
+
+model OperatorAlert {
+  id          String       @id @default(uuid())
+  type        String // LATE_PAYMENT_CLAIM, NOTIFICATION_FAILED, DRAW_BLOCKED, CLOSE_BLOCKED, PAYMENT_ACCOUNT_CHANGE
+  // Null only for PAYMENT_ACCOUNT_CHANGE, which is about no raffle (a CHECK).
+  raffleId    String?
+  raffleTitle String?
+  paymentAccountId String?
+  // Null for a raffle-level alert; the migration keeps one per raffle and type.
+  orderId     String?
+  order       TicketOrder? @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount      Decimal?     @db.Decimal(10, 2)
+  reason      String?      @db.VarChar(500)
+  createdAt   DateTime     @default(now())
+  readAt      DateTime?
+  readBy      String?
+
+  @@unique([type, orderId])
+  @@index([readAt, createdAt])
+  @@map("OperatorAlert")
+}
+
+model Draw {
+  id               String     @id @default(uuid())
+  raffleId         String     @unique
+  raffle           Raffle     @relation(fields: [raffleId], references: [id])
+  algorithmVersion String     @default("v1")
+  seedRevealed     String
+  drandRandomness  String
+  drandRound       BigInt
+  digestHex        String
+  totalSold        Int
+  winningTicketId  String     @unique
+  winningTicket    Ticket     @relation(fields: [winningTicketId], references: [id])
+  winningNumber    Int
+  winnerIndex      Int
+  winningAttempt   Int        @default(1)
+  extractions      Json?
+  executedAt       DateTime   @default(now())
+
+  @@map("Draw")
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  raffleId   String
+  raffle     Raffle   @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  type       String
+  data       Json
+  occurredAt DateTime @default(now())
+
+  @@index([raffleId])
+  @@index([type])
+  @@map("AuditEvent")
+}
+
+// One refund of the order itself, plus one per extra transfer (DT-16). The
+// migration keeps one row with no paymentId per order, in a partial unique
+// index Prisma cannot declare. An integration test fails without it.
+model Refund {
+  id              String      @id @default(uuid())
+  orderId         String
+  order           TicketOrder @relation(fields: [orderId], references: [id])
+  // The extra transfer it returns; null for the refund of the order itself.
+  paymentId       String?     @unique
+  payment         Payment?    @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  raffleId        String
+  amount          Decimal     @db.Decimal(10, 2)
+  reason          String
+  status          String      @default("PENDING") // PENDING, COMPLETED
+  operatorId      String?
+  destination     String?
+  operationNumber String?
+  createdAt       DateTime    @default(now())
+  completedAt     DateTime?
+
+  @@index([orderId])
+  @@index([status])
+  @@index([raffleId])
+  @@map("Refund")
+}
+
+// Emails written in the transaction of the change they report and sent by
+// DispatchNotifications, at least once (DT-13). The claim uses a partial index
+// on PENDING rows, created in the migration: Prisma cannot declare it, and
+// Prisma 5.22 does not drop it either. An integration test fails without it.
+model NotificationOutbox {
+  id            String      @id @default(uuid())
+  type          String
+  recipient     String? // userId; an address for MAGIC_LINK; null for the operators
+  payload       Json? // null once a SENT row is purged, and a MAGIC_LINK row once sent
+  // Null only for MAGIC_LINK rows, which belong to no order.
+  orderId       String?
+  order         TicketOrder? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  raffleId      String?
+  status        String      @default("PENDING") // PENDING, SENT, FAILED
+  attempts      Int         @default(0)
+  nextAttemptAt DateTime    @default(now())
+  lastError     String?
+  createdAt     DateTime    @default(now())
+  sentAt        DateTime?
+  dedupeKey     String      @unique
+
+  @@index([orderId])
+  @@map("NotificationOutbox")
+}
+
+/// An operator account buyers transfer to (DT-19). Never deleted: deactivated.
+/// Every insert or update needs an audit row in its transaction (a trigger).
+model PaymentAccount {
+  id            String   @id @default(uuid())
+  method        String // YAPE, PLIN, BCP, BBVA, INTERBANK
+  holderName    String
+  accountNumber String // The mobile for Yape and Plin, digits only
+  cci           String? // Banks only, 20 digits
+  displayOrder  Int      @default(0)
+  active        Boolean  @default(true)
+  version       Int      @default(1) // Optimistic lock: +1 per write
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+  createdBy     String
+  updatedBy     String
+
+  @@unique([method, accountNumber])
+  @@index([active, displayOrder])
+  @@map("PaymentAccount")
+}
+
+/// A four-eyes change (DT-19): proposed by one operator, approved, rejected
+/// or cancelled once. One PENDING change per account (a partial unique index
+/// in the migration). A decided change never changes again (a trigger).
+model PaymentAccountChange {
+  id         String    @id
+  kind       String // CREATE, UPDATE, ACTIVATE
+  accountId  String // For a CREATE, the id the account gets once approved
+  proposed   Json?
+  before     Json?
+  status     String // PENDING, APPROVED, REJECTED, CANCELLED
+  proposedBy String
+  proposedAt DateTime
+  decidedBy  String?
+  decidedAt  DateTime?
+
+  audits PaymentAccountAudit[]
+
+  @@index([status, proposedAt])
+  @@index([accountId])
+  @@map("PaymentAccountChange")
+}
+
+/// One event on a payment account, append-only (a trigger): who, when, the
+/// state before and after or what was proposed. txId ties it to the
+/// transaction of the account write it explains.
+model PaymentAccountAudit {
+  id         String                @id
+  accountId  String
+  changeId   String?
+  change     PaymentAccountChange? @relation(fields: [changeId], references: [id], onDelete: Restrict)
+  action     String // PROPOSED, APPROVED, REJECTED, CANCELLED, DEACTIVATED, REORDERED
+  operatorId String
+  before     Json?
+  after      Json?
+  occurredAt DateTime
+  txId       BigInt                @default(dbgenerated("txid_current()"))
+
+  @@index([accountId, occurredAt])
+  @@map("PaymentAccountAudit")
+}

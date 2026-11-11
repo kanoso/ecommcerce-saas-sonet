@@ -1,0 +1,132 @@
+<section class="admin-refunds" aria-labelledby="admin-refunds-title">
+  <header class="admin-refunds__header">
+    <div>
+      <h1 id="admin-refunds-title" class="admin-refunds__title">Reembolsos pendientes</h1>
+      <p class="admin-refunds__subtitle">
+        Órdenes canceladas o pagos rechazados con dinero recibido que esperan devolución (DT-04 / DT-17).
+      </p>
+    </div>
+    <button type="button" class="btn-refresh" (click)="loadRefunds()">
+      Actualizar lista
+    </button>
+  </header>
+
+  @if (actionSuccess()) {
+    <div class="feedback-banner feedback-banner--success" role="status">
+      {{ actionSuccess() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-box" aria-live="polite">
+      <p>Cargando reembolsos pendientes...</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-box state-box--error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="loadRefunds()">
+        Reintentar
+      </button>
+    </div>
+  } @else if (refunds().length === 0) {
+    <div class="state-box state-box--empty">
+      <p>No hay reembolsos pendientes.</p>
+    </div>
+  } @else {
+    <ul class="refunds-list" aria-label="Lista de reembolsos pendientes">
+      @for (refund of refunds(); track refund.refundId) {
+        <li class="refund-item">
+          <div class="refund-item__info">
+            <div class="refund-item__top">
+              <span class="refund-item__id">Reembolso: <code>{{ refund.refundId }}</code></span>
+              <span class="badge badge--warning">Pendiente de devolución</span>
+            </div>
+
+            <div class="refund-item__data-grid">
+              <div>
+                <span class="label">Monto a devolver:</span>
+                <strong class="value highlight">S/ {{ refund.amount | number:'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span class="label">Orden asociada:</span>
+                <span class="value"><code>{{ refund.orderId }}</code></span>
+              </div>
+              <div class="full-row">
+                <span class="label">Motivo del reembolso:</span>
+                <span class="value">{{ refund.reason }}</span>
+              </div>
+              <div>
+                <span class="label">Fecha registro:</span>
+                <span class="value">{{ refund.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="refund-item__actions">
+            <button
+              type="button"
+              class="btn-action btn-action--complete"
+              (click)="openComplete(refund)"
+            >
+              Completar reembolso
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- Modal Completar Reembolso (DT-17 4-eyes) -->
+  @if (showModal()) {
+    <div class="modal-wrapper">
+      <div class="modal-backdrop" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="modal-dialog" role="dialog" aria-labelledby="modal-complete-title">
+        <h2 id="modal-complete-title" class="modal-dialog__title">Completar reembolso (4 ojos)</h2>
+        <p class="modal-dialog__desc">
+          Registra el destino de la transferencia y el número de operación bancaria. Por seguridad (control de 4 ojos), no puedes ser quien registró el dinero.
+        </p>
+
+        @if (actionError()) {
+          <div class="feedback-banner feedback-banner--error" role="alert">
+            {{ actionError() }}
+          </div>
+        }
+
+        <form [formGroup]="completeForm" (ngSubmit)="submitComplete()" class="modal-form">
+          <div class="form-group">
+            <label for="complete-dest">Destino de la devolución:</label>
+            <input
+              id="complete-dest"
+              type="text"
+              formControlName="destination"
+              class="form-control"
+              placeholder="Ej. Yape 987654321, BCP 191-xxxx o CCI"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="complete-op-num">Número de operación bancaria:</label>
+            <input
+              id="complete-op-num"
+              type="text"
+              formControlName="operationNumber"
+              class="form-control"
+              placeholder="Ej. OP-987654"
+              required
+            />
+          </div>
+
+          <div class="modal-dialog__buttons">
+            <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="submitting() || completeForm.invalid">
+              {{ submitting() ? 'Guardando...' : 'Confirmar reembolso completado' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>
