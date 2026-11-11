@@ -31,6 +31,8 @@ export const envSchema = z.object({
   // 55380: this project's own Redis (docker compose). Port 6379 belongs to
   // another project on the development machine.
   REDIS_URL: z.string().default('redis://localhost:55380'),
+  // Each dependency check of GET /health/ready gives up after this long.
+  HEALTH_CHECK_TIMEOUT_MS: z.coerce.number().int().positive().default(2_000),
 
   // Jobs (F5, guide §6.4). Off for the HTTP-only e2e tests.
   JOBS_ENABLED: z
