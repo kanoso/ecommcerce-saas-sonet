@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
 import request from 'supertest';
+import { APP_FILTER } from '@nestjs/core';
+import { ApiExceptionFilter } from '../../common/http/api-exception.filter';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AUTH_SERVICE, SessionGuard } from './guards';
@@ -40,7 +42,11 @@ describe('AuthController (HTTP)', () => {
         }),
       ],
       controllers: [AuthController],
-      providers: [{ provide: AUTH_SERVICE, useValue: service }, SessionGuard],
+      providers: [
+        { provide: AUTH_SERVICE, useValue: service },
+        SessionGuard,
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();
@@ -54,13 +60,24 @@ describe('AuthController (HTTP)', () => {
 
   describe('POST /auth/registro', () => {
     it('answers 409 for an identifier that already has a passwordless account', async () => {
-      await store.createUser({ email: 'admin@example.com', role: 'admin' });
+      await store.createUser({ document: '11112222', role: 'admin' });
 
       const res = await http()
         .post('/auth/registro')
-        .send({ identifier: 'admin@example.com', password: 'x12345' });
+        .send({ identifier: '11112222', password: 'x12345' });
 
       expect(res.status).toBe(409);
+      expect(res.body.token_acceso).toBeUndefined();
+      expect(store.sessions).toHaveLength(0);
+    });
+
+    it('answers 400 for an email identifier, and creates no account', async () => {
+      const res = await http()
+        .post('/auth/registro')
+        .send({ identifier: 'victim@example.com', password: 'x12345' });
+
+      expect(res.status).toBe(400);
+      expect(store.users).toHaveLength(0);
       expect(res.body.token_acceso).toBeUndefined();
       expect(store.sessions).toHaveLength(0);
     });

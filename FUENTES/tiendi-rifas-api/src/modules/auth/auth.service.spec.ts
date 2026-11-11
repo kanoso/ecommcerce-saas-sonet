@@ -344,13 +344,14 @@ describe('AuthService: magic link (D4)', () => {
     it('refuses to attach a password to an existing passwordless account', async () => {
       const admin = await store.createUser({
         email: 'admin@example.com',
+        document: '11112222',
         role: 'admin',
       });
       const setPassword = jest.spyOn(store, 'setPassword');
 
       await expect(
         service.register({
-          identifier: 'Admin@Example.com',
+          identifier: '11112222',
           password: 'attacker-pass',
         }),
       ).rejects.toThrow(ConflictException);
@@ -361,6 +362,34 @@ describe('AuthService: magic link (D4)', () => {
       await expect(
         service.login('admin@example.com', 'attacker-pass'),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('refuses email identifiers: email accounts are born verified, by link or Google', async () => {
+      const attempt = service.register({
+        identifier: 'victim@example.com',
+        password: 'attacker-pass',
+      });
+
+      await expect(attempt).rejects.toThrow(ValidationFailedError);
+      await attempt.catch((error: ValidationFailedError) => {
+        expect(error.issues).toEqual([
+          {
+            path: 'identifier',
+            message: 'Para registrarte con correo usa el enlace de acceso o Google',
+          },
+        ]);
+      });
+      expect(store.users).toHaveLength(0);
+      expect(store.sessions).toHaveLength(0);
+    });
+
+    it('rejects identifiers that are neither a DNI nor a phone', async () => {
+      for (const identifier of ['1234567', '123456789', '8123456789', 'abc12345']) {
+        await expect(
+          service.register({ identifier, password: 'Password123' }),
+        ).rejects.toThrow(ValidationFailedError);
+      }
+      expect(store.users).toHaveLength(0);
     });
 
     it('rejects duplicate registration with a ConflictException', async () => {

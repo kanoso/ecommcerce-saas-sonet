@@ -94,7 +94,10 @@ export class AuthController {
     };
   }
 
-  /** Registers a buyer with DNI, phone or email + password. */
+  /**
+   * Registers a buyer with DNI or phone + password. Email accounts come from
+   * a magic link or Google only, and add a password via POST /auth/contrasena.
+   */
   @Post('registro')
   @HttpCode(200)
   @RateLimit('auth')

@@ -182,6 +182,31 @@ export class AuthService {
     }
     assertPasswordRules(input.password);
 
+    // Only a DNI or a phone. An email account is born from a verified link or
+    // Google sign-in: a password account under an unverified address would be
+    // pre-hijacked, waiting for its owner's first link.
+    let phone: string | null = null;
+    let document: string | null = null;
+    if (/^\d{8}$/.test(raw)) {
+      document = raw;
+    } else if (/^9\d{8}$/.test(raw)) {
+      phone = raw;
+    } else if (raw.includes('@')) {
+      throw new ValidationFailedError([
+        {
+          path: 'identifier',
+          message: 'Para registrarte con correo usa el enlace de acceso o Google',
+        },
+      ]);
+    } else {
+      throw new ValidationFailedError([
+        {
+          path: 'identifier',
+          message: 'Ingresa un DNI (8 dígitos) o celular (9 dígitos)',
+        },
+      ]);
+    }
+
     // Only brand-new accounts. An existing account without a password (magic
     // link, Google, operators) is never claimed here: whoever knows its
     // identifier would otherwise take it over. Its owner sets a password from
@@ -193,38 +218,8 @@ export class AuthService {
       );
     }
 
-    let email: string | null = null;
-    let phone: string | null = null;
-    let document: string | null = null;
-
-    if (raw.includes('@')) {
-      const parsed = emailSchema.safeParse(raw);
-      if (!parsed.success) {
-        throw new ValidationFailedError([
-          { path: 'identifier', message: 'Correo inválido' },
-        ]);
-      }
-      email = parsed.data;
-    } else if (/^\d{8}$/.test(raw)) {
-      document = raw;
-    } else if (/^9\d{8}$/.test(raw)) {
-      phone = raw;
-    } else {
-      if (/^\d+$/.test(raw)) {
-        document = raw;
-      } else {
-        throw new ValidationFailedError([
-          {
-            path: 'identifier',
-            message:
-              'Ingresa un DNI (8 dígitos), celular (9 dígitos) o correo válido',
-          },
-        ]);
-      }
-    }
-
     const user = await this.store.createUser({
-      email,
+      email: null,
       phone,
       document,
       name: input.name?.trim() || null,
