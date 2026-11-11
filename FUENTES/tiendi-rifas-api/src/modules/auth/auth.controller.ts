@@ -36,6 +36,10 @@ const loginRequest = z
   })
   .strict();
 
+const setPasswordRequest = z
+  .object({ password: z.string().min(6).max(100) })
+  .strict();
+
 /** D4: access by a one-time email link, no password. */
 @Controller('auth')
 export class AuthController {
@@ -75,6 +79,7 @@ export class AuthController {
   /** Logs in or signs up via Google ID Token. */
   @Post('google')
   @HttpCode(200)
+  @RateLimit('auth')
   async loginWithGoogle(@Body() body: unknown) {
     const { idToken } = parseWith(googleRequest, body);
     const session = await this.auth.loginWithGoogle(idToken);
@@ -89,9 +94,13 @@ export class AuthController {
     };
   }
 
-  /** Registers a buyer with DNI, phone or email + password. */
+  /**
+   * Registers a buyer with DNI or phone + password. Email accounts come from
+   * a magic link or Google only, and add a password via POST /auth/contrasena.
+   */
   @Post('registro')
   @HttpCode(200)
+  @RateLimit('auth')
   async register(@Body() body: unknown) {
     const input = parseWith(registerRequest, body);
     const session = await this.auth.register(input);
@@ -112,6 +121,7 @@ export class AuthController {
   /** Logs in with DNI, phone or email + password. */
   @Post('login')
   @HttpCode(200)
+  @RateLimit('auth')
   async login(@Body() body: unknown) {
     const { identifier, password } = parseWith(loginRequest, body);
     const session = await this.auth.login(identifier, password);
@@ -127,6 +137,20 @@ export class AuthController {
         rol: session.user.role,
       },
     };
+  }
+
+  /** Adds a password to the caller's own account, which has none yet. */
+  @Post('contrasena')
+  @HttpCode(204)
+  @UseGuards(SessionGuard)
+  // Below SessionGuard: decorators apply bottom-up, so the limit runs first.
+  @RateLimit('auth')
+  async setPassword(
+    @CurrentUser() principal: Principal,
+    @Body() body: unknown,
+  ): Promise<void> {
+    const { password } = parseWith(setPasswordRequest, body);
+    await this.auth.setOwnPassword(principal.id, password);
   }
 
   @Post('salir')

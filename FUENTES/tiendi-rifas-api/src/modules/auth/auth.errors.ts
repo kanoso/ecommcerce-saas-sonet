@@ -6,3 +6,11 @@ export class InvalidMagicLinkError extends Error {
   }
 }
 
+/** Another account already holds the email, phone or document. */
+export class IdentifierTakenError extends Error {
+  constructor() {
+    super('The identifier already belongs to an account');
+    this.name = 'IdentifierTakenError';
+  }
+}
+

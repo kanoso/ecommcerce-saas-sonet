@@ -54,6 +54,7 @@ export interface AuthStore {
   findOrCreateUser(email: string): Promise<AuthUser>;
   findUser(id: string): Promise<AuthUser | null>;
   findUserByIdentifier(identifier: string): Promise<AuthUser | null>;
+  /** @throws IdentifierTakenError when another account holds an identifier. */
   createUser(data: {
     email?: string | null;
     phone?: string | null;
@@ -62,7 +63,11 @@ export interface AuthStore {
     passwordHash?: string | null;
     role?: string;
   }): Promise<AuthUser>;
-  setPassword(userId: string, passwordHash: string): Promise<void>;
+  /**
+   * Sets the password only if the user has none, in one atomic statement.
+   * @returns false when the user already had one (or does not exist).
+   */
+  setPasswordIfUnset(userId: string, passwordHash: string): Promise<boolean>;
   addSession(session: {
     id: string;
     userId: string;

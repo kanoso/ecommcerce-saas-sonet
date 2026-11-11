@@ -65,9 +65,10 @@ export class RequestLinkPage implements AfterViewInit {
 
   // Register form
   protected readonly regName = new FormControl('', { nonNullable: true });
+  // DNI or phone only: email accounts are created by the link or Google.
   protected readonly regIdentifier = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required],
+    validators: [Validators.required, Validators.pattern(/^(\d{8}|9\d{8})$/)],
   });
   protected readonly regPassword = new FormControl('', {
     nonNullable: true,

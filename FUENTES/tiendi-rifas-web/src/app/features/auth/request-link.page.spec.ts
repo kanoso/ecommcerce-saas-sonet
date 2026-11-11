@@ -109,6 +109,25 @@ describe('RequestLinkPage', () => {
     expect(regCalls[0].pwd).toBe('secret123');
   });
 
+  it('does not register with an email: email accounts use the link or Google', () => {
+    const tabs = el.querySelectorAll('.auth-tab');
+    (tabs[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('DNI, celular o correo');
+
+    const regId = el.querySelector('#reg-id') as HTMLInputElement;
+    const regPwd = el.querySelector('#reg-pwd') as HTMLInputElement;
+    regId.value = 'buyer@example.com';
+    regId.dispatchEvent(new Event('input'));
+    regPwd.value = 'secret123';
+    regPwd.dispatchEvent(new Event('input'));
+
+    submitForm();
+
+    expect(regCalls).toHaveLength(0);
+  });
+
   it('shows error when login API fails', () => {
     typeLogin('72345678', 'wrongpwd');
     submitForm();

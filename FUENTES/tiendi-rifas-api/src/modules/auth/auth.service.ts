@@ -5,7 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import { ValidationFailedError } from '../../common/http/api-errors';
 import { AuthStore, AuthUser } from './auth.store';
-import { InvalidMagicLinkError } from './auth.errors';
+import { IdentifierTakenError, InvalidMagicLinkError } from './auth.errors';
 import { hashPassword, verifyPassword } from './password.util';
 
 export interface AuthOptions {
@@ -51,6 +51,17 @@ const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
 export const hashToken = (token: string): string =>
   createHash('sha256').update(token).digest('hex');
+
+function assertPasswordRules(password: string): void {
+  if (!password || password.length < 6) {
+    throw new ValidationFailedError([
+      {
+        path: 'password',
+        message: 'La contraseña debe tener al menos 6 caracteres',
+      },
+    ]);
+  }
+}
 
 /**
  * D4: no passwords. An address receives a one-time link; the link opens a
@@ -169,70 +180,82 @@ export class AuthService {
         { path: 'identifier', message: 'Identificador requerido' },
       ]);
     }
-    if (!input.password || input.password.length < 6) {
+    assertPasswordRules(input.password);
+
+    // Only a DNI or a phone. An email account is born from a verified link or
+    // Google sign-in: a password account under an unverified address would be
+    // pre-hijacked, waiting for its owner's first link.
+    let phone: string | null = null;
+    let document: string | null = null;
+    if (/^\d{8}$/.test(raw)) {
+      document = raw;
+    } else if (/^9\d{8}$/.test(raw)) {
+      phone = raw;
+    } else if (raw.includes('@')) {
       throw new ValidationFailedError([
         {
-          path: 'password',
-          message: 'La contraseña debe tener al menos 6 caracteres',
+          path: 'identifier',
+          message: 'Para registrarte con correo usa el enlace de acceso o Google',
+        },
+      ]);
+    } else {
+      throw new ValidationFailedError([
+        {
+          path: 'identifier',
+          message: 'Ingresa un DNI (8 dígitos) o celular (9 dígitos)',
         },
       ]);
     }
 
+    // Only brand-new accounts. An existing account without a password (magic
+    // link, Google, operators) is never claimed here: whoever knows its
+    // identifier would otherwise take it over. Its owner sets a password from
+    // a live session instead (setOwnPassword).
     const existing = await this.store.findUserByIdentifier(raw);
-    if (existing && existing.passwordHash) {
+    if (existing) {
       throw new ConflictException(
         'Ya existe una cuenta con este identificador',
       );
     }
 
-    const pwdHash = hashPassword(input.password);
-
     let user: AuthUser;
-    if (existing) {
-      await this.store.setPassword(existing.id, pwdHash);
-      user = { ...existing, passwordHash: pwdHash };
-    } else {
-      let email: string | null = null;
-      let phone: string | null = null;
-      let document: string | null = null;
-
-      if (raw.includes('@')) {
-        const parsed = emailSchema.safeParse(raw);
-        if (!parsed.success) {
-          throw new ValidationFailedError([
-            { path: 'identifier', message: 'Correo inválido' },
-          ]);
-        }
-        email = parsed.data;
-      } else if (/^\d{8}$/.test(raw)) {
-        document = raw;
-      } else if (/^9\d{8}$/.test(raw)) {
-        phone = raw;
-      } else {
-        if (/^\d+$/.test(raw)) {
-          document = raw;
-        } else {
-          throw new ValidationFailedError([
-            {
-              path: 'identifier',
-              message:
-                'Ingresa un DNI (8 dígitos), celular (9 dígitos) o correo válido',
-            },
-          ]);
-        }
-      }
-
+    try {
       user = await this.store.createUser({
-        email,
+        email: null,
         phone,
         document,
         name: input.name?.trim() || null,
-        passwordHash: pwdHash,
+        passwordHash: hashPassword(input.password),
         role: 'buyer',
       });
+    } catch (error) {
+      if (error instanceof IdentifierTakenError) {
+        throw new ConflictException(
+          'Ya existe una cuenta con este identificador',
+        );
+      }
+      throw error;
     }
 
     return this.createSession(user);
+  }
+
+  /**
+   * Lets a signed-in user without a password (magic link, Google) add one.
+   * The caller is the session's user, never an identifier from the request.
+   */
+  async setOwnPassword(userId: string, password: string): Promise<void> {
+    assertPasswordRules(password);
+    const user = await this.store.findUser(userId);
+    if (!user) {
+      throw new UnauthorizedException('A valid session is required');
+    }
+    // The read only tells a missing user apart; the write decides the race.
+    const written = !user.passwordHash &&
+      (await this.store.setPasswordIfUnset(user.id, hashPassword(password)));
+    if (!written) {
+      throw new ConflictException('Esta cuenta ya tiene una contraseña');
+    }
   }
 
   async login(identifier: string, password: string): Promise<OpenedSession> {

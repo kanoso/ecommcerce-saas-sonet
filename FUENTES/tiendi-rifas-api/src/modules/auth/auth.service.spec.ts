@@ -1,9 +1,10 @@
 import { createHash } from 'crypto';
-import { UnauthorizedException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ValidationFailedError } from '../../common/http/api-errors';
 import { AuthService } from './auth.service';
 import { InMemoryAuthStore } from './in-memory-auth.store';
-import { InvalidMagicLinkError } from './auth.errors';
+import { IdentifierTakenError, InvalidMagicLinkError } from './auth.errors';
 
 class FakeClock {
   constructor(public current: Date) {}
@@ -338,6 +339,129 @@ describe('AuthService: magic link (D4)', () => {
           password: 'AnotherPassword',
         }),
       ).rejects.toThrow();
+    });
+
+    it('refuses to attach a password to an existing passwordless account', async () => {
+      const admin = await store.createUser({
+        email: 'admin@example.com',
+        document: '11112222',
+        role: 'admin',
+      });
+      const setPassword = jest.spyOn(store, 'setPasswordIfUnset');
+
+      await expect(
+        service.register({
+          identifier: '11112222',
+          password: 'attacker-pass',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(setPassword).not.toHaveBeenCalled();
+      expect(admin.passwordHash).toBeNull();
+      expect(store.sessions).toHaveLength(0);
+      await expect(
+        service.login('admin@example.com', 'attacker-pass'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('refuses email identifiers: email accounts are born verified, by link or Google', async () => {
+      const attempt = service.register({
+        identifier: 'victim@example.com',
+        password: 'attacker-pass',
+      });
+
+      await expect(attempt).rejects.toThrow(ValidationFailedError);
+      await attempt.catch((error: ValidationFailedError) => {
+        expect(error.issues).toEqual([
+          {
+            path: 'identifier',
+            message: 'Para registrarte con correo usa el enlace de acceso o Google',
+          },
+        ]);
+      });
+      expect(store.users).toHaveLength(0);
+      expect(store.sessions).toHaveLength(0);
+    });
+
+    it('rejects identifiers that are neither a DNI nor a phone', async () => {
+      for (const identifier of ['1234567', '123456789', '8123456789', 'abc12345']) {
+        await expect(
+          service.register({ identifier, password: 'Password123' }),
+        ).rejects.toThrow(ValidationFailedError);
+      }
+      expect(store.users).toHaveLength(0);
+    });
+
+    it('answers 409 when a concurrent registration takes the identifier first', async () => {
+      jest
+        .spyOn(store, 'createUser')
+        .mockRejectedValueOnce(new IdentifierTakenError());
+
+      await expect(
+        service.register({ identifier: '44445555', password: 'Password123' }),
+      ).rejects.toThrow(ConflictException);
+      expect(store.sessions).toHaveLength(0);
+    });
+
+    it('rejects duplicate registration with a ConflictException', async () => {
+      await service.register({ identifier: '88889999', password: 'Password123' });
+
+      await expect(
+        service.register({ identifier: '88889999', password: 'AnotherPassword' }),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('setOwnPassword', () => {
+    it('sets a password for a signed-in user who has none', async () => {
+      const user = await store.createUser({ email: 'buyer@example.com' });
+
+      await service.setOwnPassword(user.id, 'Password123');
+
+      const session = await service.login('buyer@example.com', 'Password123');
+      expect(session.user.id).toBe(user.id);
+    });
+
+    it('refuses a user who already has a password', async () => {
+      const session = await service.register({
+        identifier: '12345678',
+        password: 'Password123',
+      });
+
+      await expect(
+        service.setOwnPassword(session.user.id, 'Other123456'),
+      ).rejects.toThrow(ConflictException);
+      await expect(service.login('12345678', 'Password123')).resolves.toBeDefined();
+    });
+
+    it('refuses when a concurrent request set the password after the read', async () => {
+      const user = await store.createUser({ email: 'buyer@example.com' });
+      // The read sees no password; another request writes one before ours.
+      jest.spyOn(store, 'findUser').mockImplementationOnce(async () => {
+        const snapshot = { ...user };
+        user.passwordHash = 'first-writer-hash';
+        return snapshot;
+      });
+
+      await expect(
+        service.setOwnPassword(user.id, 'Password123'),
+      ).rejects.toThrow(ConflictException);
+      expect(user.passwordHash).toBe('first-writer-hash');
+    });
+
+    it('enforces the password rules', async () => {
+      const user = await store.createUser({ email: 'buyer@example.com' });
+
+      await expect(service.setOwnPassword(user.id, '12345')).rejects.toThrow(
+        ValidationFailedError,
+      );
+      expect(user.passwordHash).toBeNull();
+    });
+
+    it('refuses an unknown user', async () => {
+      await expect(
+        service.setOwnPassword('missing-user', 'Password123'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 });

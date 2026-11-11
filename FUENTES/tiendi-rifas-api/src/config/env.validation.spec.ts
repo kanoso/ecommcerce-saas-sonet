@@ -212,6 +212,7 @@ describe('validateEnv', () => {
       expect(env.RATE_LIMIT_RESERVATION_PER_MINUTE).toBe(10);
       expect(env.RATE_LIMIT_PROOF_PER_MINUTE).toBe(5);
       expect(env.RATE_LIMIT_MAGIC_LINK_PER_15_MINUTES).toBe(5);
+      expect(env.RATE_LIMIT_AUTH_PER_MINUTE).toBe(10);
     });
 
     it('starts in production with its own secret, the email service and the link page', () => {

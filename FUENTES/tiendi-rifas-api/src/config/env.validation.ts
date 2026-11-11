@@ -91,6 +91,8 @@ export const envSchema = z.object({
   RATE_LIMIT_RESERVATION_PER_MINUTE: z.coerce.number().int().positive().default(10),
   RATE_LIMIT_PROOF_PER_MINUTE: z.coerce.number().int().positive().default(5),
   RATE_LIMIT_MAGIC_LINK_PER_15_MINUTES: z.coerce.number().int().positive().default(5),
+  // Password login, registration, Google sign-in and password setup, per client IP.
+  RATE_LIMIT_AUTH_PER_MINUTE: z.coerce.number().int().positive().default(10),
 
   RESERVATION_TTL_MINUTES: z.coerce.number().positive().default(15),
   PROOF_VERIFICATION_TTL_HOURS: z.coerce.number().positive().default(12),

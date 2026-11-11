@@ -26,6 +26,7 @@ import { Env, env } from './modules/raffles/infrastructure/wiring';
           { name: 'reservation', ttl: 60_000, limit: env(config, 'RATE_LIMIT_RESERVATION_PER_MINUTE') },
           { name: 'proof', ttl: 60_000, limit: env(config, 'RATE_LIMIT_PROOF_PER_MINUTE') },
           { name: 'magicLink', ttl: 15 * 60_000, limit: env(config, 'RATE_LIMIT_MAGIC_LINK_PER_15_MINUTES') },
+          { name: 'auth', ttl: 60_000, limit: env(config, 'RATE_LIMIT_AUTH_PER_MINUTE') },
         ],
       }),
     }),
