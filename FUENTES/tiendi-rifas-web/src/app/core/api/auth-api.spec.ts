@@ -70,6 +70,35 @@ describe('AuthApi', () => {
     expect((error as ApiError).code).toBe('MAGIC_LINK_INVALID');
   });
 
+  it('sets a password on the signed-in account', async () => {
+    const result = firstValueFrom(api.setPassword('secreto123'), { defaultValue: undefined });
+    const req = http.expectOne({ method: 'POST', url: 'http://api.test/api/auth/contrasena' });
+    expect(req.request.body).toEqual({ password: 'secreto123' });
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    await expect(result).resolves.toBeUndefined();
+  });
+
+  it('reports an account that already has a password as a 409 ApiError', async () => {
+    const result = firstValueFrom(api.setPassword('secreto123'));
+    http
+      .expectOne('http://api.test/api/auth/contrasena')
+      .flush({ code: 'CONFLICT', message: 'Esta cuenta ya tiene una contraseña' }, { status: 409, statusText: 'Conflict' });
+    const error = await result.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(409);
+    expect((error as ApiError).code).toBe('CONFLICT');
+  });
+
+  it('reports a rate-limited attempt with its buyer-facing message', async () => {
+    const result = firstValueFrom(api.setPassword('secreto123'));
+    http
+      .expectOne('http://api.test/api/auth/contrasena')
+      .flush({ code: 'TOO_MANY_REQUESTS', message: 'Too many requests' }, { status: 429, statusText: 'Too Many Requests' });
+    const error = (await result.catch((e: unknown) => e)) as ApiError;
+    expect(error.status).toBe(429);
+    expect(error.userMessage).toContain('demasiados intentos');
+  });
+
   it('signs out on the server', async () => {
     const result = firstValueFrom(api.signOut());
     http.expectOne({ method: 'POST', url: 'http://api.test/api/auth/salir' }).flush(null, { status: 204, statusText: 'No Content' });

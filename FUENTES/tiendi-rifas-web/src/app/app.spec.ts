@@ -66,6 +66,24 @@ describe('App & @kanoso/raffle-draw integration', () => {
     expect(link?.textContent.trim()).toBe('Mis boletos');
   });
 
+  it('links to set a password when signed in', () => {
+    TestBed.inject(SessionStore).signIn({
+      accessToken: 'access',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      user: { id: 'u-1', email: 'ana@example.com', role: 'BUYER' },
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('header a[href="/cuenta/contrasena"]');
+    expect(link?.textContent.trim()).toBe('Crear contraseña');
+  });
+
+  it('does not link to set a password when signed out', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('header a[href="/cuenta/contrasena"]')).toBeNull();
+  });
+
   it('links to admin panel when signed in as an admin', () => {
     TestBed.inject(SessionStore).signIn({
       accessToken: 'access',
