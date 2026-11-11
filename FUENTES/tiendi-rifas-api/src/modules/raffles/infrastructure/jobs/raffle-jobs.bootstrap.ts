@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { RaffleJobHandlers } from '../../application/jobs/raffle-job-handlers';
@@ -46,11 +52,25 @@ export async function registerRepeatableJobs(
   return registered;
 }
 
+const STARTUP_RETRY_INITIAL_DELAY_MS = 1_000;
+const STARTUP_RETRY_MAX_DELAY_MS = 60_000;
+
+/** Delay before the next start after `attempt` failed: 1 s doubling, capped at 60 s. */
+export function startupRetryDelayMs(attempt: number): number {
+  return Math.min(
+    STARTUP_RETRY_INITIAL_DELAY_MS * 2 ** (attempt - 1),
+    STARTUP_RETRY_MAX_DELAY_MS,
+  );
+}
+
 @Injectable()
-export class RaffleJobsBootstrap implements OnApplicationBootstrap {
+export class RaffleJobsBootstrap implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(RaffleJobsBootstrap.name);
-  /** The background start; awaited only by tests. */
+  /** The latest background attempt; awaited only by tests. */
   started: Promise<void> = Promise.resolve();
+  private ready = false;
+  private stopped = false;
+  private retryTimer?: NodeJS.Timeout;
 
   constructor(
     @InjectQueue(RAFFLE_JOBS_QUEUE) private readonly queue: Queue,
@@ -65,7 +85,8 @@ export class RaffleJobsBootstrap implements OnApplicationBootstrap {
 
   /**
    * Not awaited: Redis or the database being down must neither crash the
-   * app nor hold back app.listen. The minute reconcile catches up later.
+   * app nor hold back app.listen. A failed start is retried with backoff
+   * until it succeeds or the app shuts down.
    */
   async onApplicationBootstrap(): Promise<void> {
     if (!this.runtime.dispatchEmails) {
@@ -73,17 +94,46 @@ export class RaffleJobsBootstrap implements OnApplicationBootstrap {
         'No email adapter in production yet: dispatch-notifications is off and emails stay queued',
       );
     }
-    this.started = this.start().catch((error: unknown) => {
-      const name = error instanceof Error ? error.name : 'Error';
-      this.logger.error(`Jobs could not start: ${name}`);
-    });
+    this.started = this.attemptStart(1);
   }
 
-  private async start(): Promise<void> {
+  /** True once the repeating jobs are registered and the raffles reconciled. */
+  isStarted(): boolean {
+    return this.ready;
+  }
+
+  onModuleDestroy(): void {
+    this.stopped = true;
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = undefined;
+    }
+  }
+
+  private async attemptStart(attempt: number): Promise<void> {
+    if (this.stopped) return;
+    try {
+      await this.start(attempt);
+      this.ready = true;
+    } catch (error: unknown) {
+      if (this.stopped) return;
+      const name = error instanceof Error ? error.name : 'Error';
+      const delayMs = startupRetryDelayMs(attempt);
+      this.logger.warn(
+        `Jobs could not start (attempt ${attempt}): ${name}; retrying in ${delayMs} ms`,
+      );
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = undefined;
+        this.started = this.attemptStart(attempt + 1);
+      }, delayMs);
+    }
+  }
+
+  private async start(attempt: number): Promise<void> {
     const registered = await registerRepeatableJobs(this.queue, this.runtime);
     const scheduled = await this.handlers.reconcileRaffleJobs();
     this.logger.log(
-      `Jobs ready: ${registered.length} repeating, ${scheduled.closes} closes and ${scheduled.draws} draws scheduled, ${scheduled.recovered} recovered, ${scheduled.failed} raffles failed`,
+      `Jobs ready (attempt ${attempt}): ${registered.length} repeating, ${scheduled.closes} closes and ${scheduled.draws} draws scheduled, ${scheduled.recovered} recovered, ${scheduled.failed} raffles failed`,
     );
   }
 }

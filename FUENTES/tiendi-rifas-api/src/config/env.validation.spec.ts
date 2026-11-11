@@ -109,6 +109,14 @@ describe('validateEnv', () => {
     expect(v({}).REDIS_URL).toBe('redis://localhost:55380');
   });
 
+  it('bounds each readiness check to 2 s by default', () => {
+    expect(v({}).HEALTH_CHECK_TIMEOUT_MS).toBe(2_000);
+    expect(v({ HEALTH_CHECK_TIMEOUT_MS: '500' }).HEALTH_CHECK_TIMEOUT_MS).toBe(500);
+    expect(() => v({ HEALTH_CHECK_TIMEOUT_MS: '0' })).toThrow(
+      'Environment validation failed',
+    );
+  });
+
   it('has no fallback round to configure (DT-18)', () => {
     expect(Object.keys(envSchema.shape)).not.toContain(
       'DRAW_FALLBACK_AFTER_MINUTES',

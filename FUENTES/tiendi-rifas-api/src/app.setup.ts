@@ -24,7 +24,7 @@ export function configureApp(app: INestApplication): void {
       .map((origin) => origin.trim())
       .filter(Boolean),
   });
-  app.setGlobalPrefix(prefix, { exclude: ['health'] });
+  app.setGlobalPrefix(prefix, { exclude: ['health', 'health/ready'] });
 
   // As in tiendi-api: the documentation is served outside production only.
   if (config.get<string>('NODE_ENV') !== 'production') {
