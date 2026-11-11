@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
-import { UnauthorizedException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ValidationFailedError } from '../../common/http/api-errors';
 import { AuthService } from './auth.service';
 import { InMemoryAuthStore } from './in-memory-auth.store';
 import { InvalidMagicLinkError } from './auth.errors';
@@ -338,6 +339,74 @@ describe('AuthService: magic link (D4)', () => {
           password: 'AnotherPassword',
         }),
       ).rejects.toThrow();
+    });
+
+    it('refuses to attach a password to an existing passwordless account', async () => {
+      const admin = await store.createUser({
+        email: 'admin@example.com',
+        role: 'admin',
+      });
+      const setPassword = jest.spyOn(store, 'setPassword');
+
+      await expect(
+        service.register({
+          identifier: 'Admin@Example.com',
+          password: 'attacker-pass',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(setPassword).not.toHaveBeenCalled();
+      expect(admin.passwordHash).toBeNull();
+      expect(store.sessions).toHaveLength(0);
+      await expect(
+        service.login('admin@example.com', 'attacker-pass'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('rejects duplicate registration with a ConflictException', async () => {
+      await service.register({ identifier: '88889999', password: 'Password123' });
+
+      await expect(
+        service.register({ identifier: '88889999', password: 'AnotherPassword' }),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('setOwnPassword', () => {
+    it('sets a password for a signed-in user who has none', async () => {
+      const user = await store.createUser({ email: 'buyer@example.com' });
+
+      await service.setOwnPassword(user.id, 'Password123');
+
+      const session = await service.login('buyer@example.com', 'Password123');
+      expect(session.user.id).toBe(user.id);
+    });
+
+    it('refuses a user who already has a password', async () => {
+      const session = await service.register({
+        identifier: '12345678',
+        password: 'Password123',
+      });
+
+      await expect(
+        service.setOwnPassword(session.user.id, 'Other123456'),
+      ).rejects.toThrow(ConflictException);
+      await expect(service.login('12345678', 'Password123')).resolves.toBeDefined();
+    });
+
+    it('enforces the password rules', async () => {
+      const user = await store.createUser({ email: 'buyer@example.com' });
+
+      await expect(service.setOwnPassword(user.id, '12345')).rejects.toThrow(
+        ValidationFailedError,
+      );
+      expect(user.passwordHash).toBeNull();
+    });
+
+    it('refuses an unknown user', async () => {
+      await expect(
+        service.setOwnPassword('missing-user', 'Password123'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 });

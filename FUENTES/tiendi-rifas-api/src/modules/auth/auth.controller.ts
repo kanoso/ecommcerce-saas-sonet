@@ -36,6 +36,10 @@ const loginRequest = z
   })
   .strict();
 
+const setPasswordRequest = z
+  .object({ password: z.string().min(6).max(100) })
+  .strict();
+
 /** D4: access by a one-time email link, no password. */
 @Controller('auth')
 export class AuthController {
@@ -127,6 +131,18 @@ export class AuthController {
         rol: session.user.role,
       },
     };
+  }
+
+  /** Adds a password to the caller's own account, which has none yet. */
+  @Post('contrasena')
+  @HttpCode(204)
+  @UseGuards(SessionGuard)
+  async setPassword(
+    @CurrentUser() principal: Principal,
+    @Body() body: unknown,
+  ): Promise<void> {
+    const { password } = parseWith(setPasswordRequest, body);
+    await this.auth.setOwnPassword(principal.id, password);
   }
 
   @Post('salir')

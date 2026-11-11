@@ -52,6 +52,17 @@ const emailSchema = z.string().trim().toLowerCase().email().max(254);
 export const hashToken = (token: string): string =>
   createHash('sha256').update(token).digest('hex');
 
+function assertPasswordRules(password: string): void {
+  if (!password || password.length < 6) {
+    throw new ValidationFailedError([
+      {
+        path: 'password',
+        message: 'La contraseña debe tener al menos 6 caracteres',
+      },
+    ]);
+  }
+}
+
 /**
  * D4: no passwords. An address receives a one-time link; the link opens a
  * session; a JWT names the session, which a logout revokes. The role is read
@@ -169,70 +180,75 @@ export class AuthService {
         { path: 'identifier', message: 'Identificador requerido' },
       ]);
     }
-    if (!input.password || input.password.length < 6) {
-      throw new ValidationFailedError([
-        {
-          path: 'password',
-          message: 'La contraseña debe tener al menos 6 caracteres',
-        },
-      ]);
-    }
+    assertPasswordRules(input.password);
 
+    // Only brand-new accounts. An existing account without a password (magic
+    // link, Google, operators) is never claimed here: whoever knows its
+    // identifier would otherwise take it over. Its owner sets a password from
+    // a live session instead (setOwnPassword).
     const existing = await this.store.findUserByIdentifier(raw);
-    if (existing && existing.passwordHash) {
+    if (existing) {
       throw new ConflictException(
         'Ya existe una cuenta con este identificador',
       );
     }
 
-    const pwdHash = hashPassword(input.password);
+    let email: string | null = null;
+    let phone: string | null = null;
+    let document: string | null = null;
 
-    let user: AuthUser;
-    if (existing) {
-      await this.store.setPassword(existing.id, pwdHash);
-      user = { ...existing, passwordHash: pwdHash };
-    } else {
-      let email: string | null = null;
-      let phone: string | null = null;
-      let document: string | null = null;
-
-      if (raw.includes('@')) {
-        const parsed = emailSchema.safeParse(raw);
-        if (!parsed.success) {
-          throw new ValidationFailedError([
-            { path: 'identifier', message: 'Correo inválido' },
-          ]);
-        }
-        email = parsed.data;
-      } else if (/^\d{8}$/.test(raw)) {
-        document = raw;
-      } else if (/^9\d{8}$/.test(raw)) {
-        phone = raw;
-      } else {
-        if (/^\d+$/.test(raw)) {
-          document = raw;
-        } else {
-          throw new ValidationFailedError([
-            {
-              path: 'identifier',
-              message:
-                'Ingresa un DNI (8 dígitos), celular (9 dígitos) o correo válido',
-            },
-          ]);
-        }
+    if (raw.includes('@')) {
+      const parsed = emailSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new ValidationFailedError([
+          { path: 'identifier', message: 'Correo inválido' },
+        ]);
       }
-
-      user = await this.store.createUser({
-        email,
-        phone,
-        document,
-        name: input.name?.trim() || null,
-        passwordHash: pwdHash,
-        role: 'buyer',
-      });
+      email = parsed.data;
+    } else if (/^\d{8}$/.test(raw)) {
+      document = raw;
+    } else if (/^9\d{8}$/.test(raw)) {
+      phone = raw;
+    } else {
+      if (/^\d+$/.test(raw)) {
+        document = raw;
+      } else {
+        throw new ValidationFailedError([
+          {
+            path: 'identifier',
+            message:
+              'Ingresa un DNI (8 dígitos), celular (9 dígitos) o correo válido',
+          },
+        ]);
+      }
     }
 
+    const user = await this.store.createUser({
+      email,
+      phone,
+      document,
+      name: input.name?.trim() || null,
+      passwordHash: hashPassword(input.password),
+      role: 'buyer',
+    });
+
     return this.createSession(user);
+  }
+
+  /**
+   * Lets a signed-in user without a password (magic link, Google) add one.
+   * The caller is the session's user, never an identifier from the request.
+   */
+  async setOwnPassword(userId: string, password: string): Promise<void> {
+    assertPasswordRules(password);
+    const user = await this.store.findUser(userId);
+    if (!user) {
+      throw new UnauthorizedException('A valid session is required');
+    }
+    if (user.passwordHash) {
+      throw new ConflictException('Esta cuenta ya tiene una contraseña');
+    }
+    await this.store.setPassword(user.id, hashPassword(password));
   }
 
   async login(identifier: string, password: string): Promise<OpenedSession> {
