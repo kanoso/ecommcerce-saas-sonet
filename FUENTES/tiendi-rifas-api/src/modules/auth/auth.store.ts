@@ -54,6 +54,7 @@ export interface AuthStore {
   findOrCreateUser(email: string): Promise<AuthUser>;
   findUser(id: string): Promise<AuthUser | null>;
   findUserByIdentifier(identifier: string): Promise<AuthUser | null>;
+  /** @throws IdentifierTakenError when another account holds an identifier. */
   createUser(data: {
     email?: string | null;
     phone?: string | null;

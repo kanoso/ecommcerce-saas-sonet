@@ -10,6 +10,9 @@ import {
   QueuedAccessLink,
   StoredSession,
 } from './auth.store';
+import { IdentifierTakenError } from './auth.errors';
+
+const UNIQUE_VIOLATION = 'P2002';
 
 @Injectable()
 export class PrismaAuthStore implements AuthStore {
@@ -124,25 +127,36 @@ export class PrismaAuthStore implements AuthStore {
     passwordHash?: string | null;
     role?: string;
   }): Promise<AuthUser> {
-    return this.prisma.user.create({
-      data: {
-        email: data.email?.toLowerCase().trim() || null,
-        phone: data.phone?.trim() || null,
-        document: data.document?.trim() || null,
-        name: data.name?.trim() || null,
-        passwordHash: data.passwordHash || null,
-        role: data.role || 'buyer',
-      },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        document: true,
-        name: true,
-        role: true,
-        passwordHash: true,
-      },
-    });
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email: data.email?.toLowerCase().trim() || null,
+          phone: data.phone?.trim() || null,
+          document: data.document?.trim() || null,
+          name: data.name?.trim() || null,
+          passwordHash: data.passwordHash || null,
+          role: data.role || 'buyer',
+        },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          document: true,
+          name: true,
+          role: true,
+          passwordHash: true,
+        },
+      });
+    } catch (error) {
+      // Of two concurrent registrations, the unique index lets one through.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === UNIQUE_VIOLATION
+      ) {
+        throw new IdentifierTakenError();
+      }
+      throw error;
+    }
   }
 
   async setPassword(userId: string, passwordHash: string): Promise<void> {

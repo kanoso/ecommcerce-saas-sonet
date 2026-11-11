@@ -5,7 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import { ValidationFailedError } from '../../common/http/api-errors';
 import { AuthStore, AuthUser } from './auth.store';
-import { InvalidMagicLinkError } from './auth.errors';
+import { IdentifierTakenError, InvalidMagicLinkError } from './auth.errors';
 import { hashPassword, verifyPassword } from './password.util';
 
 export interface AuthOptions {
@@ -218,14 +218,24 @@ export class AuthService {
       );
     }
 
-    const user = await this.store.createUser({
-      email: null,
-      phone,
-      document,
-      name: input.name?.trim() || null,
-      passwordHash: hashPassword(input.password),
-      role: 'buyer',
-    });
+    let user: AuthUser;
+    try {
+      user = await this.store.createUser({
+        email: null,
+        phone,
+        document,
+        name: input.name?.trim() || null,
+        passwordHash: hashPassword(input.password),
+        role: 'buyer',
+      });
+    } catch (error) {
+      if (error instanceof IdentifierTakenError) {
+        throw new ConflictException(
+          'Ya existe una cuenta con este identificador',
+        );
+      }
+      throw error;
+    }
 
     return this.createSession(user);
   }

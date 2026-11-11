@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ValidationFailedError } from '../../common/http/api-errors';
 import { AuthService } from './auth.service';
 import { InMemoryAuthStore } from './in-memory-auth.store';
-import { InvalidMagicLinkError } from './auth.errors';
+import { IdentifierTakenError, InvalidMagicLinkError } from './auth.errors';
 
 class FakeClock {
   constructor(public current: Date) {}
@@ -390,6 +390,17 @@ describe('AuthService: magic link (D4)', () => {
         ).rejects.toThrow(ValidationFailedError);
       }
       expect(store.users).toHaveLength(0);
+    });
+
+    it('answers 409 when a concurrent registration takes the identifier first', async () => {
+      jest
+        .spyOn(store, 'createUser')
+        .mockRejectedValueOnce(new IdentifierTakenError());
+
+      await expect(
+        service.register({ identifier: '44445555', password: 'Password123' }),
+      ).rejects.toThrow(ConflictException);
+      expect(store.sessions).toHaveLength(0);
     });
 
     it('rejects duplicate registration with a ConflictException', async () => {
