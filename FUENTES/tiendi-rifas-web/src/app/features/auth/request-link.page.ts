@@ -2,6 +2,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, NgZone, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { GOOGLE_CLIENT_ID } from '../../core/api/api-config';
 import { toApiError } from '../../core/api/api-error';
 import { AuthApi } from '../../core/api/auth-api';
 import { Session } from '../../core/api/api.models';
@@ -20,7 +21,6 @@ declare const google: {
 type RequestStatus = 'idle' | 'sending' | 'sent' | 'error';
 type AuthTab = 'login' | 'register';
 
-const GOOGLE_CLIENT_ID = '603623334254-3ni8p15oq9p3k8qh9ifck96i1jueejfl.apps.googleusercontent.com';
 
 /** Route `/ingresar`: login or register via DNI/phone/email, Google or magic link. */
 @Component({
@@ -38,6 +38,7 @@ export class RequestLinkPage implements AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly returnPath = inject(ReturnPathStore);
   private readonly ngZone = inject(NgZone);
+  private readonly googleClientId = inject(GOOGLE_CLIENT_ID);
 
   protected readonly tab = signal<AuthTab>('login');
   protected readonly status = signal<RequestStatus>('idle');
@@ -110,7 +111,7 @@ export class RequestLinkPage implements AfterViewInit {
     if (typeof google === 'undefined' || !google.accounts?.id) return;
 
     google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: this.googleClientId,
       callback: (res: { credential?: string }) => {
         if (res.credential) {
           this.ngZone.run(() => this.handleGoogleCredential(res.credential!));

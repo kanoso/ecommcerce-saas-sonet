@@ -13,6 +13,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { GOOGLE_CLIENT_ID } from '../../core/api/api-config';
 import { toApiError } from '../../core/api/api-error';
 import { AuthApi } from '../../core/api/auth-api';
 import { Session } from '../../core/api/api.models';
@@ -30,7 +31,6 @@ declare const google: {
   };
 };
 
-const GOOGLE_CLIENT_ID = '603623334254-3ni8p15oq9p3k8qh9ifck96i1jueejfl.apps.googleusercontent.com';
 
 /**
  * Wording of guide §7.1 (the prototype's "10 min" is outdated). The real
@@ -67,6 +67,7 @@ export class RaffleDetailPage implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ngZone = inject(NgZone);
+  private readonly googleClientId = inject(GOOGLE_CLIENT_ID);
 
   protected readonly reserveLabel = RESERVE_LABEL;
   protected readonly raffleId = this.route.snapshot.paramMap.get('id') ?? '';
@@ -225,7 +226,7 @@ export class RaffleDetailPage implements OnInit {
     if (typeof google === 'undefined' || !google.accounts?.id) return;
 
     google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: this.googleClientId,
       callback: (res: { credential?: string }) => {
         if (res.credential) {
           this.ngZone.run(() => this.handleGoogleCredential(res.credential!));
