@@ -45,6 +45,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/my-tickets/my-tickets.page').then((m) => m.MyTicketsPage),
   },
   {
+    path: 'cuenta/contrasena',
+    title: 'Crear contraseña · Plataforma de Rifas',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./features/auth/set-password.page').then((m) => m.SetPasswordPage),
+  },
+  {
     path: 'ingresar',
     title: 'Ingresar · Plataforma de Rifas',
     loadComponent: () => import('./features/auth/request-link.page').then((m) => m.RequestLinkPage),

@@ -16,6 +16,8 @@
         }
         <a class="topbar__action" routerLink="/" routerLinkActive="topbar__action--active" [routerLinkActiveOptions]="{ exact: true }">Rifas</a>
         <a class="topbar__action" routerLink="/mis-boletos" routerLinkActive="topbar__action--active" ariaCurrentWhenActive="page">Mis boletos</a>
+        <!-- The session does not say whether a password exists; the page handles 409. -->
+        <a class="topbar__action" routerLink="/cuenta/contrasena" routerLinkActive="topbar__action--active" ariaCurrentWhenActive="page">Crear contraseña</a>
         <button type="button" class="topbar__action" (click)="signOut()">Salir</button>
       } @else {
         <a class="topbar__action" routerLink="/" routerLinkActive="topbar__action--active" [routerLinkActiveOptions]="{ exact: true }">Rifas</a>
