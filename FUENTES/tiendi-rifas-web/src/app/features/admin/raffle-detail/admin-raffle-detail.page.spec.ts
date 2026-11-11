@@ -83,7 +83,7 @@ describe('AdminRaffleDetailPage', () => {
     deleteDraftRaffle: ReturnType<typeof vi.fn>;
     availableTickets: ReturnType<typeof vi.fn>;
     sellInPerson: ReturnType<typeof vi.fn>;
-    proofFileUrl: ReturnType<typeof vi.fn>;
+    proofFile: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -111,7 +111,7 @@ describe('AdminRaffleDetailPage', () => {
       deleteDraftRaffle: vi.fn().mockReturnValue(of(undefined)),
       availableTickets: vi.fn().mockReturnValue(of([42, 43, 44])),
       sellInPerson: vi.fn(),
-      proofFileUrl: vi.fn((id: string) => `/api/ordenes/${id}/comprobante?token=test-tok`),
+      proofFile: vi.fn().mockReturnValue(of({ blob: new Blob(['png'], { type: 'image/png' }), filename: 'comprobante.png' })),
     };
 
     await TestBed.configureTestingModule({
@@ -202,12 +202,21 @@ describe('AdminRaffleDetailPage', () => {
     expect(activeEl.textContent).toContain('#8');
     expect(activeEl.textContent).toContain('Pagado');
 
-    // Check proof link is rendered for order with proof
-    const proofLink = activeEl.querySelector('.btn-view-proof') as HTMLAnchorElement;
-    expect(proofLink).not.toBeNull();
-    expect(proofLink.textContent).toContain('Ver comprobante');
-    expect(proofLink.getAttribute('href')).toBe('/api/ordenes/ord-123/comprobante?token=test-tok');
-    expect(proofLink.getAttribute('target')).toBe('_blank');
+    // The proof is fetched with the Authorization header, never linked with a token in the URL
+    const proofButton = activeEl.querySelector('.btn-view-proof') as HTMLButtonElement;
+    expect(proofButton).not.toBeNull();
+    expect(proofButton.tagName).toBe('BUTTON');
+    expect(proofButton.textContent).toContain('Ver comprobante');
+    expect(proofButton.getAttribute('href')).toBeNull();
+    expect(activeEl.innerHTML).not.toContain('token=');
+    const popup = { location: { href: 'about:blank' }, opener: window as unknown, close: vi.fn() };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    Object.defineProperty(URL, 'createObjectURL', { value: vi.fn(() => 'blob:proof-ord-123'), configurable: true, writable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true, writable: true });
+    proofButton.click();
+    expect(adminApiMock.proofFile).toHaveBeenCalledWith('ord-123');
+    expect(popup.location.href).toBe('blob:proof-ord-123');
+    openSpy.mockRestore();
 
     const drawBtn = activeEl.querySelector('.btn-draw') as HTMLButtonElement;
     expect(drawBtn).not.toBeNull();

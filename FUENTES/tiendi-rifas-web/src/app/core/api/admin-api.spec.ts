@@ -439,24 +439,92 @@ describe('AdminApi', () => {
     expect(changes).toHaveLength(0);
   });
 
-  it('builds proofFileUrl with token when session is active', () => {
-    const session = TestBed.inject(SessionStore);
-    session.signIn({
-      accessToken: 'jwt-token-xyz',
-      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
-      user: { id: 'u1', email: 'u1@example.com', role: 'admin' },
+  describe('proofFile (authenticated blob download)', () => {
+    const signIn = () =>
+      TestBed.inject(SessionStore).signIn({
+        accessToken: 'jwt-token-xyz',
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        user: { id: 'u1', email: 'u1@example.com', role: 'admin' },
+      });
+
+    it('requests GET /ordenes/:id/comprobante as a blob, never with the token in the URL', async () => {
+      signIn();
+      const filePromise = firstValueFrom(api.proofFile('order 123'));
+
+      const req = http.expectOne((r) => r.url.startsWith(`${BASE_URL}/ordenes/`));
+      expect(req.request.method).toBe('GET');
+      expect(req.request.url).toBe(`${BASE_URL}/ordenes/order%20123/comprobante`);
+      expect(req.request.urlWithParams).not.toContain('token');
+      expect(req.request.params.has('token')).toBe(false);
+      expect(req.request.responseType).toBe('blob');
+      req.flush(new Blob(['png-bytes'], { type: 'image/png' }), {
+        headers: { 'Content-Type': 'image/png', 'Content-Disposition': 'inline; filename="comprobante"' },
+      });
+
+      const file = await filePromise;
+      expect(file.blob.type).toBe('image/png');
+      expect(file.filename).toBe('comprobante.png');
     });
 
-    const url = api.proofFileUrl('order-123');
-    expect(url).toBe(`${BASE_URL}/ordenes/order-123/comprobante?token=jwt-token-xyz`);
-  });
+    it('falls back to a filename built from the order id and the content type', async () => {
+      const filePromise = firstValueFrom(api.proofFile('ord-9'));
 
-  it('builds proofFileUrl without token when session is not active', () => {
-    const session = TestBed.inject(SessionStore);
-    session.signOut();
+      http
+        .expectOne(`${BASE_URL}/ordenes/ord-9/comprobante`)
+        .flush(new Blob(['%PDF'], { type: 'application/pdf' }), { headers: { 'Content-Type': 'application/pdf' } });
 
-    const url = api.proofFileUrl('order-123');
-    expect(url).toBe(`${BASE_URL}/ordenes/order-123/comprobante`);
+      expect((await filePromise).filename).toBe('comprobante-ord-9.pdf');
+    });
+
+    it('maps a JSON error sent as a blob to an ApiError with its user message', async () => {
+      const filePromise = firstValueFrom(api.proofFile('ord-9'));
+
+      http.expectOne(`${BASE_URL}/ordenes/ord-9/comprobante`).flush(
+        new Blob([JSON.stringify({ code: 'ORDER_NOT_FOUND', message: 'Order not found' })], {
+          type: 'application/json',
+        }),
+        { status: 404, statusText: 'Not Found' },
+      );
+
+      await expect(filePromise).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 404,
+        code: 'ORDER_NOT_FOUND',
+        userMessage: 'No encontramos esta orden.',
+      });
+    });
+
+    it('maps a 401 without a JSON body to the session-expired message', async () => {
+      const filePromise = firstValueFrom(api.proofFile('ord-9'));
+
+      http
+        .expectOne(`${BASE_URL}/ordenes/ord-9/comprobante`)
+        .flush(new Blob(['nope'], { type: 'text/plain' }), { status: 401, statusText: 'Unauthorized' });
+
+      await expect(filePromise).rejects.toMatchObject({
+        status: 401,
+        code: 'UNAUTHORIZED',
+        userMessage: 'Tu sesión terminó. Ingresa de nuevo.',
+      });
+    });
+
+    it('maps a 403 to the forbidden message', async () => {
+      const filePromise = firstValueFrom(api.proofFile('ord-9'));
+
+      http
+        .expectOne(`${BASE_URL}/ordenes/ord-9/comprobante`)
+        .flush(new Blob([]), { status: 403, statusText: 'Forbidden' });
+
+      await expect(filePromise).rejects.toMatchObject({
+        status: 403,
+        code: 'FORBIDDEN',
+        userMessage: 'No tienes permiso para realizar esta acción.',
+      });
+    });
+
+    it('no longer exposes a URL builder that could carry the token', () => {
+      expect((api as unknown as Record<string, unknown>)['proofFileUrl']).toBeUndefined();
+    });
   });
 
   it('executes in-person sale via POST /admin/rifas/:id/venta-presencial and maps response', async () => {

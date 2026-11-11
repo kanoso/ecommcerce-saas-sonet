@@ -1,9 +1,8 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map } from 'rxjs';
-import { SessionStore } from '../session/session.store';
+import { Observable, catchError, from, map, switchMap, throwError } from 'rxjs';
 import { API_BASE_URL } from './api-config';
-import { rethrowAsApiError } from './api-error';
+import { ApiError, rethrowAsApiError, toApiError, userMessageFor } from './api-error';
 import {
   AdminPaymentAccountDto,
   AdminRefundDto,
@@ -64,19 +63,96 @@ import {
   RaffleSummary,
 } from './api.models';
 
+/** A downloaded proof file and the name to save it under. */
+export interface ProofFile {
+  blob: Blob;
+  filename: string;
+}
+
+const PROOF_EXTENSIONS: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
+
+/** Default codes of the API for bodiless failures (src/common/http/api-errors.ts). */
+const STATUS_CODES: Record<number, string> = {
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+};
+
+function filenameFromDisposition(header: string | null): string | null {
+  if (!header) {
+    return null;
+  }
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
+  const name = match?.[1]?.trim();
+  if (!name) {
+    return null;
+  }
+  let decoded = name;
+  try {
+    decoded = decodeURIComponent(name);
+  } catch {
+    // Keep the raw name when it is not valid percent-encoding.
+  }
+  return decoded.replace(/[/\\]/g, '_');
+}
+
+function toProofFile(orderId: string, response: HttpResponse<Blob>): ProofFile {
+  const blob = response.body ?? new Blob();
+  const type = (response.headers.get('Content-Type') ?? blob.type).split(';')[0].trim().toLowerCase();
+  const extension = PROOF_EXTENSIONS[type];
+  const base = filenameFromDisposition(response.headers.get('Content-Disposition')) ?? `comprobante-${orderId}`;
+  const filename = extension && !/\.[a-z0-9]+$/i.test(base) ? `${base}.${extension}` : base;
+  return { blob, filename };
+}
+
+/**
+ * With `responseType: 'blob'` the JSON error body arrives as a Blob, so it is
+ * parsed here before the usual ApiError mapping.
+ */
+async function blobErrorToApiError(error: unknown): Promise<ApiError> {
+  if (!(error instanceof HttpErrorResponse) || error.status === 0) {
+    return toApiError(error);
+  }
+  let body: unknown = error.error;
+  if (body instanceof Blob) {
+    try {
+      body = JSON.parse(await body.text());
+    } catch {
+      body = null;
+    }
+  }
+  const parsed = toApiError(new HttpErrorResponse({ error: body, status: error.status, statusText: error.statusText }));
+  const fallbackCode = STATUS_CODES[error.status];
+  return parsed.code.startsWith('HTTP_') && fallbackCode
+    ? new ApiError(error.status, fallbackCode, userMessageFor(fallbackCode))
+    : parsed;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
-  private readonly session = inject(SessionStore);
 
   /**
-   * URL to view or download the proof file.
+   * `GET /ordenes/:id/comprobante`: the proof file as a blob. The request
+   * goes through HttpClient so the auth interceptor sends the session token
+   * in the Authorization header; it is never put in a URL.
    */
-  proofFileUrl(orderId: string): string {
-    const token = this.session.activeToken();
-    const query = token ? `?token=${encodeURIComponent(token)}` : '';
-    return `${this.baseUrl}/ordenes/${encodeURIComponent(orderId)}/comprobante${query}`;
+  proofFile(orderId: string): Observable<ProofFile> {
+    return this.http
+      .get(`${this.baseUrl}/ordenes/${encodeURIComponent(orderId)}/comprobante`, {
+        observe: 'response',
+        responseType: 'blob',
+      })
+      .pipe(
+        map((response) => toProofFile(orderId, response)),
+        catchError((error: unknown) => from(blobErrorToApiError(error)).pipe(switchMap((e) => throwError(() => e)))),
+      );
   }
 
   /**
