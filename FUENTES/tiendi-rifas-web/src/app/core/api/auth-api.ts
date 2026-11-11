@@ -47,6 +47,13 @@ export class AuthApi {
       .pipe(map(toSession), catchError(rethrowAsApiError));
   }
 
+  /** Adds a password to the signed-in account; 409 when it already has one. */
+  setPassword(password: string): Observable<void> {
+    return this.http
+      .post<void>(`${this.baseUrl}/auth/contrasena`, { password })
+      .pipe(map(() => undefined), catchError(rethrowAsApiError));
+  }
+
   signOut(): Observable<void> {
     return this.http
       .post<void>(`${this.baseUrl}/auth/salir`, null)
