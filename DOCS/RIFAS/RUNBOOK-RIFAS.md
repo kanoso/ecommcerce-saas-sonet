@@ -72,6 +72,22 @@ El sistema emite alertas visibles en el panel administrativo (`/admin`) en tiemp
   - Aunque drand esté inaccesible durante minutos u horas, cuando el servicio se restablezca, el pulso correspondiente a `drandRound` seguirá disponible y con la misma firma BLS.
   - La acción correcta es esperar la recuperación de la red de drand o verificar que la red de salida de la API permita tráfico HTTPS saliente hacia los relays.
 
+### 3.4 Rechazos del Sorteo con Varios Premios (DT-21)
+
+Aplica a rifas con más de un premio (algoritmo v2). Detalle funcional: [SORTEO-MULTIPREMIO.md](SORTEO-MULTIPREMIO.md). Todos los casos de sorteo muestran la alerta `DRAW_BLOCKED` y dejan la rifa en `CLOSED`; el motivo queda en `AuditEvent` (`DRAW_REFUSED`) o en el nombre del error de la alerta.
+
+| Motivo / Error | Severidad | Causa Raíz | Acción Inmediata |
+|---|---|---|---|
+| `DRAW_REFUSED` / `DRAW_CONFIG_FROZEN_LATE` | **Crítica** | `drawConfigFrozenAt` es igual o posterior a la publicación de la ronda de drand: el cierre de ventas corrió tarde (job demorado o caído) y no puede probarse que el modo de exclusión se fijó a ciegas. El sorteo se rechaza antes de consultar drand. Datos: `drawConfigFrozenAt`, `roundPublishedAt`, `drandRound`. | No reintentar ni editar `drawConfigFrozenAt` (trigger). Revisar por qué el job `close-sales` se demoró. Escalar al responsable técnico y legal. Ver nota de salida abajo. |
+| `DRAW_REFUSED` / `DRAW_CONFIG_MISMATCH` | **Crítica** | La configuración actual (modo, intento ganador, cantidad de premios o grupos por comprador) no da el `drawConfigHash` congelado al cierre. Indica escritura directa en la base (los triggers bloquean estos cambios desde la aplicación). Datos: `expectedHash`, `actualHash`, `winnerExclusionMode`. | Mismo protocolo forense que §3.1: preservar evidencia (`Raffle`, `TicketOrder`, `Ticket`, `AuditEvent`), revisar `WINNER_EXCLUSION_MODE_CHANGED` y cambios de `TicketOrder.userId`. No editar el hash. |
+| `DRAW_REFUSED` / `WINNING_TICKET_WITHOUT_ORDER` (v2) | **Crítica** | Igual que §3.2; en v2 el evento agrega `prizePosition`. | Seguir §3.2. |
+| `DrawNotPossibleError` sin hash ("has several prizes but no draw configuration frozen at the close") | **Crítica** | Rifa v2 en `CLOSED` sin `drawConfigHash`. El job falla sin reintentos y la alerta lleva el nombre del error. | Tratar como incidente de integridad (§3.1). Revisar el evento `SALES_CLOSED` de la rifa. |
+| `MissingRaffleDataError` (`RAFFLE_DATA_MISSING`, 409) | **Crítica** | Al registrar el sorteo, un ganador no apunta a un `RafflePrize` persistido en su posición (rifa guardada sin sus premios), o el número ganador no está entre los vendidos. Se rechaza sin escribir nada. | No crear premios a mano: el trigger lo impide fuera de `DRAFT` y publicaría un premio no comprometido. Revisar `RafflePrize` de la rifa y escalar a nivel 3. |
+| `SALES_CLOSED` / `INVALID_RAFFLE_TRANSITION` (409) en `PATCH /api/admin/rifas/:id/modo-exclusion` | **Informativa** | Intento de cambiar el modo desde `salesCloseAt` o con la rifa ya cerrada. Es el comportamiento esperado. | Ninguna. El modo quedó congelado en `drawConfigHash`. |
+| Excepciones de base `Raffle_exclusion_mode_locked`, `Raffle_draw_config_frozen`, `RafflePrize_draft_only`, `TicketOrder_buyer_frozen`, `Ticket_order_frozen`, `DrawWinner records are append-only` | **Alta** | Una escritura (normalmente directa en la base) intentó cambiar la configuración congelada, los premios fuera de `DRAFT`, el comprador o la orden de un boleto tras el cierre, o un resultado ya sorteado. | Identificar el origen de la escritura. No desactivar triggers. Si vino de la aplicación, abrir incidente de código. |
+
+**Salida de una rifa bloqueada por configuración:** `CancelAlteredRaffle` (DT-15) solo cancela si la lista de vendidos cambió; con la lista intacta responde `SoldListIntactError`. La cancelación común solo admite `DRAFT` o `ACTIVE`. Por eso, una rifa rechazada por `DRAW_CONFIG_FROZEN_LATE` con la lista intacta hoy no tiene salida en el sistema: documentar el caso y escalar; la vía de cancelación es una decisión abierta (DT-21).
+
 ---
 
 ## 4. Gestión de Reembolsos y Cuatro Ojos (DT-04, DT-17)
@@ -137,3 +153,66 @@ Al intentar marcar un reembolso como completado en `/admin/reembolsos`, la API p
   3. Una vez aprobada, entra en vigencia de inmediato para nuevas órdenes.
   4. La desactivación de una cuenta existente puede ser ejecutada directamente por cualquier operador (HTTP 200).
 - Cada comprobante almacena una instantánea inmutable (`cuenta_id` y `cuenta_version`) de la cuenta a la cual el comprador pagó, blindando auditorías ante cambios posteriores de cuentas.
+
+---
+
+## 8. Despliegue en rifa-test
+
+Procedimiento validado en el despliegue del sorteo con varios premios (commit `330997f`). Los archivos de Docker Compose y `Dockerfile.api` viven en el servidor, no en el repositorio.
+
+### 8.1 Entorno
+
+| Elemento | Valor |
+|---|---|
+| Servidor | `192.168.1.51` |
+| Ruta | `/opt/tiendi/rifas` |
+| Proyecto Docker Compose | `tiendi-rifas` |
+| Servicios | `postgres`, `redis`, `api` (construido con `Dockerfile.api`), `web` (Caddy sirviendo `./web` en el puerto `4001`, detrás de Cloudflare) |
+| Migraciones | El contenedor `api` ejecuta `prisma migrate deploy` al arrancar. |
+
+> No se registran en este documento contraseñas, tokens, claves ni rutas de llaves. Se obtienen por el canal de credenciales del equipo.
+
+### 8.2 Pasos
+
+1. **Compilar en local** (desde `FUENTES/`):
+
+   ```bash
+   (cd packages/raffle-draw && npm run build)
+   (cd tiendi-rifas-api && npx prisma generate && npm run build)
+   (cd tiendi-rifas-web && npx ng build)   # salida: dist/tiendi-rifas-web/browser
+   ```
+
+2. **Respaldar la base** en el servidor, desde `/opt/tiendi/rifas`:
+
+   ```bash
+   docker compose exec -T postgres pg_dump -U postgres -Fc rifas > backups/<nombre>.dump
+   ```
+
+3. **Probar las migraciones nuevas sobre una copia:** levantar un contenedor temporal `postgres:15-alpine`, restaurar en él el respaldo del paso 2, aplicar las migraciones nuevas y confirmar que terminan sin error. Eliminar el contenedor temporal al terminar.
+4. **Guardar la versión anterior** en `prev-<timestamp>` (los directorios que se van a reemplazar en el paso 5).
+5. **Sincronizar los artefactos** al servidor:
+
+   | Origen local | Destino |
+   |---|---|
+   | `packages/raffle-draw/{dist,package.json}` | `packages/raffle-draw/` |
+   | `tiendi-rifas-api/{dist,package.json,package-lock.json,prisma}` | `tiendi-rifas-api/` |
+   | `tiendi-rifas-web/dist/tiendi-rifas-web/browser/` | `web/` |
+
+   El directorio `web/` es de solo lectura: ejecutar antes `chmod -R u+w web`.
+
+6. **Reconstruir y levantar la API:**
+
+   ```bash
+   docker compose up -d --build api
+   ```
+
+   Al arrancar, el contenedor aplica las migraciones con `prisma migrate deploy`. Revisar sus logs hasta ver la API lista.
+
+7. **Prueba de humo:** responder correctamente `/`, `/health` y `/api/rifas`.
+8. **Verificación en el navegador:** abrir la página de verificación de una rifa ya sorteada y confirmar que todas las comprobaciones pasan (una rifa v1 debe verificarse igual que antes del despliegue).
+
+### 8.3 Reversión
+
+1. Restaurar los directorios guardados en `prev-<timestamp>` (paso 4).
+2. Restaurar la base con `pg_restore` desde el respaldo del paso 2. Es obligatorio si se aplicaron migraciones: el código anterior no conoce las columnas y triggers nuevos.
+3. `docker compose up -d --build api` y repetir la prueba de humo (§8.2, paso 7).

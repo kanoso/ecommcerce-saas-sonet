@@ -602,3 +602,39 @@ La página de verificación comprueba que la semilla corresponde al compromiso, 
 - Los valores guardados dependen del navegador: se pierden al borrar los datos del sitio, en modo privado o en otro dispositivo. No se sincronizan.
 - El correo agrega unos 500 caracteres; para que siga dentro del límite del servicio de correo, la lista de números se recorta antes (unos 600 caracteres) y termina en "y N más".
 - La librería de curvas se carga con la página de verificación, que ya es una ruta diferida, y no al pulsar "Recalcular". Así el servidor de desarrollo la prepara al cargar la página: cargada a pedido, la preparación recargaba la página en medio de la verificación.
+
+---
+
+## DT-21: Sorteo con varios premios: modo congelado al cierre, v1 intacto y rechazo en lugar de premio fantasma
+
+**Fecha:** 2026-11-18
+**Estado:** Implementada (commit `330997f`); queda abierta una pregunta de producto (aviso a compradores)
+**Fase:** Rifas con varios premios
+**Detalle:** [SORTEO-MULTIPREMIO.md](SORTEO-MULTIPREMIO.md)
+
+### Contexto
+Una rifa puede tener hasta 20 premios ordenados, sorteados uno tras otro con la misma semilla y la misma ronda de drand. Tras cada premio sale del bolillero el boleto ganador (`TICKET_ONLY`) o todos los boletos de su comprador (`BUYER`). El modo cambia quién gana los premios siguientes: si el operador pudiera elegirlo cuando la aleatoriedad de la ronda ya es pública, podría calcular los dos resultados y quedarse con el que prefiera. Además, las rifas de un solo premio ya publicadas y sorteadas tienen un resultado y una verificación que no pueden cambiar.
+
+### Decisión
+1. **Modo congelado al cierre:** el modo se edita en `DRAFT`, y en `ACTIVE` solo antes de `salesCloseAt` (`PATCH /api/admin/rifas/:id/modo-exclusion`, con auditoría `WINNER_EXCLUSION_MODE_CHANGED`). El cierre `ACTIVE → CLOSED` calcula `drawConfigHash` (modo, intento ganador, cantidad de premios y, en `BUYER`, los grupos de boletos por comprador) en la misma transacción que `soldListHash`, y registra `drawConfigFrozenAt`. La base lo sostiene con triggers: el modo se bloquea desde `salesCloseAt` aunque el job de cierre no haya corrido, el hash y la hora se escriben una sola vez, y la hora se toma del reloj de la base si el de la aplicación va atrasado.
+2. **El sorteo v2 exige el congelamiento previo a la ronda:** si `drawConfigFrozenAt` no es anterior a la publicación de la ronda (`genesis + (round − 1) × period`) se rechaza con `DRAW_CONFIG_FROZEN_LATE`; si la configuración actual no da el hash congelado, con `DRAW_CONFIG_MISMATCH`. Los dos dejan `DRAW_BLOCKED` y la rifa queda `CLOSED`.
+3. **v1 y v2 separados:** una rifa de un premio sigue con `computeWinnerSequence` (v1) sin cambios. Solo una rifa con más de un premio usa `computeMultiPrizeWinners` (v2), cuyo digest agrega `":prize:p:attempt:k"`. El navegador decide la versión por la cantidad de premios publicada, no por la que informa el servidor.
+4. **Premio desierto en lugar de rechazo:** si el bolillero tiene menos boletos que el intento ganador, ese premio y los siguientes quedan `VOID`. El sorteo se registra igual.
+5. **Rechazo en lugar de premio fantasma:** cada ganador debe apuntar a un `RafflePrize` persistido en su posición. Si falta, el registro del sorteo se rechaza sin escribir nada (`MissingRaffleDataError`) en vez de inventar un premio que nadie publicó. Los premios solo cambian en `DRAFT` (trigger) y los resultados (`DrawWinner`) son solo de inserción.
+6. **Ancla en el correo de pago:** el correo de pago aprobado agrega la cantidad de premios, el intento ganador y, con varios premios, el modo vigente al pagar, aclarando que puede cambiar hasta el cierre.
+
+### Alternativas descartadas
+- **Modo libre hasta el sorteo:** permite elegir el resultado conociendo la aleatoriedad. Descartada.
+- **Modo fijo desde la publicación:** más simple y anclable en todos los correos, pero quita al operador la posibilidad de corregir el modo mientras vende. Se eligió congelarlo al cierre, que sigue siendo antes de la ronda.
+- **Pasar todas las rifas a v2:** con un premio, v2 da otro resultado que v1 por el sufijo del digest. Rompería la verificación de los sorteos ya hechos. Descartada.
+- **Rechazar el sorteo si el bolillero no alcanza:** dejaría sin sortear los premios que sí alcanzan. Se prefirió `VOID` para los premios que no pueden sortearse.
+- **Crear el premio faltante al sortear:** publicaría un resultado para un premio no comprometido. Descartada a favor del rechazo.
+
+### Consecuencias
+- Nadie puede elegir el modo ni la agrupación por comprador después de conocer la ronda: el hash congelado lo impide y el navegador lo recalcula.
+- Un job de cierre que corre después de la publicación de la ronda deja la rifa v2 sin sorteo posible.
+- **Decisión abierta:** esa rifa no tiene hoy vía de cancelación. `CancelAlteredRaffle` (DT-15) exige que la lista de vendidos haya cambiado (`SoldListIntactError` si está intacta) y la cancelación común solo admite `DRAFT` o `ACTIVE`. Hace falta definir la salida, con reembolso total, para una rifa con la lista intacta y la configuración rechazada.
+- Tras el cierre no puede cambiar el comprador de una orden ni la orden de un boleto vendido (triggers), porque alimentan los grupos del hash.
+- **Límite residual:** el correo ancla el modo al momento del pago, no el hash, que se calcula después. Si el modo cambia mientras la rifa está `ACTIVE`, no se avisa a los compradores que ya pagaron: queda como pregunta de producto abierta.
+- El navegador no comprueba `drawConfigFrozenAt` contra la hora de la ronda; esa regla la aplica solo la API.
+- Las migraciones son `20261117000000_multi_prize_raffles` y `20261118000000_draw_config_integrity_guards`.
