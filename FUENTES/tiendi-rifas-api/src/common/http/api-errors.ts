@@ -48,6 +48,7 @@ export const API_ERRORS: Record<string, { status: number; code: string }> = {
   TicketNotAvailableError: { status: 409, code: 'TICKETS_UNAVAILABLE' },
   SoldListMismatchError: { status: 409, code: 'SOLD_LIST_MISMATCH' },
   SoldListIntactError: { status: 409, code: 'SOLD_LIST_INTACT' },
+  DrawNotRefusedForConfigError: { status: 409, code: 'DRAW_NOT_REFUSED_FOR_CONFIG' },
   WinningTicketWithoutOrderError: { status: 409, code: 'WINNING_TICKET_WITHOUT_ORDER' },
   DrawNotPossibleError: { status: 409, code: 'DRAW_NOT_POSSIBLE' },
   StaleStateError: { status: 409, code: 'STALE_STATE' },

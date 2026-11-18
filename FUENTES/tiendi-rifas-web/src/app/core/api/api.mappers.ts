@@ -145,6 +145,11 @@ export function toRaffleSummary(dto: RaffleSummaryDto): RaffleSummary {
     prizeImages: Array.isArray(dto.imagenes_premio) ? dto.imagenes_premio : [],
     prizes: toPrizes(dto.premios, dto),
     winnerExclusionMode: toExclusionMode(dto.modo_exclusion_ganador),
+    ...(dto.sorteo_rechazado !== undefined && {
+      refusedDraw: dto.sorteo_rechazado
+        ? { reason: dto.sorteo_rechazado.motivo, at: dateOrNull(dto.sorteo_rechazado.fecha) }
+        : null,
+    }),
   };
 }
 

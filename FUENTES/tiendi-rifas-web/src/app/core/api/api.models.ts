@@ -72,6 +72,18 @@ export interface RaffleSummary {
   availableCount: number | null;
   /** Null when the API does not report it or it is blank. */
   authorizationResolution: string | null;
+  /**
+   * Admin detail only (DT-21): the draw was refused for its configuration and
+   * the raffle can only be cancelled with a full refund. Null when it was not;
+   * absent on routes that do not report it.
+   */
+  refusedDraw?: RefusedDraw | null;
+}
+
+export interface RefusedDraw {
+  /** DRAW_CONFIG_FROZEN_LATE, DRAW_CONFIG_MISMATCH or DRAW_CONFIG_MISSING. */
+  reason: string;
+  at: Date | null;
 }
 
 /** Public status of a number. Anything unknown is shown as UNAVAILABLE. */

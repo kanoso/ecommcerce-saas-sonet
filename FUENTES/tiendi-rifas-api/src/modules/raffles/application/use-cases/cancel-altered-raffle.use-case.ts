@@ -1,22 +1,17 @@
 import { normalizeSoldNumbers, soldListHash } from '@kanoso/raffle-draw';
-import {
-  OperatorAlertType,
-  OrderStatus,
-  Raffle,
-  RaffleNotFoundError,
-  RaffleStatus,
-  RaffleValidationError,
-  parseOperatorId,
-} from '../../domain';
+import { Raffle, parseOperatorId } from '../../domain';
 import {
   Clock,
   LedgerTransaction,
   RaffleJobScheduler,
   TicketLedger,
 } from '../ports';
-import { refundRaffleBuyers } from './refund-raffle-buyers';
-
-const MAX_REASON_LENGTH = 500;
+import {
+  dropPendingDraw,
+  lockRaffleToCancel,
+  parseCancelReason,
+  settleCancelledClosedRaffle,
+} from './closed-raffle-cancel';
 
 export interface CancelAlteredRaffleCommand {
   raffleId: string;
@@ -40,13 +35,14 @@ export class CancelAlteredRaffleUseCase {
 
   async execute(command: CancelAlteredRaffleCommand): Promise<Raffle> {
     const operatorId = parseOperatorId(command.operatorId);
-    const reason = parseReason(command.reason);
+    const reason = parseCancelReason(
+      command.reason,
+      'Cancelling a raffle with an altered sold list needs a reason',
+    );
     const cancelled = await this.ledger.run((tx) =>
       this.cancel(tx, { ...command, operatorId }, reason),
     );
-    // After the commit, best effort: a draw job that still runs finds the
-    // raffle cancelled and does nothing.
-    await this.jobs?.cancel('draw', cancelled.id).catch(() => undefined);
+    await dropPendingDraw(this.jobs, cancelled.id);
     return cancelled;
   }
 
@@ -55,17 +51,7 @@ export class CancelAlteredRaffleUseCase {
     command: CancelAlteredRaffleCommand,
     reason: string,
   ): Promise<Raffle> {
-    const raffle = await tx.lockRaffle(command.raffleId);
-    if (!raffle) {
-      throw new RaffleNotFoundError(command.raffleId);
-    }
-
-    // Lock order: raffle, orders, tickets. The orders are locked again below.
-    await tx.lockOrdersByStatus(raffle.id, [
-      OrderStatus.PAID,
-      OrderStatus.PENDING,
-      OrderStatus.PENDING_VERIFICATION,
-    ]);
+    const raffle = await lockRaffleToCancel(tx, command.raffleId);
     // Recomputed under the raffle lock: the proof that the list changed is
     // the list as it stands in this transaction.
     const sold = await tx.lockSoldTickets(raffle.id);
@@ -75,19 +61,11 @@ export class CancelAlteredRaffleUseCase {
     const frozenHash = raffle.soldListHash;
 
     raffle.cancelForAlteredList(recomputedHash, reason);
-    await tx.saveRaffle(raffle, RaffleStatus.CLOSED);
-
-    const now = this.clock.now();
-    const { paidOrders, ordersInReview } = await refundRaffleBuyers(
+    const { paidOrders, ordersInReview } = await settleCancelledClosedRaffle(
       tx,
       raffle,
-      now,
-    );
-    await tx.clearRaffleAlert(
-      OperatorAlertType.DRAW_BLOCKED,
-      raffle.id,
       command.operatorId,
-      now,
+      this.clock.now(),
     );
 
     await tx.recordAudit({
@@ -105,20 +83,4 @@ export class CancelAlteredRaffleUseCase {
 
     return raffle;
   }
-}
-
-/** The same rules as an overpayment reason (DT-14). */
-function parseReason(reason: unknown): string {
-  const trimmed = typeof reason === 'string' ? reason.trim() : '';
-  if (!trimmed) {
-    throw new RaffleValidationError(
-      'Cancelling a raffle with an altered sold list needs a reason',
-    );
-  }
-  if (trimmed.length > MAX_REASON_LENGTH) {
-    throw new RaffleValidationError(
-      `A cancellation reason takes at most ${MAX_REASON_LENGTH} characters`,
-    );
-  }
-  return trimmed;
 }

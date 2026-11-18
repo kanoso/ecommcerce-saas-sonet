@@ -37,6 +37,7 @@ import {
   UpdatePaymentAccountUseCase,
 } from '../../application';
 import { CancelAlteredRaffleUseCase as CancelAltered } from '../../application/use-cases/cancel-altered-raffle.use-case';
+import { CancelRefusedDrawRaffleUseCase } from '../../application/use-cases/cancel-refused-draw-raffle.use-case';
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 import { SystemClock } from '../jobs/system-clock';
 import {
@@ -83,8 +84,14 @@ const clock = new SystemClock();
     },
     {
       provide: RaffleQueries,
-      inject: [PrismaRaffleRepository, PrismaTicketRepository, PrismaOrderRepository, PrismaDrawRepository],
-      useFactory: (r, t, o, d) => new RaffleQueries(r, t, o, d),
+      inject: [
+        PrismaRaffleRepository,
+        PrismaTicketRepository,
+        PrismaOrderRepository,
+        PrismaDrawRepository,
+        PrismaAuditLog,
+      ],
+      useFactory: (r, t, o, d, a) => new RaffleQueries(r, t, o, d, a),
     },
     {
       provide: ReserveTicketsUseCase,
@@ -156,6 +163,11 @@ const clock = new SystemClock();
       provide: CancelAltered,
       inject: [PrismaTicketLedger],
       useFactory: (l) => new CancelAltered(l, clock),
+    },
+    {
+      provide: CancelRefusedDrawRaffleUseCase,
+      inject: [PrismaTicketLedger, PrismaAuditLog],
+      useFactory: (l, a) => new CancelRefusedDrawRaffleUseCase(l, a, clock),
     },
     {
       provide: ListLatePaymentClaimsUseCase,

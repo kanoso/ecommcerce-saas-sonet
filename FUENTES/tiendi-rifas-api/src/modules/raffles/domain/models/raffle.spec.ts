@@ -251,4 +251,72 @@ describe('Raffle Domain Entity', () => {
       expect(drawn.status).toBe(RaffleStatus.DRAWN);
     });
   });
+
+  describe('cancelForRefusedDraw (DT-21)', () => {
+    const closedRaffle = () => {
+      const raffle = createDraftRaffle();
+      raffle.publish({
+        authorizationResolution: 'RES-1',
+        commitmentHash: 'commit123',
+        seedCiphertext: 'cipher123',
+        drandRound: 1000n,
+        drandChainHash: 'chain123',
+        salesCloseAt: new Date('2026-11-10T18:00:00Z'),
+        drawAt: new Date('2026-11-10T19:00:00Z'),
+        currentRoundAtSalesClose: 900n,
+      });
+      raffle.closeSales('frozen-hash', 'seed123');
+      return raffle;
+    };
+
+    it('cancels a CLOSED raffle and keeps the reason', () => {
+      const raffle = closedRaffle();
+
+      raffle.cancelForRefusedDraw('Draw refused for its configuration');
+
+      expect(raffle.status).toBe(RaffleStatus.CANCELLED);
+      expect(raffle.cancellationReason).toBe('Draw refused for its configuration');
+    });
+
+    it('refuses a DRAFT or ACTIVE raffle', () => {
+      const draft = createDraftRaffle();
+      expect(() => draft.cancelForRefusedDraw('Reason')).toThrow(
+        InvalidRaffleTransitionError,
+      );
+      expect(draft.status).toBe(RaffleStatus.DRAFT);
+
+      const active = createDraftRaffle();
+      active.publish({
+        authorizationResolution: 'RES-1',
+        commitmentHash: 'commit123',
+        seedCiphertext: 'cipher123',
+        drandRound: 1000n,
+        drandChainHash: 'chain123',
+        salesCloseAt: new Date('2026-11-10T18:00:00Z'),
+        drawAt: new Date('2026-11-10T19:00:00Z'),
+        currentRoundAtSalesClose: 900n,
+      });
+      expect(() => active.cancelForRefusedDraw('Reason')).toThrow(
+        InvalidRaffleTransitionError,
+      );
+      expect(active.status).toBe(RaffleStatus.ACTIVE);
+      expect(active.cancellationReason).toBeNull();
+    });
+
+    it('refuses a DRAWN or already CANCELLED raffle', () => {
+      const drawn = closedRaffle();
+      drawn.markDrawn();
+      expect(() => drawn.cancelForRefusedDraw('Reason')).toThrow(
+        InvalidRaffleTransitionError,
+      );
+      expect(drawn.status).toBe(RaffleStatus.DRAWN);
+
+      const cancelled = closedRaffle();
+      cancelled.cancelForRefusedDraw('First');
+      expect(() => cancelled.cancelForRefusedDraw('Second')).toThrow(
+        InvalidRaffleTransitionError,
+      );
+      expect(cancelled.cancellationReason).toBe('First');
+    });
+  });
 });

@@ -484,8 +484,79 @@
       </section>
     }
 
+    <!-- Draw refused for its configuration (DT-21) -->
+    @if (refusedDraw(); as refused) {
+      <section class="section-card section-card--danger" aria-labelledby="refused-draw-title">
+        <h2 id="refused-draw-title" class="section-card__title text-danger">Sorteo rechazado</h2>
+        <div class="alert alert--warning" role="alert" data-testid="refused-draw-alert">
+          <p>{{ refusedDrawExplanation() }}</p>
+          @if (refused.at) {
+            <p>Rechazado el {{ refused.at | date: 'dd/MM/yyyy HH:mm' }}.</p>
+          }
+          <p>
+            Esta rifa no puede sortearse. La única salida es cancelarla y reembolsar el total a cada
+            comprador con pago aprobado; las órdenes pendientes se cancelan.
+          </p>
+        </div>
+
+        @if (!showRefusedCancelDialog()) {
+          <button
+            type="button"
+            class="btn-danger"
+            data-testid="refused-draw-cancel"
+            (click)="showRefusedCancelDialog.set(true)"
+          >
+            Cancelar y reembolsar...
+          </button>
+        } @else {
+          <div class="cancel-dialog" role="region" aria-label="Confirmación de cancelación por sorteo rechazado">
+            <div class="field">
+              <label for="refused_motivo" class="field__label">Motivo de cancelación *</label>
+              <textarea
+                id="refused_motivo"
+                rows="3"
+                class="field__input"
+                [ngModel]="refusedCancelReason()"
+                (ngModelChange)="refusedCancelReason.set($event)"
+                placeholder="Ingresa el motivo que quedará registrado en la auditoría (obligatorio)"
+                maxlength="500"
+              ></textarea>
+            </div>
+
+            <div class="field-checkbox">
+              <input
+                id="confirm_refused_cancel"
+                type="checkbox"
+                [ngModel]="refusedCancelConfirmed()"
+                (ngModelChange)="refusedCancelConfirmed.set($event)"
+                class="checkbox__input"
+              />
+              <label for="confirm_refused_cancel" class="checkbox__label">
+                Confirmo la cancelación definitiva y la apertura de reembolsos para compradores verificados.
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="button"
+                [disabled]="!refusedCancelReason().trim() || !refusedCancelConfirmed() || actionLoading()"
+                class="btn-danger"
+                data-testid="refused-draw-confirm"
+                (click)="onCancelRefusedDraw()"
+              >
+                @if (actionLoading()) { Cancelando... } @else { Cancelar y reembolsar }
+              </button>
+              <button type="button" class="btn-cancel" (click)="showRefusedCancelDialog.set(false)">
+                Volver
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
     <!-- Cancel Section (RF-15 / DT-15) -->
-    @if (r.status !== 'DRAFT' && r.status !== 'CANCELLED' && r.status !== 'DRAWN') {
+    @if (r.status !== 'DRAFT' && r.status !== 'CANCELLED' && r.status !== 'DRAWN' && !refusedDraw()) {
       <section class="section-card section-card--danger" aria-labelledby="cancel-title">
         <h2 id="cancel-title" class="section-card__title text-danger">Zona de Peligro: Cancelar Rifa (RF-15)</h2>
         <p class="section-card__desc">

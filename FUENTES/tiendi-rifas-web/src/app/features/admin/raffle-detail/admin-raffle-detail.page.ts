@@ -40,6 +40,16 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelada',
 };
 
+/** Why the draw was refused for its configuration (DT-21), for the operator. */
+const REFUSED_DRAW_EXPLANATIONS: Record<string, string> = {
+  DRAW_CONFIG_FROZEN_LATE:
+    'El sorteo se rechazó porque la configuración se congeló cuando la ronda de drand ya era pública.',
+  DRAW_CONFIG_MISMATCH:
+    'El sorteo se rechazó porque la configuración ya no coincide con la congelada al cierre de ventas.',
+  DRAW_CONFIG_MISSING:
+    'El sorteo se rechazó porque la rifa llegó al sorteo sin una configuración congelada al cierre de ventas.',
+};
+
 const ORDER_STATUS_LABELS: Record<string, string> = {
   PAID: 'Pagado',
   PENDING_VERIFICATION: 'En verificación',
@@ -103,6 +113,24 @@ export class AdminRaffleDetailPage implements OnInit {
   readonly showCancelDialog = signal(false);
   readonly cancelReason = signal('');
   readonly cancelConfirmed = signal(false);
+
+  readonly showRefusedCancelDialog = signal(false);
+  readonly refusedCancelReason = signal('');
+  readonly refusedCancelConfirmed = signal(false);
+
+  /** A CLOSED raffle whose draw was refused for its configuration (DT-21). */
+  readonly refusedDraw = computed(() => {
+    const r = this.raffle();
+    return r?.status === 'CLOSED' ? (r.refusedDraw ?? null) : null;
+  });
+
+  readonly refusedDrawExplanation = computed(() => {
+    const reason = this.refusedDraw()?.reason ?? '';
+    return (
+      REFUSED_DRAW_EXPLANATIONS[reason] ??
+      'El sorteo se rechazó por un problema en su configuración.'
+    );
+  });
 
   // Edit Showcase State
   readonly showEditShowcaseModal = signal(false);
@@ -430,6 +458,26 @@ export class AdminRaffleDetailPage implements OnInit {
       next: () => {
         this.actionLoading.set(false);
         this.showCancelDialog.set(false);
+        this.loadData();
+      },
+      error: () => {
+        this.actionLoading.set(false);
+        this.actionError.set('No se pudo cancelar la rifa.');
+      },
+    });
+  }
+
+  onCancelRefusedDraw(): void {
+    const reason = this.refusedCancelReason().trim();
+    if (!reason || !this.refusedCancelConfirmed()) return;
+
+    this.actionLoading.set(true);
+    this.actionError.set(null);
+
+    this.adminApi.cancelRefusedDrawRaffle(this.raffleId, reason).subscribe({
+      next: () => {
+        this.actionLoading.set(false);
+        this.showRefusedCancelDialog.set(false);
         this.loadData();
       },
       error: () => {

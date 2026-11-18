@@ -24,6 +24,7 @@ import {
 } from '../src/modules/raffles/application/use-cases/approve-payment.use-case';
 import { CancelAlteredRaffleUseCase } from '../src/modules/raffles/application/use-cases/cancel-altered-raffle.use-case';
 import { CancelRaffleUseCase } from '../src/modules/raffles/application/use-cases/cancel-raffle.use-case';
+import { CancelRefusedDrawRaffleUseCase } from '../src/modules/raffles/application/use-cases/cancel-refused-draw-raffle.use-case';
 import { ClaimLatePaymentUseCase } from '../src/modules/raffles/application/use-cases/claim-late-payment.use-case';
 import { CloseSalesUseCase } from '../src/modules/raffles/application/use-cases/close-sales.use-case';
 import { CompleteRefundUseCase } from '../src/modules/raffles/application/use-cases/complete-refund.use-case';
@@ -51,6 +52,8 @@ import {
   ConflictingRejectionError,
   DuplicateOperatorAlertError,
   DuplicatePaymentError,
+  DrawNotPossibleError,
+  DrawNotRefusedForConfigError,
   ExtraTransferNotAcceptedError,
   PaymentAmountMismatchError,
   PaymentAccountChangedError,
@@ -5601,6 +5604,240 @@ describe('Raffle persistence on real PostgreSQL', () => {
       });
     });
 
+    describe('cancelling a raffle whose draw was refused for its configuration (DT-21)', () => {
+      const operatorId = 'admin-21';
+      const reason = 'Draw refused for its configuration';
+
+      function cancelRefusedWith(usedLedger: TicketLedger = ledger) {
+        return new CancelRefusedDrawRaffleUseCase(usedLedger, auditLog, clock);
+      }
+
+      /**
+       * A two-prize (v2) raffle, closed now: drand round DRAW_ROUND was
+       * published long ago, so the draw refuses the configuration as frozen
+       * too late (DRAW_CONFIG_FROZEN_LATE).
+       */
+      async function givenRefusedRaffle(sold: number[]): Promise<string> {
+        const id = randomUUID();
+        const { commitmentHash, seedCiphertext } =
+          await seedVault.generateAndStoreSeed(id);
+        await createRaffleRow(prisma, {
+          data: {
+            id,
+            title: 'Multi-prize raffle',
+            prize: 'Prize 1',
+            ticketPrice: 10,
+            numberMin: 1,
+            numberMax: 100,
+            commitmentHash,
+            seedCiphertext,
+            drandRound: DRAW_ROUND,
+            drandChainHash: beacon.chainHash,
+            salesCloseAt: new Date(Date.now() + 7 * 24 * 3_600_000),
+          },
+        });
+        // Prizes are writable only while the raffle is a DRAFT.
+        await prisma.rafflePrize.create({
+          data: { raffleId: id, position: 2, title: 'Prize 2' },
+        });
+        await prisma.raffle.update({ where: { id }, data: { status: 'ACTIVE' } });
+        await prisma.ticket.createMany({
+          data: [1, 2, 3, 4].map((number) => ({ raffleId: id, number })),
+        });
+        if (sold.length > 0) {
+          await givenPaidOrder(id, sold);
+        }
+        await closeSalesWith().execute(id);
+        await expect(drawWith().execute(id)).rejects.toThrow(DrawNotPossibleError);
+        return id;
+      }
+
+      it('records the refusal of a configuration frozen too late', async () => {
+        const raffleId = await givenRefusedRaffle([1]);
+
+        const refused = await prisma.auditEvent.findFirstOrThrow({
+          where: { raffleId, type: 'DRAW_REFUSED' },
+        });
+        expect(refused.data).toMatchObject({ reason: 'DRAW_CONFIG_FROZEN_LATE' });
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('CLOSED');
+      });
+
+      it('cancels it, refunds the paid money and audits the refusal it answers', async () => {
+        const raffleId = await givenRefusedRaffle([1, 2]);
+        const paid = await prisma.ticketOrder.findFirstOrThrow({
+          where: { raffleId, status: 'PAID' },
+        });
+        const refused = await prisma.auditEvent.findFirstOrThrow({
+          where: { raffleId, type: 'DRAW_REFUSED' },
+        });
+
+        await cancelRefusedWith().execute({ raffleId, operatorId, reason });
+
+        const raffle = await prisma.raffle.findUniqueOrThrow({ where: { id: raffleId } });
+        expect(raffle.status).toBe('CANCELLED');
+        expect(raffle.cancellationReason).toBe(reason);
+        // The frozen configuration is kept as evidence.
+        expect(raffle.drawConfigHash).not.toBeNull();
+        const refunds = await prisma.refund.findMany({ where: { raffleId } });
+        expect(refunds).toHaveLength(1);
+        expect(refunds[0]).toMatchObject({
+          orderId: paid.id,
+          reason: RAFFLE_CANCELLED_BUYER_REASON,
+        });
+        expect(refunds[0].amount.toNumber()).toBe(paid.totalAmount.toNumber());
+        expect(
+          (await prisma.ticketOrder.findUniqueOrThrow({ where: { id: paid.id } })).status,
+        ).toBe('REFUND_PENDING');
+        expect(await queued(raffleId, NotificationType.REFUND_PENDING)).toHaveLength(1);
+
+        const event = await prisma.auditEvent.findFirstOrThrow({
+          where: { raffleId, type: 'RAFFLE_CANCELLED_REFUSED_DRAW' },
+        });
+        expect(event.data).toEqual({
+          refusalReason: 'DRAW_CONFIG_FROZEN_LATE',
+          refusedAt: refused.occurredAt.toISOString(),
+          operatorId,
+          reason,
+          paidOrdersCount: 1,
+          ordersInReview: [],
+        });
+        const [alert] = await prisma.operatorAlert.findMany({
+          where: { raffleId, type: OperatorAlertType.DRAW_BLOCKED },
+        });
+        expect(alert.readBy).toBe(operatorId);
+      });
+
+      it('lets the refund complete once the raffle is cancelled', async () => {
+        const raffleId = await givenRefusedRaffle([1]);
+        await cancelRefusedWith().execute({ raffleId, operatorId, reason });
+        const refund = await prisma.refund.findFirstOrThrow({ where: { raffleId } });
+
+        await completeRefundWith().execute({
+          refundId: refund.id,
+          operatorId,
+          destination: 'BCP 123',
+          operationNumber: `REF-${randomUUID().slice(0, 8)}`,
+        });
+
+        expect((await ticketOf(raffleId, 1)).status).toBe('REFUNDED');
+      });
+
+      it('refuses a CLOSED raffle whose draw was never refused and writes nothing', async () => {
+        const raffleId = await givenClosedRaffle([1, 2]);
+
+        await expect(
+          cancelRefusedWith().execute({ raffleId, operatorId, reason }),
+        ).rejects.toThrow(DrawNotRefusedForConfigError);
+
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('CLOSED');
+        expect(await prisma.refund.count({ where: { raffleId } })).toBe(0);
+        expect(await auditTypes(raffleId)).not.toContain('RAFFLE_CANCELLED_REFUSED_DRAW');
+      });
+
+      it('refuses a DRAWN raffle', async () => {
+        const raffleId = await givenClosedRaffle([1, 2]);
+        await drawWith().execute(raffleId);
+
+        await expect(
+          cancelRefusedWith().execute({ raffleId, operatorId, reason }),
+        ).rejects.toThrow(InvalidRaffleTransitionError);
+
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('DRAWN');
+      });
+
+      it('expires a pending order and frees its reserved ticket', async () => {
+        const raffleId = await givenRefusedRaffle([1]);
+        const [userId] = await givenBuyers(1);
+        const pending = await prisma.ticketOrder.create({
+          data: {
+            raffleId,
+            userId,
+            numbers: [4],
+            totalAmount: 10,
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        });
+        // No hold can start after the close (Ticket_order_frozen): written
+        // behind the guard, as a writer that skipped the application would.
+        await behindTheGuard(() =>
+          prisma.ticket.update({
+            where: { raffleId_number: { raffleId, number: 4 } },
+            data: {
+              status: 'RESERVED',
+              orderId: pending.id,
+              reservedUntil: new Date(Date.now() + 60_000),
+            },
+          }),
+        );
+
+        await cancelRefusedWith().execute({ raffleId, operatorId, reason });
+
+        expect(
+          (await prisma.ticketOrder.findUniqueOrThrow({ where: { id: pending.id } })).status,
+        ).toBe('EXPIRED');
+        expect(await ticketOf(raffleId, 4)).toMatchObject({
+          status: 'AVAILABLE',
+          orderId: null,
+        });
+      });
+
+      it('serializes two cancels of the same raffle: one refund, one audit', async () => {
+        for (let round = 0; round < 3; round++) {
+          const raffleId = await givenRefusedRaffle([1]);
+
+          const results = await Promise.allSettled([
+            cancelRefusedWith().execute({ raffleId, operatorId, reason }),
+            cancelRefusedWith().execute({ raffleId, operatorId: 'admin-22', reason }),
+          ]);
+
+          expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+          const rejected = results.find(
+            (r) => r.status === 'rejected',
+          ) as PromiseRejectedResult;
+          expect(rejected.reason).toBeInstanceOf(InvalidRaffleTransitionError);
+          expect(await prisma.refund.count({ where: { raffleId } })).toBe(1);
+          expect(
+            (await auditTypes(raffleId)).filter(
+              (type) => type === 'RAFFLE_CANCELLED_REFUSED_DRAW',
+            ),
+          ).toHaveLength(1);
+        }
+      });
+
+      it('serializes with a draw of the same raffle', async () => {
+        const raffleId = await givenRefusedRaffle([1, 2]);
+
+        const [drawn, cancelled] = await Promise.allSettled([
+          drawWith().execute(raffleId),
+          cancelRefusedWith().execute({ raffleId, operatorId, reason }),
+        ]);
+
+        expect(cancelled.status).toBe('fulfilled');
+        expect(drawn.status).toBe('rejected');
+        expect((drawn as PromiseRejectedResult).reason).toBeInstanceOf(DrawNotPossibleError);
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('CANCELLED');
+        expect(await drawRepo.findByRaffleId(raffleId)).toBeNull();
+      });
+
+      it('rolls everything back when the transaction fails', async () => {
+        const raffleId = await givenRefusedRaffle([1]);
+        const failing: TicketLedger = {
+          run: (work) =>
+            ledger.run(async (tx) => {
+              await work(tx);
+              throw new Error('commit refused');
+            }),
+        };
+
+        await expect(
+          cancelRefusedWith(failing).execute({ raffleId, operatorId, reason }),
+        ).rejects.toThrow('commit refused');
+
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('CLOSED');
+        expect(await prisma.refund.count({ where: { raffleId } })).toBe(0);
+      });
+    });
+
     describe('database guard', () => {
       function confirmClaim(orderId: string) {
         return new ConfirmLatePaymentUseCase(
@@ -6016,6 +6253,72 @@ describe('Raffle persistence on real PostgreSQL', () => {
           prisma.raffle.delete({ where: { id: raffleId } }),
         ).rejects.toThrow(/append-only/);
         expect(await prisma.raffle.count({ where: { id: raffleId } })).toBe(1);
+      });
+    });
+
+    describe('exits of a CLOSED raffle (20261119000000)', () => {
+      async function givenClosed(): Promise<string> {
+        const raffleId = await givenActiveRaffle([1]);
+        await prisma.raffle.update({ where: { id: raffleId }, data: { status: 'CLOSED' } });
+        return raffleId;
+      }
+
+      it('allows cancelling a CLOSED raffle with a reason', async () => {
+        const id = await givenClosed();
+
+        await expect(
+          prisma.raffle.update({
+            where: { id },
+            data: { status: 'CANCELLED', cancellationReason: 'Draw refused' },
+          }),
+        ).resolves.toMatchObject({ status: 'CANCELLED' });
+      });
+
+      it.each([
+        ['no reason', {}],
+        ['a blank reason', { cancellationReason: '   ' }],
+      ])('refuses cancelling a CLOSED raffle with %s', async (_label, data) => {
+        const id = await givenClosed();
+
+        await expect(
+          prisma.raffle.update({ where: { id }, data: { status: 'CANCELLED', ...data } }),
+        ).rejects.toThrow(/Raffle_closed_exit/);
+        expect((await prisma.raffle.findUniqueOrThrow({ where: { id } })).status).toBe('CLOSED');
+      });
+
+      it.each(['ACTIVE', 'DRAFT'] as const)(
+        'refuses moving a CLOSED raffle back to %s',
+        async (status) => {
+          const id = await givenClosed();
+
+          await expect(
+            prisma.raffle.update({ where: { id }, data: { status } }),
+          ).rejects.toThrow(/Raffle_closed_exit/);
+        },
+      );
+
+      it('allows the draw of a CLOSED raffle', async () => {
+        const id = await givenClosed();
+
+        await expect(
+          prisma.raffle.update({ where: { id }, data: { status: 'DRAWN' } }),
+        ).resolves.toMatchObject({ status: 'DRAWN' });
+      });
+
+      it('leaves other updates of a CLOSED raffle alone', async () => {
+        const id = await givenClosed();
+
+        await expect(
+          prisma.raffle.update({ where: { id }, data: { title: 'Renamed' } }),
+        ).resolves.toBeDefined();
+      });
+
+      it('leaves the cancel of an ACTIVE raffle as it was, reason or not', async () => {
+        const id = await givenActiveRaffle([1]);
+
+        await expect(
+          prisma.raffle.update({ where: { id }, data: { status: 'CANCELLED' } }),
+        ).resolves.toMatchObject({ status: 'CANCELLED' });
       });
     });
 

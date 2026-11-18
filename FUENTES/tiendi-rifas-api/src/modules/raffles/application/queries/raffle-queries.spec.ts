@@ -11,6 +11,7 @@ import {
   WinnerExclusionMode,
 } from '../../domain';
 import {
+  FakeAuditLog,
   InMemoryDrawRepository,
   InMemoryOrderRepository,
   InMemoryRaffleRepository,
@@ -23,6 +24,7 @@ describe('RaffleQueries (F6 read side)', () => {
   let tickets: InMemoryTicketRepository;
   let orders: InMemoryOrderRepository;
   let draws: InMemoryDrawRepository;
+  let auditLog: FakeAuditLog;
   let queries: RaffleQueries;
 
   const raffleWith = (status: RaffleStatus, extra: Partial<ConstructorParameters<typeof Raffle>[0]> = {}) =>
@@ -50,7 +52,8 @@ describe('RaffleQueries (F6 read side)', () => {
     tickets = new InMemoryTicketRepository();
     orders = new InMemoryOrderRepository();
     draws = new InMemoryDrawRepository();
-    queries = new RaffleQueries(raffles, tickets, orders, draws);
+    auditLog = new FakeAuditLog();
+    queries = new RaffleQueries(raffles, tickets, orders, draws, auditLog);
     await tickets.createBatch(
       Array.from({ length: 100 }, (_, i) =>
         new Ticket({
@@ -329,6 +332,47 @@ describe('RaffleQueries (F6 read side)', () => {
 
   it('throws RaffleNotFoundError for adminRaffleDetail when the raffle does not exist', async () => {
     await expect(queries.adminRaffleDetail('non-existent')).rejects.toThrow(RaffleNotFoundError);
+  });
+
+  describe('draw refused for its configuration (DT-21)', () => {
+    const refuse = (reason: string) =>
+      auditLog.record({ raffleId: 'raffle-1', type: 'DRAW_REFUSED', data: { reason } });
+
+    it('reports no refusal for a raffle whose draw was never refused', async () => {
+      await raffles.save(raffleWith(RaffleStatus.CLOSED));
+
+      expect((await queries.adminRaffleDetail('raffle-1')).refusedDraw).toBeNull();
+    });
+
+    it.each(['DRAW_CONFIG_FROZEN_LATE', 'DRAW_CONFIG_MISMATCH', 'DRAW_CONFIG_MISSING'])(
+      'reports a CLOSED raffle refused with %s as cancellable',
+      async (reason) => {
+        await raffles.save(raffleWith(RaffleStatus.CLOSED));
+        await refuse(reason);
+        const [event] = await auditLog.findByRaffleId('raffle-1');
+
+        const detail = await queries.adminRaffleDetail('raffle-1');
+
+        expect(detail.refusedDraw).toEqual({ reason, at: event.occurredAt.toISOString() });
+      },
+    );
+
+    it('ignores a refusal that is not about the configuration', async () => {
+      await raffles.save(raffleWith(RaffleStatus.CLOSED));
+      await refuse('SOLD_LIST_MISMATCH');
+
+      expect((await queries.adminRaffleDetail('raffle-1')).refusedDraw).toBeNull();
+    });
+
+    it.each([RaffleStatus.CANCELLED, RaffleStatus.DRAWN])(
+      'reports nothing once the raffle is %s',
+      async (status) => {
+        await raffles.save(raffleWith(status));
+        await refuse('DRAW_CONFIG_FROZEN_LATE');
+
+        expect((await queries.adminRaffleDetail('raffle-1')).refusedDraw).toBeNull();
+      },
+    );
   });
   it('lists all pending proofs across all active raffles for operators', async () => {
     await raffles.save(raffleWith(RaffleStatus.ACTIVE, { id: 'raffle-1' }));

@@ -84,6 +84,7 @@ describe('AdminRaffleDetailPage', () => {
     publishRaffle: ReturnType<typeof vi.fn>;
     executeDraw: ReturnType<typeof vi.fn>;
     cancelAlteredRaffle: ReturnType<typeof vi.fn>;
+    cancelRefusedDrawRaffle: ReturnType<typeof vi.fn>;
     deleteDraftRaffle: ReturnType<typeof vi.fn>;
     availableTickets: ReturnType<typeof vi.fn>;
     sellInPerson: ReturnType<typeof vi.fn>;
@@ -114,6 +115,7 @@ describe('AdminRaffleDetailPage', () => {
         }),
       ),
       cancelAlteredRaffle: vi.fn().mockReturnValue(of({ raffleId: 'r-1', status: 'CANCELLED' })),
+      cancelRefusedDrawRaffle: vi.fn().mockReturnValue(of({ raffleId: 'r-1', status: 'CANCELLED' })),
       deleteDraftRaffle: vi.fn().mockReturnValue(of(undefined)),
       availableTickets: vi.fn().mockReturnValue(of([42, 43, 44])),
       sellInPerson: vi.fn(),
@@ -251,6 +253,90 @@ describe('AdminRaffleDetailPage', () => {
       'r-1',
       'Cancelación administrativa por fuerza mayor',
     );
+  });
+
+  describe('draw refused for its configuration (DT-21)', () => {
+    const refusedRaffle: RaffleSummary = {
+      ...mockActiveRaffle,
+      status: 'CLOSED',
+      refusedDraw: {
+        reason: 'DRAW_CONFIG_FROZEN_LATE',
+        at: new Date('2026-12-02T18:00:05Z'),
+      },
+    };
+
+    it('explains the refusal and offers only the cancel with refund', () => {
+      component.raffle.set(refusedRaffle);
+      fixture.detectChanges();
+
+      const alert = el.querySelector('[data-testid="refused-draw-alert"]');
+      expect(alert).not.toBeNull();
+      expect(alert?.getAttribute('role')).toBe('alert');
+      expect(alert?.textContent).toContain('cuando la ronda de drand ya era pública');
+      expect(el.querySelector('[data-testid="refused-draw-cancel"]')?.textContent).toContain(
+        'Cancelar y reembolsar',
+      );
+      // The generic cancel would be refused for an intact list (DT-15).
+      expect(el.querySelector('#cancel-title')).toBeNull();
+    });
+
+    it('cancels with the reason once confirmed and reloads the raffle', () => {
+      component.raffle.set(refusedRaffle);
+      fixture.detectChanges();
+      (el.querySelector('[data-testid="refused-draw-cancel"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const confirm = el.querySelector('[data-testid="refused-draw-confirm"]') as HTMLButtonElement;
+      expect(el.querySelector('#refused_motivo')).not.toBeNull();
+      expect(confirm.disabled).toBe(true);
+
+      component.refusedCancelReason.set('  Sorteo rechazado por configuración  ');
+      fixture.detectChanges();
+      expect(confirm.disabled).toBe(true);
+
+      component.refusedCancelConfirmed.set(true);
+      fixture.detectChanges();
+      expect(confirm.disabled).toBe(false);
+      adminApiMock.raffleDetail.mockClear();
+      confirm.click();
+      fixture.detectChanges();
+
+      expect(adminApiMock.cancelRefusedDrawRaffle).toHaveBeenCalledWith(
+        'r-1',
+        'Sorteo rechazado por configuración',
+      );
+      expect(adminApiMock.cancelAlteredRaffle).not.toHaveBeenCalled();
+      expect(adminApiMock.raffleDetail).toHaveBeenCalled();
+    });
+
+    it('shows an error when the cancel fails', () => {
+      adminApiMock.cancelRefusedDrawRaffle.mockReturnValue(throwError(() => new Error('409')));
+      component.raffle.set(refusedRaffle);
+      component.showRefusedCancelDialog.set(true);
+      component.refusedCancelReason.set('Motivo');
+      component.refusedCancelConfirmed.set(true);
+      fixture.detectChanges();
+
+      (el.querySelector('[data-testid="refused-draw-confirm"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(el.textContent).toContain('No se pudo cancelar la rifa.');
+    });
+
+    it('shows nothing of it for a CLOSED raffle whose draw was not refused', () => {
+      component.raffle.set({ ...refusedRaffle, refusedDraw: null });
+      fixture.detectChanges();
+
+      expect(el.querySelector('[data-testid="refused-draw-alert"]')).toBeNull();
+      expect(el.querySelector('#cancel-title')).not.toBeNull();
+    });
+
+    it('shows nothing of it once the raffle is cancelled', () => {
+      component.raffle.set({ ...refusedRaffle, status: 'CANCELLED' });
+      fixture.detectChanges();
+
+      expect(el.querySelector('[data-testid="refused-draw-alert"]')).toBeNull();
+    });
   });
 
   it('allows deleting a draft raffle', () => {

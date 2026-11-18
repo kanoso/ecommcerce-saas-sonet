@@ -40,6 +40,7 @@ import {
   drawConfigHashOf,
   drawConfigOf,
 } from './draw-config';
+import { DRAW_REFUSED, DrawConfigRefusal } from './draw-refusals';
 import { queueNotification } from './queue-notification';
 
 /** A winning ticket has no buyer to tell (DT-13). */
@@ -248,9 +249,7 @@ export class ExecuteDrawUseCase {
     soldNumbers: number[],
   ): Promise<Draw> {
     if (!raffle.drawConfigHash) {
-      throw new DrawNotPossibleError(
-        `Raffle ${raffle.id} has several prizes but no draw configuration frozen at the close`,
-      );
+      return this.refuseMissingConfig(raffle);
     }
 
     await this.assertFrozenBeforeRound(raffle);
@@ -602,9 +601,9 @@ export class ExecuteDrawUseCase {
       );
       await tx.recordAudit({
         raffleId: raffle.id,
-        type: 'DRAW_REFUSED',
+        type: DRAW_REFUSED,
         data: {
-          reason: 'DRAW_CONFIG_FROZEN_LATE',
+          reason: DrawConfigRefusal.FROZEN_LATE,
           drawConfigFrozenAt: frozenAt?.toISOString() ?? null,
           roundPublishedAt: publishedAt.toISOString(),
           drandRound: (raffle.drandRound as bigint).toString(),
@@ -615,6 +614,37 @@ export class ExecuteDrawUseCase {
       `Draw configuration of raffle ${raffle.id} was not frozen before drand round ${String(
         raffle.drandRound,
       )} was published`,
+    );
+  }
+
+  /**
+   * A multi-prize raffle reached its draw with no configuration frozen at the
+   * close: nothing proves the mode and the buyer groups predate the round.
+   * Recorded like the other configuration refusals, so the operator can
+   * cancel the raffle with a full refund (DT-21).
+   */
+  private async refuseMissingConfig(raffle: Raffle): Promise<never> {
+    await this.ledger.run(async (tx) => {
+      await tx.raiseOperatorAlert(
+        new OperatorAlert({
+          id: randomUUID(),
+          type: OperatorAlertType.DRAW_BLOCKED,
+          raffleId: raffle.id,
+          raffleTitle: raffle.title,
+          orderId: null,
+          amount: null,
+          reason: 'La rifa llegó al sorteo sin una configuración congelada al cierre',
+          createdAt: this.clock.now(),
+        }),
+      );
+      await tx.recordAudit({
+        raffleId: raffle.id,
+        type: DRAW_REFUSED,
+        data: { reason: DrawConfigRefusal.MISSING },
+      });
+    });
+    throw new DrawNotPossibleError(
+      `Raffle ${raffle.id} has several prizes but no draw configuration frozen at the close`,
     );
   }
 
@@ -644,9 +674,9 @@ export class ExecuteDrawUseCase {
       );
       await tx.recordAudit({
         raffleId: raffle.id,
-        type: 'DRAW_REFUSED',
+        type: DRAW_REFUSED,
         data: {
-          reason: 'DRAW_CONFIG_MISMATCH',
+          reason: DrawConfigRefusal.MISMATCH,
           expectedHash,
           actualHash,
           winnerExclusionMode: raffle.winnerExclusionMode,

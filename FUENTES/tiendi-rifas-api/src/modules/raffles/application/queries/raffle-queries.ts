@@ -12,7 +12,9 @@ import {
   WinnerExclusionMode,
 } from '../../domain';
 import { buyerGroupsOf } from '../use-cases/draw-config';
+import { latestConfigRefusal } from '../use-cases/draw-refusals';
 import {
+  AuditLog,
   DrawRepository,
   OrderRepository,
   RaffleRepository,
@@ -104,6 +106,7 @@ export class RaffleQueries {
     private readonly tickets: TicketRepository,
     private readonly orders: OrderRepository,
     private readonly draws: DrawRepository,
+    private readonly auditLog: AuditLog,
   ) {}
 
     async finishedRaffles() {
@@ -143,7 +146,24 @@ export class RaffleQueries {
       throw new RaffleNotFoundError(raffleId);
     }
     const counts = await this.tickets.countByStatus([raffleId]);
-    return summaryOf(raffle, counts.get(raffleId) ?? zeroTicketCounts());
+    return {
+      ...summaryOf(raffle, counts.get(raffleId) ?? zeroTicketCounts()),
+      refusedDraw: await this.refusedDrawOf(raffle),
+    };
+  }
+
+  /**
+   * A CLOSED raffle whose draw was refused for its configuration: the
+   * operator can only cancel it with a full refund (DT-21).
+   */
+  private async refusedDrawOf(raffle: Raffle) {
+    if (raffle.status !== RaffleStatus.CLOSED) {
+      return null;
+    }
+    const refusal = latestConfigRefusal(await this.auditLog.findByRaffleId(raffle.id));
+    return refusal
+      ? { reason: refusal.reason, at: refusal.occurredAt.toISOString() }
+      : null;
   }
 
   async raffleDetail(raffleId: string, paging: { page: number; pageSize: number }) {

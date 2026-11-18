@@ -537,6 +537,25 @@ describe('Multi-prize draw', () => {
 
       await expect(executeDraw.execute(raffleId)).rejects.toBeInstanceOf(DrawNotPossibleError);
     });
+
+    it('records the refusal and alerts the operator when no configuration was frozen (DT-21)', async () => {
+      const owners = ownersOf({ ana: [1, 2] });
+      const raffle = await setup({ prizeCount: 2, owners });
+      raffle.closeSales(await soldListHash([1, 2]), seed);
+      await raffleRepo.save(raffle);
+
+      await expect(executeDraw.execute(raffleId)).rejects.toBeInstanceOf(DrawNotPossibleError);
+
+      const refused = (await auditLog.findByRaffleId(raffleId)).filter(
+        (e) => e.type === 'DRAW_REFUSED',
+      );
+      expect(refused).toHaveLength(1);
+      expect(refused[0].data).toEqual({ reason: 'DRAW_CONFIG_MISSING' });
+      expect(await openAlertTypes()).toEqual(['DRAW_BLOCKED']);
+      expect((await raffleRepo.findById(raffleId))?.status).toBe(RaffleStatus.CLOSED);
+      // Nothing about the round is used.
+      expect(beacon.requestedRounds).toEqual([]);
+    });
   });
 
   describe('v2 idempotency and winners', () => {

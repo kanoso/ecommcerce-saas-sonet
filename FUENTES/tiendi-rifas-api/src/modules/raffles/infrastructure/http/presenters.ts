@@ -22,6 +22,7 @@ type Queries = RaffleQueries;
 type OrderView = ReturnType<typeof RaffleQueries.orderView>;
 type Summary = Awaited<ReturnType<Queries['activeRaffles']>>[number];
 type Detail = Awaited<ReturnType<Queries['raffleDetail']>>;
+type AdminDetail = Awaited<ReturnType<Queries['adminRaffleDetail']>>;
 type Live = Awaited<ReturnType<Queries['liveData']>>;
 type MyTicket = Awaited<ReturnType<Queries['ticketsOf']>>[number];
 type Sales = Awaited<ReturnType<Queries['salesReport']>>;
@@ -86,6 +87,20 @@ export function raffleSummary(r: Summary) {
     boletos_vendidos: r.ticketsSold,
     boletos_reservados: r.ticketsReserved,
     boletos_disponibles: r.ticketsAvailable,
+  };
+}
+
+/**
+ * An operator's view of one raffle. sorteo_rechazado: the draw of a CLOSED
+ * raffle was refused for its configuration, so it can only be cancelled with
+ * a full refund (DT-21); null otherwise.
+ */
+export function adminRaffleDetail(d: AdminDetail) {
+  return {
+    ...raffleSummary(d),
+    sorteo_rechazado: d.refusedDraw
+      ? { motivo: d.refusedDraw.reason, fecha: d.refusedDraw.at }
+      : null,
   };
 }
 

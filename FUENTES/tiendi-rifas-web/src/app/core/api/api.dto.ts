@@ -70,6 +70,17 @@ export interface RaffleSummaryDto {
   boletos_reservados: number;
   /** Numbers a buyer can reserve now (ticket status AVAILABLE). */
   boletos_disponibles: number;
+  /**
+   * Admin detail only (DT-21): the draw of this CLOSED raffle was refused for
+   * its configuration, so it can only be cancelled with a full refund.
+   */
+  sorteo_rechazado?: RefusedDrawDto | null;
+}
+
+/** Why and when the draw was refused (DRAW_CONFIG_FROZEN_LATE, ...). */
+export interface RefusedDrawDto {
+  motivo: string;
+  fecha: string;
 }
 
 /** Public status of one number (PUBLIC_STATUS of raffle-queries.ts). */

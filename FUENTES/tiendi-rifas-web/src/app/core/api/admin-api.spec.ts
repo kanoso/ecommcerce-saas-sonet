@@ -244,6 +244,17 @@ describe('AdminApi', () => {
     expect(res).toEqual({ raffleId: 'r-1', status: 'CANCELLED' });
   });
 
+  it('cancels a raffle whose draw was refused via POST /admin/rifas/:id/cancelar-sorteo-rechazado (DT-21)', async () => {
+    const cancelPromise = firstValueFrom(api.cancelRefusedDrawRaffle('r-1', 'Sorteo rechazado'));
+
+    const req = http.expectOne(`${BASE_URL}/admin/rifas/r-1/cancelar-sorteo-rechazado`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ motivo: 'Sorteo rechazado' });
+    req.flush({ rifa_id: 'r-1', estado: 'CANCELLED' });
+
+    expect(await cancelPromise).toEqual({ raffleId: 'r-1', status: 'CANCELLED' });
+  });
+
   it('lists pending proofs via GET /admin/comprobantes', async () => {
     const proofsPromise = firstValueFrom(api.pendingProofs());
 

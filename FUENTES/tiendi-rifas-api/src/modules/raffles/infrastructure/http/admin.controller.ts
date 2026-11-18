@@ -53,6 +53,7 @@ import {
 } from '../../application';
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 import { CancelAlteredRaffleUseCase } from '../../application/use-cases/cancel-altered-raffle.use-case';
+import { CancelRefusedDrawRaffleUseCase } from '../../application/use-cases/cancel-refused-draw-raffle.use-case';
 import {
   BankOrWallet,
   DrawEffect,
@@ -168,6 +169,7 @@ const completeRefund = z
   .object({ destino: z.string().trim().min(1).max(200), numero_operacion: operationNumber })
   .strict();
 const cancelAltered = z.object({ motivo: reason }).strict();
+const cancelRefusedDraw = z.object({ motivo: reason }).strict();
 const inPersonSale = z
   .object({
     numeros: z.array(z.number().int()).min(1),
@@ -267,6 +269,7 @@ export class AdminController {
     private readonly sellInPersonUseCase: SellInPersonUseCase,
     private readonly deleteDraftRaffleUseCase: DeleteDraftRaffleUseCase,
     private readonly changeExclusionModeUseCase: ChangeWinnerExclusionModeUseCase,
+    private readonly cancelRefusedDrawUseCase: CancelRefusedDrawRaffleUseCase,
   ) {}
 
   @Get('rifas')
@@ -294,7 +297,9 @@ export class AdminController {
   }
   @Get('rifas/:id')
   async raffleDetail(@Param('id') id: string) {
-    return present.raffleSummary(await this.queries.adminRaffleDetail(parseWith(uuidParam, id)));
+    return present.adminRaffleDetail(
+      await this.queries.adminRaffleDetail(parseWith(uuidParam, id)),
+    );
   }
 
   @Post('rifas')
@@ -462,6 +467,23 @@ export class AdminController {
   ) {
     const { motivo } = parseWith(cancelAltered, body);
     const raffle = await this.cancelAlteredUseCase.execute({
+      raffleId: parseWith(uuidParam, id),
+      operatorId: operatorIdOf(user),
+      reason: motivo,
+    });
+    return { rifa_id: raffle.id, estado: raffle.status };
+  }
+
+  /** DT-21: the only exit of a CLOSED raffle whose draw was refused for its configuration. */
+  @Post('rifas/:id/cancelar-sorteo-rechazado')
+  @HttpCode(200)
+  async cancelRefusedDraw(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const { motivo } = parseWith(cancelRefusedDraw, body);
+    const raffle = await this.cancelRefusedDrawUseCase.execute({
       raffleId: parseWith(uuidParam, id),
       operatorId: operatorIdOf(user),
       reason: motivo,

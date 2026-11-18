@@ -270,7 +270,14 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
     it('closes the session on logout', async () => {
       const { token, email } = await signIn();
       const me = await http().get('/api/auth/yo').set(as(token)).expect(200);
-      expect(me.body).toEqual({ usuario_id: expect.any(String), email, rol: 'buyer' });
+      expect(me.body).toEqual({
+        usuario_id: expect.any(String),
+        email,
+        rol: 'buyer',
+        nombre: null,
+        documento: null,
+        celular: null,
+      });
 
       await http().post('/api/auth/salir').set(as(token)).expect(204);
 
@@ -297,6 +304,7 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
       ['get', `/api/admin/rifas/${id}/comprobantes`],
       ['post', `/api/admin/rifas/${id}/sorteo`],
       ['post', `/api/admin/rifas/${id}/cancelar-lista-alterada`],
+      ['post', `/api/admin/rifas/${id}/cancelar-sorteo-rechazado`],
       ['get', '/api/admin/alertas'],
       ['post', `/api/admin/alertas/${id}/leida`],
       ['get', '/api/admin/pagos-tardios'],
@@ -425,6 +433,9 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
           'rifa_id', 'titulo', 'premio', 'precio_boleto', 'numero_min', 'numero_max', 'estado',
           'cierre_ventas', 'fecha_sorteo', 'resolucion_autorizacion',
           'boletos_vendidos', 'boletos_reservados', 'boletos_disponibles',
+          'descripcion_premio', 'imagenes_premio', 'premios', 'modo_exclusion_ganador',
+          'intento_ganador', 'efecto_sorteo', 'modalidad_sorteo', 'duracion_efecto_seg',
+          'velocidad_efecto',
         ].sort(),
       );
       // Counts only: no buyer, order or seed leaves this public route.

@@ -90,6 +90,18 @@ export class SoldListIntactError extends DomainError {
   }
 }
 
+/**
+ * A CLOSED raffle is cancelled for its refused draw only once the draw was
+ * refused for its configuration (DT-21).
+ */
+export class DrawNotRefusedForConfigError extends DomainError {
+  constructor(raffleId: string) {
+    super(
+      `Draw of raffle ${raffleId} was never refused for its configuration: the raffle must be drawn, not cancelled`,
+    );
+  }
+}
+
 /** The winner cannot be told: no buyer stands behind the winning ticket. */
 export class WinningTicketWithoutOrderError extends DomainError {
   constructor(raffleId: string, winningNumber: number) {

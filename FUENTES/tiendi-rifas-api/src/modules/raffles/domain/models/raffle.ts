@@ -566,4 +566,23 @@ export class Raffle {
     this._status = RaffleStatus.CANCELLED;
     this._updatedAt = new Date();
   }
+
+  /**
+   * The exit of a CLOSED raffle whose draw was refused for its configuration
+   * (DT-21): frozen too late, mismatching or never frozen. The refusal lives
+   * in the audit trail, so the use case checks it; here only the state.
+   */
+  cancelForRefusedDraw(reason: string): void {
+    if (this._status !== RaffleStatus.CLOSED) {
+      throw new InvalidRaffleTransitionError(
+        this._status,
+        RaffleStatus.CANCELLED,
+        'Only a CLOSED raffle is cancelled for a refused draw',
+      );
+    }
+
+    this._cancellationReason = reason;
+    this._status = RaffleStatus.CANCELLED;
+    this._updatedAt = new Date();
+  }
 }

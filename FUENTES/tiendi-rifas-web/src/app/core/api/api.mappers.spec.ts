@@ -79,6 +79,23 @@ describe('toRaffleSummary', () => {
     expect(summary.drawAt).toBeNull();
   });
 
+  it('maps a draw refused for its configuration (DT-21)', () => {
+    const summary = toRaffleSummary({
+      ...raffleDto,
+      estado: 'CLOSED',
+      sorteo_rechazado: { motivo: 'DRAW_CONFIG_FROZEN_LATE', fecha: '2026-11-17T01:00:05.000Z' },
+    });
+    expect(summary.refusedDraw).toEqual({
+      reason: 'DRAW_CONFIG_FROZEN_LATE',
+      at: new Date('2026-11-17T01:00:05.000Z'),
+    });
+  });
+
+  it('leaves the refused draw out when the API reports none', () => {
+    expect(toRaffleSummary({ ...raffleDto, sorteo_rechazado: null }).refusedDraw).toBeNull();
+    expect(toRaffleSummary(raffleDto).refusedDraw).toBeUndefined();
+  });
+
   it('counts the numbers of a range that does not start at one', () => {
     expect(toRaffleSummary({ ...raffleDto, numero_min: 0, numero_max: 99 }).totalNumbers).toBe(100);
   });

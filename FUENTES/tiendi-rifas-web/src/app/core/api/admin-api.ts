@@ -217,6 +217,19 @@ export class AdminApi {
   }
 
   /**
+   * `POST /admin/rifas/:id/cancelar-sorteo-rechazado` (DT-21): cancels a CLOSED
+   * raffle whose draw was refused for its configuration, with full refunds.
+   */
+  cancelRefusedDrawRaffle(raffleId: string, reason: string): Observable<CreatedRaffle> {
+    return this.http
+      .post<CancelRaffleResponseDto>(
+        `${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}/cancelar-sorteo-rechazado`,
+        { motivo: reason },
+      )
+      .pipe(map(toCreatedRaffle), catchError(rethrowAsApiError));
+  }
+
+  /**
    * `GET /admin/comprobantes` (RF-16): all pending proofs waiting for review.
    */
   /**
