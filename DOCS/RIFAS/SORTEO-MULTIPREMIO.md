@@ -242,6 +242,8 @@ El panel (`/admin`) incluye un editor de lista de premios y un selector de modo 
 | `DRAW_REFUSED` / `DRAW_CONFIG_MISMATCH` | La configuración no da el hash congelado. |
 | `DRAW_REFUSED` / `DRAW_CONFIG_FROZEN_LATE` | Configuración congelada en o después de la publicación de la ronda. |
 | `DRAW_REFUSED` / `WINNING_TICKET_WITHOUT_ORDER` | En v2 agrega `prizePosition`. |
+| `DRAW_REFUSED` / `DRAW_CONFIG_MISSING` | Rifa v2 que llegó al sorteo sin `drawConfigHash`. |
+| `RAFFLE_CANCELLED_REFUSED_DRAW` | Cancelación con reembolso total de una rifa rechazada por configuración (`refusalReason`, `refusedAt`, `operatorId`, `reason`, `paidOrdersCount`, `ordersInReview`). |
 
 Procedimiento de respuesta: [RUNBOOK-RIFAS.md §3.4](RUNBOOK-RIFAS.md).
 
@@ -251,6 +253,6 @@ Procedimiento de respuesta: [RUNBOOK-RIFAS.md §3.4](RUNBOOK-RIFAS.md).
 
 - **Aviso a compradores (pregunta de producto abierta):** si el modo cambia mientras la rifa está `ACTIVE`, no se notifica a quienes ya pagaron. Solo queda la auditoría y la diferencia entre el correo de pago y la página de verificación.
 - **Correo sin hash:** el ancla del correo es el modo vigente al pagar, no `drawConfigHash` (§5.1).
-- **Rifa bloqueada sin salida definida:** una rifa v2 rechazada por `DRAW_CONFIG_FROZEN_LATE` o `DRAW_CONFIG_MISMATCH` queda `CLOSED` con `DRAW_BLOCKED`. Los comentarios del código apuntan a la cancelación con reembolso total (DT-15), pero `CancelAlteredRaffle` solo cancela si la lista de vendidos **cambió** (`SoldListIntactError` si está intacta), y la cancelación común solo admite `DRAFT` o `ACTIVE`. Con la lista intacta, que es el caso normal de un cierre tardío, hoy no hay ninguna vía de cancelación. Falta definir esa salida.
+- **Rifa rechazada por configuración (resuelto, DT-21 punto 7):** una rifa v2 rechazada por `DRAW_CONFIG_FROZEN_LATE`, `DRAW_CONFIG_MISMATCH` o `DRAW_CONFIG_MISSING` queda `CLOSED` con `DRAW_BLOCKED` hasta que un operador la cancela con reembolso total (`POST /api/admin/rifas/:id/cancelar-sorteo-rechazado`, botón "Cancelar y reembolsar" del detalle de la rifa). No se reprograma a otra ronda. **Costo aceptado:** con la lista intacta, ningún comprador gana los premios. El detalle de administración expone `sorteo_rechazado: { motivo, fecha }` mientras la rifa sigue `CLOSED`; la página pública muestra la rifa cancelada igual que cualquier otra cancelación, sin el motivo del operador.
 - **Pruebas de integración dependientes del orden:** 2 pruebas de `describe('stuck jobs')` en `tiendi-rifas-api/test/jobs.integration-spec.ts` fallan al correr la suite completa. También fallan en el commit anterior (`5c285f3`), así que no las introdujo este cambio.
-- **Migraciones:** `20261117000000_multi_prize_raffles` y `20261118000000_draw_config_integrity_guards`. La segunda redefine funciones de la primera sin modificarla.
+- **Migraciones:** `20261117000000_multi_prize_raffles` y `20261118000000_draw_config_integrity_guards`. La segunda redefine funciones de la primera sin modificarla. `20261119000000_cancel_refused_draw` agrega `trg_raffle_closed_exit`: una rifa `CLOSED` solo pasa a `DRAWN` o a `CANCELLED` con motivo.

@@ -608,7 +608,7 @@ La página de verificación comprueba que la semilla corresponde al compromiso, 
 ## DT-21: Sorteo con varios premios: modo congelado al cierre, v1 intacto y rechazo en lugar de premio fantasma
 
 **Fecha:** 2026-11-18
-**Estado:** Implementada (commit `330997f`); queda abierta una pregunta de producto (aviso a compradores)
+**Estado:** Implementada (commit `330997f`); la salida de una rifa con el sorteo rechazado por configuración quedó resuelta (2026-11-19, punto 7); sigue abierta una pregunta de producto (aviso a compradores)
 **Fase:** Rifas con varios premios
 **Detalle:** [SORTEO-MULTIPREMIO.md](SORTEO-MULTIPREMIO.md)
 
@@ -622,6 +622,12 @@ Una rifa puede tener hasta 20 premios ordenados, sorteados uno tras otro con la 
 4. **Premio desierto en lugar de rechazo:** si el bolillero tiene menos boletos que el intento ganador, ese premio y los siguientes quedan `VOID`. El sorteo se registra igual.
 5. **Rechazo en lugar de premio fantasma:** cada ganador debe apuntar a un `RafflePrize` persistido en su posición. Si falta, el registro del sorteo se rechaza sin escribir nada (`MissingRaffleDataError`) en vez de inventar un premio que nadie publicó. Los premios solo cambian en `DRAFT` (trigger) y los resultados (`DrawWinner`) son solo de inserción.
 6. **Ancla en el correo de pago:** el correo de pago aprobado agrega la cantidad de premios, el intento ganador y, con varios premios, el modo vigente al pagar, aclarando que puede cambiar hasta el cierre.
+7. **Salida de una rifa con el sorteo rechazado por configuración (aprobada por el usuario el 2026-11-19):** se cancela con reembolso total, con el mismo mecanismo de DT-15. No se reprograma a otra ronda de drand.
+   - `CancelRefusedDrawRaffle` (`POST /api/admin/rifas/:id/cancelar-sorteo-rechazado`, con el operador de la sesión y un motivo obligatorio de hasta 500 caracteres) solo vale para una rifa `CLOSED` con un `DRAW_REFUSED` de configuración en la auditoría: `DRAW_CONFIG_FROZEN_LATE`, `DRAW_CONFIG_MISMATCH` o `DRAW_CONFIG_MISSING`. Sin ese rechazo responde 409 `DRAW_NOT_REFUSED_FOR_CONFIG` y no escribe nada. Una rifa en otro estado (`ACTIVE`, `DRAWN`, `CANCELLED`) responde 409 `INVALID_RAFFLE_TRANSITION`. Un rechazo por lista alterada (`SOLD_LIST_MISMATCH`) no sirve: esa rifa sale por DT-15.
+   - Una rifa v2 que llega al sorteo sin `drawConfigHash` ahora deja el mismo rastro que los otros rechazos: `DRAW_REFUSED` con `DRAW_CONFIG_MISSING` y la alerta `DRAW_BLOCKED`. Antes solo lanzaba `DrawNotPossibleError` sin auditoría.
+   - Los pasos comunes con DT-15 están en un único módulo (`closed-raffle-cancel.ts`): bloqueo de la rifa y de sus órdenes, guardado de la rifa ya `CANCELLED` antes de liberar boletos, reembolso de cada orden `PAID` con su correo (`refundRaffleBuyers`), revisión de pagos declarados, expiración de órdenes pendientes, cierre de la alerta `DRAW_BLOCKED` y baja del job de sorteo después del commit. Los reembolsos se completan con el flujo de cuatro ojos de DT-17.
+   - La auditoría queda en `RAFFLE_CANCELLED_REFUSED_DRAW` con el motivo y la fecha del rechazo que responde, el operador, el motivo de la cancelación, la cantidad de órdenes pagadas y las órdenes enviadas a revisión. El comprador recibe el motivo fijo de toda cancelación; el del operador queda en la rifa y en la auditoría.
+   - La migración `20261119000000_cancel_refused_draw` agrega el trigger `trg_raffle_closed_exit`: una rifa `CLOSED` solo pasa a `DRAWN` o a `CANCELLED` con un motivo no vacío, y nunca vuelve a `ACTIVE` ni a `DRAFT`. Hasta ese momento ningún trigger vigilaba el estado de la rifa; `CLOSED → CANCELLED` de DT-15 estaba permitido sin restricciones en la base.
 
 ### Alternativas descartadas
 - **Modo libre hasta el sorteo:** permite elegir el resultado conociendo la aleatoriedad. Descartada.
@@ -633,8 +639,8 @@ Una rifa puede tener hasta 20 premios ordenados, sorteados uno tras otro con la 
 ### Consecuencias
 - Nadie puede elegir el modo ni la agrupación por comprador después de conocer la ronda: el hash congelado lo impide y el navegador lo recalcula.
 - Un job de cierre que corre después de la publicación de la ronda deja la rifa v2 sin sorteo posible.
-- **Decisión abierta:** esa rifa no tiene hoy vía de cancelación. `CancelAlteredRaffle` (DT-15) exige que la lista de vendidos haya cambiado (`SoldListIntactError` si está intacta) y la cancelación común solo admite `DRAFT` o `ACTIVE`. Hace falta definir la salida, con reembolso total, para una rifa con la lista intacta y la configuración rechazada.
+- **Resuelto (punto 7):** esa rifa se cancela con reembolso total desde el panel ("Cancelar y reembolsar") o con `POST /api/admin/rifas/:id/cancelar-sorteo-rechazado`. **Costo aceptado:** ningún comprador gana los premios, aunque la lista de vendidos esté intacta; un cierre tardío obliga a reembolsar todo.
 - Tras el cierre no puede cambiar el comprador de una orden ni la orden de un boleto vendido (triggers), porque alimentan los grupos del hash.
 - **Límite residual:** el correo ancla el modo al momento del pago, no el hash, que se calcula después. Si el modo cambia mientras la rifa está `ACTIVE`, no se avisa a los compradores que ya pagaron: queda como pregunta de producto abierta.
 - El navegador no comprueba `drawConfigFrozenAt` contra la hora de la ronda; esa regla la aplica solo la API.
-- Las migraciones son `20261117000000_multi_prize_raffles` y `20261118000000_draw_config_integrity_guards`.
+- Las migraciones son `20261117000000_multi_prize_raffles`, `20261118000000_draw_config_integrity_guards` y `20261119000000_cancel_refused_draw` (salida de la rifa rechazada).
