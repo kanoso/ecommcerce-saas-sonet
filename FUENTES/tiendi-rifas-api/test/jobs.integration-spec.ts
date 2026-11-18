@@ -5,6 +5,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { roundAt, timeOfRound } from '@kanoso/raffle-draw';
 import { Job, Queue, Worker } from 'bullmq';
 import { randomUUID } from 'crypto';
+import { createRaffleRow } from './raffle-fixtures';
 import { validateEnv } from '../src/config/env.validation';
 import { NotificationRetryPolicy, RaffleStatus } from '../src/modules/raffles/domain';
 import {
@@ -215,7 +216,7 @@ describe('Jobs (F5, BullMQ + PostgreSQL)', () => {
         roundAt(Date.now(), { genesisTimeSec: 1692803367, periodSec: 3 }),
       );
     await prisma.user.create({ data: { id: userId, email: `${userId}@test.local` } });
-    await prisma.raffle.create({
+    await createRaffleRow(prisma, {
       data: {
         id,
         title: 'Jobs raffle',
@@ -615,13 +616,16 @@ describe('Jobs (F5, BullMQ + PostgreSQL)', () => {
           expiresAt: new Date(Date.now() - 60_000),
         },
       });
+      // The attack also bypasses trg_ticket_transition_order_frozen.
       await prisma.$executeRaw`ALTER TABLE "Ticket" DISABLE TRIGGER trg_ticket_transition`;
+      await prisma.$executeRaw`ALTER TABLE "Ticket" DISABLE TRIGGER trg_ticket_transition_order_frozen`;
       try {
         await prisma.ticket.update({
           where: { raffleId_number: { raffleId, number: 5 } },
           data: { status: 'SOLD', orderId: order.id },
         });
       } finally {
+        await prisma.$executeRaw`ALTER TABLE "Ticket" ENABLE TRIGGER trg_ticket_transition_order_frozen`;
         await prisma.$executeRaw`ALTER TABLE "Ticket" ENABLE TRIGGER trg_ticket_transition`;
       }
     }

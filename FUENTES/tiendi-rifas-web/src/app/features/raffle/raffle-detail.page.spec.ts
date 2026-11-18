@@ -294,6 +294,40 @@ describe('RaffleDetailPage', () => {
     }
   });
 
+  it('lists every prize in draw order and the exclusion mode of a multi-prize raffle', async () => {
+    detail = () => {
+      const d = aDetail(1);
+      return {
+        ...d,
+        raffle: {
+          ...d.raffle,
+          prize: 'Auto',
+          prizes: [
+            { position: 1, title: 'Auto', description: null, images: [] },
+            { position: 2, title: 'Moto', description: 'Moto 150cc', images: ['https://example.com/moto.jpg'] },
+            { position: 3, title: 'Bicicleta', description: null, images: [] },
+          ],
+          winnerExclusionMode: 'BUYER' as const,
+        },
+      };
+    };
+    const { harness, el } = await open();
+
+    const items = el.querySelectorAll('.raffle__prizes li');
+    expect(Array.from(items).map((li) => li.textContent?.replace(/s+/g, ' ').trim())).toEqual([
+      '1.º Auto',
+      '2.º Moto',
+      '3.º Bicicleta',
+    ]);
+    expect(el.textContent).toContain('3 premios');
+    expect(el.textContent).toContain('quien gana sale con todos sus boletos');
+
+    (el.querySelectorAll('.tab-btn')[1] as HTMLButtonElement).click();
+    harness.detectChanges();
+    const others = el.querySelector('.other-prizes');
+    expect(others?.textContent).toContain('Moto 150cc');
+  });
+
   it('renders prize images carousel and specs tab when raffle has them', async () => {
     detail = () => {
       const d = aDetail(1);

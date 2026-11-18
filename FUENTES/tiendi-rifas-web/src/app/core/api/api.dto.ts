@@ -18,6 +18,30 @@ export interface DrawExtractionDto {
   es_ganador: boolean;
 }
 
+export type WinnerExclusionModeDto = 'TICKET_ONLY' | 'BUYER';
+
+/** One prize, in draw order (presenters.ts `prizes`). */
+export interface PrizeDto {
+  posicion: number;
+  titulo: string;
+  descripcion: string | null;
+  imagenes: string[];
+}
+
+/** One prize's official result (presenters.ts `winner`). */
+export interface DrawWinnerDto {
+  posicion: number;
+  titulo_premio?: string;
+  /** WON, or VOID when the pool had fewer tickets than the winning attempt. */
+  estado: 'WON' | 'VOID' | string;
+  numero_ganador: number | null;
+  indice_ganador: number | null;
+  digest_hex: string | null;
+  boletos_en_juego: number;
+  excluidos: number[];
+  extracciones: DrawExtractionDto[];
+}
+
 /** One item of `GET /api/rifas`. */
 export interface RaffleSummaryDto {
   rifa_id: string;
@@ -31,6 +55,8 @@ export interface RaffleSummaryDto {
   efecto_sorteo?: DrawEffectDto;
   descripcion_premio?: string | null;
   imagenes_premio?: string[];
+  premios?: PrizeDto[];
+  modo_exclusion_ganador?: WinnerExclusionModeDto;
   cierre_ventas: string | null;
   fecha_sorteo: string | null;
   /** Null while the raffle has no resolution (only drafts). */
@@ -63,13 +89,16 @@ export interface RaffleDetailDto {
 
 /** `GET /api/rifas/:id/en-vivo`. The seed and the list stay null until the close. */
 export interface OfficialResultDto {
-  numero_ganador: number;
-  indice_ganador: number;
-  digest_hex: string;
+  /** Prize 1; null only when prize 1 of a v2 draw was VOID. */
+  numero_ganador: number | null;
+  indice_ganador: number | null;
+  digest_hex: string | null;
   aleatoriedad_drand: string;
   intento_ganador?: number;
   extracciones?: DrawExtractionDto[];
   ejecutado_en: string;
+  version_algoritmo?: string;
+  ganadores?: DrawWinnerDto[];
 }
 
 export interface LiveDataDto {
@@ -96,6 +125,12 @@ export interface LiveDataDto {
   modalidad_sorteo?: DrawModeDto;
   duracion_efecto_seg?: number;
   velocidad_efecto?: DrawSpeedDto;
+  premios?: PrizeDto[];
+  modo_exclusion_ganador?: WinnerExclusionModeDto;
+  /** Frozen at the close; null before. */
+  hash_configuracion?: string | null;
+  /** BUYER mode, from the close: sold tickets grouped by buyer, without identities. */
+  grupos_compradores?: number[][];
 }
 
 /**
@@ -129,10 +164,19 @@ export interface VerificationDataDto {
   /** False when the sold numbers no longer hash to `hash_lista` (DT-11). */
   lista_verificada: boolean;
   numeros_vendidos: number[];
-  indice_ganador: number;
-  numero_ganador: number;
-  digest_hex: string;
+  /** Prize 1; null only when prize 1 of a v2 draw was VOID. */
+  indice_ganador: number | null;
+  numero_ganador: number | null;
+  digest_hex: string | null;
   ejecutado_en: string;
+  premios?: PrizeDto[];
+  modo_exclusion_ganador?: WinnerExclusionModeDto;
+  /** v2: the configuration hash frozen at the close; empty before multi-prize draws. */
+  hash_configuracion?: string;
+  configuracion_verificada?: boolean;
+  /** BUYER mode: sold tickets grouped by buyer, without identities. */
+  grupos_compradores?: number[][];
+  ganadores?: DrawWinnerDto[];
 }
 
 /** `POST /api/reservas` body. The API rejects any other key. */
@@ -240,7 +284,8 @@ export interface CreateRaffleDto {
   duracion_efecto_seg?: number;
   velocidad_efecto?: string;
   titulo: string;
-  premio: string;
+  /** Legacy single prize; premios replaces it. */
+  premio?: string;
   precio_boleto: number;
   numero_min: number;
   numero_max: number;
@@ -248,6 +293,16 @@ export interface CreateRaffleDto {
   efecto_sorteo?: string;
   descripcion_premio?: string | null;
   imagenes_premio?: string[];
+  /** Ordered prizes; replaces premio/descripcion_premio/imagenes_premio. */
+  premios?: PrizeRequestDto[];
+  modo_exclusion_ganador?: WinnerExclusionModeDto;
+}
+
+/** One prize of a create or update; its position is its place in the list. */
+export interface PrizeRequestDto {
+  titulo: string;
+  descripcion?: string | null;
+  imagenes?: string[];
 }
 
 export interface UpdateDraftRaffleDto {
@@ -261,6 +316,13 @@ export interface UpdateDraftRaffleDto {
   efecto_sorteo?: string;
   descripcion_premio?: string | null;
   imagenes_premio?: string[];
+  premios?: PrizeRequestDto[];
+  modo_exclusion_ganador?: WinnerExclusionModeDto;
+}
+
+/** `PATCH /admin/rifas/:id/modo-exclusion`: allowed in DRAFT and ACTIVE only. */
+export interface ChangeExclusionModeDto {
+  modo_exclusion_ganador: WinnerExclusionModeDto;
 }
 
 export interface CreatedRaffleDto {
@@ -294,7 +356,8 @@ export interface AdminSalesReportDto {
 
 export interface ExecuteDrawDto {
   sorteo_id: string;
-  numero_ganador: number;
+  /** Prize 1; null when it was VOID. */
+  numero_ganador: number | null;
   ronda_drand: string;
   ejecutado_en: string;
 }

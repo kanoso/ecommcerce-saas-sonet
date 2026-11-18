@@ -8,6 +8,7 @@ import {
   Ticket,
   TicketOrder,
   TicketStatus,
+  WinnerExclusionMode,
 } from '../../domain';
 import {
   InMemoryDrawRepository,
@@ -171,6 +172,38 @@ describe('RaffleQueries (F6 read side)', () => {
     expect(live.soldListHash).toBe('h'.repeat(64));
     expect(live.soldNumbers).toEqual([7]);
     expect(live.result).toBeNull();
+  });
+
+  it('shows the prizes, the locked mode and, in BUYER mode, the buyer groups once closed', async () => {
+    await raffles.save(
+      raffleWith(RaffleStatus.CLOSED, {
+        prize: undefined,
+        prizes: [
+          { id: 'p1', position: 1, title: 'Auto', description: null, images: [] },
+          { id: 'p2', position: 2, title: 'Moto', description: null, images: [] },
+        ],
+        winnerExclusionMode: WinnerExclusionMode.BUYER,
+        drawConfigHash: 'f'.repeat(64),
+      }),
+    );
+    await orders.save(
+      new TicketOrder({
+        id: 'order-1',
+        raffleId: 'raffle-1',
+        userId: 'buyer-1',
+        numbers: [7],
+        totalAmount: 5,
+        status: OrderStatus.PAID,
+        expiresAt: new Date('2026-11-10T00:00:00Z'),
+      }),
+    );
+
+    const live = await queries.liveData('raffle-1');
+
+    expect(live.prizes.map((p) => p.title)).toEqual(['Auto', 'Moto']);
+    expect(live.winnerExclusionMode).toBe(WinnerExclusionMode.BUYER);
+    expect(live.drawConfigHash).toBe('f'.repeat(64));
+    expect(live.buyerGroups).toEqual([[7]]);
   });
 
   it('never shows the seed of a cancelled raffle', async () => {

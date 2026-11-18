@@ -115,34 +115,64 @@
             class="btn btn-secondary btn-sm"
             (click)="openEditShowcaseModal()"
           >
-            ✏️ Editar Ficha y Galería
+            ✏️ Editar premios
           </button>
         }
       </div>
 
       <div class="prize-showcase-body">
-        @if (r.prizeImages && r.prizeImages.length > 0) {
-          <div class="admin-gallery-preview">
-            <span class="preview-label">Vista previa del carrusel ({{ r.prizeImages.length }} fotos)</span>
-            <div class="admin-thumbs-strip">
-              @for (img of r.prizeImages; track $index) {
-                <div class="admin-thumb-card">
-                  <img [src]="img" [alt]="'Foto ' + ($index + 1)" class="admin-thumb-img" />
-                  <span class="thumb-tag">#{{ $index + 1 }}</span>
+        <ol class="admin-prize-list">
+          @for (prize of prizes(); track prize.position) {
+            <li class="admin-prize-item" data-testid="prize-item">
+              <h3 class="specs-heading">Premio {{ prize.position }}: {{ prize.title }}</h3>
+              @if (prize.images.length > 0) {
+                <div class="admin-gallery-preview">
+                  <span class="preview-label">Vista previa del carrusel ({{ prize.images.length }} fotos)</span>
+                  <div class="admin-thumbs-strip">
+                    @for (img of prize.images; track $index) {
+                      <div class="admin-thumb-card">
+                        <img [src]="img" [alt]="'Foto ' + ($index + 1) + ' del premio ' + prize.position" class="admin-thumb-img" />
+                        <span class="thumb-tag">#{{ $index + 1 }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <p class="text-muted">No se han registrado imágenes para este premio.</p>
+              }
+              @if (prize.description) {
+                <div class="admin-specs-container">
+                  <h4 class="specs-heading">Ficha Técnica Publicada:</h4>
+                  <p class="specs-text">{{ prize.description }}</p>
                 </div>
               }
-            </div>
-          </div>
-        } @else {
-          <p class="text-muted">No se han registrado imágenes del premio para esta rifa.</p>
-        }
+            </li>
+          }
+        </ol>
 
-        @if (r.prizeDescription) {
-          <div class="admin-specs-container">
-            <h3 class="specs-heading">Ficha Técnica Publicada:</h3>
-            <p class="specs-text">{{ r.prizeDescription }}</p>
-          </div>
-        }
+        <div class="admin-specs-container exclusion-mode-panel">
+          <h3 class="specs-heading">Exclusión entre premios:</h3>
+          @if (r.status === 'ACTIVE') {
+            <app-exclusion-mode-field [(value)]="modeDraft" [locked]="modeLocked()" />
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              data-testid="save-exclusion-mode"
+              [disabled]="modeSaving() || modeDraft() === r.winnerExclusionMode"
+              (click)="saveExclusionMode()"
+            >
+              @if (modeSaving()) { Guardando… } @else { Guardar modo }
+            </button>
+            <p class="text-muted">Puedes cambiarlo hasta el cierre de ventas; el cambio queda registrado en la auditoría.</p>
+            @if (modeError()) {
+              <span class="field__error" role="alert">{{ modeError() }}</span>
+            }
+          } @else if (r.status === 'DRAFT') {
+            <p class="specs-text">{{ exclusionModeLabel(r.winnerExclusionMode) }} (se edita junto con los premios).</p>
+          } @else {
+            <app-exclusion-mode-field [value]="r.winnerExclusionMode" [locked]="true" />
+          }
+        </div>
 
         <div class="admin-specs-container">
           <h3 class="specs-heading">Configuración del Sorteo en Vivo:</h3>
@@ -375,7 +405,7 @@
         @if (drawResult(); as draw) {
           <div class="alert alert--success" role="status">
             <p><strong>Sorteo ejecutado exitosamente.</strong></p>
-            <p class="draw-winner">Número ganador: {{ draw.winningNumber }}</p>
+            <p class="draw-winner">Número ganador: {{ draw.winningNumber ?? 'Desierto' }}</p>
             <p>Ronda drand: {{ draw.drandRound }} | Ejecutado en: {{ draw.executedAt | date:'medium' }}</p>
             <div class="draw-links">
               <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
@@ -683,7 +713,7 @@
       <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-showcase-title">
         <div class="modal-card edit-showcase-modal">
           <div class="modal__header">
-            <h3 id="edit-showcase-title" class="modal__title">Editar Ficha Técnica y Galería del Premio</h3>
+            <h3 id="edit-showcase-title" class="modal__title">Editar premios, fichas y galerías</h3>
             <button type="button" class="btn-close" (click)="closeEditShowcaseModal()" aria-label="Cerrar">×</button>
           </div>
 
@@ -694,68 +724,8 @@
               </div>
             }
 
-            <div class="field">
-              <label for="edit_desc" class="field__label">Ficha Técnica / Especificaciones</label>
-              <textarea
-                id="edit_desc"
-                [ngModel]="editPrizeDescription()"
-                (ngModelChange)="editPrizeDescription.set($event)"
-                class="field__input field__textarea"
-                rows="4"
-                placeholder="Especificaciones del premio, detalles, modelo, garantía..."
-                maxlength="10000"
-              ></textarea>
-            </div>
-
-            <div class="field">
-              <label for="edit_img_url" class="field__label">
-                Galería de Fotos ({{ editPrizeImages().length }}/10)
-              </label>
-              <div class="image-input-row">
-                <input
-                  id="edit_img_url"
-                  type="url"
-                  [ngModel]="editNewImageUrl()"
-                  (ngModelChange)="editNewImageUrl.set($event)"
-                  (keydown.enter)="$event.preventDefault(); addEditImage()"
-                  class="field__input image-input-row__input"
-                  placeholder="https://ejemplo.com/foto-premio.jpg"
-                />
-                <button
-                  type="button"
-                  (click)="addEditImage()"
-                  class="btn btn-secondary"
-                  [disabled]="editPrizeImages().length >= 10 || !editNewImageUrl().trim()"
-                >
-                  Agregar foto
-                </button>
-              </div>
-
-              @if (editImageError()) {
-                <span class="field__error">{{ editImageError() }}</span>
-              }
-
-              @if (editPrizeImages().length > 0) {
-                <div class="thumbs-grid">
-                  @for (img of editPrizeImages(); track $index) {
-                    <div class="thumb-card">
-                      <img [src]="img" [alt]="'Foto ' + ($index + 1)" class="thumb-card__img" />
-                      <div class="thumb-card__footer">
-                        <span class="thumb-tag">#{{ $index + 1 }}</span>
-                        <button
-                          type="button"
-                          (click)="removeEditImage($index)"
-                          class="btn-remove-thumb"
-                          aria-label="Eliminar foto"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
+            <app-prize-list-editor [(prizes)]="editPrizes" />
+            <app-exclusion-mode-field [(value)]="editExclusionMode" />
 
             <div class="field">
               <label for="edit_modalidad" class="field__label">Modalidad del Sorteo</label>

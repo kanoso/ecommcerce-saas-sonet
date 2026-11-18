@@ -50,6 +50,9 @@ describe('toRaffleSummary', () => {
       drawSpeed: 'NORMAL',
       prizeDescription: null,
       prizeImages: [],
+      // An API without a prize list: the legacy prize at position 1.
+      prizes: [{ position: 1, title: 'Un televisor', description: null, images: [] }],
+      winnerExclusionMode: 'TICKET_ONLY',
     });
   });
 

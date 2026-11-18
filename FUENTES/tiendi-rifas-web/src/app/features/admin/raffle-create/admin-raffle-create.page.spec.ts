@@ -35,7 +35,9 @@ describe('AdminRaffleCreatePage', () => {
 
   it('renders form inputs for RF-10', () => {
     expect(el.querySelector('#titulo')).not.toBeNull();
-    expect(el.querySelector('#premio')).not.toBeNull();
+    expect(el.querySelector('#premio-titulo-0')).not.toBeNull();
+    expect(el.querySelector('input[name="modo_exclusion_ganador"][value="TICKET_ONLY"]')).not.toBeNull();
+    expect(el.querySelector('input[name="modo_exclusion_ganador"][value="BUYER"]')).not.toBeNull();
     expect(el.querySelector('#precio_boleto')).not.toBeNull();
     expect(el.querySelector('#numero_min')).not.toBeNull();
     expect(el.querySelector('#numero_max')).not.toBeNull();
@@ -54,7 +56,6 @@ describe('AdminRaffleCreatePage', () => {
   it('validates that numero_max is greater than numero_min', () => {
     component.form.patchValue({
       titulo: 'Rifa Inválida',
-      premio: 'Premio',
       precio_boleto: 10,
       numero_min: 100,
       numero_max: 50,
@@ -71,11 +72,11 @@ describe('AdminRaffleCreatePage', () => {
   it('submits valid form to API and navigates to raffle management on success', () => {
     component.form.patchValue({
       titulo: 'Gran Rifa Camioneta',
-      premio: 'Camioneta 4x4',
       precio_boleto: 50,
       numero_min: 1,
       numero_max: 1000,
     });
+    component.prizes.set([{ title: 'Camioneta 4x4', description: '', images: [] }]);
 
     const form = el.querySelector('form') as HTMLFormElement;
     form.dispatchEvent(new Event('submit'));
@@ -83,7 +84,6 @@ describe('AdminRaffleCreatePage', () => {
 
     expect(adminApiMock.createRaffle).toHaveBeenCalledWith({
       titulo: 'Gran Rifa Camioneta',
-      premio: 'Camioneta 4x4',
       precio_boleto: 50,
       numero_min: 1,
       numero_max: 1000,
@@ -92,11 +92,63 @@ describe('AdminRaffleCreatePage', () => {
       modalidad_sorteo: 'AUTOMATIC',
       duracion_efecto_seg: 4,
       velocidad_efecto: 'NORMAL',
-      descripcion_premio: null,
-      imagenes_premio: [],
+      premios: [{ titulo: 'Camioneta 4x4', descripcion: null, imagenes: [] }],
+      modo_exclusion_ganador: 'TICKET_ONLY',
     });
 
     expect(router.navigate).toHaveBeenCalledWith(['/admin/rifas', 'r-created']);
+  });
+
+  it('sends the ordered prize list and the chosen exclusion mode', () => {
+    component.form.patchValue({ titulo: 'Rifa Navideña', precio_boleto: 5, numero_min: 1, numero_max: 100 });
+    component.prizes.set([{ title: 'Moto', description: '', images: [] }]);
+    fixture.detectChanges();
+
+    (el.querySelector('[data-testid="add-prize"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const second = el.querySelector('#premio-titulo-1') as HTMLInputElement;
+    second.value = 'Auto';
+    second.dispatchEvent(new Event('input'));
+    (el.querySelector('[data-testid="move-prize-up-1"]') as HTMLButtonElement).click();
+    (el.querySelector('input[name="modo_exclusion_ganador"][value="BUYER"]') as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+
+    expect(adminApiMock.createRaffle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        premios: [
+          { titulo: 'Auto', descripcion: null, imagenes: [] },
+          { titulo: 'Moto', descripcion: null, imagenes: [] },
+        ],
+        modo_exclusion_ganador: 'BUYER',
+      }),
+    );
+  });
+
+  it('removes a prize but always keeps at least one', () => {
+    component.prizes.set([
+      { title: 'Moto', description: '', images: [] },
+      { title: 'Auto', description: '', images: [] },
+    ]);
+    fixture.detectChanges();
+
+    (el.querySelector('[data-testid="remove-prize-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(component.prizes().map((p) => p.title)).toEqual(['Auto']);
+    expect((el.querySelector('[data-testid="remove-prize-0"]') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('does not submit a prize without a title', () => {
+    component.form.patchValue({ titulo: 'Rifa', precio_boleto: 5, numero_min: 1, numero_max: 100 });
+    component.prizes.set([{ title: '  ', description: '', images: [] }]);
+
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(adminApiMock.createRaffle).not.toHaveBeenCalled();
+    expect(el.textContent).toContain('Cada premio necesita un título');
   });
 
   it('shows error notice when API call fails', () => {
@@ -104,11 +156,11 @@ describe('AdminRaffleCreatePage', () => {
 
     component.form.patchValue({
       titulo: 'Gran Rifa Camioneta',
-      premio: 'Camioneta 4x4',
       precio_boleto: 50,
       numero_min: 1,
       numero_max: 1000,
     });
+    component.prizes.set([{ title: 'Camioneta 4x4', description: '', images: [] }]);
 
     const form = el.querySelector('form') as HTMLFormElement;
     form.dispatchEvent(new Event('submit'));

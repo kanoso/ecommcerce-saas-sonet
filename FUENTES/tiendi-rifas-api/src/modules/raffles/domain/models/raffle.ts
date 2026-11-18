@@ -1,14 +1,40 @@
-import { DrawEffect, DrawMode, DrawSpeed, RaffleStatus } from '../enums/raffle-status.enum';
+import {
+  DrawEffect,
+  DrawMode,
+  DrawSpeed,
+  RaffleStatus,
+  WinnerExclusionMode,
+} from '../enums/raffle-status.enum';
 import {
   InvalidRaffleTransitionError,
   RaffleValidationError,
+  SalesClosedError,
   SoldListIntactError,
 } from '../errors/domain.errors';
+import {
+  MAX_PRIZE_IMAGES,
+  orderedPrizes,
+  prizesFromInputs,
+  RafflePrize,
+  RafflePrizeInput,
+} from './raffle-prize';
+
+const EXCLUSION_MODES = Object.values(WinnerExclusionMode) as string[];
+
+/** The winner exclusion mode can change only before sales close (integrity). */
+const MODE_EDITABLE: readonly RaffleStatus[] = [RaffleStatus.DRAFT, RaffleStatus.ACTIVE];
+
+function assertExclusionMode(mode: WinnerExclusionMode): void {
+  if (!EXCLUSION_MODES.includes(mode)) {
+    throw new RaffleValidationError(`Unknown winner exclusion mode: ${String(mode)}`);
+  }
+}
 
 export interface RaffleProps {
   id: string;
   title: string;
-  prize: string;
+  /** Legacy single prize: used when no prize list is given. */
+  prize?: string;
   ticketPrice: number;
   numberMin: number;
   numberMax: number;
@@ -19,6 +45,13 @@ export interface RaffleProps {
   drawSpeed?: DrawSpeed;
   prizeDescription?: string | null;
   prizeImages?: string[];
+  /** Ordered prizes; when absent, one prize is derived from prize/prizeDescription/prizeImages. */
+  prizes?: RafflePrize[];
+  winnerExclusionMode?: WinnerExclusionMode;
+  /** Frozen at the close of sales: hash of the draw configuration. */
+  drawConfigHash?: string | null;
+  /** When drawConfigHash was frozen: must precede the drand round's publication. */
+  drawConfigFrozenAt?: Date | null;
   status?: RaffleStatus;
   authorizationResolution?: string | null;
   commitmentHash?: string | null;
@@ -48,7 +81,10 @@ export interface PublishRaffleParams {
 export class Raffle {
   readonly id: string;
   private _title: string;
-  private _prize: string;
+  private _prizes: RafflePrize[];
+  private _winnerExclusionMode: WinnerExclusionMode;
+  private _drawConfigHash: string | null;
+  private _drawConfigFrozenAt: Date | null;
   private _ticketPrice: number;
   readonly numberMin: number;
   readonly numberMax: number;
@@ -57,8 +93,6 @@ export class Raffle {
   private _drawMode: DrawMode;
   private _drawDurationSec: number;
   private _drawSpeed: DrawSpeed;
-  private _prizeDescription: string | null;
-  private _prizeImages: string[];
   private _status: RaffleStatus;
   private _authorizationResolution: string | null;
   private _commitmentHash: string | null;
@@ -95,9 +129,13 @@ export class Raffle {
     }
 
     const prizeImages = props.prizeImages ?? [];
-    if (!Array.isArray(prizeImages) || prizeImages.length > 10) {
+    if (!Array.isArray(prizeImages) || prizeImages.length > MAX_PRIZE_IMAGES) {
       throw new RaffleValidationError('Cannot have more than 10 prize images');
     }
+
+    const winnerExclusionMode =
+      props.winnerExclusionMode ?? WinnerExclusionMode.TICKET_ONLY;
+    assertExclusionMode(winnerExclusionMode);
 
     const drawDurationSec = props.drawDurationSec ?? 4;
     if (
@@ -112,7 +150,21 @@ export class Raffle {
 
     this.id = props.id;
     this._title = props.title;
-    this._prize = props.prize;
+    this._prizes =
+      props.prizes !== undefined
+        ? orderedPrizes(props.prizes)
+        : orderedPrizes([
+            {
+              id: `${props.id}:prize:1`,
+              position: 1,
+              title: props.prize ?? '',
+              description: props.prizeDescription ?? null,
+              images: prizeImages,
+            },
+          ]);
+    this._winnerExclusionMode = winnerExclusionMode;
+    this._drawConfigHash = props.drawConfigHash ?? null;
+    this._drawConfigFrozenAt = props.drawConfigFrozenAt ?? null;
     this._ticketPrice = props.ticketPrice;
     this.numberMin = props.numberMin;
     this.numberMax = props.numberMax;
@@ -121,8 +173,6 @@ export class Raffle {
     this._drawMode = props.drawMode ?? DrawMode.AUTOMATIC;
     this._drawDurationSec = drawDurationSec;
     this._drawSpeed = props.drawSpeed ?? DrawSpeed.NORMAL;
-    this._prizeDescription = props.prizeDescription ?? null;
-    this._prizeImages = prizeImages;
     this._status = props.status ?? RaffleStatus.DRAFT;
     this._authorizationResolution = props.authorizationResolution ?? null;
     this._commitmentHash = props.commitmentHash ?? null;
@@ -142,8 +192,26 @@ export class Raffle {
     return this._title;
   }
 
+  /** Legacy single-prize view: the title of prize 1. */
   get prize(): string {
-    return this._prize;
+    return this._prizes[0].title;
+  }
+
+  /** Ordered by position, 1 first. */
+  get prizes(): RafflePrize[] {
+    return this._prizes.map((p) => ({ ...p, images: [...p.images] }));
+  }
+
+  get winnerExclusionMode(): WinnerExclusionMode {
+    return this._winnerExclusionMode;
+  }
+
+  get drawConfigHash(): string | null {
+    return this._drawConfigHash;
+  }
+
+  get drawConfigFrozenAt(): Date | null {
+    return this._drawConfigFrozenAt;
   }
 
   get ticketPrice(): number {
@@ -170,12 +238,44 @@ export class Raffle {
     return this._drawSpeed;
   }
 
+  /** Legacy single-prize view: the description of prize 1. */
   get prizeDescription(): string | null {
-    return this._prizeDescription;
+    return this._prizes[0].description;
   }
 
+  /** Legacy single-prize view: the images of prize 1. */
   get prizeImages(): string[] {
-    return this._prizeImages;
+    return [...this._prizes[0].images];
+  }
+
+  /**
+   * Allowed in DRAFT and ACTIVE only, and in ACTIVE only before salesCloseAt:
+   * the mode is part of the configuration frozen at the close of sales, before
+   * the drand randomness exists. The close job may run late; the mode is
+   * locked from salesCloseAt on all the same.
+   * @param now the current time, from the Clock port.
+   * @returns the previous mode.
+   */
+  changeWinnerExclusionMode(mode: WinnerExclusionMode, now: Date): WinnerExclusionMode {
+    if (!MODE_EDITABLE.includes(this._status)) {
+      throw new InvalidRaffleTransitionError(
+        this._status,
+        this._status,
+        'The winner exclusion mode is locked once sales are closed',
+      );
+    }
+    if (
+      this._status === RaffleStatus.ACTIVE &&
+      this._salesCloseAt !== null &&
+      now.getTime() >= this._salesCloseAt.getTime()
+    ) {
+      throw new SalesClosedError(this.id);
+    }
+    assertExclusionMode(mode);
+    const previous = this._winnerExclusionMode;
+    this._winnerExclusionMode = mode;
+    this._updatedAt = new Date();
+    return previous;
   }
 
   updateDraft(params: {
@@ -189,6 +289,8 @@ export class Raffle {
     drawSpeed?: DrawSpeed;
     prizeDescription?: string | null;
     prizeImages?: string[];
+    prizes?: RafflePrizeInput[];
+    winnerExclusionMode?: WinnerExclusionMode;
   }): void {
     if (this._status !== RaffleStatus.DRAFT) {
       throw new InvalidRaffleTransitionError(
@@ -205,11 +307,25 @@ export class Raffle {
       this._title = params.title.trim();
     }
 
+    const legacyPrize =
+      params.prize !== undefined ||
+      params.prizeDescription !== undefined ||
+      params.prizeImages !== undefined;
+    if (params.prizes !== undefined && legacyPrize) {
+      throw new RaffleValidationError(
+        'Give either the prize list or the legacy prize fields, not both',
+      );
+    }
+
+    if (params.prizes !== undefined) {
+      this._prizes = prizesFromInputs(params.prizes);
+    }
+
     if (params.prize !== undefined) {
       if (!params.prize || params.prize.trim() === '') {
         throw new RaffleValidationError('Raffle prize cannot be empty');
       }
-      this._prize = params.prize.trim();
+      this.replaceFirstPrize({ title: params.prize.trim() });
     }
 
     if (params.ticketPrice !== undefined) {
@@ -258,17 +374,29 @@ export class Raffle {
     }
 
     if (params.prizeDescription !== undefined) {
-      this._prizeDescription = params.prizeDescription ? params.prizeDescription.trim() : null;
+      this.replaceFirstPrize({
+        description: params.prizeDescription ? params.prizeDescription.trim() : null,
+      });
     }
 
     if (params.prizeImages !== undefined) {
-      if (!Array.isArray(params.prizeImages) || params.prizeImages.length > 10) {
+      if (!Array.isArray(params.prizeImages) || params.prizeImages.length > MAX_PRIZE_IMAGES) {
         throw new RaffleValidationError('Cannot have more than 10 prize images');
       }
-      this._prizeImages = params.prizeImages;
+      this.replaceFirstPrize({ images: params.prizeImages });
+    }
+
+    if (params.winnerExclusionMode !== undefined) {
+      assertExclusionMode(params.winnerExclusionMode);
+      this._winnerExclusionMode = params.winnerExclusionMode;
     }
 
     this._updatedAt = new Date();
+  }
+
+  private replaceFirstPrize(changes: Partial<Omit<RafflePrize, 'id' | 'position'>>): void {
+    const [first, ...rest] = this._prizes;
+    this._prizes = orderedPrizes([{ ...first, ...changes }, ...rest]);
   }
 
   get status(): RaffleStatus {
@@ -357,7 +485,19 @@ export class Raffle {
     this._updatedAt = new Date();
   }
 
-  closeSales(soldListHash: string, seedRevealed: string): void {
+  /**
+   * @param drawConfigHash the hash of the draw configuration (exclusion mode,
+   * attempts, prize count, buyer groups), frozen with the sold list. Null only
+   * for closes made before multi-prize draws existed.
+   * @param frozenAt when the configuration was frozen (the close itself); kept
+   * only with a configuration hash.
+   */
+  closeSales(
+    soldListHash: string,
+    seedRevealed: string,
+    drawConfigHash: string | null = null,
+    frozenAt: Date | null = null,
+  ): void {
     if (this._status !== RaffleStatus.ACTIVE) {
       throw new InvalidRaffleTransitionError(
         this._status,
@@ -368,6 +508,8 @@ export class Raffle {
 
     this._soldListHash = soldListHash;
     this._seedRevealed = seedRevealed;
+    this._drawConfigHash = drawConfigHash;
+    this._drawConfigFrozenAt = drawConfigHash === null ? null : frozenAt;
     this._status = RaffleStatus.CLOSED;
     this._updatedAt = new Date();
   }

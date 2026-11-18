@@ -14,6 +14,36 @@ export interface DrawExtraction {
   isWinner: boolean;
 }
 
+/** Which tickets leave the pool after a prize is won (multi-prize draws). */
+export type WinnerExclusionMode = 'TICKET_ONLY' | 'BUYER';
+
+/** One prize of a raffle; position 1 is drawn first. */
+export interface RafflePrize {
+  position: number;
+  title: string;
+  description: string | null;
+  images: string[];
+}
+
+/** WON with its ticket, or VOID ("desierto") when the pool ran short. */
+export type DrawWinnerStatus = 'WON' | 'VOID';
+
+/** The official result of one prize. */
+export interface DrawWinner {
+  position: number;
+  /** Only the verification data names it. */
+  prizeTitle?: string;
+  status: DrawWinnerStatus;
+  winningNumber: number | null;
+  winnerIndex: number | null;
+  digestHex: string | null;
+  /** Tickets in the pool before this prize was drawn. */
+  poolSize: number;
+  /** Tickets that left the pool after this prize. */
+  excludedTickets: number[];
+  extractions: DrawExtraction[];
+}
+
 export interface RaffleSummary {
   id: string;
   title: string;
@@ -30,6 +60,9 @@ export interface RaffleSummary {
   drawEffect?: DrawEffect;
   prizeDescription?: string | null;
   prizeImages?: string[];
+  /** Ordered prizes; at least the legacy single prize. */
+  prizes: RafflePrize[];
+  winnerExclusionMode: WinnerExclusionMode;
   status: string;
   salesCloseAt: Date | null;
   drawAt: Date | null;
@@ -93,6 +126,13 @@ export interface LiveRaffleData {
   soldNumbers: number[] | null;
   result: OfficialResult | null;
   soldTicketBuyers?: Record<number, string>;
+  /** Ordered prizes; at least the legacy single prize. */
+  prizes: RafflePrize[];
+  winnerExclusionMode: WinnerExclusionMode;
+  /** Frozen at the close; null before or for older raffles. */
+  drawConfigHash: string | null;
+  /** BUYER mode, from the close: sold tickets grouped by buyer, without identities. */
+  buyerGroups?: number[][];
 }
 
 /** The public status and title of a raffle, read from its live data. */
@@ -104,12 +144,17 @@ export interface RaffleStatusInfo {
 /** What the platform recorded when it ran the draw. */
 export interface OfficialResult {
   drandRandomness: string;
-  winnerIndex: number;
-  winningNumber: number;
-  digestHex: string;
+  /** Prize 1's result; null only when prize 1 of a v2 draw was VOID. */
+  winnerIndex: number | null;
+  winningNumber: number | null;
+  digestHex: string | null;
   winningAttempt?: number;
   extractions?: DrawExtraction[];
   executedAt: Date | null;
+  /** 'v1' single prize, 'v2' multi-prize. */
+  algorithmVersion?: string;
+  /** One per prize, in order; empty when the API does not report them. */
+  winners?: DrawWinner[];
 }
 
 /** The frozen data of a drawn raffle, for anyone to recompute (RF-20). */
@@ -139,6 +184,17 @@ export interface VerificationData {
   prizeImages?: string[];
   extractions?: DrawExtraction[];
   official: OfficialResult;
+  /** Ordered prizes; at least the legacy single prize. */
+  prizes: RafflePrize[];
+  winnerExclusionMode: WinnerExclusionMode;
+  /** v2: the configuration hash frozen at the close; empty otherwise. */
+  drawConfigHash: string;
+  /** Only an explicit `true` from the API counts. */
+  drawConfigVerified: boolean;
+  /** BUYER mode: sold tickets grouped by buyer, without identities. */
+  buyerGroups: number[][];
+  /** One per prize, in order. */
+  winners: DrawWinner[];
 }
 
 /** `BankOrWallet` of the API domain; the proof upload rejects any other value. */
@@ -268,7 +324,8 @@ export interface AdminSalesReport {
 
 export interface ExecuteDrawResult {
   drawId: string;
-  winningNumber: number;
+  /** Prize 1; null when it was VOID. */
+  winningNumber: number | null;
   drandRound: string;
   executedAt: Date;
 }

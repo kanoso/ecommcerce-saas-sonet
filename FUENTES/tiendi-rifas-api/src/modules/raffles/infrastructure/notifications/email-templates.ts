@@ -65,6 +65,33 @@ const limaDateTime = new Intl.DateTimeFormat('es-PE', {
   timeZone: 'America/Lima',
 });
 
+const EXCLUSION_MODES: Record<string, string> = {
+  TICKET_ONLY: 'solo el boleto ganador',
+  BUYER: 'todos los boletos del comprador ganador',
+};
+
+/**
+ * The draw configuration at payment time. The mode matters only with several
+ * prizes, and it is the one value that may still change until the close.
+ */
+function drawConfigLines(anchor: DrawAnchor): string[] {
+  const lines: string[] = [];
+  if (anchor.prizeCount !== undefined) {
+    lines.push(`Cantidad de premios: ${anchor.prizeCount}`);
+  }
+  if (anchor.winningAttempt !== undefined) {
+    lines.push(`Intento ganador: ${anchor.winningAttempt}`);
+  }
+  if (anchor.winnerExclusionMode !== undefined && (anchor.prizeCount ?? 1) > 1) {
+    const meaning = EXCLUSION_MODES[anchor.winnerExclusionMode];
+    lines.push(
+      `Modo de exclusión al momento de tu pago: ${anchor.winnerExclusionMode}${meaning ? ` (${meaning})` : ''}`,
+      'El modo de exclusión puede cambiar hasta el cierre de ventas; la página de verificación muestra el que quedó fijado al cierre.',
+    );
+  }
+  return lines;
+}
+
 /** "Datos para verificar tu sorteo": public values only, nothing about the buyer. */
 function anchorLines(raffleId: string, anchor: DrawAnchor, webBaseUrl: string): string[] {
   const base = webBaseUrl.replace(/\/+$/, '');
@@ -81,6 +108,7 @@ function anchorLines(raffleId: string, anchor: DrawAnchor, webBaseUrl: string): 
           `Cierre de ventas (ISO 8601): ${anchor.salesCloseAt}`,
         ]
       : []),
+    ...drawConfigLines(anchor),
     `Verifica el sorteo en: ${base}/rifas/${encodeURIComponent(raffleId)}/verificacion`,
     'Si estos datos no coinciden con los de la página de verificación, el sorteo no es confiable.',
   ];
@@ -231,15 +259,24 @@ export const templates = {
     raffleTitle: string;
     winningNumber: number;
     prize: string;
+    /** Multi-prize draws only. */
+    prizePosition?: number;
+    prizeCount?: number;
   }): EmailContent {
+    const multiPrize = data.prizePosition !== undefined;
+    const place = `${data.prizePosition}.º premio`;
     return email(
       'raffle.winner',
       'raffle-draws',
-      `¡Ganaste ${data.raffleTitle}!`,
+      multiPrize
+        ? `¡Ganaste el ${place} de ${data.raffleTitle}!`
+        : `¡Ganaste ${data.raffleTitle}!`,
       [
         'Hola:',
         '',
-        `Tu número ${data.winningNumber} ganó el sorteo de ${data.raffleTitle}.`,
+        multiPrize
+          ? `Tu número ${data.winningNumber} ganó el ${place} (de ${data.prizeCount}) del sorteo de ${data.raffleTitle}.`
+          : `Tu número ${data.winningNumber} ganó el sorteo de ${data.raffleTitle}.`,
         `Premio: ${data.prize}`,
         '',
         'Te contactaremos para coordinar la entrega. Puedes verificar el sorteo en la página pública de la rifa.',

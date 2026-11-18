@@ -39,6 +39,13 @@ export interface LedgerTransaction {
    */
   lockPaymentAccount(accountId: string): Promise<PaymentAccount | null>;
   lockOrders(orderIds: string[]): Promise<TicketOrder[]>;
+  /**
+   * The buyer (userId) of every order of the raffle, by order id, read
+   * without a lock: an order never changes its buyer (a trigger keeps it once
+   * the raffle is closed). By raffle, not by a list of order ids, so its size
+   * never meets a bind-parameter limit. For BUYER exclusion only.
+   */
+  findRaffleBuyers(raffleId: string): Promise<Map<string, string>>;
   lockOrdersByStatus(
     raffleId: string,
     statuses: OrderStatus[],

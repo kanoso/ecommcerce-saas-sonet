@@ -14,6 +14,7 @@ const CHECK_LABELS: Record<CheckId, string> = {
   commitment: 'Semilla y compromiso',
   soldList: 'Lista de vendidos',
   roundBinding: 'Ronda fijada por la fecha del sorteo',
+  drawConfig: 'Premios y modo de exclusión congelados al cierre',
   ownNumbers: 'Tus números están en la lista',
   emailAnchor: 'Datos de tu correo',
   drandRound: 'Ronda de drand y firma BLS',
@@ -37,12 +38,15 @@ const PIN_LABELS: Record<PinField, string> = {
   soldListHash: 'Hash de la lista',
 };
 
-/** The four values of the email section, as the page labels them. */
+/** The values of the email section, as the page labels them. */
 const EMAIL_INPUTS: readonly { field: EmailField; id: string; label: string }[] = [
   { field: 'commitmentHash', id: 'email-commitment', label: 'Compromiso' },
   { field: 'drandRound', id: 'email-round', label: 'Ronda de drand' },
   { field: 'drawAt', id: 'email-draw-at', label: 'Fecha del sorteo (ISO 8601)' },
   { field: 'salesCloseAt', id: 'email-sales-close', label: 'Cierre de ventas (ISO 8601)' },
+  { field: 'prizeCount', id: 'email-prize-count', label: 'Cantidad de premios' },
+  { field: 'winningAttempt', id: 'email-winning-attempt', label: 'Intento ganador' },
+  { field: 'winnerExclusionMode', id: 'email-exclusion-mode', label: 'Modo de exclusión al momento de tu pago' },
 ];
 
 const drawDateFormat = new Intl.DateTimeFormat('es-PE', {
@@ -79,8 +83,46 @@ export class VerificationPage implements OnInit {
   protected readonly dataInvalid = computed(() =>
     this.verification
       .checks()
-      .some((check) => (check.id === 'commitment' || check.id === 'soldList') && check.status === 'failed'),
+      .some(
+        (check) =>
+          (check.id === 'commitment' || check.id === 'soldList' || check.id === 'drawConfig') &&
+          check.status === 'failed',
+      ),
   );
+
+  /** Several prizes: the page lists every prize's official and local result. */
+  protected readonly isMultiPrize = computed(() => (this.verification.data()?.prizes.length ?? 1) > 1);
+
+  protected readonly exclusionLabel = computed(() =>
+    this.verification.data()?.winnerExclusionMode === 'BUYER'
+      ? 'Por comprador: quien gana sale del sorteo con todos sus boletos'
+      : 'Solo el boleto ganador sale del sorteo',
+  );
+
+  /** One row per prize: the official result next to the one computed in this browser. */
+  protected readonly prizeRows = computed(() => {
+    const data = this.verification.data();
+    if (!data) {
+      return [];
+    }
+    const local = this.verification.localWinners();
+    return data.prizes.map((prize) => {
+      const official = data.winners.find((w) => w.position === prize.position) ?? null;
+      const mine = local?.prizes.find((p) => p.position === prize.position) ?? null;
+      return {
+        position: prize.position,
+        title: prize.title,
+        official: official?.status === 'WON' ? String(official.winningNumber) : official ? 'Desierto' : '—',
+        poolSize: official?.poolSize ?? null,
+        local: mine ? (mine.status === 'WON' ? String(mine.winningTicket) : 'Desierto') : null,
+        same:
+          !!mine &&
+          !!official &&
+          mine.status === official.status &&
+          mine.winningTicket === official.winningNumber,
+      };
+    });
+  });
 
   /**
    * - verified: a full local match, nothing changed since an earlier visit,

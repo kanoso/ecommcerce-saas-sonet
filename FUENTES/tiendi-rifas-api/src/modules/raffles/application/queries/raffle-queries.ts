@@ -9,7 +9,9 @@ import {
   Ticket,
   TicketOrder,
   TicketStatus,
+  WinnerExclusionMode,
 } from '../../domain';
+import { buyerGroupsOf } from '../use-cases/draw-config';
 import {
   DrawRepository,
   OrderRepository,
@@ -54,6 +56,8 @@ function summaryOf(raffle: Raffle, counts: TicketStatusCounts) {
     drawSpeed: raffle.drawSpeed,
     prizeDescription: raffle.prizeDescription,
     prizeImages: raffle.prizeImages,
+    prizes: raffle.prizes,
+    winnerExclusionMode: raffle.winnerExclusionMode,
     status: raffle.status,
     salesCloseAt: raffle.salesCloseAt?.toISOString() ?? null,
     drawAt: raffle.drawAt?.toISOString() ?? null,
@@ -177,10 +181,17 @@ export class RaffleQueries {
         ? await this.draws.findByRaffleId(raffleId)
         : null;
     const soldTicketBuyers: Record<number, string> = {};
+    let buyerGroups: number[][] = [];
     if (frozen) {
-      const ordersWithBuyers = this.orders.findByRaffleIdWithBuyer
-        ? await this.orders.findByRaffleIdWithBuyer(raffleId)
-        : [];
+      const ordersWithBuyers = await this.orders.findByRaffleIdWithBuyer(raffleId);
+      // BUYER mode: the grouping frozen in drawConfigHash, without identities.
+      if (raffle.winnerExclusionMode === WinnerExclusionMode.BUYER) {
+        const soldTickets = await this.tickets.findSoldByRaffleId(raffleId);
+        buyerGroups = buyerGroupsOf(
+          soldTickets,
+          new Map(ordersWithBuyers.map(({ order }) => [order.id, order.userId])),
+        );
+      }
       for (const { order, buyer } of ordersWithBuyers) {
         if (order.status === OrderStatus.PAID) {
           const label =
@@ -205,6 +216,11 @@ export class RaffleQueries {
       drawMode: raffle.drawMode,
       drawDurationSec: raffle.drawDurationSec,
       drawSpeed: raffle.drawSpeed,
+      prizes: raffle.prizes,
+      winnerExclusionMode: raffle.winnerExclusionMode,
+      // Frozen at the close with the sold list; null before.
+      drawConfigHash: frozen ? raffle.drawConfigHash : null,
+      buyerGroups,
       commitmentHash: raffle.commitmentHash,
       drandChainHash: raffle.drandChainHash,
       // The round fixed before sales opened, the only one the draw uses (DT-18).
@@ -224,6 +240,8 @@ export class RaffleQueries {
             winningAttempt: draw.winningAttempt,
             extractions: draw.extractions,
             executedAt: draw.executedAt.toISOString(),
+            algorithmVersion: draw.algorithmVersion,
+            winners: draw.winners,
           }
         : null,
     };

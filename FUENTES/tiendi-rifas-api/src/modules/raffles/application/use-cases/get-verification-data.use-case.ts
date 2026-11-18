@@ -1,10 +1,36 @@
 import { DrawExtraction, normalizeSoldNumbers, soldListHash } from '@kanoso/raffle-draw';
-import { DrawNotPossibleError, RaffleNotFoundError } from '../../domain';
+import {
+  DrawNotPossibleError,
+  DrawWinnerStatus,
+  RaffleNotFoundError,
+  WinnerExclusionMode,
+} from '../../domain';
 import {
   DrawRepository,
+  OrderRepository,
   RaffleRepository,
   TicketRepository,
 } from '../ports';
+import { buyerGroupsOf, drawConfigHashOf } from './draw-config';
+
+export interface VerificationPrize {
+  position: number;
+  title: string;
+  description: string | null;
+  images: string[];
+}
+
+export interface VerificationWinner {
+  position: number;
+  prizeTitle: string;
+  status: DrawWinnerStatus;
+  winningNumber: number | null;
+  winnerIndex: number | null;
+  digestHex: string | null;
+  poolSize: number;
+  extractions: DrawExtraction[];
+  excludedTickets: number[];
+}
 
 export interface VerificationDataResponse {
   raffleId: string;
@@ -27,12 +53,24 @@ export interface VerificationDataResponse {
   /** False when the numbers below no longer hash to the published value. */
   soldListVerified: boolean;
   soldNumbers: number[];
-  winnerIndex: number;
-  winningNumber: number;
-  digestHex: string;
+  /** Prize 1's result; null when prize 1 is VOID (v2 only). */
+  winnerIndex: number | null;
+  winningNumber: number | null;
+  digestHex: string | null;
   winningAttempt: number;
   extractions: DrawExtraction[];
   executedAt: string;
+  /** Ordered prizes. */
+  prizes: VerificationPrize[];
+  winnerExclusionMode: WinnerExclusionMode;
+  /** v2: hash frozen at the close; empty for raffles closed before multi-prize draws. */
+  drawConfigHash: string;
+  /** False when the configuration below no longer hashes to drawConfigHash. */
+  drawConfigVerified: boolean;
+  /** BUYER mode: sold tickets grouped by buyer (no identities); empty otherwise. */
+  buyerGroups: number[][];
+  /** One per prize, ordered by position. */
+  winners: VerificationWinner[];
 }
 
 export class GetVerificationDataUseCase {
@@ -40,6 +78,7 @@ export class GetVerificationDataUseCase {
     private readonly raffleRepo: RaffleRepository,
     private readonly ticketRepo: TicketRepository,
     private readonly drawRepo: DrawRepository,
+    private readonly orderRepo: OrderRepository,
   ) {}
 
   async execute(raffleId: string): Promise<VerificationDataResponse> {
@@ -57,6 +96,21 @@ export class GetVerificationDataUseCase {
     const soldNumbers = normalizeSoldNumbers(soldTickets.map((t) => t.number));
     const soldListVerified =
       (await soldListHash(soldNumbers)) === raffle.soldListHash;
+
+    // Buyers matter only in BUYER mode: v1 and TICKET_ONLY read none.
+    const buyerMode = raffle.winnerExclusionMode === WinnerExclusionMode.BUYER;
+    const groups = buyerMode
+      ? buyerGroupsOf(
+          soldTickets,
+          new Map(
+            (await this.orderRepo.findByRaffleId(raffleId)).map((o) => [o.id, o.userId]),
+          ),
+        )
+      : [];
+    const drawConfigVerified =
+      raffle.drawConfigHash !== null &&
+      (await drawConfigHashOf(raffle, groups)) === raffle.drawConfigHash;
+    const prizes = raffle.prizes;
 
     return {
       raffleId: raffle.id,
@@ -81,6 +135,27 @@ export class GetVerificationDataUseCase {
       winningAttempt: draw.winningAttempt,
       extractions: draw.extractions,
       executedAt: draw.executedAt.toISOString(),
+      prizes: prizes.map((p) => ({
+        position: p.position,
+        title: p.title,
+        description: p.description,
+        images: p.images,
+      })),
+      winnerExclusionMode: raffle.winnerExclusionMode,
+      drawConfigHash: raffle.drawConfigHash ?? '',
+      drawConfigVerified,
+      buyerGroups: groups,
+      winners: draw.winners.map((w) => ({
+        position: w.position,
+        prizeTitle: prizes[w.position - 1]?.title ?? '',
+        status: w.status,
+        winningNumber: w.winningNumber,
+        winnerIndex: w.winnerIndex,
+        digestHex: w.digestHex,
+        poolSize: w.poolSize,
+        extractions: w.extractions,
+        excludedTickets: w.excludedTickets,
+      })),
     };
   }
 }

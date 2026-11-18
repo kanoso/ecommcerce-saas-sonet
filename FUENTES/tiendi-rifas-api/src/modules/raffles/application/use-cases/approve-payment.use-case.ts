@@ -173,6 +173,9 @@ function drawAnchorOf(raffle: Raffle): { verification?: DrawAnchor } {
       drandRound: drandRound.toString(),
       drawAt: drawAt.toISOString(),
       salesCloseAt: salesCloseAt.toISOString(),
+      winnerExclusionMode: raffle.winnerExclusionMode,
+      winningAttempt: raffle.winningAttempt,
+      prizeCount: raffle.prizes.length,
     },
   };
 }

@@ -32,6 +32,9 @@ function givenLiveData(overrides: Partial<LiveRaffleData> = {}): LiveRaffleData 
       digestHex: VECTOR.expected.digestHex,
       executedAt: new Date('2026-11-16T01:30:03.000Z'),
     },
+    prizes: [{ position: 1, title: 'Un televisor', description: null, images: [] }],
+    winnerExclusionMode: 'TICKET_ONLY',
+    drawConfigHash: null,
     ...overrides,
   };
 }
@@ -98,6 +101,34 @@ async function render(options: SetupOptions = {}) {
 }
 
 describe('LivePage', () => {
+  it('shows the prize list, the current prize and the locked exclusion mode of a multi-prize raffle', async () => {
+    const roundTime = new Date('2023-09-27T08:29:24.000Z').getTime();
+    const liveData = givenLiveData({
+      prizes: [
+        { position: 1, title: 'Auto', description: null, images: [] },
+        { position: 2, title: 'Moto', description: null, images: [] },
+      ],
+      winnerExclusionMode: 'BUYER',
+    });
+    const { fixture } = await render({ liveData, now: roundTime - 45_000 });
+
+    const el = fixture.nativeElement as HTMLElement;
+    const panel = el.querySelector('.prize-panel');
+    expect(panel).not.toBeNull();
+    expect(panel?.querySelectorAll('.prize-panel__item').length).toBe(2);
+    expect(panel?.textContent).toContain('Premio 1 de 2');
+    expect(panel?.textContent).toContain('Auto');
+    expect(panel?.textContent).toContain('Por sortear');
+    expect(panel?.textContent).toContain('Exclusión: Por comprador');
+  });
+
+  it('shows no prize panel for a single-prize raffle', async () => {
+    const roundTime = new Date('2023-09-27T08:29:24.000Z').getTime();
+    const { fixture } = await render({ now: roundTime - 45_000 });
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.prize-panel')).toBeNull();
+  });
+
   it('renders countdown when the round is in the future', async () => {
     const roundTime = new Date('2023-09-27T08:29:24.000Z').getTime();
     const { fixture } = await render({ now: roundTime - 45_000 });

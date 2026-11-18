@@ -11,6 +11,7 @@ import {
   RaffleOrderWithBuyerDto,
   ApprovePaymentRequestDto,
   CancelRaffleResponseDto,
+  ChangeExclusionModeDto,
   CompleteRefundRequestDto,
   ConfirmLatePaymentRequestDto,
   CreateAccountProposalRequestDto,
@@ -62,6 +63,7 @@ import {
   PendingProof,
   PublishedRaffle,
   RaffleSummary,
+  WinnerExclusionMode,
 } from './api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -130,6 +132,17 @@ export class AdminApi {
   updateDraftRaffle(raffleId: string, body: UpdateDraftRaffleDto): Observable<unknown> {
     return this.http
       .patch(`${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}`, body)
+      .pipe(catchError(rethrowAsApiError));
+  }
+
+  /**
+   * `PATCH /admin/rifas/:id/modo-exclusion`: how winners leave the pool between
+   * prizes. Allowed in DRAFT and ACTIVE; the API answers 409 once sales closed.
+   */
+  changeExclusionMode(raffleId: string, mode: WinnerExclusionMode): Observable<unknown> {
+    const body: ChangeExclusionModeDto = { modo_exclusion_ganador: mode };
+    return this.http
+      .patch(`${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}/modo-exclusion`, body)
       .pipe(catchError(rethrowAsApiError));
   }
 

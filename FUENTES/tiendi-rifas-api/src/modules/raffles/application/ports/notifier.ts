@@ -35,6 +35,16 @@ export interface DrawAnchor {
   drawAt: string;
   /** ISO 8601. The round must come after it (DT-18). Absent in rows queued before it was added. */
   salesCloseAt?: string;
+  /**
+   * The draw configuration as it stands at payment time; the close of sales
+   * freezes it into drawConfigHash later, so the hash itself cannot be sent.
+   * winningAttempt and prizeCount are fixed at publication; the exclusion
+   * mode can still change until salesCloseAt. Absent in rows queued before
+   * they were added.
+   */
+  winnerExclusionMode?: string;
+  winningAttempt?: number;
+  prizeCount?: number;
 }
 
 /** An account as the operators' alert shows it: never the whole number. */
@@ -136,5 +146,9 @@ export interface Notifier {
     raffleTitle: string;
     winningNumber: number;
     prize: string;
+    /** Multi-prize draws only: the position of the prize won (1-based). */
+    prizePosition?: number;
+    /** Multi-prize draws only: how many prizes the raffle has. */
+    prizeCount?: number;
   }, delivery?: DeliveryContext): Promise<void>;
 }

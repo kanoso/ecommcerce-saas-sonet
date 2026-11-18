@@ -81,7 +81,20 @@ export class RaffleDetailPage implements OnInit {
   readonly activeTab = signal<'boletos' | 'ficha'>('boletos');
   readonly activeImageIndex = signal<number>(0);
   readonly hasImages = computed(() => (this.store.raffle()?.prizeImages?.length ?? 0) > 0);
-  readonly hasSpecs = computed(() => !!this.store.raffle()?.prizeDescription || this.hasImages());
+  /** Prizes after the first: the carousel and specs above show prize 1. */
+  readonly otherPrizes = computed(() => (this.store.raffle()?.prizes ?? []).slice(1));
+  readonly hasSpecs = computed(
+    () =>
+      !!this.store.raffle()?.prizeDescription ||
+      this.hasImages() ||
+      this.otherPrizes().some((p) => !!p.description || p.images.length > 0),
+  );
+
+  exclusionModeText(mode: string | undefined): string {
+    return mode === 'BUYER'
+      ? 'Por comprador: quien gana sale con todos sus boletos'
+      : 'Solo el boleto ganador sale del sorteo';
+  }
 
   nextImage(): void {
     const total = this.store.raffle()?.prizeImages?.length ?? 0;

@@ -1,4 +1,8 @@
 import {
+  DrawExtractionDto,
+  DrawWinnerDto,
+  PrizeDto,
+  WinnerExclusionModeDto,
   LiveDataDto,
   MyTicketDto,
   NumberStatusDto,
@@ -18,6 +22,10 @@ import {
   VerificationDataDto,
 } from './api.dto';
 import {
+  DrawExtraction,
+  DrawWinner,
+  RafflePrize,
+  WinnerExclusionMode,
   Commitment,
   MyTicket,
   NumberStatus,
@@ -58,6 +66,61 @@ const countOrNull = (value: unknown): number | null =>
 const textOrNull = (value: string | null | undefined): string | null =>
   value && value.trim() !== '' ? value.trim() : null;
 
+const toExtraction = (e: DrawExtractionDto): DrawExtraction => ({
+  attempt: e.intento,
+  number: e.numero,
+  index: e.indice,
+  digestHex: e.digest_hex,
+  isWinner: e.es_ganador,
+});
+
+/** Anything but an explicit BUYER is the default, TICKET_ONLY. */
+const toExclusionMode = (mode: WinnerExclusionModeDto | undefined): WinnerExclusionMode =>
+  mode === 'BUYER' ? 'BUYER' : 'TICKET_ONLY';
+
+/**
+ * The ordered prize list; an older API that sends none gives the legacy
+ * single prize at position 1.
+ */
+function toPrizes(
+  prizes: PrizeDto[] | undefined,
+  legacy: { premio?: string; descripcion_premio?: string | null; imagenes_premio?: string[] },
+): RafflePrize[] {
+  if (Array.isArray(prizes) && prizes.length > 0) {
+    return [...prizes]
+      .sort((a, b) => a.posicion - b.posicion)
+      .map((p) => ({
+        position: p.posicion,
+        title: p.titulo,
+        description: textOrNull(p.descripcion),
+        images: Array.isArray(p.imagenes) ? p.imagenes : [],
+      }));
+  }
+  if (!legacy.premio) {
+    return [];
+  }
+  return [
+    {
+      position: 1,
+      title: legacy.premio,
+      description: textOrNull(legacy.descripcion_premio),
+      images: Array.isArray(legacy.imagenes_premio) ? legacy.imagenes_premio : [],
+    },
+  ];
+}
+
+const toDrawWinner = (w: DrawWinnerDto): DrawWinner => ({
+  position: w.posicion,
+  ...(w.titulo_premio !== undefined && { prizeTitle: w.titulo_premio }),
+  status: w.estado === 'VOID' ? 'VOID' : 'WON',
+  winningNumber: w.numero_ganador,
+  winnerIndex: w.indice_ganador,
+  digestHex: w.digest_hex,
+  poolSize: w.boletos_en_juego,
+  excludedTickets: Array.isArray(w.excluidos) ? w.excluidos : [],
+  extractions: (w.extracciones ?? []).map(toExtraction),
+});
+
 export function toRaffleSummary(dto: RaffleSummaryDto): RaffleSummary {
   return {
     id: dto.rifa_id,
@@ -80,6 +143,8 @@ export function toRaffleSummary(dto: RaffleSummaryDto): RaffleSummary {
     drawEffect: dto.efecto_sorteo ?? 'SLOT_MACHINE',
     prizeDescription: textOrNull(dto.descripcion_premio),
     prizeImages: Array.isArray(dto.imagenes_premio) ? dto.imagenes_premio : [],
+    prizes: toPrizes(dto.premios, dto),
+    winnerExclusionMode: toExclusionMode(dto.modo_exclusion_ganador),
   };
 }
 
@@ -218,13 +283,7 @@ export function toVerificationData(dto: VerificationDataDto): VerificationData {
     soldListVerified: dto.lista_verificada === true,
     soldNumbers: dto.numeros_vendidos,
     winningAttempt: typeof dto.intento_ganador === 'number' ? dto.intento_ganador : 1,
-    extractions: (dto.extracciones ?? []).map((e) => ({
-      attempt: e.intento,
-      number: e.numero,
-      index: e.indice,
-      digestHex: e.digest_hex,
-      isWinner: e.es_ganador,
-    })),
+    extractions: (dto.extracciones ?? []).map(toExtraction),
     official: {
       drandRandomness: dto.aleatoriedad_drand,
       winnerIndex: dto.indice_ganador,
@@ -232,6 +291,13 @@ export function toVerificationData(dto: VerificationDataDto): VerificationData {
       digestHex: dto.digest_hex,
       executedAt: dateOrNull(dto.ejecutado_en),
     },
+    prizes: toPrizes(dto.premios, dto),
+    winnerExclusionMode: toExclusionMode(dto.modo_exclusion_ganador),
+    drawConfigHash: dto.hash_configuracion ?? '',
+    // A configuration the API did not explicitly vouch for is never treated as intact.
+    drawConfigVerified: dto.configuracion_verificada === true,
+    buyerGroups: Array.isArray(dto.grupos_compradores) ? dto.grupos_compradores : [],
+    winners: (dto.ganadores ?? []).map(toDrawWinner),
   };
 }
 
@@ -248,14 +314,10 @@ export function toLiveRaffleData(dto: LiveDataDto): LiveRaffleData {
         winningNumber: dto.resultado.numero_ganador,
         digestHex: dto.resultado.digest_hex,
         winningAttempt: dto.resultado.intento_ganador,
-        extractions: (dto.resultado.extracciones ?? []).map((e) => ({
-          attempt: e.intento,
-          number: e.numero,
-          index: e.indice,
-          digestHex: e.digest_hex,
-          isWinner: e.es_ganador,
-        })),
+        extractions: (dto.resultado.extracciones ?? []).map(toExtraction),
         executedAt: dateOrNull(dto.resultado.ejecutado_en),
+        algorithmVersion: dto.resultado.version_algoritmo ?? 'v1',
+        winners: (dto.resultado.ganadores ?? []).map(toDrawWinner),
       }
     : null;
   return {
@@ -282,6 +344,10 @@ export function toLiveRaffleData(dto: LiveDataDto): LiveRaffleData {
     drawMode: dto.modalidad_sorteo ?? 'AUTOMATIC',
     drawDurationSec: typeof dto.duracion_efecto_seg === 'number' ? dto.duracion_efecto_seg : 4,
     drawSpeed: dto.velocidad_efecto ?? 'NORMAL',
+    prizes: toPrizes(dto.premios, dto as { descripcion_premio?: string | null; imagenes_premio?: string[] }),
+    winnerExclusionMode: toExclusionMode(dto.modo_exclusion_ganador),
+    drawConfigHash: dto.hash_configuracion ?? null,
+    buyerGroups: Array.isArray(dto.grupos_compradores) ? dto.grupos_compradores : [],
     numberMax: dto.numero_max ?? (dto.numeros_vendidos?.length ? Math.max(...dto.numeros_vendidos, 30) : 30),
   };
 }

@@ -1,7 +1,6 @@
 import {
   computeWinner,
   computeWinnerSequence,
-  generateSeed,
 } from '../src/index.js';
 
 describe('computeWinnerSequence (Specification §1)', () => {
@@ -152,5 +151,47 @@ describe('computeWinnerSequence (Specification §1)', () => {
     expect(new Set(extractedNumbers).size).toBe(5);
     expect(seq.extractions[4].isWinner).toBe(true);
     expect(seq.winningTicket).toBe(seq.extractions[4].number);
+  });
+});
+
+describe('computeWinnerSequence v1 snapshot (frozen before multi-prize work)', () => {
+  it('keeps the exact v1 result for a known input', async () => {
+    const seq = await computeWinnerSequence({
+      seedHex: 'aa'.repeat(32),
+      drandRandomnessHex: 'bb'.repeat(32),
+      raffleId: 'raffle-v1-snapshot',
+      soldNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      winningAttempt: 3,
+    });
+
+    expect(seq).toEqual({
+      winningTicket: 9,
+      winnerIndex: 8,
+      digestHex: 'cdb09cb9975295c86dd52e4dfa16f6b3fdcfb2f6d01c46caebccc6edf3dd5f3d',
+      winningAttempt: 3,
+      extractions: [
+        {
+          attempt: 1,
+          number: 12,
+          index: 11,
+          digestHex: '1e7b54efe3172ca98fc1b51b4253f6d2270bfbc63d9ccaa9eb87bf308f070013',
+          isWinner: false,
+        },
+        {
+          attempt: 2,
+          number: 3,
+          index: 2,
+          digestHex: 'dddd37e90740b42fc75a684cd826f5ca13f52cd3af13d293ea87b789e123cca7',
+          isWinner: false,
+        },
+        {
+          attempt: 3,
+          number: 9,
+          index: 8,
+          digestHex: 'cdb09cb9975295c86dd52e4dfa16f6b3fdcfb2f6d01c46caebccc6edf3dd5f3d',
+          isWinner: true,
+        },
+      ],
+    });
   });
 });

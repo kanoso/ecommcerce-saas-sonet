@@ -1,6 +1,7 @@
 export * from './enums/raffle-status.enum';
 export * from './errors/domain.errors';
 export * from './models/raffle';
+export * from './models/raffle-prize';
 export * from './models/ticket';
 export * from './models/ticket-order';
 export * from './models/payment';

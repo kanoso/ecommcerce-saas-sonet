@@ -1,5 +1,13 @@
-import { DrawEffect, DrawMode, DrawSpeed, Raffle, RaffleNotFoundError } from '../../domain';
+import {
+  DrawEffect,
+  DrawMode,
+  DrawSpeed,
+  Raffle,
+  RaffleNotFoundError,
+  WinnerExclusionMode,
+} from '../../domain';
 import { AuditLog, Clock, RaffleRepository } from '../ports';
+import { auditedPrizes, PrizeCommand, withPrizeIds } from './create-raffle.use-case';
 
 export interface UpdateDraftRaffleCommand {
   raffleId: string;
@@ -13,6 +21,9 @@ export interface UpdateDraftRaffleCommand {
   drawSpeed?: DrawSpeed;
   prizeDescription?: string | null;
   prizeImages?: string[];
+  /** Replaces the whole ordered prize list. */
+  prizes?: PrizeCommand[];
+  winnerExclusionMode?: WinnerExclusionMode;
 }
 
 export class UpdateDraftRaffleUseCase {
@@ -39,6 +50,8 @@ export class UpdateDraftRaffleUseCase {
       drawSpeed: command.drawSpeed,
       prizeDescription: command.prizeDescription,
       prizeImages: command.prizeImages,
+      prizes: command.prizes && withPrizeIds(command.prizes),
+      winnerExclusionMode: command.winnerExclusionMode,
     });
 
     await this.raffleRepo.save(raffle);
@@ -54,6 +67,8 @@ export class UpdateDraftRaffleUseCase {
         drawEffect: raffle.drawEffect,
         prizeDescription: raffle.prizeDescription,
         prizeImages: raffle.prizeImages,
+        prizes: auditedPrizes(raffle),
+        winnerExclusionMode: raffle.winnerExclusionMode,
       },
     });
 

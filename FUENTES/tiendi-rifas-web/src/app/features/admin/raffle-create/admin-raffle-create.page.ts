@@ -10,6 +10,15 @@ import {
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AdminApi } from '../../../core/api/admin-api';
+import { WinnerExclusionMode } from '../../../core/api/api.models';
+import { ExclusionModeFieldComponent } from '../shared/exclusion-mode-field.component';
+import {
+  PrizeDraft,
+  PrizeListEditorComponent,
+  emptyPrize,
+  prizesComplete,
+  toPrizeRequests,
+} from '../shared/prize-list-editor.component';
 
 function rangeValidator(control: AbstractControl): ValidationErrors | null {
   const min = control.get('numero_min')?.value;
@@ -23,7 +32,14 @@ function rangeValidator(control: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-admin-raffle-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    PrizeListEditorComponent,
+    ExclusionModeFieldComponent,
+  ],
   templateUrl: './admin-raffle-create.page.html',
   styleUrl: './admin-raffle-create.page.scss',
 })
@@ -35,14 +51,14 @@ export class AdminRaffleCreatePage {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly prizeImages = signal<string[]>([]);
-  readonly newImageUrl = signal('');
-  readonly imageError = signal<string | null>(null);
+  /** Ordered prizes; prize 1 is drawn first. */
+  readonly prizes = signal<PrizeDraft[]>([emptyPrize()]);
+  readonly exclusionMode = signal<WinnerExclusionMode>('TICKET_ONLY');
+  readonly prizesError = signal<string | null>(null);
 
   readonly form = this.fb.group(
     {
       titulo: ['', [Validators.required, Validators.maxLength(200)]],
-      premio: ['', [Validators.required, Validators.maxLength(500)]],
       precio_boleto: [10, [Validators.required, Validators.min(0.01)]],
       numero_min: [1, [Validators.required, Validators.min(0)]],
       numero_max: [100, [Validators.required, Validators.min(1)]],
@@ -51,36 +67,14 @@ export class AdminRaffleCreatePage {
       modalidad_sorteo: ['AUTOMATIC', [Validators.required]],
       duracion_efecto_seg: [4, [Validators.required, Validators.min(1), Validators.max(60)]],
       velocidad_efecto: ['NORMAL', [Validators.required]],
-      descripcion_premio: ['', [Validators.maxLength(10000)]],
     },
     { validators: [rangeValidator] },
   );
 
-  addImage(): void {
-    const url = this.newImageUrl().trim();
-    this.imageError.set(null);
-    if (!url) return;
-
-    if (!/^https?:\/\//i.test(url)) {
-      this.imageError.set('La URL de la imagen debe comenzar con http:// o https://');
-      return;
-    }
-
-    if (this.prizeImages().length >= 10) {
-      this.imageError.set('No puedes agregar más de 10 imágenes para el premio.');
-      return;
-    }
-
-    this.prizeImages.update((imgs) => [...imgs, url]);
-    this.newImageUrl.set('');
-  }
-
-  removeImage(index: number): void {
-    this.prizeImages.update((imgs) => imgs.filter((_, i) => i !== index));
-  }
-
   onSubmit(): void {
-    if (this.form.invalid) {
+    const prizesOk = prizesComplete(this.prizes());
+    this.prizesError.set(prizesOk ? null : 'Cada premio necesita un título.');
+    if (this.form.invalid || !prizesOk) {
       this.form.markAllAsTouched();
       return;
     }
@@ -92,7 +86,6 @@ export class AdminRaffleCreatePage {
     this.adminApi
       .createRaffle({
         titulo: val.titulo!.trim(),
-        premio: val.premio!.trim(),
         precio_boleto: Number(val.precio_boleto),
         numero_min: Number(val.numero_min),
         numero_max: Number(val.numero_max),
@@ -101,8 +94,8 @@ export class AdminRaffleCreatePage {
         modalidad_sorteo: val.modalidad_sorteo || 'AUTOMATIC',
         duracion_efecto_seg: Number(val.duracion_efecto_seg || 4),
         velocidad_efecto: val.velocidad_efecto || 'NORMAL',
-        descripcion_premio: val.descripcion_premio?.trim() || null,
-        imagenes_premio: this.prizeImages(),
+        premios: toPrizeRequests(this.prizes()),
+        modo_exclusion_ganador: this.exclusionMode(),
       })
       .subscribe({
         next: (created) => {

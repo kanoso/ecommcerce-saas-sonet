@@ -279,6 +279,264 @@ export async function computeWinnerSequence(
   };
 }
 
+// ---------------------------------------------------------------------------
+// v2: multi-prize draw
+// ---------------------------------------------------------------------------
+
+/** Algorithm version of the multi-prize draw. v1 above is left untouched. */
+export const MULTI_PRIZE_ALGORITHM_VERSION = 'v2';
+
+/** Upper bound of prizes in one raffle. */
+export const MAX_PRIZES = 20;
+
+/**
+ * Which tickets leave the pool after a prize is won:
+ * - TICKET_ONLY: only the winning ticket.
+ * - BUYER: every ticket of the winning ticket's buyer.
+ */
+export type WinnerExclusionMode = 'TICKET_ONLY' | 'BUYER';
+
+const EXCLUSION_MODES: readonly WinnerExclusionMode[] = ['TICKET_ONLY', 'BUYER'];
+
+export interface DrawConfigInput {
+  exclusionMode: WinnerExclusionMode;
+  winningAttempt: number;
+  prizeCount: number;
+  /** BUYER mode only: the sold ticket numbers grouped by buyer. */
+  buyerGroups?: number[][];
+}
+
+export interface ComputeMultiPrizeWinnersInput extends DrawConfigInput {
+  seedHex: string;
+  drandRandomnessHex: string;
+  raffleId: string;
+  soldNumbers: number[];
+}
+
+export type PrizeDrawStatus = 'WON' | 'VOID';
+
+export interface PrizeDrawResult {
+  /** 1-based position of the prize. */
+  position: number;
+  status: PrizeDrawStatus;
+  /** Tickets in the pool before this prize was drawn. */
+  poolSize: number;
+  winningTicket: number | null;
+  /** Index of the winning ticket in the normalized sold list. */
+  winnerIndex: number | null;
+  digestHex: string | null;
+  /** Indexes refer to the normalized sold list. */
+  extractions: DrawExtraction[];
+  /** Tickets removed from the pool after this prize (sorted ascending). */
+  excludedTickets: number[];
+}
+
+export interface ComputeMultiPrizeWinnersOutput {
+  algorithmVersion: typeof MULTI_PRIZE_ALGORITHM_VERSION;
+  exclusionMode: WinnerExclusionMode;
+  winningAttempt: number;
+  prizes: PrizeDrawResult[];
+}
+
+function assertWinningAttempt(winningAttempt: number): void {
+  if (!Number.isInteger(winningAttempt) || winningAttempt < 1 || winningAttempt > 5) {
+    throw new Error(
+      `Invalid winningAttempt: ${winningAttempt}. winningAttempt must be an integer between 1 and 5.`,
+    );
+  }
+}
+
+function assertPrizeCount(prizeCount: number): void {
+  if (!Number.isInteger(prizeCount) || prizeCount < 1 || prizeCount > MAX_PRIZES) {
+    throw new Error(
+      `Invalid prizeCount: ${prizeCount}. prizeCount must be an integer between 1 and ${MAX_PRIZES}.`,
+    );
+  }
+}
+
+function assertExclusionMode(mode: string): asserts mode is WinnerExclusionMode {
+  if (!EXCLUSION_MODES.includes(mode as WinnerExclusionMode)) {
+    throw new Error(
+      `Invalid exclusionMode: ${mode}. Expected one of ${EXCLUSION_MODES.join(', ')}.`,
+    );
+  }
+}
+
+/**
+ * Normalizes buyer groups: each group sorted ascending and deduplicated,
+ * empty groups dropped, groups ordered by their lowest ticket.
+ * Throws if a ticket belongs to more than one group.
+ */
+export function normalizeBuyerGroups(groups: number[][]): number[][] {
+  if (!Array.isArray(groups) || groups.some((g) => !Array.isArray(g))) {
+    throw new Error('Invalid buyerGroups: expected an array of arrays of ticket numbers.');
+  }
+  const normalized = groups.map((g) => normalizeSoldNumbers(g)).filter((g) => g.length > 0);
+  const seen = new Set<number>();
+  for (const group of normalized) {
+    for (const n of group) {
+      if (seen.has(n)) {
+        throw new Error(`Invalid buyerGroups: ticket ${n} belongs to more than one buyer.`);
+      }
+      seen.add(n);
+    }
+  }
+  return normalized.sort((a, b) => a[0] - b[0]);
+}
+
+/**
+ * The canonical text of a v2 draw configuration, frozen at the close of sales:
+ * "tiendi-raffle-draw/v2;mode=<MODE>;attempts=<k>;prizes=<N>;buyers=<g1>|<g2>|..."
+ * where each group is its comma-joined ascending ticket numbers, groups ordered
+ * by their lowest ticket. buyers is empty in TICKET_ONLY mode.
+ */
+export function canonicalDrawConfig(input: DrawConfigInput): string {
+  assertExclusionMode(input.exclusionMode);
+  assertWinningAttempt(input.winningAttempt);
+  assertPrizeCount(input.prizeCount);
+  const groups =
+    input.exclusionMode === 'BUYER' ? normalizeBuyerGroups(input.buyerGroups ?? []) : [];
+  const buyers = groups.map((g) => g.join(',')).join('|');
+  return [
+    `tiendi-raffle-draw/${MULTI_PRIZE_ALGORITHM_VERSION}`,
+    `mode=${input.exclusionMode}`,
+    `attempts=${input.winningAttempt}`,
+    `prizes=${input.prizeCount}`,
+    `buyers=${buyers}`,
+  ].join(';');
+}
+
+/**
+ * hex(SHA-256(utf8(canonicalDrawConfig(input)))). Recorded at the close of
+ * sales, before the drand round exists, so the exclusion mode and the buyer
+ * grouping cannot be chosen once the randomness is known.
+ */
+export async function drawConfigHash(input: DrawConfigInput): Promise<string> {
+  return sha256(new TextEncoder().encode(canonicalDrawConfig(input)));
+}
+
+/**
+ * Multi-prize draw (v2). The pool starts as the normalized (sorted, unique)
+ * sold list. For each prize p = 1..N, in order:
+ * - If the pool holds fewer than winningAttempt tickets, prize p and every
+ *   later prize are VOID.
+ * - Otherwise attempts k = 1..winningAttempt are drawn from a copy of the pool
+ *   without replacement:
+ *   digest = SHA-256(seed || drandRandomness || utf8(raffleId) || utf8(":prize:" + p + ":attempt:" + k))
+ *   index  = digest mod remaining.length
+ *   The last attempt wins; earlier attempts are "al agua" for this prize only
+ *   and stay in the pool.
+ * - The excluded tickets (the winner, or every ticket of the winner's buyer in
+ *   BUYER mode) leave the pool before the next prize.
+ */
+export async function computeMultiPrizeWinners(
+  input: ComputeMultiPrizeWinnersInput,
+): Promise<ComputeMultiPrizeWinnersOutput> {
+  const { seedHex, drandRandomnessHex, raffleId, prizeCount, exclusionMode, winningAttempt } =
+    input;
+
+  assertExclusionMode(exclusionMode);
+  assertWinningAttempt(winningAttempt);
+  assertPrizeCount(prizeCount);
+
+  const soldNumbers = normalizeSoldNumbers(input.soldNumbers);
+  const indexOf = new Map<number, number>(soldNumbers.map((n, i) => [n, i]));
+
+  const groupOf = new Map<number, number[]>();
+  if (exclusionMode === 'BUYER') {
+    if (!input.buyerGroups) {
+      throw new Error('Invalid buyerGroups: BUYER mode requires the buyer groups.');
+    }
+    for (const group of normalizeBuyerGroups(input.buyerGroups)) {
+      for (const n of group) {
+        if (!indexOf.has(n)) {
+          throw new Error(`Invalid buyerGroups: ticket ${n} is not in the sold list.`);
+        }
+        groupOf.set(n, group);
+      }
+    }
+    if (groupOf.size !== soldNumbers.length) {
+      throw new Error('Invalid buyerGroups: every sold ticket must belong to exactly one buyer.');
+    }
+  }
+
+  const seedBytes = hexToBytes(seedHex, 32);
+  const drandBytes = hexToBytes(drandRandomnessHex, 32);
+  const raffleIdBytes = new TextEncoder().encode(raffleId.toLowerCase().trim());
+  const basePayload = new Uint8Array(seedBytes.length + drandBytes.length + raffleIdBytes.length);
+  basePayload.set(seedBytes, 0);
+  basePayload.set(drandBytes, seedBytes.length);
+  basePayload.set(raffleIdBytes, seedBytes.length + drandBytes.length);
+
+  let pool = [...soldNumbers];
+  let exhausted = false;
+  const prizes: PrizeDrawResult[] = [];
+
+  for (let position = 1; position <= prizeCount; position++) {
+    exhausted = exhausted || pool.length < winningAttempt;
+    if (exhausted) {
+      prizes.push({
+        position,
+        status: 'VOID',
+        poolSize: pool.length,
+        winningTicket: null,
+        winnerIndex: null,
+        digestHex: null,
+        extractions: [],
+        excludedTickets: [],
+      });
+      continue;
+    }
+
+    const remaining = [...pool];
+    const extractions: DrawExtraction[] = [];
+    for (let k = 1; k <= winningAttempt; k++) {
+      const suffix = new TextEncoder().encode(`:prize:${position}:attempt:${k}`);
+      const payload = new Uint8Array(basePayload.length + suffix.length);
+      payload.set(basePayload, 0);
+      payload.set(suffix, basePayload.length);
+
+      const digestHex = await sha256(payload);
+      const subIndex = Number(BigInt('0x' + digestHex) % BigInt(remaining.length));
+      const chosen = remaining[subIndex];
+      remaining.splice(subIndex, 1);
+
+      extractions.push({
+        attempt: k,
+        number: chosen,
+        index: indexOf.get(chosen) as number,
+        digestHex,
+        isWinner: k === winningAttempt,
+      });
+    }
+
+    const winner = extractions[extractions.length - 1];
+    const excluded =
+      exclusionMode === 'BUYER' ? [...(groupOf.get(winner.number) as number[])] : [winner.number];
+    const excludedSet = new Set(excluded);
+    const poolSize = pool.length;
+    pool = pool.filter((n) => !excludedSet.has(n));
+
+    prizes.push({
+      position,
+      status: 'WON',
+      poolSize,
+      winningTicket: winner.number,
+      winnerIndex: winner.index,
+      digestHex: winner.digestHex,
+      extractions,
+      excludedTickets: excluded,
+    });
+  }
+
+  return {
+    algorithmVersion: MULTI_PRIZE_ALGORITHM_VERSION,
+    exclusionMode,
+    winningAttempt,
+    prizes,
+  };
+}
+
 /**
  * Returns the drand round scheduled at a given UNIX epoch timestamp (in milliseconds).
  */

@@ -310,6 +310,7 @@ describe('Draw and close jobs (F5)', () => {
         raffleRepo,
         ticketRepo,
         drawRepo,
+        orderRepo,
       ).execute(RAFFLE_ID);
       const recomputed = await computeWinner({
         seedHex: data.seedRevealed,

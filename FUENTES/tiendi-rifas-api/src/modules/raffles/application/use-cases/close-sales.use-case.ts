@@ -13,6 +13,7 @@ import {
   SeedVault,
   TicketLedger,
 } from '../ports';
+import { buyerGroupsFor, drawConfigHashOf } from './draw-config';
 import { SYSTEM_OPERATOR } from './execute-draw.use-case';
 import { resolveUnsettledOrders } from './payment-review';
 
@@ -74,8 +75,14 @@ export class CloseSalesUseCase {
       soldTickets.map((t) => t.number),
     );
     const listHash = await soldListHash(sortedSoldNumbers);
+    // Frozen with the list, before the drand round exists: the exclusion mode
+    // and who owns which ticket cannot be chosen after the randomness is known.
+    const buyerGroups = await buyerGroupsFor(tx, raffle, soldTickets);
+    const configHash = await drawConfigHashOf(raffle, buyerGroups);
+    // The draw refuses a configuration frozen once its round was public.
+    const frozenAt = this.clock.now();
 
-    raffle.closeSales(listHash, seedRevealed);
+    raffle.closeSales(listHash, seedRevealed, configHash, frozenAt);
     await tx.saveRaffle(raffle, previousStatus);
     // A close that got through after a failure closes its own alert.
     await tx.clearRaffleAlert(
@@ -90,6 +97,10 @@ export class CloseSalesUseCase {
       type: 'SALES_CLOSED',
       data: {
         soldListHash: listHash,
+        drawConfigHash: configHash,
+        drawConfigFrozenAt: frozenAt.toISOString(),
+        winnerExclusionMode: raffle.winnerExclusionMode,
+        prizeCount: raffle.prizes.length,
         totalSold: sortedSoldNumbers.length,
         seedRevealed,
         ordersInReview: inReview.map((order) => order.id),

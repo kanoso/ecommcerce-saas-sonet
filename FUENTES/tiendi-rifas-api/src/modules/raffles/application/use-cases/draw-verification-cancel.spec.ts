@@ -105,6 +105,7 @@ describe('Draw, Verification, Cancel & Prize Delivery Use Cases', () => {
       raffleRepo,
       ticketRepo,
       drawRepo,
+      orderRepo,
     );
 
     alertRepo = new InMemoryOperatorAlertRepository();

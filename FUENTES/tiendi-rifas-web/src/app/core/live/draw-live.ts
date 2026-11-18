@@ -1,9 +1,15 @@
 import { DestroyRef, Injectable, InjectionToken, Injector, computed, inject, signal } from '@angular/core';
 import {
+  ALGORITHM_VERSION,
+  ComputeMultiPrizeWinnersOutput,
   ComputeWinnerOutput,
   ComputeWinnerSequenceOutput,
   DrawExtraction,
+  MULTI_PRIZE_ALGORITHM_VERSION,
+  PrizeDrawResult,
+  computeMultiPrizeWinners,
   computeWinnerSequence,
+  drawConfigHash,
   roundAt,
   soldListHash,
   timeOfRound,
@@ -13,7 +19,7 @@ import { firstValueFrom, fromEvent } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AdminApi } from '../api/admin-api';
 import { toApiError } from '../api/api-error';
-import { DrawEffect, LiveRaffleData } from '../api/api.models';
+import { DrawEffect, LiveRaffleData, OfficialResult, RafflePrize } from '../api/api.models';
 import { RafflesApi } from '../api/raffles-api';
 import { SessionStore } from '../session/session.store';
 import { isAbortError } from '../drand/abort';
@@ -39,6 +45,8 @@ export interface LiveChecks {
   commitment: CheckStatus;
   soldList: CheckStatus;
   roundBinding: CheckStatus;
+  /** Multi-prize draws: the exclusion mode and buyer groups frozen at the close. */
+  drawConfig: CheckStatus;
   drandRound: CheckStatus;
   winner: CheckStatus;
   official: CheckStatus;
@@ -74,6 +82,7 @@ function defaultChecks(): LiveChecks {
     commitment: 'pending',
     soldList: 'pending',
     roundBinding: 'pending',
+    drawConfig: 'pending',
     drandRound: 'pending',
     winner: 'pending',
     official: 'pending',
@@ -89,6 +98,20 @@ function formatCountdown(sec: number): string {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+/** Several prizes: drawn one by one with computeMultiPrizeWinners (v2). */
+const hasSeveralPrizes = (data: LiveRaffleData | null): boolean => (data?.prizes?.length ?? 1) > 1;
+
+/** One prize's draw in the shape the single-prize animation plays. */
+function sequenceOf(prize: PrizeDrawResult, winningAttempt: number): ComputeWinnerSequenceOutput {
+  return {
+    winningTicket: prize.winningTicket as number,
+    winnerIndex: prize.winnerIndex as number,
+    digestHex: prize.digestHex as string,
+    winningAttempt,
+    extractions: prize.extractions,
+  };
 }
 
 function buildBoardNumbers(data: LiveRaffleData | null): number[] {
@@ -223,6 +246,24 @@ export class DrawLive {
   readonly failureReason = signal<string | null>(null);
   readonly roundProgress = signal<RoundPollProgress | null>(null);
 
+  // Multi-prize draws (v2): one prize after another.
+  readonly isMultiPrize = computed(() => hasSeveralPrizes(this.data()));
+  /** The full winners list computed in this browser. */
+  readonly localWinners = signal<ComputeMultiPrizeWinnersOutput | null>(null);
+  /** 0-based index of the prize being drawn or last drawn. */
+  readonly currentPrizeIndex = signal<number>(0);
+  /** Prizes already resolved, won or void, in order. */
+  readonly completedPrizes = signal<PrizeDrawResult[]>([]);
+  /** A pause between two prizes. */
+  readonly betweenPrizes = signal<boolean>(false);
+  readonly currentPrize = computed<RafflePrize | null>(
+    () => this.data()?.prizes?.[this.currentPrizeIndex()] ?? null,
+  );
+  /** Tickets in play for the current prize. */
+  readonly currentPoolSize = computed<number | null>(
+    () => this.localWinners()?.prizes[this.currentPrizeIndex()]?.poolSize ?? null,
+  );
+
   // Board & 5 Interactive Effects State
   readonly boardNumbers = computed<number[]>(() => buildBoardNumbers(this.data()));
   readonly snakeSegments = signal<number[]>([]);
@@ -310,6 +351,10 @@ export class DrawLive {
     this.failureReason.set(null);
     this.roundProgress.set(null);
     this.spunNumber.set('000');
+    this.localWinners.set(null);
+    this.currentPrizeIndex.set(0);
+    this.completedPrizes.set([]);
+    this.betweenPrizes.set(false);
     this.resetEffectsState();
   }
 
@@ -458,6 +503,11 @@ export class DrawLive {
     }
     this.checks.update((c) => ({ ...c, roundBinding: 'passed' }));
 
+    if (!(await this.checkDrawConfig(liveData))) {
+      return;
+    }
+    if (currentRun !== this.runId) return;
+
     // Check countdown
     const targetRoundTimeMs = timeOfRound(Number(liveData.drandRound), chain);
     const now = this.timing.now();
@@ -474,10 +524,49 @@ export class DrawLive {
     await this.startDrawFlow(liveData, currentRun);
   }
 
+  /**
+   * Multi-prize only: the exclusion mode, attempts, prize count and buyer
+   * groups must hash to the value frozen at the close, before the drand round.
+   */
+  private async checkDrawConfig(data: LiveRaffleData): Promise<boolean> {
+    if (!hasSeveralPrizes(data)) {
+      this.checks.update((c) => ({ ...c, drawConfig: 'skipped' }));
+      return true;
+    }
+    let localHash: string | null = null;
+    try {
+      localHash = await drawConfigHash({
+        exclusionMode: data.winnerExclusionMode,
+        winningAttempt: data.winningAttempt ?? 1,
+        prizeCount: data.prizes.length,
+        buyerGroups: data.buyerGroups ?? [],
+      });
+    } catch {
+      localHash = null;
+    }
+    if (!localHash || !data.drawConfigHash || localHash !== data.drawConfigHash.toLowerCase()) {
+      this.failVerification(
+        'drawConfig',
+        'La configuración del sorteo (modo de exclusión y premios) no corresponde a la congelada al cierre de ventas.',
+      );
+      return false;
+    }
+    this.checks.update((c) => ({ ...c, drawConfig: 'passed' }));
+    return true;
+  }
+
   /** Replay the live draw animation sequence on demand from the result view. */
   async replay(manual = false): Promise<void> {
     const seqResult = this.localSequence();
     const data = this.data();
+    const winners = this.localWinners();
+    if (winners && data?.soldNumbers) {
+      this.stopAnimationTimers();
+      this.manualStepMode.set(manual);
+      this.runId++;
+      await this.executePrizeSequence(winners, data, this.runId);
+      return;
+    }
     if (!seqResult || !data?.soldNumbers) return;
 
     if (this.spinTimer) {
@@ -504,6 +593,19 @@ export class DrawLive {
       durationMs,
       pauseMs,
     );
+  }
+
+  private stopAnimationTimers(): void {
+    if (this.spinTimer) {
+      clearInterval(this.spinTimer);
+      this.spinTimer = null;
+    }
+    if (this.pauseTimer) {
+      clearTimeout(this.pauseTimer);
+      this.pauseTimer = null;
+    }
+    this.waitingForAdminClick.set(false);
+    this.nextStepResolver = null;
   }
 
   private failVerification(step: keyof LiveChecks, reason: string): void {
@@ -572,7 +674,7 @@ export class DrawLive {
 
   private async triggerBackendManualDraw(
     data: LiveRaffleData,
-    localWinner: number,
+    localWinner: number | null,
     runId: number,
   ): Promise<void> {
     if (data.status === 'DRAWN' || data.result || !this.isAdminUser()) {
@@ -583,7 +685,8 @@ export class DrawLive {
       const adminApi = this.injector.get(AdminApi, null);
       if (adminApi) {
         const drawRes = await firstValueFrom(adminApi.executeDraw(data.raffleId));
-        if (runId === this.runId && drawRes) {
+        // A multi-prize draw is compared prize by prize, from the live data.
+        if (runId === this.runId && drawRes && !hasSeveralPrizes(data)) {
           this.evaluateOfficialResult(drawRes.winningNumber, localWinner);
           return;
         }
@@ -635,6 +738,11 @@ export class DrawLive {
 
     if (runId !== this.runId) return;
     this.checks.update((c) => ({ ...c, drandRound: 'passed' }));
+
+    if (hasSeveralPrizes(data)) {
+      await this.startMultiPrizeFlow(data, verifiedRound, runId);
+      return;
+    }
 
     // Compute winner sequence locally
     this.checks.update((c) => ({ ...c, winner: 'running' }));
@@ -691,6 +799,158 @@ export class DrawLive {
     );
   }
 
+  /** v2: the whole winners list, then the prizes one after another. */
+  private async startMultiPrizeFlow(
+    data: LiveRaffleData,
+    verifiedRound: VerifiedRound,
+    runId: number,
+  ): Promise<void> {
+    this.checks.update((c) => ({ ...c, winner: 'running' }));
+    let winners: ComputeMultiPrizeWinnersOutput;
+    try {
+      winners = await computeMultiPrizeWinners({
+        seedHex: data.seedRevealed!,
+        drandRandomnessHex: verifiedRound.randomness,
+        raffleId: data.raffleId,
+        soldNumbers: data.soldNumbers!,
+        winningAttempt: data.winningAttempt ?? 1,
+        prizeCount: data.prizes.length,
+        exclusionMode: data.winnerExclusionMode,
+        buyerGroups: data.buyerGroups ?? [],
+      });
+    } catch {
+      if (runId !== this.runId) return;
+      this.checks.update((c) => ({ ...c, winner: 'failed' }));
+      this.phase.set('error');
+      this.failureReason.set('Error calculando los ganadores localmente.');
+      return;
+    }
+    if (runId !== this.runId) return;
+    this.localWinners.set(winners);
+    this.checks.update((c) => ({ ...c, winner: 'passed' }));
+
+    if (!this.manualStepMode() || data.status === 'DRAWN' || data.result) {
+      this.checkOfficialResult(data, null);
+    }
+
+    if (
+      !this.manualStepMode() &&
+      (this.timing.prefersReducedMotion() || this.timing.spinDurationMs <= 0)
+    ) {
+      const prizes = winners.prizes;
+      const lastWon = [...prizes].reverse().find((p) => p.status === 'WON') ?? null;
+      this.completedPrizes.set([...prizes]);
+      this.currentPrizeIndex.set(prizes.length - 1);
+      this.showPrizeResult(lastWon, data.winningAttempt ?? 1);
+      this.phase.set('result');
+      return;
+    }
+
+    await this.executePrizeSequence(winners, data, runId);
+  }
+
+  /** The prize's winner as the result view shows it; nothing for a void prize. */
+  private showPrizeResult(prize: PrizeDrawResult | null, winningAttempt: number): void {
+    if (!prize || prize.status !== 'WON') {
+      return;
+    }
+    const sequence = sequenceOf(prize, winningAttempt);
+    this.localSequence.set(sequence);
+    this.localResult.set({
+      winner: sequence.winningTicket,
+      index: sequence.winnerIndex,
+      digestHex: sequence.digestHex,
+    });
+    this.completedExtractions.set([...sequence.extractions]);
+    this.currentAttemptIndex.set(sequence.extractions.length - 1);
+    this.spunNumber.set(String(sequence.winningTicket));
+    this.applyFinalEffectsState(sequence.winningTicket);
+  }
+
+  /**
+   * Plays every prize in order with the single-prize animation, over the pool
+   * of that prize. A void prize is shown as such and the next one follows.
+   */
+  private async executePrizeSequence(
+    winners: ComputeMultiPrizeWinnersOutput,
+    data: LiveRaffleData,
+    runId: number,
+  ): Promise<void> {
+    const winningAttempt = data.winningAttempt ?? 1;
+    const soldNumbers = data.soldNumbers ?? [];
+    const excluded = new Set<number>();
+    this.completedPrizes.set([]);
+    const lastIndex = winners.prizes.length - 1;
+
+    for (const [i, prize] of winners.prizes.entries()) {
+      if (runId !== this.runId) return;
+      this.currentPrizeIndex.set(i);
+      this.betweenPrizes.set(false);
+      const pool = soldNumbers.filter((n) => !excluded.has(n));
+
+      if (prize.status === 'WON') {
+        const sequence = sequenceOf(prize, winningAttempt);
+        this.localSequence.set(sequence);
+        this.localResult.set({
+          winner: sequence.winningTicket,
+          index: sequence.winnerIndex,
+          digestHex: sequence.digestHex,
+        });
+        await this.executeDrawSequence(
+          sequence,
+          pool,
+          runId,
+          this.resolveSpinDurationMs(data),
+          this.resolveAttemptPauseMs(),
+          i === lastIndex,
+        );
+        if (runId !== this.runId) return;
+        prize.excludedTickets.forEach((n) => excluded.add(n));
+      } else if (i === lastIndex) {
+        this.triggerManualDrawIfDue(runId);
+      }
+      this.completedPrizes.update((done) => [...done, prize]);
+
+      if (i < lastIndex) {
+        this.betweenPrizes.set(true);
+        this.phase.set('result');
+        if (this.manualStepMode() && !this.timing.prefersReducedMotion()) {
+          await this.waitForAdminTrigger(runId);
+        } else {
+          await this.pause(this.resolveAttemptPauseMs());
+        }
+        if (runId !== this.runId) return;
+        this.betweenPrizes.set(false);
+      }
+    }
+
+    const lastWon = [...winners.prizes].reverse().find((p) => p.status === 'WON') ?? null;
+    if (winners.prizes[lastIndex].status !== 'WON') {
+      this.showPrizeResult(lastWon, winningAttempt);
+    }
+    this.phase.set('result');
+  }
+
+  private pause(ms: number): Promise<void> {
+    if (ms <= 0) {
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      this.pauseTimer = setTimeout(() => {
+        this.pauseTimer = null;
+        resolve();
+      }, ms);
+    });
+  }
+
+  /** In a manual draw the operator's browser asks the API to draw at the final reveal. */
+  private triggerManualDrawIfDue(runId: number): void {
+    const curData = this.data();
+    if (curData && curData.drawMode === 'MANUAL' && curData.status !== 'DRAWN' && this.isAdminUser()) {
+      void this.triggerBackendManualDraw(curData, this.localResult()?.winner ?? null, runId);
+    }
+  }
+
   private resolveAttemptPauseMs(): number {
     if (this.timing.spinDurationMs <= 100) {
       return this.timing.attemptPauseMs ?? 50;
@@ -722,6 +982,8 @@ export class DrawLive {
     runId: number,
     durationMs: number,
     pauseMs: number,
+    /** The last (or only) prize: it triggers the manual draw and ends in the result. */
+    final = true,
   ): Promise<void> {
     this.completedExtractions.set([]);
     this.currentAttemptIndex.set(0);
@@ -739,11 +1001,8 @@ export class DrawLive {
       if (runId !== this.runId) return;
       this.currentAttemptIndex.set(i);
       const extraction = seqResult.extractions[i];
-      if (i === seqResult.extractions.length - 1) {
-        const curData = this.data();
-        if (curData && curData.drawMode === 'MANUAL' && curData.status !== 'DRAWN' && this.isAdminUser()) {
-          void this.triggerBackendManualDraw(curData, seqResult.winningTicket, runId);
-        }
+      if (final && i === seqResult.extractions.length - 1) {
+        this.triggerManualDrawIfDue(runId);
       }
       await this.runSpinAnimation(soldNumbers, extraction.number, runId, durationMs);
       if (runId !== this.runId) return;
@@ -767,7 +1026,9 @@ export class DrawLive {
     }
 
     this.applyFinalEffectsState(seqResult.winningTicket);
-    this.phase.set('result');
+    if (final) {
+      this.phase.set('result');
+    }
   }
 
   private runSpinAnimation(
@@ -911,17 +1172,51 @@ export class DrawLive {
     });
   }
 
-  private checkOfficialResult(data: LiveRaffleData, localWinner: number): void {
+  private checkOfficialResult(data: LiveRaffleData, localWinner: number | null): void {
     if (data.result) {
-      this.evaluateOfficialResult(data.result.winningNumber, localWinner);
+      this.evaluateOfficial(data.result, localWinner);
     } else {
       this.officialMatch.set('pending');
       this.pollOfficialResult(data.raffleId, localWinner, this.runId);
     }
   }
 
-  private evaluateOfficialResult(officialWinningNumber: number, localWinner: number): void {
-    if (officialWinningNumber === localWinner) {
+  /**
+   * v2 compares every prize; v1 the single winning number. The algorithm is
+   * the one the prize list calls for: an official result reported under
+   * another version is a mismatch, whatever its numbers.
+   */
+  private evaluateOfficial(result: OfficialResult, localWinner: number | null): void {
+    const expectedVersion = hasSeveralPrizes(this.data()) ? MULTI_PRIZE_ALGORITHM_VERSION : ALGORITHM_VERSION;
+    if (result.algorithmVersion !== undefined && result.algorithmVersion !== expectedVersion) {
+      this.officialMatch.set('mismatch');
+      this.checks.update((c) => ({ ...c, official: 'failed' }));
+      return;
+    }
+    const winners = this.localWinners();
+    if (!winners) {
+      this.evaluateOfficialResult(result.winningNumber, localWinner);
+      return;
+    }
+    const official = result.winners ?? [];
+    const same =
+      official.length === winners.prizes.length &&
+      winners.prizes.every((local) => {
+        const match = official.find((w) => w.position === local.position);
+        return (
+          !!match &&
+          match.status === local.status &&
+          match.winningNumber === local.winningTicket &&
+          match.winnerIndex === local.winnerIndex &&
+          (match.digestHex ?? null)?.toLowerCase() === (local.digestHex ?? null)?.toLowerCase()
+        );
+      });
+    this.officialMatch.set(same ? 'match' : 'mismatch');
+    this.checks.update((c) => ({ ...c, official: same ? 'passed' : 'failed' }));
+  }
+
+  private evaluateOfficialResult(officialWinningNumber: number | null, localWinner: number | null): void {
+    if (officialWinningNumber !== null && officialWinningNumber === localWinner) {
       this.officialMatch.set('match');
       this.checks.update((c) => ({ ...c, official: 'passed' }));
     } else {
@@ -930,7 +1225,7 @@ export class DrawLive {
     }
   }
 
-  private pollOfficialResult(raffleId: string, localWinner: number, runId: number): void {
+  private pollOfficialResult(raffleId: string, localWinner: number | null, runId: number): void {
     if (this.officialPollTimer) {
       clearInterval(this.officialPollTimer);
     }
@@ -949,7 +1244,7 @@ export class DrawLive {
           clearInterval(this.officialPollTimer!);
           this.officialPollTimer = null;
           this.data.set(freshData);
-          this.evaluateOfficialResult(freshData.result.winningNumber, localWinner);
+          this.evaluateOfficial(freshData.result, localWinner);
         }
       } catch {
         // Continue polling until component unmounts or completes

@@ -28,6 +28,7 @@ import {
   CreateRaffleUseCase,
   UpdateDraftRaffleUseCase,
   DeleteDraftRaffleUseCase,
+  ChangeWinnerExclusionModeUseCase,
   DismissLatePaymentUseCase,
   ExecuteDrawUseCase,
   ListLatePaymentClaimsUseCase,
@@ -52,7 +53,16 @@ import {
 } from '../../application';
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 import { CancelAlteredRaffleUseCase } from '../../application/use-cases/cancel-altered-raffle.use-case';
-import { BankOrWallet, DrawEffect, DrawMode, DrawSpeed, MAX_DISPLAY_ORDER } from '../../domain';
+import {
+  BankOrWallet,
+  DrawEffect,
+  DrawMode,
+  DrawSpeed,
+  MAX_DISPLAY_ORDER,
+  MAX_PRIZE_IMAGES,
+  MAX_RAFFLE_PRIZES,
+  WinnerExclusionMode,
+} from '../../domain';
 import * as present from './presenters';
 
 const reason = z.string().trim().min(1).max(500);
@@ -76,10 +86,34 @@ const money = {
   sobrepago: overpayment,
 };
 
+/** One prize; its position is its place in the list. */
+const prizeItem = z
+  .object({
+    titulo: z.string().trim().min(1).max(500),
+    descripcion: z.string().trim().max(10000).nullish(),
+    imagenes: z.array(z.string().url()).max(MAX_PRIZE_IMAGES).default([]),
+  })
+  .strict();
+const prizeList = z.array(prizeItem).min(1).max(MAX_RAFFLE_PRIZES);
+const exclusionMode = z.nativeEnum(WinnerExclusionMode);
+
+type PrizeItem = z.infer<typeof prizeItem>;
+
+function prizeCommands(items: PrizeItem[]) {
+  return items.map((p) => ({
+    title: p.titulo,
+    description: p.descripcion ?? null,
+    images: p.imagenes,
+  }));
+}
+
 const createRaffle = z
   .object({
     titulo: z.string().trim().min(1).max(200),
-    premio: z.string().trim().min(1).max(500),
+    // Legacy single prize; premios replaces it.
+    premio: z.string().trim().min(1).max(500).optional(),
+    premios: prizeList.optional(),
+    modo_exclusion_ganador: exclusionMode.default(WinnerExclusionMode.TICKET_ONLY),
     precio_boleto: amount,
     numero_min: z.number().int().min(0),
     numero_max: z.number().int().min(0),
@@ -91,7 +125,11 @@ const createRaffle = z
     descripcion_premio: z.string().trim().max(10000).nullish(),
     imagenes_premio: z.array(z.string().url()).max(10).default([]),
   })
-  .strict();
+  .strict()
+  .refine((body) => body.premio !== undefined || body.premios !== undefined, {
+    message: 'premio or premios is required',
+    path: ['premios'],
+  });
 const updateDraftRaffle = z
   .object({
     titulo: z.string().trim().min(1).max(200).optional(),
@@ -104,8 +142,11 @@ const updateDraftRaffle = z
     velocidad_efecto: z.nativeEnum(DrawSpeed).optional(),
     descripcion_premio: z.string().trim().max(10000).nullish(),
     imagenes_premio: z.array(z.string().url()).max(10).optional(),
+    premios: prizeList.optional(),
+    modo_exclusion_ganador: exclusionMode.optional(),
   })
   .strict();
+const changeExclusionMode = z.object({ modo_exclusion_ganador: exclusionMode }).strict();
 const publishRaffle = z
   .object({
     resolucion_autorizacion: z.string().trim().min(1).max(200),
@@ -225,6 +266,7 @@ export class AdminController {
     private readonly cancelAccountChange: CancelPaymentAccountChangeUseCase,
     private readonly sellInPersonUseCase: SellInPersonUseCase,
     private readonly deleteDraftRaffleUseCase: DeleteDraftRaffleUseCase,
+    private readonly changeExclusionModeUseCase: ChangeWinnerExclusionModeUseCase,
   ) {}
 
   @Get('rifas')
@@ -273,6 +315,8 @@ export class AdminController {
       drawSpeed: fields.velocidad_efecto,
       prizeDescription: fields.descripcion_premio ?? null,
       prizeImages: fields.imagenes_premio,
+      prizes: fields.premios && prizeCommands(fields.premios),
+      winnerExclusionMode: fields.modo_exclusion_ganador,
     });
     return { rifa_id: raffle.id, estado: raffle.status };
   }
@@ -292,6 +336,8 @@ export class AdminController {
       drawSpeed: fields.velocidad_efecto,
       prizeDescription: fields.descripcion_premio,
       prizeImages: fields.imagenes_premio,
+      prizes: fields.premios && prizeCommands(fields.premios),
+      winnerExclusionMode: fields.modo_exclusion_ganador,
     });
     return {
       rifa_id: raffle.id,
@@ -306,6 +352,28 @@ export class AdminController {
       velocidad_efecto: raffle.drawSpeed,
       descripcion_premio: raffle.prizeDescription,
       imagenes_premio: raffle.prizeImages,
+      premios: present.prizes(raffle.prizes),
+      modo_exclusion_ganador: raffle.winnerExclusionMode,
+    };
+  }
+
+  /** Allowed in DRAFT and ACTIVE; locked once sales close (409). Audited. */
+  @Patch('rifas/:id/modo-exclusion')
+  async changeExclusionMode(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const fields = parseWith(changeExclusionMode, body);
+    const raffle = await this.changeExclusionModeUseCase.execute({
+      raffleId: parseWith(uuidParam, id),
+      mode: fields.modo_exclusion_ganador,
+      operatorId: operatorIdOf(user),
+    });
+    return {
+      rifa_id: raffle.id,
+      estado: raffle.status,
+      modo_exclusion_ganador: raffle.winnerExclusionMode,
     };
   }
 
@@ -373,7 +441,13 @@ export class AdminController {
     const draw = await this.executeDraw.execute(parseWith(uuidParam, id));
     return {
       sorteo_id: draw.id,
+      version_algoritmo: draw.algorithmVersion,
       numero_ganador: draw.winningNumber,
+      ganadores: draw.winners.map((w) => ({
+        posicion: w.position,
+        estado: w.status,
+        numero_ganador: w.winningNumber,
+      })),
       ronda_drand: draw.drandRound.toString(),
       ejecutado_en: draw.executedAt.toISOString(),
     };

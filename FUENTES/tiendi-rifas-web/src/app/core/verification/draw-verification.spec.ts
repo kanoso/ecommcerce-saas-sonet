@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { ApiError } from '../api/api-error';
-import { MyTicket, RaffleStatusInfo, VerificationData } from '../api/api.models';
+import { DrawWinner, MyTicket, RaffleStatusInfo, VerificationData } from '../api/api.models';
 import { OrdersApi } from '../api/orders-api';
 import { RafflesApi } from '../api/raffles-api';
 import { DRAND_FETCH, DRAND_SETTINGS, DrandClient, RoundPollOptions, VerifiedRound } from '../drand/drand-client';
@@ -10,7 +10,12 @@ import { QUICKNET } from '../drand/quicknet';
 import { SESSION_STORAGE, SessionStore } from '../session/session.store';
 import { memoryStorage } from '../session/testing/memory-storage';
 import { CheckId, DrawVerification, VERIFICATION_TIMING } from './draw-verification';
-import { DRAW_VECTORS, verificationOf, verificationWithRealRound } from './testing/verification.fixture';
+import {
+  DRAW_VECTORS,
+  multiPrizeVerificationOf,
+  verificationOf,
+  verificationWithRealRound,
+} from './testing/verification.fixture';
 
 const RELAYS = ['https://relay-a.test', 'https://relay-b.test'];
 const roundUrl = (relay: string, round = '1000000') => `${relay}/${QUICKNET.chainHash}/public/${round}`;
@@ -505,6 +510,7 @@ describe('DrawVerification', () => {
           'passed',
           'passed',
           'skipped',
+          'skipped',
           'pending',
           'passed',
           'passed',
@@ -868,6 +874,169 @@ describe('DrawVerification', () => {
       expect(service.localSequence()?.extractions[1].isWinner).toBe(false);
       expect(service.localSequence()?.extractions[2].isWinner).toBe(true);
       expect(service.localResult()?.winner).toBe(service.localSequence()?.winningTicket);
+    });
+  });
+});
+
+describe('DrawVerification of a multi-prize draw (v2)', () => {
+  const vector = DRAW_VECTORS[0];
+
+  it('checks the frozen draw configuration as soon as the data arrives', async () => {
+    const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER' });
+    const { service } = setUp({ verification: () => of(data) });
+
+    await service.load(vector.raffleId);
+
+    expect(statusOf(service, 'drawConfig')).toBe('passed');
+    expect(detailOf(service, 'drawConfig')).toContain('Por comprador');
+  });
+
+  it('recomputes the full winners list and finds it matches the official one', async () => {
+    const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER' });
+    const { service } = setUp({
+      verification: () => of(data),
+      rounds: vectorRound(vector.drandRandomnessHex),
+    });
+    await service.load(vector.raffleId);
+
+    await service.recompute();
+
+    expect(service.localWinners()?.prizes.map((p) => p.winningTicket)).toEqual(
+      data.winners.map((w) => w.winningNumber),
+    );
+    expect(service.verdict()).toBe('match');
+    expect(detailOf(service, 'official')).toContain('3 premios');
+  });
+
+  it('fails when the published configuration does not hash to the frozen value', async () => {
+    const data = await multiPrizeVerificationOf(vector, { prizeCount: 2, exclusionMode: 'TICKET_ONLY' });
+    const { service } = setUp({
+      verification: () => of({ ...data, winnerExclusionMode: 'BUYER', buyerGroups: [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]] }),
+    });
+
+    await service.load(vector.raffleId);
+
+    expect(statusOf(service, 'drawConfig')).toBe('failed');
+    expect(service.verdict()).toBe('failed');
+  });
+
+  it('reports a mismatch when one official winner differs from the browser', async () => {
+    const data = await multiPrizeVerificationOf(vector, { prizeCount: 2, exclusionMode: 'TICKET_ONLY' });
+    const tampered = {
+      ...data,
+      winners: data.winners.map((w, i) => (i === 1 ? { ...w, winningNumber: (w.winningNumber ?? 0) + 1 } : w)),
+    };
+    const { service } = setUp({
+      verification: () => of(tampered),
+      rounds: vectorRound(vector.drandRandomnessHex),
+    });
+    await service.load(vector.raffleId);
+
+    await service.recompute();
+
+    expect(service.verdict()).toBe('mismatch');
+    expect(detailOf(service, 'official')).toContain('premio 2');
+  });
+
+  it('skips the configuration check of a single-prize (v1) draw', async () => {
+    const { service } = setUp({ verification: () => of(verificationOf(vector)) });
+
+    await service.load(vector.raffleId);
+
+    expect(statusOf(service, 'drawConfig')).toBe('skipped');
+  });
+
+  it('derives multi-prize from the prize list, and fails a server that reports v1 for it', async () => {
+    const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER' });
+    const { service } = setUp({ verification: () => of({ ...data, algorithmVersion: 'v1' }) });
+
+    await service.load(vector.raffleId);
+
+    expect(statusOf(service, 'drawConfig')).toBe('failed');
+    expect(detailOf(service, 'drawConfig')).toContain('v1');
+    expect(detailOf(service, 'drawConfig')).toContain('v2');
+    expect(service.verdict()).toBe('failed');
+  });
+
+  it('fails a server that reports v2 for a single-prize draw', async () => {
+    const { service } = setUp({ verification: () => of(verificationOf(vector, { algorithmVersion: 'v2' })) });
+
+    await service.load(vector.raffleId);
+
+    expect(statusOf(service, 'drawConfig')).toBe('failed');
+    expect(service.verdict()).toBe('failed');
+  });
+
+  it.each([
+    ['poolSize', (w: DrawWinner) => ({ ...w, poolSize: w.poolSize + 1 })],
+    ['excludedTickets', (w: DrawWinner) => ({ ...w, excludedTickets: [...w.excludedTickets, 999] })],
+  ])('reports a mismatch when an official %s differs from the browser', async (_field, alter) => {
+    const data = await multiPrizeVerificationOf(vector, { prizeCount: 2, exclusionMode: 'BUYER' });
+    const tampered = { ...data, winners: data.winners.map((w, i) => (i === 1 ? alter(w) : w)) };
+    const { service } = setUp({
+      verification: () => of(tampered),
+      rounds: vectorRound(vector.drandRandomnessHex),
+    });
+    await service.load(vector.raffleId);
+
+    await service.recompute();
+
+    expect(service.verdict()).toBe('mismatch');
+    expect(detailOf(service, 'official')).toContain('premio 2');
+  });
+
+  describe('the draw configuration in the payment email', () => {
+    it('anchors when the prize count, the winning attempt and the mode match', async () => {
+      const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER', winningAttempt: 2 });
+      const { service } = setUp({ verification: () => of(data) });
+      await service.load(vector.raffleId);
+
+      service.compareWithEmail({
+        prizeCount: '3',
+        winningAttempt: '2',
+        winnerExclusionMode: 'BUYER (todos los boletos del comprador ganador)',
+      });
+
+      expect(statusOf(service, 'emailAnchor')).toBe('passed');
+      expect(detailOf(service, 'emailAnchor')).toContain('Cantidad de premios');
+      expect(service.anchorStatus()).toBe('anchored');
+    });
+
+    it.each([
+      ['prizeCount', { prizeCount: '2' }, 'Cantidad de premios'],
+      ['winningAttempt', { winningAttempt: '1' }, 'Intento ganador'],
+    ])('fails when the %s, fixed at publication, differs', async (_field, pasted, label) => {
+      const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER', winningAttempt: 2 });
+      const { service } = setUp({ verification: () => of(data) });
+      await service.load(vector.raffleId);
+
+      service.compareWithEmail(pasted);
+
+      expect(statusOf(service, 'emailAnchor')).toBe('failed');
+      expect(detailOf(service, 'emailAnchor')).toContain(label);
+    });
+
+    it('does not fail on a mode changed before the close, but says so', async () => {
+      const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER' });
+      const { service } = setUp({ verification: () => of(data) });
+      await service.load(vector.raffleId);
+
+      service.compareWithEmail({ prizeCount: '3', winnerExclusionMode: 'TICKET_ONLY' });
+
+      expect(statusOf(service, 'emailAnchor')).toBe('passed');
+      expect(detailOf(service, 'emailAnchor')).toContain('cambió después de tu pago');
+      expect(detailOf(service, 'emailAnchor')).toContain('TICKET_ONLY');
+    });
+
+    it('says when the pasted mode cannot be read', async () => {
+      const data = await multiPrizeVerificationOf(vector, { prizeCount: 3, exclusionMode: 'BUYER' });
+      const { service } = setUp({ verification: () => of(data) });
+      await service.load(vector.raffleId);
+
+      service.compareWithEmail({ winnerExclusionMode: 'todos' });
+
+      expect(statusOf(service, 'emailAnchor')).toBe('pending');
+      expect(detailOf(service, 'emailAnchor')).toContain('Modo de exclusión');
     });
   });
 });

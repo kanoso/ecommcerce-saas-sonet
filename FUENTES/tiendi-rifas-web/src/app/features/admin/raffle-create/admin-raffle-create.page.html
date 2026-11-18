@@ -30,21 +30,6 @@
     </div>
 
     <div class="field">
-      <label for="premio" class="field__label">Premio principal *</label>
-      <input
-        id="premio"
-        type="text"
-        formControlName="premio"
-        class="field__input"
-        placeholder="Ej: Camioneta 4x4 0km"
-        maxlength="500"
-      />
-      @if (form.get('premio')?.touched && form.get('premio')?.hasError('required')) {
-        <span class="field__error">El premio es obligatorio.</span>
-      }
-    </div>
-
-    <div class="field">
       <label for="precio_boleto" class="field__label">Precio por boleto (PEN) *</label>
       <input
         id="precio_boleto"
@@ -95,74 +80,18 @@
       </div>
     }
 
-    <!-- Ficha Técnica y Galería de Fotos -->
+    <!-- Premios en orden de sorteo -->
     <fieldset class="form-fieldset">
-      <legend class="form-fieldset__legend">Galería del Premio y Ficha Técnica</legend>
+      <legend class="form-fieldset__legend">Premios</legend>
       <p class="form-fieldset__desc">
-        Información y fotos que los compradores verán en la página de detalle del premio.
+        Se sortean en orden: el premio 1 primero. Cada premio usa el intento ganador configurado abajo.
+        Los compradores verán título, ficha técnica y fotos de cada premio.
       </p>
-
-      <div class="field">
-        <label for="descripcion_premio" class="field__label">Ficha Técnica / Especificaciones</label>
-        <textarea
-          id="descripcion_premio"
-          formControlName="descripcion_premio"
-          class="field__textarea"
-          rows="4"
-          placeholder="Ej: Motor 2.0 Turbo, tapicería de cuero, transmisión automática de 6 velocidades, pantalla táctil 10', garantía de fábrica..."
-          maxlength="10000"
-        ></textarea>
-      </div>
-
-      <div class="field">
-        <label for="nueva_imagen" class="field__label">
-          Galería de Fotos ({{ prizeImages().length }}/10)
-        </label>
-        <div class="image-input-row">
-          <input
-            id="nueva_imagen"
-            type="url"
-            [value]="newImageUrl()"
-            (input)="newImageUrl.set($any($event.target).value)"
-            (keydown.enter)="$event.preventDefault(); addImage()"
-            class="field__input image-input-row__input"
-            placeholder="https://ejemplo.com/foto-premio.jpg"
-          />
-          <button
-            type="button"
-            (click)="addImage()"
-            class="btn-secondary"
-            [disabled]="prizeImages().length >= 10 || !newImageUrl().trim()"
-          >
-            Agregar foto
-          </button>
-        </div>
-
-        @if (imageError()) {
-          <span class="field__error">{{ imageError() }}</span>
-        }
-
-        @if (prizeImages().length > 0) {
-          <div class="thumbs-grid">
-            @for (img of prizeImages(); track $index) {
-              <div class="thumb-card">
-                <img [src]="img" [alt]="'Foto ' + ($index + 1)" class="thumb-card__img" />
-                <div class="thumb-card__footer">
-                  <span class="thumb-tag">#{{ $index + 1 }}</span>
-                  <button
-                    type="button"
-                    (click)="removeImage($index)"
-                    class="btn-remove-thumb"
-                    aria-label="Eliminar foto"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
+      <app-prize-list-editor [(prizes)]="prizes" />
+      @if (prizesError()) {
+        <span class="field__error" role="alert">{{ prizesError() }}</span>
+      }
+      <app-exclusion-mode-field [(value)]="exclusionMode" />
     </fieldset>
 
     <!-- Opciones de Sorteo y Animación -->

@@ -1,10 +1,14 @@
 import { DestroyRef, Injectable, InjectionToken, computed, inject, signal } from '@angular/core';
 import {
+  ALGORITHM_VERSION,
+  ComputeMultiPrizeWinnersOutput,
   ComputeWinnerOutput,
   ComputeWinnerSequenceOutput,
-  DrawExtraction,
-  computeWinner,
+  MULTI_PRIZE_ALGORITHM_VERSION,
+  WinnerExclusionMode,
+  computeMultiPrizeWinners,
   computeWinnerSequence,
+  drawConfigHash,
   roundAt,
   soldListHash,
   verifyCommitment,
@@ -31,6 +35,7 @@ export type CheckId =
   | 'commitment'
   | 'soldList'
   | 'roundBinding'
+  | 'drawConfig'
   | 'ownNumbers'
   | 'emailAnchor'
   | 'drandRound'
@@ -77,6 +82,7 @@ const CHECK_IDS: readonly CheckId[] = [
   'commitment',
   'soldList',
   'roundBinding',
+  'drawConfig',
   'ownNumbers',
   'emailAnchor',
   'drandRound',
@@ -104,18 +110,65 @@ const describeRelay = (failure: RelayFailure): string =>
 
 const describeRelays = (failures: RelayFailure[]): string => failures.map(describeRelay).join('; ');
 
-export type EmailField = 'commitmentHash' | 'drandRound' | 'drawAt' | 'salesCloseAt';
+const EXCLUSION_LABELS: Record<WinnerExclusionMode, string> = {
+  TICKET_ONLY: 'Solo el boleto ganador',
+  BUYER: 'Por comprador',
+};
+
+/**
+ * A v2 draw: several prizes, drawn with computeMultiPrizeWinners. Decided by
+ * the prize list, never by the version the server reports: a server could
+ * otherwise pick the algorithm. checkDrawConfig fails a version that disagrees.
+ */
+const isMultiPrize = (data: VerificationData): boolean => data.prizes.length > 1;
+
+/** The algorithm the prize list calls for. */
+const expectedVersion = (data: VerificationData): string =>
+  isMultiPrize(data) ? MULTI_PRIZE_ALGORITHM_VERSION : ALGORITHM_VERSION;
+
+const EXCLUSION_CODES: readonly WinnerExclusionMode[] = ['TICKET_ONLY', 'BUYER'];
+
+const sameNumbers = (a: readonly number[], b: readonly number[]): boolean => {
+  const x = [...a].sort((m, n) => m - n);
+  const y = [...b].sort((m, n) => m - n);
+  return x.length === y.length && x.every((value, i) => value === y[i]);
+};
+
+/** What this browser computed: the v1 single winner or the v2 winners list. */
+type LocalOutcome =
+  | { kind: 'single'; result: ComputeWinnerOutput }
+  | { kind: 'multi'; result: ComputeMultiPrizeWinnersOutput };
+
+export type EmailField =
+  | 'commitmentHash'
+  | 'drandRound'
+  | 'drawAt'
+  | 'salesCloseAt'
+  | 'prizeCount'
+  | 'winningAttempt'
+  | 'winnerExclusionMode';
 
 /** What the buyer pasted from the payment-approved email (DT-20); blank means not pasted. */
 export type EmailAnchorValues = Partial<Record<EmailField, string>>;
 
-const EMAIL_FIELDS: readonly EmailField[] = ['commitmentHash', 'drandRound', 'drawAt', 'salesCloseAt'];
+const EMAIL_FIELDS: readonly EmailField[] = [
+  'commitmentHash',
+  'drandRound',
+  'drawAt',
+  'salesCloseAt',
+  'prizeCount',
+  'winningAttempt',
+  'winnerExclusionMode',
+];
 
 const EMAIL_LABELS: Record<EmailField, string> = {
   commitmentHash: 'Compromiso',
   drandRound: 'Ronda de drand',
   drawAt: 'Fecha del sorteo',
   salesCloseAt: 'Cierre de ventas',
+  prizeCount: 'Cantidad de premios',
+  winningAttempt: 'Intento ganador',
+  winnerExclusionMode: 'Modo de exclusión',
 };
 
 /** A pasted value in the form the page compares, or null when it cannot be read. */
@@ -127,6 +180,15 @@ function readEmailValue(field: EmailField, raw: string): string | null {
     case 'drandRound': {
       const round = value.replace(/^#/, '');
       return /^[1-9][0-9]*$/.test(round) ? round : null;
+    }
+    case 'prizeCount':
+      return /^[1-9][0-9]*$/.test(value) ? value : null;
+    case 'winningAttempt':
+      return /^[1-5]$/.test(value) ? value : null;
+    case 'winnerExclusionMode': {
+      // The email prints the code first: "BUYER (todos los boletos ...)".
+      const code = /^([A-Za-z_]+)/.exec(value)?.[1]?.toUpperCase();
+      return EXCLUSION_CODES.find((mode) => mode === code) ?? null;
     }
     default: {
       const time = Date.parse(value);
@@ -146,6 +208,12 @@ function publishedValue(field: EmailField, data: VerificationData): string | nul
       return data.drawAt?.toISOString() ?? null;
     case 'salesCloseAt':
       return data.salesCloseAt?.toISOString() ?? null;
+    case 'prizeCount':
+      return String(data.prizes.length);
+    case 'winningAttempt':
+      return String(data.winningAttempt ?? 1);
+    case 'winnerExclusionMode':
+      return data.winnerExclusionMode;
   }
 }
 
@@ -190,6 +258,8 @@ export class DrawVerification {
   /** The winner computed in this browser. */
   readonly localResult = signal<ComputeWinnerOutput | null>(null);
   readonly localSequence = signal<ComputeWinnerSequenceOutput | null>(null);
+  /** The full winners list computed in this browser (v2 draws only). */
+  readonly localWinners = signal<ComputeMultiPrizeWinnersOutput | null>(null);
   readonly running = signal(false);
   /** The last pass over the relays while the round is awaited; null otherwise. */
   readonly roundProgress = signal<RoundPollProgress | null>(null);
@@ -293,11 +363,17 @@ export class DrawVerification {
       if (!round) {
         return;
       }
-      const result = await this.computeLocally(data, round, run);
-      if (!result) {
+      const outcome = isMultiPrize(data)
+        ? await this.computeWinnersLocally(data, round, run)
+        : await this.computeLocally(data, round, run);
+      if (!outcome) {
         return;
       }
-      this.compareWithOfficial(data, round, result, run);
+      if (outcome.kind === 'multi') {
+        this.compareWinnersWithOfficial(data, round, outcome.result, run);
+      } else {
+        this.compareWithOfficial(data, round, outcome.result, run);
+      }
     } finally {
       if (this.isCurrent(run)) {
         this.running.set(false);
@@ -335,12 +411,19 @@ export class DrawVerification {
     }
     const unreadable: string[] = [];
     const differing: string[] = [];
+    let modeChanged: string | null = null;
     for (const field of pasted) {
       const mine = readEmailValue(field, values[field] as string);
+      const published = publishedValue(field, data);
       if (mine === null) {
         unreadable.push(EMAIL_LABELS[field]);
-      } else if (mine !== publishedValue(field, data)) {
-        differing.push(`${EMAIL_LABELS[field]} (correo: ${mine}; página: ${publishedValue(field, data) ?? 'no informado'})`);
+      } else if (mine !== published && field === 'winnerExclusionMode') {
+        // The email shows the mode at payment time, and it may change until
+        // salesCloseAt (before the randomness exists): a disclosure, not a
+        // break. The page shows the mode frozen at the close.
+        modeChanged = `El modo de exclusión cambió después de tu pago (correo: ${mine}; fijado al cierre: ${published}). Pudo cambiar hasta el cierre de ventas, antes de que existiera la aleatoriedad del sorteo.`;
+      } else if (mine !== published) {
+        differing.push(`${EMAIL_LABELS[field]} (correo: ${mine}; página: ${published ?? 'no informado'})`);
       }
     }
     if (differing.length > 0) {
@@ -352,10 +435,12 @@ export class DrawVerification {
     if (unreadable.length > 0) {
       return { status: 'pending', detail: `No se pudo leer: ${unreadable.join(', ')}. Cópialo tal como aparece en el correo.` };
     }
-    return {
-      status: 'passed',
-      detail: `Coincide con tu correo: ${pasted.map((field) => EMAIL_LABELS[field]).join(', ')}.`,
-    };
+    const matching = pasted.filter((field) => !(modeChanged && field === 'winnerExclusionMode'));
+    const parts = [
+      ...(matching.length > 0 ? [`Coincide con tu correo: ${matching.map((field) => EMAIL_LABELS[field]).join(', ')}.`] : []),
+      ...(modeChanged ? [modeChanged] : []),
+    ];
+    return { status: 'passed', detail: parts.join(' ') };
   }
 
   /** Starts a run, aborting the previous one. */
@@ -385,6 +470,7 @@ export class DrawVerification {
     this.round.set(null);
     this.localResult.set(null);
     this.localSequence.set(null);
+    this.localWinners.set(null);
     this.roundProgress.set(null);
   }
 
@@ -419,7 +505,11 @@ export class DrawVerification {
     }
     this.mark(run, 'commitment', 'passed', 'SHA-256 de la semilla revelada = compromiso publicado.');
 
-    if (!(await this.checkSoldList(data, run)) || !this.checkRoundBinding(data, run)) {
+    if (
+      !(await this.checkSoldList(data, run)) ||
+      !this.checkRoundBinding(data, run) ||
+      !(await this.checkDrawConfig(data, run))
+    ) {
       return false;
     }
     await this.checkOwnNumbers(data, run);
@@ -506,6 +596,66 @@ export class DrawVerification {
       'roundBinding',
       'passed',
       `Ronda #${expected} = ronda de quicknet a la hora del sorteo (${data.drawAt.toISOString()}), posterior al cierre de ventas (ronda #${closeRound}).`,
+    );
+    return true;
+  }
+
+  /**
+   * v2 only: the exclusion mode, attempts, prize count and buyer groups must
+   * hash to the value frozen at the close of sales, before the drand round
+   * existed. Otherwise the mode could have been chosen after the randomness.
+   */
+  private async checkDrawConfig(data: VerificationData, run: Run): Promise<boolean> {
+    const expected = expectedVersion(data);
+    if (data.algorithmVersion !== expected) {
+      this.fail(
+        run,
+        'drawConfig',
+        `La plataforma informa el algoritmo ${data.algorithmVersion}, pero un sorteo de ${data.prizes.length} premio(s) se calcula con ${expected}. Este sorteo no se puede dar por válido.`,
+      );
+      return false;
+    }
+    if (!isMultiPrize(data)) {
+      this.mark(run, 'drawConfig', 'skipped', 'Sorteo de un solo premio: no usa configuración de varios premios.');
+      return true;
+    }
+    this.mark(run, 'drawConfig', 'running');
+    if (!data.drawConfigVerified) {
+      this.fail(
+        run,
+        'drawConfig',
+        'La plataforma informa que la configuración del sorteo ya no coincide con la congelada al cierre. Este sorteo no se puede dar por válido.',
+      );
+      return false;
+    }
+    let localHash: string;
+    try {
+      localHash = await drawConfigHash({
+        exclusionMode: data.winnerExclusionMode,
+        winningAttempt: data.winningAttempt ?? 1,
+        prizeCount: data.prizes.length,
+        buyerGroups: data.buyerGroups,
+      });
+    } catch {
+      this.fail(run, 'drawConfig', 'La configuración del sorteo publicada no es válida.');
+      return false;
+    }
+    if (!this.isCurrent(run)) {
+      return false;
+    }
+    if (localHash !== data.drawConfigHash.toLowerCase()) {
+      this.fail(
+        run,
+        'drawConfig',
+        `La configuración publicada (${EXCLUSION_LABELS[data.winnerExclusionMode]}, ${data.prizes.length} premios) no corresponde al hash congelado al cierre (tu navegador calculó ${localHash}).`,
+      );
+      return false;
+    }
+    this.mark(
+      run,
+      'drawConfig',
+      'passed',
+      `SHA-256 de la configuración = hash congelado al cierre: ${data.prizes.length} premios, exclusión "${EXCLUSION_LABELS[data.winnerExclusionMode]}", ${data.winningAttempt ?? 1} intento(s) por premio.`,
     );
     return true;
   }
@@ -609,7 +759,7 @@ export class DrawVerification {
     data: VerificationData,
     round: VerifiedRound,
     run: Run,
-  ): Promise<ComputeWinnerOutput | null> {
+  ): Promise<LocalOutcome | null> {
     this.mark(run, 'winner', 'running');
     let seqResult: ComputeWinnerSequenceOutput;
     try {
@@ -635,7 +785,96 @@ export class DrawVerification {
     };
     this.localResult.set(result);
     this.mark(run, 'winner', 'passed', `Número ${result.winner} (posición ${result.index} de ${data.soldNumbers.length}).`);
-    return result;
+    return { kind: 'single', result };
+  }
+
+  /** v2: the whole winners list, with the shared algorithm (V-04). */
+  private async computeWinnersLocally(
+    data: VerificationData,
+    round: VerifiedRound,
+    run: Run,
+  ): Promise<LocalOutcome | null> {
+    this.mark(run, 'winner', 'running');
+    let result: ComputeMultiPrizeWinnersOutput;
+    try {
+      result = await computeMultiPrizeWinners({
+        seedHex: data.seedRevealed,
+        drandRandomnessHex: round.randomness,
+        raffleId: data.raffleId,
+        soldNumbers: data.soldNumbers,
+        winningAttempt: data.winningAttempt ?? 1,
+        prizeCount: data.prizes.length,
+        exclusionMode: data.winnerExclusionMode,
+        buyerGroups: data.buyerGroups,
+      });
+    } catch {
+      this.fail(run, 'winner', 'No se pudo calcular la lista de ganadores con los datos publicados.');
+      return null;
+    }
+    if (!this.isCurrent(run)) {
+      return null;
+    }
+    this.localWinners.set(result);
+    const first = result.prizes[0];
+    if (first.status === 'WON') {
+      this.localResult.set({
+        winner: first.winningTicket as number,
+        index: first.winnerIndex as number,
+        digestHex: first.digestHex as string,
+      });
+    }
+    const summary = result.prizes
+      .map((p) => (p.status === 'WON' ? `premio ${p.position}: ${p.winningTicket}` : `premio ${p.position}: desierto`))
+      .join('; ');
+    this.mark(run, 'winner', 'passed', `${summary}.`);
+    return { kind: 'multi', result };
+  }
+
+  /** Every prize, in order: status, number, index and digest must be the official ones. */
+  private compareWinnersWithOfficial(
+    data: VerificationData,
+    round: VerifiedRound,
+    result: ComputeMultiPrizeWinnersOutput,
+    run: Run,
+  ): void {
+    const differing: string[] = [];
+    if (data.winners.length !== result.prizes.length) {
+      differing.push(`la plataforma publica ${data.winners.length} resultados y tu navegador calculó ${result.prizes.length}`);
+    }
+    for (const local of result.prizes) {
+      const official = data.winners.find((w) => w.position === local.position);
+      const same =
+        !!official &&
+        official.status === local.status &&
+        official.winningNumber === local.winningTicket &&
+        official.winnerIndex === local.winnerIndex &&
+        (official.digestHex ?? null)?.toLowerCase() === (local.digestHex ?? null)?.toLowerCase();
+      // The pool and the exclusions are published too: they must be the ones
+      // the algorithm gives, or the list of who could still win is not.
+      const samePool =
+        !!official &&
+        official.poolSize === local.poolSize &&
+        sameNumbers(official.excludedTickets, local.excludedTickets);
+      const shown = (n: number | null | undefined) => (n === null || n === undefined ? 'desierto' : String(n));
+      if (!same) {
+        differing.push(
+          `premio ${local.position}: oficial ${shown(official?.winningNumber)}, tu navegador ${shown(local.winningTicket)}`,
+        );
+      } else if (!samePool) {
+        differing.push(
+          `premio ${local.position}: la plataforma publica un sorteo entre ${official.poolSize} boletos con exclusión de [${official.excludedTickets.join(', ')}], tu navegador calculó ${local.poolSize} boletos y [${local.excludedTickets.join(', ')}]`,
+        );
+      }
+    }
+    const sameRandomness = data.official.drandRandomness.toLowerCase() === round.randomness;
+    if (!sameRandomness) {
+      differing.push('la aleatoriedad oficial no es la de la ronda de drand');
+    }
+    if (differing.length === 0) {
+      this.mark(run, 'official', 'passed', `Coincide con el resultado oficial de los ${result.prizes.length} premios.`);
+    } else {
+      this.mark(run, 'official', 'failed', `El resultado oficial NO coincide con tu cálculo: ${differing.join('; ')}.`);
+    }
   }
 
   private compareWithOfficial(
@@ -648,7 +887,7 @@ export class DrawVerification {
     const same =
       official.winningNumber === result.winner &&
       official.winnerIndex === result.index &&
-      official.digestHex.toLowerCase() === result.digestHex &&
+      official.digestHex?.toLowerCase() === result.digestHex &&
       official.drandRandomness.toLowerCase() === round.randomness;
     if (same) {
       this.mark(run, 'official', 'passed', 'Coincide con el resultado oficial.');

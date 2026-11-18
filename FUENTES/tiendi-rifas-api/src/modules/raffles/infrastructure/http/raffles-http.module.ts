@@ -10,6 +10,7 @@ import {
   CreateRaffleUseCase,
   UpdateDraftRaffleUseCase,
   DeleteDraftRaffleUseCase,
+  ChangeWinnerExclusionModeUseCase,
   DismissLatePaymentUseCase,
   ExecuteDrawUseCase,
   GetPaymentProofUseCase,
@@ -132,8 +133,8 @@ const clock = new SystemClock();
     },
     {
       provide: GetVerificationDataUseCase,
-      inject: [PrismaRaffleRepository, PrismaTicketRepository, PrismaDrawRepository],
-      useFactory: (r, t, d) => new GetVerificationDataUseCase(r, t, d),
+      inject: [PrismaRaffleRepository, PrismaTicketRepository, PrismaDrawRepository, PrismaOrderRepository],
+      useFactory: (r, t, d, o) => new GetVerificationDataUseCase(r, t, d, o),
     },
     ...[
       ApprovePaymentUseCase,
@@ -219,6 +220,11 @@ const clock = new SystemClock();
       provide: DeleteDraftRaffleUseCase,
       inject: [PrismaRaffleRepository, PrismaAuditLog],
       useFactory: (r, a) => new DeleteDraftRaffleUseCase(r, a),
+    },
+    {
+      provide: ChangeWinnerExclusionModeUseCase,
+      inject: [PrismaTicketLedger],
+      useFactory: (l) => new ChangeWinnerExclusionModeUseCase(l, clock),
     },
   ],
 })

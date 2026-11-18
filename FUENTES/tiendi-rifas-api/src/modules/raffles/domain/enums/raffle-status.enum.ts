@@ -69,3 +69,12 @@ export enum OperatorAlertType {
   /** No raffle: a payment account was proposed, decided or changed (DT-19). */
   PAYMENT_ACCOUNT_CHANGE = 'PAYMENT_ACCOUNT_CHANGE',
 }
+
+/**
+ * Which tickets leave the pool after a prize is won (multi-prize draw, v2):
+ * only the winning ticket, or every ticket of its buyer.
+ */
+export enum WinnerExclusionMode {
+  TICKET_ONLY = 'TICKET_ONLY',
+  BUYER = 'BUYER',
+}

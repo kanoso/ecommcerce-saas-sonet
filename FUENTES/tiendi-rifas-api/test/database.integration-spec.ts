@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { createRaffleRow } from './raffle-fixtures';
 import {
   FakeNotifier,
   FakeRandomnessBeacon,
@@ -170,7 +171,7 @@ describe('Raffle persistence on real PostgreSQL', () => {
     salesCloseAt = new Date(Date.now() + 7 * 24 * 3_600_000),
     published: { commitmentHash: string; drandRound: bigint; drawAt: Date } | null = null,
   ): Promise<string> {
-    const raffle = await prisma.raffle.create({
+    const raffle = await createRaffleRow(prisma, {
       data: {
         ...published,
         title: 'Integration raffle',
@@ -433,7 +434,7 @@ describe('Raffle persistence on real PostgreSQL', () => {
     });
 
     it('lets a draft change its dates', async () => {
-      const draft = await prisma.raffle.create({
+      const draft = await createRaffleRow(prisma, {
         data: {
           title: 'Draft',
           prize: 'Prize',
@@ -3241,6 +3242,10 @@ describe('Raffle persistence on real PostgreSQL', () => {
           drandRound: '24680135',
           drawAt: drawAt.toISOString(),
           salesCloseAt: salesCloseAt.toISOString(),
+          // createRaffleRow adds one prize; the rest are the schema defaults.
+          prizeCount: 1,
+          winnerExclusionMode: 'TICKET_ONLY',
+          winningAttempt: 1,
         },
       });
     });
@@ -4251,13 +4256,16 @@ describe('Raffle persistence on real PostgreSQL', () => {
           expiresAt: new Date(Date.now() + 60_000),
         },
       });
+      // The attack also bypasses trg_ticket_transition_order_frozen.
       await prisma.$executeRaw`ALTER TABLE "Ticket" DISABLE TRIGGER trg_ticket_transition`;
+      await prisma.$executeRaw`ALTER TABLE "Ticket" DISABLE TRIGGER trg_ticket_transition_order_frozen`;
       try {
         await prisma.ticket.update({
           where: { raffleId_number: { raffleId, number: 2 } },
           data: { status: 'SOLD', orderId: forged.id },
         });
       } finally {
+        await prisma.$executeRaw`ALTER TABLE "Ticket" ENABLE TRIGGER trg_ticket_transition_order_frozen`;
         await prisma.$executeRaw`ALTER TABLE "Ticket" ENABLE TRIGGER trg_ticket_transition`;
       }
       await new CancelAlteredRaffleUseCase(ledger, clock).execute({
@@ -5081,13 +5089,14 @@ describe('Raffle persistence on real PostgreSQL', () => {
       raffleRepo,
       ticketRepo,
       drawRepo,
+      orderRepo,
     );
 
     async function givenPublishedRaffle(numbers: number[]): Promise<string> {
       const id = randomUUID();
       const { commitmentHash, seedCiphertext } =
         await seedVault.generateAndStoreSeed(id);
-      await prisma.raffle.create({
+      await createRaffleRow(prisma, {
         data: {
           id,
           title: 'Draw raffle',
@@ -5118,12 +5127,16 @@ describe('Raffle persistence on real PostgreSQL', () => {
       return raffleId;
     }
 
-    // Only here is the guard off: this is the attack the draw must survive.
+    // Only here are the guards off: this is the attack the draw must survive.
+    // trg_ticket_transition_order_frozen (a ticket of a closed raffle keeps
+    // its order) would stop the forged sale before the draw could see it.
     async function behindTheGuard(work: () => Promise<unknown>): Promise<void> {
       await prisma.$executeRaw`ALTER TABLE "Ticket" DISABLE TRIGGER trg_ticket_transition`;
+      await prisma.$executeRaw`ALTER TABLE "Ticket" DISABLE TRIGGER trg_ticket_transition_order_frozen`;
       try {
         await work();
       } finally {
+        await prisma.$executeRaw`ALTER TABLE "Ticket" ENABLE TRIGGER trg_ticket_transition_order_frozen`;
         await prisma.$executeRaw`ALTER TABLE "Ticket" ENABLE TRIGGER trg_ticket_transition`;
       }
     }
@@ -5456,14 +5469,19 @@ describe('Raffle persistence on real PostgreSQL', () => {
             expiresAt: new Date(Date.now() + 60_000),
           },
         });
-        await prisma.ticket.update({
-          where: { raffleId_number: { raffleId, number: 4 } },
-          data: {
-            status: 'RESERVED',
-            orderId: pending.id,
-            reservedUntil: new Date(Date.now() + 60_000),
-          },
-        });
+        // The close frees every hold, and no reservation can start after it
+        // (Ticket_order_frozen): this one is part of the tampering, so it is
+        // written behind the guard like the forged sale.
+        await behindTheGuard(() =>
+          prisma.ticket.update({
+            where: { raffleId_number: { raffleId, number: 4 } },
+            data: {
+              status: 'RESERVED',
+              orderId: pending.id,
+              reservedUntil: new Date(Date.now() + 60_000),
+            },
+          }),
+        );
 
         await cancelAlteredWith().execute({ raffleId, operatorId, reason });
 
@@ -5720,7 +5738,7 @@ describe('Raffle persistence on real PostgreSQL', () => {
     }
 
     async function givenDraft(numberMax: number): Promise<string> {
-      const { id } = await prisma.raffle.create({
+      const { id } = await createRaffleRow(prisma, {
         data: {
           title: 'Draft raffle',
           prize: 'Prize',
@@ -5853,7 +5871,7 @@ describe('Raffle persistence on real PostgreSQL', () => {
     }
 
     async function givenPublishedRaffle(): Promise<string> {
-      const raffle = await prisma.raffle.create({
+      const raffle = await createRaffleRow(prisma, {
         data: {
           title: 'Published raffle',
           prize: 'Prize',
@@ -5890,7 +5908,7 @@ describe('Raffle persistence on real PostgreSQL', () => {
     });
 
     it('allows changing the commitment while the raffle is DRAFT', async () => {
-      const { id } = await prisma.raffle.create({
+      const { id } = await createRaffleRow(prisma, {
         data: {
           title: 'Draft raffle',
           prize: 'Prize',
@@ -6001,6 +6019,130 @@ describe('Raffle persistence on real PostgreSQL', () => {
       });
     });
 
+    describe('multi-prize draw configuration guards (20261118000000)', () => {
+      async function close(raffleId: string, data: Record<string, unknown> = {}) {
+        return prisma.raffle.update({
+          where: { id: raffleId },
+          data: { status: 'CLOSED', drawConfigHash: 'config-hash', ...data },
+        });
+      }
+
+      it('rejects changing the exclusion mode in the UPDATE that closes the sales', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+
+        await expect(close(raffleId, { winnerExclusionMode: 'BUYER' })).rejects.toThrow(
+          /Raffle_exclusion_mode_locked/,
+        );
+      });
+
+      it('lets the close keep the mode unchanged', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+
+        await expect(close(raffleId, { winnerExclusionMode: 'TICKET_ONLY' })).resolves.toBeDefined();
+      });
+
+      it('rejects changing the exclusion mode of an ACTIVE raffle once salesCloseAt passed', async () => {
+        const raffleId = await givenActiveRaffle([1], new Date(Date.now() - 60_000));
+
+        await expect(
+          prisma.raffle.update({ where: { id: raffleId }, data: { winnerExclusionMode: 'BUYER' } }),
+        ).rejects.toThrow(/Raffle_exclusion_mode_locked/);
+      });
+
+      it('allows changing the exclusion mode of an ACTIVE raffle before salesCloseAt', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+
+        await expect(
+          prisma.raffle.update({ where: { id: raffleId }, data: { winnerExclusionMode: 'BUYER' } }),
+        ).resolves.toMatchObject({ winnerExclusionMode: 'BUYER' });
+      });
+
+      it('stamps drawConfigFrozenAt at the close, never earlier than the database clock', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        const before = Date.now();
+
+        const closed = await close(raffleId, { drawConfigFrozenAt: new Date('2000-01-01T00:00:00Z') });
+
+        expect(closed.drawConfigFrozenAt).not.toBeNull();
+        // Generous bound for a database clock slightly behind this process.
+        expect((closed.drawConfigFrozenAt as Date).getTime()).toBeGreaterThan(before - 60_000);
+      });
+
+      it('rejects changing drawConfigFrozenAt after the close', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        await close(raffleId);
+
+        await expect(
+          prisma.raffle.update({ where: { id: raffleId }, data: { drawConfigFrozenAt: new Date() } }),
+        ).rejects.toThrow(/Raffle_draw_config_frozen/);
+      });
+
+      it('rejects moving a prize out of a raffle that is no longer a DRAFT', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        const draft = await createRaffleRow(prisma, {
+          data: { title: 'Draft', prize: 'Prize', ticketPrice: 10, numberMin: 1, numberMax: 10 },
+        });
+        const prize = await prisma.rafflePrize.findFirstOrThrow({ where: { raffleId } });
+
+        await expect(
+          prisma.rafflePrize.update({ where: { id: prize.id }, data: { raffleId: draft.id, position: 2 } }),
+        ).rejects.toThrow(/RafflePrize_draft_only/);
+      });
+
+      it('rejects changing the buyer of an order once sales are closed', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        const orderId = await givenOrder(raffleId);
+        const [otherBuyer] = await givenBuyers(1);
+        await close(raffleId);
+
+        await expect(
+          prisma.ticketOrder.update({ where: { id: orderId }, data: { userId: otherBuyer } }),
+        ).rejects.toThrow(/TicketOrder_buyer_frozen/);
+      });
+
+      it('still allows changing the buyer of an order while the raffle is ACTIVE', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        const orderId = await givenOrder(raffleId);
+        const [otherBuyer] = await givenBuyers(1);
+
+        await expect(
+          prisma.ticketOrder.update({ where: { id: orderId }, data: { userId: otherBuyer } }),
+        ).resolves.toMatchObject({ userId: otherBuyer });
+      });
+
+      // trg_ticket_transition lets AVAILABLE -> RESERVED through on any raffle;
+      // only the new guard stops a reservation, and so a buyer, after the close.
+      it('rejects reserving a ticket of a closed raffle for an order', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        const orderId = await givenOrder(raffleId);
+        await close(raffleId);
+
+        await expect(
+          prisma.ticket.update({
+            where: { raffleId_number: { raffleId, number: 1 } },
+            data: { status: 'RESERVED', orderId },
+          }),
+        ).rejects.toThrow(/Ticket_order_frozen/);
+      });
+
+      // Freeing a hold names no buyer: the sold list and the buyer groups come
+      // from SOLD tickets only, so a release after the close changes neither.
+      it('still allows releasing a reserved ticket of a closed raffle', async () => {
+        const raffleId = await givenActiveRaffle([1]);
+        const orderId = await givenOrder(raffleId);
+        const where = { raffleId_number: { raffleId, number: 1 } };
+        await prisma.ticket.update({ where, data: { status: 'RESERVED', orderId } });
+        await close(raffleId);
+
+        await expect(
+          prisma.ticket.update({
+            where,
+            data: { status: 'AVAILABLE', orderId: null, reservedUntil: null },
+          }),
+        ).resolves.toMatchObject({ status: 'AVAILABLE', orderId: null });
+      });
+    });
+
     describe('Ticket status transitions', () => {
       async function givenTicket(
         status: string,
@@ -6025,7 +6167,6 @@ describe('Raffle persistence on real PostgreSQL', () => {
       }
 
       it.each([
-        ['AVAILABLE', 'SOLD'],
         ['AVAILABLE', 'REFUNDED'],
         ['RESERVED', 'REFUNDED'],
         ['SOLD', 'AVAILABLE'],
@@ -6051,6 +6192,28 @@ describe('Raffle persistence on real PostgreSQL', () => {
         await expect(
           prisma.ticket.update({ where: { id }, data: { status: to } }),
         ).resolves.toBeDefined();
+      });
+
+      // In-person sales go AVAILABLE -> SOLD in one step
+      // (20261105000100_allow_available_to_sold_transition): the transition
+      // trigger lets it through, and Ticket_sold_has_order still demands the
+      // order a SOLD ticket must keep (DT-13).
+      it('allows AVAILABLE -> SOLD together with its order (in-person sale)', async () => {
+        const { id } = await givenTicket('AVAILABLE');
+        const { raffleId } = await prisma.ticket.findUniqueOrThrow({ where: { id } });
+        const orderId = await givenOrder(raffleId);
+
+        await expect(
+          prisma.ticket.update({ where: { id }, data: { status: 'SOLD', orderId } }),
+        ).resolves.toMatchObject({ status: 'SOLD', orderId });
+      });
+
+      it('rejects AVAILABLE -> SOLD without an order', async () => {
+        const { id } = await givenTicket('AVAILABLE');
+
+        await expect(
+          prisma.ticket.update({ where: { id }, data: { status: 'SOLD' } }),
+        ).rejects.toThrow(/Ticket_sold_has_order/);
       });
 
       it.each(['RESERVED', 'SOLD'])(

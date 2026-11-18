@@ -1,5 +1,6 @@
+import { WinnerExclusionMode as DrawExclusionMode, computeMultiPrizeWinners, drawConfigHash } from '@kanoso/raffle-draw';
 import vectors from '../../../../../../packages/raffle-draw/test/test-vectors.json';
-import { VerificationData } from '../../api/api.models';
+import { VerificationData, WinnerExclusionMode } from '../../api/api.models';
 import { ROUND_1M } from '../../drand/drand.testing';
 import { QUICKNET } from '../../drand/quicknet';
 
@@ -42,8 +43,91 @@ export function verificationOf(vector: DrawVector, overrides: Partial<Verificati
       digestHex: vector.expected.digestHex,
       executedAt: new Date('2026-11-16T01:30:03.000Z'),
     },
+    prizes: [{ position: 1, title: 'Un televisor de 55 pulgadas', description: null, images: [] }],
+    winnerExclusionMode: 'TICKET_ONLY',
+    drawConfigHash: '',
+    drawConfigVerified: false,
+    buyerGroups: [],
+    winners: [
+      {
+        position: 1,
+        prizeTitle: 'Un televisor de 55 pulgadas',
+        status: 'WON',
+        winningNumber: vector.expected.winner,
+        winnerIndex: vector.expected.index,
+        digestHex: vector.expected.digestHex,
+        poolSize: vector.soldNumbers.length,
+        excludedTickets: [vector.expected.winner],
+        extractions: [],
+      },
+    ],
     ...overrides,
   };
+}
+
+/** Buyers of a vector's numbers for BUYER mode: runs of 3, 2, 1, then the rest. */
+export function buyerGroupsOf(soldNumbers: number[]): number[][] {
+  const sorted = [...soldNumbers].sort((a, b) => a - b);
+  return [sorted.slice(0, 3), sorted.slice(3, 5), sorted.slice(5, 6), sorted.slice(6)].filter((g) => g.length > 0);
+}
+
+/**
+ * The verification data of a v2 (multi-prize) draw of a vector, its official
+ * winners computed with the shared package as the API does.
+ */
+export async function multiPrizeVerificationOf(
+  vector: DrawVector,
+  params: { prizeCount: number; exclusionMode: WinnerExclusionMode; winningAttempt?: number },
+): Promise<VerificationData> {
+  const winningAttempt = params.winningAttempt ?? 1;
+  const buyerGroups = params.exclusionMode === 'BUYER' ? buyerGroupsOf(vector.soldNumbers) : [];
+  const config = {
+    exclusionMode: params.exclusionMode as DrawExclusionMode,
+    winningAttempt,
+    prizeCount: params.prizeCount,
+    buyerGroups,
+  };
+  const result = await computeMultiPrizeWinners({
+    seedHex: vector.seedHex,
+    drandRandomnessHex: vector.drandRandomnessHex,
+    raffleId: vector.raffleId,
+    soldNumbers: vector.soldNumbers,
+    ...config,
+  });
+  const prizes = Array.from({ length: params.prizeCount }, (_, i) => ({
+    position: i + 1,
+    title: `Premio ${i + 1}`,
+    description: null,
+    images: [],
+  }));
+  const first = result.prizes[0];
+  return verificationOf(vector, {
+    algorithmVersion: 'v2',
+    winningAttempt,
+    official: {
+      drandRandomness: vector.drandRandomnessHex,
+      winnerIndex: first.winnerIndex,
+      winningNumber: first.winningTicket,
+      digestHex: first.digestHex,
+      executedAt: new Date('2026-11-16T01:30:03.000Z'),
+    },
+    prizes,
+    winnerExclusionMode: params.exclusionMode,
+    drawConfigHash: await drawConfigHash(config),
+    drawConfigVerified: true,
+    buyerGroups,
+    winners: result.prizes.map((p) => ({
+      position: p.position,
+      prizeTitle: prizes[p.position - 1].title,
+      status: p.status,
+      winningNumber: p.winningTicket,
+      winnerIndex: p.winnerIndex,
+      digestHex: p.digestHex,
+      poolSize: p.poolSize,
+      excludedTickets: p.excludedTickets,
+      extractions: p.extractions,
+    })),
+  });
 }
 
 /**

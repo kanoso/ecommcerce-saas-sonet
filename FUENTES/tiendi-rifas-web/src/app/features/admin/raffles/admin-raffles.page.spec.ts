@@ -20,6 +20,8 @@ const mockRaffles: RaffleSummary[] = [
     soldCount: 350,
     availableCount: 650,
     authorizationResolution: 'RD-001',
+    prizes: [],
+    winnerExclusionMode: 'TICKET_ONLY',
   },
   {
     id: 'r-2',
@@ -35,6 +37,8 @@ const mockRaffles: RaffleSummary[] = [
     soldCount: 0,
     availableCount: 500,
     authorizationResolution: null,
+    prizes: [],
+    winnerExclusionMode: 'TICKET_ONLY',
   },
 ];
 

@@ -1,0 +1,158 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prize-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prize-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  &__position {
+    font-weight: 700;
+    color: var(--ink, #0f172a);
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  &__btn {
+    min-width: 44px;
+    min-height: 36px;
+    padding: 0 0.625rem;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    background: var(--slate-100, #f1f5f9);
+    color: var(--ink, #0f172a);
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    &--danger {
+      color: #b42318;
+    }
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink, #0f172a);
+}
+
+.field__input,
+.field__textarea {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+}
+
+.field__error {
+  font-size: 0.75rem;
+  color: #b42318;
+}
+
+.image-input-row {
+  display: flex;
+  gap: 0.5rem;
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.btn-secondary {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  background: var(--slate-100, #f1f5f9);
+  color: var(--ink, #0f172a);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.prize-list__add {
+  align-self: flex-start;
+}
+
+.thumbs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.5rem;
+}
+
+.thumb-card {
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  overflow: hidden;
+
+  &__img {
+    display: block;
+    width: 100%;
+    height: 72px;
+    object-fit: cover;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.375rem;
+  }
+}
+
+.thumb-tag {
+  font-size: 0.75rem;
+}
+
+.btn-remove-thumb {
+  border: none;
+  background: none;
+  font-size: 1rem;
+  cursor: pointer;
+}

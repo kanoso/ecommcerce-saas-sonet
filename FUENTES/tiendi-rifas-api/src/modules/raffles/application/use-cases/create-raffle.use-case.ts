@@ -1,10 +1,27 @@
-import { DrawEffect, DrawMode, DrawSpeed, Raffle } from '../../domain';
+import { randomUUID } from 'crypto';
+import {
+  DrawEffect,
+  DrawMode,
+  DrawSpeed,
+  Raffle,
+  RaffleValidationError,
+  WinnerExclusionMode,
+  prizesFromInputs,
+} from '../../domain';
 import { AuditLog, Clock, RaffleRepository } from '../ports';
+
+/** A prize as an operator gives it: its position is its place in the list. */
+export interface PrizeCommand {
+  title: string;
+  description?: string | null;
+  images?: string[];
+}
 
 export interface CreateRaffleCommand {
   id: string;
   title: string;
-  prize: string;
+  /** Legacy single prize; ignored when prizes is given. */
+  prize?: string;
   ticketPrice: number;
   numberMin: number;
   numberMax: number;
@@ -15,6 +32,29 @@ export interface CreateRaffleCommand {
   drawSpeed?: DrawSpeed;
   prizeDescription?: string | null;
   prizeImages?: string[];
+  /** Ordered prizes, 1..20. */
+  prizes?: PrizeCommand[];
+  winnerExclusionMode?: WinnerExclusionMode;
+}
+
+/** New ids for a prize list given by an operator. */
+export function withPrizeIds(prizes: PrizeCommand[]) {
+  return prizes.map((p) => ({
+    id: randomUUID(),
+    title: p.title,
+    description: p.description ?? null,
+    images: p.images ?? [],
+  }));
+}
+
+/** The prize list as audited. */
+export function auditedPrizes(raffle: Raffle) {
+  return raffle.prizes.map((p) => ({
+    position: p.position,
+    title: p.title,
+    description: p.description,
+    images: p.images,
+  }));
 }
 
 export class CreateRaffleUseCase {
@@ -25,10 +65,20 @@ export class CreateRaffleUseCase {
   ) {}
 
   async execute(command: CreateRaffleCommand): Promise<Raffle> {
+    const prizes = command.prizes ?? [
+      {
+        title: command.prize ?? '',
+        description: command.prizeDescription ?? null,
+        images: command.prizeImages ?? [],
+      },
+    ];
+    if (prizes.length === 0 || prizes.every((p) => !p.title?.trim())) {
+      throw new RaffleValidationError('A raffle needs at least one prize');
+    }
+
     const raffle = new Raffle({
       id: command.id,
       title: command.title,
-      prize: command.prize,
       ticketPrice: command.ticketPrice,
       numberMin: command.numberMin,
       numberMax: command.numberMax,
@@ -37,8 +87,8 @@ export class CreateRaffleUseCase {
       drawMode: command.drawMode,
       drawDurationSec: command.drawDurationSec,
       drawSpeed: command.drawSpeed,
-      prizeDescription: command.prizeDescription,
-      prizeImages: command.prizeImages,
+      prizes: prizesFromInputs(withPrizeIds(prizes)),
+      winnerExclusionMode: command.winnerExclusionMode,
       createdAt: this.clock.now(),
       updatedAt: this.clock.now(),
     });
@@ -57,6 +107,8 @@ export class CreateRaffleUseCase {
         drawEffect: raffle.drawEffect,
         prizeDescription: raffle.prizeDescription,
         prizeImages: raffle.prizeImages,
+        prizes: auditedPrizes(raffle),
+        winnerExclusionMode: raffle.winnerExclusionMode,
       },
     });
 

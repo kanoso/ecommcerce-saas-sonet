@@ -1,4 +1,13 @@
-import type { OperatorAlert, PaymentAccount, PaymentAccountChange, Refund, TicketOrder } from '../../domain';
+import type { DrawExtraction } from '@kanoso/raffle-draw';
+import type {
+  DrawWinner,
+  OperatorAlert,
+  PaymentAccount,
+  PaymentAccountChange,
+  RafflePrize,
+  Refund,
+  TicketOrder,
+} from '../../domain';
 import type { OperationCollisionUse, VerificationDataResponse } from '../../application';
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 
@@ -18,6 +27,41 @@ type MyTicket = Awaited<ReturnType<Queries['ticketsOf']>>[number];
 type Sales = Awaited<ReturnType<Queries['salesReport']>>;
 type PendingProof = Awaited<ReturnType<Queries['pendingProofs']>>[number];
 
+function extraction(e: DrawExtraction) {
+  return {
+    intento: e.attempt,
+    numero: e.number,
+    indice: e.index,
+    digest_hex: e.digestHex,
+    es_ganador: e.isWinner,
+  };
+}
+
+/** Ordered prizes; posicion 1 is drawn first. */
+export function prizes(list: Pick<RafflePrize, 'position' | 'title' | 'description' | 'images'>[]) {
+  return list.map((p) => ({
+    posicion: p.position,
+    titulo: p.title,
+    descripcion: p.description,
+    imagenes: p.images,
+  }));
+}
+
+/** One prize's result: GANADO with its ticket, or DESIERTO (VOID). */
+function winner(w: Omit<DrawWinner, 'id' | 'prizeId' | 'ticketId'> & { prizeTitle?: string }) {
+  return {
+    posicion: w.position,
+    ...(w.prizeTitle !== undefined && { titulo_premio: w.prizeTitle }),
+    estado: w.status,
+    numero_ganador: w.winningNumber,
+    indice_ganador: w.winnerIndex,
+    digest_hex: w.digestHex,
+    boletos_en_juego: w.poolSize,
+    excluidos: w.excludedTickets,
+    extracciones: (w.extractions ?? []).map(extraction),
+  };
+}
+
 export function raffleSummary(r: Summary) {
   return {
     rifa_id: r.id,
@@ -33,6 +77,8 @@ export function raffleSummary(r: Summary) {
     velocidad_efecto: r.drawSpeed,
     descripcion_premio: r.prizeDescription,
     imagenes_premio: r.prizeImages,
+    premios: prizes(r.prizes),
+    modo_exclusion_ganador: r.winnerExclusionMode,
     estado: r.status,
     cierre_ventas: r.salesCloseAt,
     fecha_sorteo: r.drawAt,
@@ -68,6 +114,11 @@ export function liveData(l: Live) {
     modalidad_sorteo: l.drawMode,
     duracion_efecto_seg: l.drawDurationSec,
     velocidad_efecto: l.drawSpeed,
+    premios: prizes(l.prizes),
+    modo_exclusion_ganador: l.winnerExclusionMode,
+    hash_configuracion: l.drawConfigHash,
+    /** BUYER mode, from the close: sold tickets grouped by buyer, without identities. */
+    grupos_compradores: l.buyerGroups,
     hash_compromiso: l.commitmentHash,
     hash_cadena_drand: l.drandChainHash,
     ronda_drand: l.drandRound,
@@ -84,14 +135,10 @@ export function liveData(l: Live) {
           digest_hex: l.result.digestHex,
           aleatoriedad_drand: l.result.drandRandomness,
           intento_ganador: l.result.winningAttempt,
-          extracciones: (l.result.extractions ?? []).map((e) => ({
-            intento: e.attempt,
-            numero: e.number,
-            indice: e.index,
-            digest_hex: e.digestHex,
-            es_ganador: e.isWinner,
-          })),
+          extracciones: (l.result.extractions ?? []).map(extraction),
           ejecutado_en: l.result.executedAt,
+          version_algoritmo: l.result.algorithmVersion,
+          ganadores: l.result.winners.map(winner),
         }
       : null,
   };
@@ -121,14 +168,16 @@ export function verification(v: VerificationDataResponse) {
     numero_ganador: v.winningNumber,
     digest_hex: v.digestHex,
     intento_ganador: v.winningAttempt,
-    extracciones: (v.extractions ?? []).map((e) => ({
-      intento: e.attempt,
-      numero: e.number,
-      indice: e.index,
-      digest_hex: e.digestHex,
-      es_ganador: e.isWinner,
-    })),
+    extracciones: (v.extractions ?? []).map(extraction),
     ejecutado_en: v.executedAt,
+    premios: prizes(v.prizes),
+    modo_exclusion_ganador: v.winnerExclusionMode,
+    /** v2: the configuration hash frozen at the close; empty before multi-prize draws. */
+    hash_configuracion: v.drawConfigHash,
+    configuracion_verificada: v.drawConfigVerified,
+    /** BUYER mode: sold tickets grouped by buyer, without identities. */
+    grupos_compradores: v.buyerGroups,
+    ganadores: v.winners.map(winner),
   };
 }
 

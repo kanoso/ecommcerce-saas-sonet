@@ -74,6 +74,7 @@ class InMemoryTransaction implements LedgerTransaction {
     private readonly drawRepo: DrawRepository,
     private readonly beforeAudit: () => void,
     private readonly paymentAccounts: () => PaymentAccountRepository | null,
+    private readonly onBuyerRead: (raffleId: string) => void = () => undefined,
   ) {}
 
   async lockPaymentAccount(accountId: string): Promise<PaymentAccount | null> {
@@ -93,6 +94,12 @@ class InMemoryTransaction implements LedgerTransaction {
   async lockOrders(orderIds: string[]): Promise<TicketOrder[]> {
     const orders = await Promise.all(orderIds.map((id) => this.lockOrder(id)));
     return orders.filter((o): o is TicketOrder => o !== null);
+  }
+
+  async findRaffleBuyers(raffleId: string): Promise<Map<string, string>> {
+    this.onBuyerRead(raffleId);
+    const orders = await this.orderRepo.findByRaffleId(raffleId);
+    return new Map(orders.map((o) => [o.id, o.userId]));
   }
 
   async lockOrdersByStatus(
@@ -424,6 +431,8 @@ class InMemoryTransaction implements LedgerTransaction {
 export class InMemoryTicketLedger implements TicketLedger {
   private readonly queue = new SerialQueue();
   private auditFailure: Error | null = null;
+  /** The raffles whose buyers a transaction read (findRaffleBuyers), in order. */
+  readonly buyerReads: string[] = [];
 
   constructor(
     private readonly raffleRepo: RaffleRepository,
@@ -462,6 +471,7 @@ export class InMemoryTicketLedger implements TicketLedger {
         this.drawRepo,
         () => this.throwPendingAuditFailure(),
         () => this.paymentAccounts,
+        (raffleId) => this.buyerReads.push(raffleId),
       );
       const result = await work(tx);
       await tx.commit(this.auditLog);

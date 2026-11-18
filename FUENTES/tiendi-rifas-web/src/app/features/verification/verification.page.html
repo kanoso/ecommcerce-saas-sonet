@@ -44,7 +44,7 @@
                   }
                 }
               </span>
-              <span class="winner__number">{{ data.official.winningNumber }}</span>
+              <span class="winner__number">{{ data.official.winningNumber ?? 'Desierto' }}</span>
             </div>
             <div class="winner__info">
               <span class="winner__title">{{ data.title }}</span>
@@ -63,7 +63,11 @@
             <div class="verdict verdict--match" role="status">
               <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
               <div>
-                <p class="verdict__title">Tu navegador obtuvo el mismo ganador: {{ verification.localResult()?.winner }}</p>
+                @if (isMultiPrize()) {
+                  <p class="verdict__title">Tu navegador obtuvo la misma lista de ganadores ({{ data.prizes.length }} premios)</p>
+                } @else {
+                  <p class="verdict__title">Tu navegador obtuvo el mismo ganador: {{ verification.localResult()?.winner }}</p>
+                }
                 <p class="verdict__text">Coincide con el resultado oficial.</p>
                 @if (ownNumbersSkipped(); as reason) {
                   <p class="verdict__text">No se comprobaron tus números: {{ reason }}</p>
@@ -86,7 +90,37 @@
         }
 
 
-        @if (extractions().length > 1) {
+        @if (isMultiPrize()) {
+          <section class="section prizes-audit" aria-label="Ganadores por premio">
+            <h2 class="section__title">Ganadores por premio</h2>
+            <p class="prizes-audit__mode">
+              <span class="prizes-audit__lock" aria-hidden="true">🔒</span>
+              Modo de exclusión: {{ exclusionLabel() }} (fijado al cierre de ventas)
+            </p>
+            <table class="prizes-audit__table">
+              <thead>
+                <tr>
+                  <th scope="col">Premio</th>
+                  <th scope="col">Boletos en juego</th>
+                  <th scope="col">Oficial</th>
+                  <th scope="col">Tu navegador</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of prizeRows(); track row.position) {
+                  <tr [class.prizes-audit__row--mismatch]="row.local !== null && !row.same">
+                    <td>{{ row.position }}. {{ row.title }}</td>
+                    <td>{{ row.poolSize ?? '—' }}</td>
+                    <td class="font-mono">{{ row.official }}</td>
+                    <td class="font-mono">{{ row.local ?? 'Sin calcular' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+
+        @if (!isMultiPrize() && extractions().length > 1) {
           <section class="section extractions-audit" aria-label="Auditoría de intentos de extracción">
             <h2 class="section__title">Auditoría de intentos sucesivos ({{ extractions().length }} intentos)</h2>
             <div class="audit-stack">
@@ -171,8 +205,11 @@
           <h2 class="section__title">Datos para verificar tu sorteo</h2>
           <p class="anchor__text">
             Si compraste boletos, el correo de pago aprobado trae una sección "Datos para verificar tu sorteo" con el
-            compromiso, la ronda de drand, la fecha del sorteo y el cierre de ventas. Ese correo llegó antes del cierre y
-            la plataforma ya no puede cambiarlo. Pega aquí los valores del correo para compararlos en tu navegador.
+            compromiso, la ronda de drand, la fecha del sorteo, el cierre de ventas, la cantidad de premios y el intento
+            ganador. Ese correo llegó antes del cierre y la plataforma ya no puede cambiarlo. Pega aquí los valores del
+            correo para compararlos en tu navegador. En sorteos de varios premios, el correo también muestra el modo de
+            exclusión al momento de tu pago: puede cambiar hasta el cierre de ventas, y esta página muestra el que quedó
+            fijado al cierre.
           </p>
           @for (input of emailInputs; track input.field) {
             <label class="anchor__label" [for]="input.id">{{ input.label }}</label>

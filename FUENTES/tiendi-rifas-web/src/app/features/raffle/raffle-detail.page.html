@@ -26,6 +26,13 @@
         </header>
 
         <p class="raffle__prize">{{ raffle.prize }}</p>
+        @if (raffle.prizes.length > 1) {
+          <ol class="raffle__prizes" aria-label="Premios en orden de sorteo">
+            @for (p of raffle.prizes; track p.position) {
+              <li><span class="raffle__prize-pos">{{ p.position }}.º</span> {{ p.title }}</li>
+            }
+          </ol>
+        }
 
         <div class="draw-mode-banner" aria-label="Modalidad y reglas del sorteo">
           <span
@@ -38,6 +45,11 @@
           <span class="draw-pill">
             🎯 {{ (raffle.winningAttempt ?? 1) === 1 ? 'Sale al 1° intento' : 'Sale al ' + raffle.winningAttempt + '° intento' }}
           </span>
+          @if (raffle.prizes.length > 1) {
+            <span class="draw-pill">
+              🎁 {{ raffle.prizes.length }} premios · {{ exclusionModeText(raffle.winnerExclusionMode) }}
+            </span>
+          }
           <span class="draw-pill">
             ✨ Efecto: {{ effectLabel(raffle.drawEffect) }} · {{ raffle.drawDurationSec ?? 4 }}s ({{ speedLabel(raffle.drawSpeed) }})
           </span>
@@ -168,6 +180,27 @@
                 </div>
               </dl>
             </div>
+
+            @if (otherPrizes().length > 0) {
+              <div class="specs-card other-prizes">
+                <h3 class="specs-card__title">Otros premios</h3>
+                @for (p of otherPrizes(); track p.position) {
+                  <article class="other-prizes__item">
+                    <h4 class="other-prizes__title">{{ p.position }}.º premio: {{ p.title }}</h4>
+                    @if (p.description) {
+                      <p class="specs-card__desc">{{ p.description }}</p>
+                    }
+                    @if (p.images.length > 0) {
+                      <div class="other-prizes__thumbs">
+                        @for (img of p.images; track $index) {
+                          <img [src]="img" [alt]="p.title + ' — foto ' + ($index + 1)" class="other-prizes__img" />
+                        }
+                      </div>
+                    }
+                  </article>
+                }
+              </div>
+            }
           </section>
         }
 

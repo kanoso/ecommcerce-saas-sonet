@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
@@ -20,8 +20,17 @@ import {
   PublishedRaffle,
   RaffleOrderWithBuyer,
   RaffleSummary,
+  RafflePrize,
+  WinnerExclusionMode,
 } from '../../../core/api/api.models';
 import { QUICKNET } from '../../../core/drand/quicknet';
+import { ExclusionModeFieldComponent } from '../shared/exclusion-mode-field.component';
+import {
+  PrizeDraft,
+  PrizeListEditorComponent,
+  prizesComplete,
+  toPrizeRequests,
+} from '../shared/prize-list-editor.component';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador',
@@ -59,7 +68,14 @@ function datesOrderValidator(control: AbstractControl): ValidationErrors | null 
 @Component({
   selector: 'app-admin-raffle-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    PrizeListEditorComponent,
+    ExclusionModeFieldComponent,
+  ],
   templateUrl: './admin-raffle-detail.page.html',
   styleUrl: './admin-raffle-detail.page.scss',
 })
@@ -90,10 +106,8 @@ export class AdminRaffleDetailPage implements OnInit {
 
   // Edit Showcase State
   readonly showEditShowcaseModal = signal(false);
-  readonly editPrizeDescription = signal('');
-  readonly editPrizeImages = signal<string[]>([]);
-  readonly editNewImageUrl = signal('');
-  readonly editImageError = signal<string | null>(null);
+  readonly editPrizes = signal<PrizeDraft[]>([]);
+  readonly editExclusionMode = signal<WinnerExclusionMode>('TICKET_ONLY');
   readonly editDrawEffect = signal('SLOT_MACHINE');
   readonly editWinningAttempt = signal(1);
   readonly editDrawMode = signal('AUTOMATIC');
@@ -102,13 +116,61 @@ export class AdminRaffleDetailPage implements OnInit {
   readonly editSaving = signal(false);
   readonly editError = signal<string | null>(null);
 
+  /** The ordered prizes; an older API without a list gives the legacy single prize. */
+  readonly prizes = computed<RafflePrize[]>(() => {
+    const r = this.raffle();
+    if (!r) return [];
+    if (r.prizes.length > 0) return r.prizes;
+    return [
+      {
+        position: 1,
+        title: r.prize,
+        description: r.prizeDescription ?? null,
+        images: r.prizeImages ?? [],
+      },
+    ];
+  });
+
+  /** The mode can change in DRAFT and ACTIVE; the close of sales freezes it. */
+  readonly modeLocked = computed(() => {
+    const status = this.raffle()?.status;
+    return status !== 'DRAFT' && status !== 'ACTIVE';
+  });
+
+  /** The mode picked on the page, reset to the stored one whenever the raffle reloads. */
+  readonly modeDraft = linkedSignal<WinnerExclusionMode>(
+    () => this.raffle()?.winnerExclusionMode ?? 'TICKET_ONLY',
+  );
+  readonly modeSaving = signal(false);
+  readonly modeError = signal<string | null>(null);
+
+  exclusionModeLabel(mode: WinnerExclusionMode | undefined): string {
+    return mode === 'BUYER' ? 'Por comprador' : 'Solo el boleto ganador';
+  }
+
+  /** ACTIVE only: the draft modal saves it with the rest of the draft. */
+  saveExclusionMode(): void {
+    this.modeSaving.set(true);
+    this.modeError.set(null);
+    this.adminApi.changeExclusionMode(this.raffleId, this.modeDraft()).subscribe({
+      next: () => {
+        this.modeSaving.set(false);
+        this.loadData();
+      },
+      error: (err: unknown) => {
+        this.modeSaving.set(false);
+        this.modeError.set(toApiError(err).userMessage || 'No se pudo cambiar el modo de exclusión.');
+      },
+    });
+  }
+
   openEditShowcaseModal(): void {
     const r = this.raffle();
     if (!r) return;
-    this.editPrizeDescription.set(r.prizeDescription ?? '');
-    this.editPrizeImages.set(r.prizeImages ? [...r.prizeImages] : []);
-    this.editNewImageUrl.set('');
-    this.editImageError.set(null);
+    this.editPrizes.set(
+      this.prizes().map((p) => ({ title: p.title, description: p.description ?? '', images: [...p.images] })),
+    );
+    this.editExclusionMode.set(r.winnerExclusionMode ?? 'TICKET_ONLY');
     this.editDrawEffect.set(r.drawEffect ?? 'SLOT_MACHINE');
     this.editWinningAttempt.set(r.winningAttempt ?? 1);
     this.editDrawMode.set(r.drawMode ?? 'AUTOMATIC');
@@ -122,37 +184,18 @@ export class AdminRaffleDetailPage implements OnInit {
     this.showEditShowcaseModal.set(false);
   }
 
-  addEditImage(): void {
-    const url = this.editNewImageUrl().trim();
-    this.editImageError.set(null);
-    if (!url) return;
-
-    if (!/^https?:\/\//i.test(url)) {
-      this.editImageError.set('La URL debe comenzar con http:// o https://');
-      return;
-    }
-
-    if (this.editPrizeImages().length >= 10) {
-      this.editImageError.set('Máximo 10 imágenes permitidas');
-      return;
-    }
-
-    this.editPrizeImages.update((imgs) => [...imgs, url]);
-    this.editNewImageUrl.set('');
-  }
-
-  removeEditImage(index: number): void {
-    this.editPrizeImages.update((imgs) => imgs.filter((_, i) => i !== index));
-  }
-
   saveEditShowcase(): void {
+    if (!prizesComplete(this.editPrizes())) {
+      this.editError.set('Cada premio necesita un título.');
+      return;
+    }
     this.editSaving.set(true);
     this.editError.set(null);
 
     this.adminApi
       .updateDraftRaffle(this.raffleId, {
-        descripcion_premio: this.editPrizeDescription().trim() || null,
-        imagenes_premio: this.editPrizeImages(),
+        premios: toPrizeRequests(this.editPrizes()),
+        modo_exclusion_ganador: this.editExclusionMode(),
         efecto_sorteo: this.editDrawEffect(),
         intento_ganador: this.editWinningAttempt(),
         modalidad_sorteo: this.editDrawMode(),

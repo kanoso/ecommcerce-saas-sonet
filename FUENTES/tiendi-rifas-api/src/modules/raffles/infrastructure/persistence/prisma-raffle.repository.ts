@@ -1,17 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { DrawEffect, DrawMode, DrawSpeed, Raffle, RaffleStatus } from '../../domain';
+import {
+  DrawEffect,
+  DrawMode,
+  DrawSpeed,
+  Raffle,
+  RafflePrize,
+  RaffleStatus,
+  WinnerExclusionMode,
+} from '../../domain';
 import { RaffleRepository } from '../../application/ports';
 import { PrismaService } from './prisma.service';
+
+/** Every read of a raffle brings its prizes, in draw order. */
+export const RAFFLE_WITH_PRIZES = {
+  prizes: { orderBy: { position: 'asc' as const } },
+};
+
+interface PrizeRecord {
+  id: string;
+  position: number;
+  title: string;
+  description: string | null;
+  images: string[];
+}
 
 @Injectable()
 export class PrismaRaffleRepository implements RaffleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async save(raffle: Raffle): Promise<void> {
+    const prize = raffle.prizes[0];
     const data = {
       id: raffle.id,
       title: raffle.title,
-      prize: raffle.prize,
+      // Prize 1, mirrored for readers of the single-prize columns.
+      prize: prize.title,
       ticketPrice: raffle.ticketPrice,
       numberMin: raffle.numberMin,
       numberMax: raffle.numberMax,
@@ -20,8 +43,11 @@ export class PrismaRaffleRepository implements RaffleRepository {
       drawMode: raffle.drawMode,
       drawDurationSec: raffle.drawDurationSec,
       drawSpeed: raffle.drawSpeed,
-      prizeDescription: raffle.prizeDescription,
-      prizeImages: raffle.prizeImages,
+      prizeDescription: prize.description,
+      prizeImages: prize.images,
+      winnerExclusionMode: raffle.winnerExclusionMode,
+      drawConfigHash: raffle.drawConfigHash,
+      drawConfigFrozenAt: raffle.drawConfigFrozenAt,
       status: raffle.status,
       authorizationResolution: raffle.authorizationResolution,
       commitmentHash: raffle.commitmentHash,
@@ -36,19 +62,36 @@ export class PrismaRaffleRepository implements RaffleRepository {
       updatedAt: raffle.updatedAt,
     };
 
-    await this.prisma.raffle.upsert({
-      where: { id: raffle.id },
-      create: {
-        ...data,
-        createdAt: raffle.createdAt,
-      },
-      update: data,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.raffle.upsert({
+        where: { id: raffle.id },
+        create: {
+          ...data,
+          createdAt: raffle.createdAt,
+        },
+        update: data,
+      });
+      // Prizes are writable only in DRAFT (a trigger): replaced as a whole.
+      if (raffle.status === RaffleStatus.DRAFT) {
+        await tx.rafflePrize.deleteMany({ where: { raffleId: raffle.id } });
+        await tx.rafflePrize.createMany({
+          data: raffle.prizes.map((p) => ({
+            id: p.id,
+            raffleId: raffle.id,
+            position: p.position,
+            title: p.title,
+            description: p.description,
+            images: p.images,
+          })),
+        });
+      }
     });
   }
 
   async findById(id: string): Promise<Raffle | null> {
     const record = await this.prisma.raffle.findUnique({
       where: { id },
+      include: RAFFLE_WITH_PRIZES,
     });
 
     if (!record) {
@@ -61,6 +104,7 @@ export class PrismaRaffleRepository implements RaffleRepository {
   async findAll(): Promise<Raffle[]> {
     const records = await this.prisma.raffle.findMany({
       orderBy: { createdAt: 'desc' },
+      include: RAFFLE_WITH_PRIZES,
     });
 
     return records.map((r) => PrismaRaffleRepository.toDomain(r));
@@ -70,6 +114,7 @@ export class PrismaRaffleRepository implements RaffleRepository {
     const records = await this.prisma.raffle.findMany({
       where: { status: { in: statuses } },
       orderBy: { createdAt: 'desc' },
+      include: RAFFLE_WITH_PRIZES,
     });
     return records.map((r) => PrismaRaffleRepository.toDomain(r));
   }
@@ -94,6 +139,11 @@ export class PrismaRaffleRepository implements RaffleRepository {
     drawSpeed?: unknown;
     prizeDescription?: string | null;
     prizeImages?: string[];
+    /** Absent when the read did not include them: prize 1 comes from the legacy columns. */
+    prizes?: PrizeRecord[];
+    winnerExclusionMode?: unknown;
+    drawConfigHash?: string | null;
+    drawConfigFrozenAt?: Date | null;
     status: string;
     authorizationResolution: string | null;
     commitmentHash: string | null;
@@ -108,6 +158,16 @@ export class PrismaRaffleRepository implements RaffleRepository {
     createdAt: Date;
     updatedAt: Date;
   }): Raffle {
+    const prizes: RafflePrize[] | undefined =
+      record.prizes && record.prizes.length > 0
+        ? record.prizes.map((p) => ({
+            id: p.id,
+            position: p.position,
+            title: p.title,
+            description: p.description,
+            images: p.images ?? [],
+          }))
+        : undefined;
     return new Raffle({
       id: record.id,
       title: record.title,
@@ -122,6 +182,12 @@ export class PrismaRaffleRepository implements RaffleRepository {
       drawSpeed: (record.drawSpeed as DrawSpeed) ?? DrawSpeed.NORMAL,
       prizeDescription: record.prizeDescription ?? null,
       prizeImages: record.prizeImages ?? [],
+      prizes,
+      winnerExclusionMode:
+        (record.winnerExclusionMode as WinnerExclusionMode) ??
+        WinnerExclusionMode.TICKET_ONLY,
+      drawConfigHash: record.drawConfigHash ?? null,
+      drawConfigFrozenAt: record.drawConfigFrozenAt ?? null,
       status: record.status as RaffleStatus,
       authorizationResolution: record.authorizationResolution,
       commitmentHash: record.commitmentHash,

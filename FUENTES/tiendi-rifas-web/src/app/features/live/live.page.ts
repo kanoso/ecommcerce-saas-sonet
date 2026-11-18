@@ -68,6 +68,33 @@ export class LivePage implements OnInit {
   readonly betweenAttempts = this.service.betweenAttempts;
   readonly winningAttempt = computed(() => this.data()?.winningAttempt ?? 1);
 
+  // Multi-prize draws: one prize after another, with a locked exclusion mode.
+  readonly isMultiPrize = this.service.isMultiPrize;
+  readonly currentPrize = this.service.currentPrize;
+  readonly currentPrizeIndex = this.service.currentPrizeIndex;
+  readonly currentPoolSize = this.service.currentPoolSize;
+  readonly betweenPrizes = this.service.betweenPrizes;
+  readonly prizeCount = computed(() => this.data()?.prizes?.length ?? 1);
+  readonly exclusionModeLabel = computed(() =>
+    this.data()?.winnerExclusionMode === 'BUYER' ? 'Por comprador' : 'Solo el boleto ganador',
+  );
+  /** Every prize with its result so far: pending, won (number and buyer) or void. */
+  readonly prizeRows = computed(() => {
+    const done = new Map(this.service.completedPrizes().map((p) => [p.position, p]));
+    return (this.data()?.prizes ?? []).map((prize) => {
+      const result = done.get(prize.position);
+      const number = result?.status === 'WON' ? result.winningTicket : null;
+      return {
+        position: prize.position,
+        title: prize.title,
+        status: result ? result.status : 'PENDING',
+        number,
+        buyer: number !== null ? this.buyerNameFor(number) : null,
+        current: prize.position === this.currentPrizeIndex() + 1,
+      };
+    });
+  });
+
   // Interactive Board & 5 Effects signals from service
   readonly boardNumbers = this.service.boardNumbers;
   readonly snakeSegments = this.service.snakeSegments;
@@ -98,8 +125,12 @@ export class LivePage implements OnInit {
     this.phase() === 'result' ? (this.localResult()?.winner ?? null) : null,
   );
   readonly remainingSoldCount = computed(() => {
-    const sold = this.data()?.soldNumbers ?? [];
     const disc = this.discardedNumbersSet();
+    const pool = this.currentPoolSize();
+    if (this.isMultiPrize() && pool !== null) {
+      return Math.max(1, pool - disc.size);
+    }
+    const sold = this.data()?.soldNumbers ?? [];
     return Math.max(1, sold.filter((n) => !disc.has(n)).length);
   });
 

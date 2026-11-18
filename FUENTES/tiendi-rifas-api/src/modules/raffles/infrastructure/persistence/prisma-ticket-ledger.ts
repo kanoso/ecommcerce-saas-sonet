@@ -4,6 +4,7 @@ import {
   Draw,
   DuplicateOperatorAlertError,
   DuplicatePaymentError,
+  MissingRaffleDataError,
   OperatorAlert,
   OperatorAlertType,
   OrderStatus,
@@ -34,7 +35,8 @@ import { PrismaNotificationOutbox } from './prisma-notification-outbox';
 import { paidToColumns, PrismaOrderRepository } from './prisma-order.repository';
 import { PrismaPaymentAccountRepository } from './prisma-payment-account.repository';
 import { PrismaPaymentRepository } from './prisma-payment.repository';
-import { PrismaRaffleRepository } from './prisma-raffle.repository';
+import { drawWinnerRow } from './prisma-draw.repository';
+import { PrismaRaffleRepository, RAFFLE_WITH_PRIZES } from './prisma-raffle.repository';
 import { PrismaRefundRepository } from './prisma-refund.repository';
 import { PrismaTicketRepository } from './prisma-ticket.repository';
 import { PrismaService } from './prisma.service';
@@ -63,7 +65,10 @@ class PrismaLedgerTransaction implements LedgerTransaction {
     await this.tx.$queryRaw`
       SELECT id FROM "Raffle" WHERE id = ${raffleId} FOR NO KEY UPDATE
     `;
-    const record = await this.tx.raffle.findUnique({ where: { id: raffleId } });
+    const record = await this.tx.raffle.findUnique({
+      where: { id: raffleId },
+      include: RAFFLE_WITH_PRIZES,
+    });
     return record && PrismaRaffleRepository.toDomain(record);
   }
 
@@ -90,6 +95,15 @@ class PrismaLedgerTransaction implements LedgerTransaction {
       FOR UPDATE
     `;
     return this.readOrders({ id: { in: orderIds } });
+  }
+
+  async findRaffleBuyers(raffleId: string): Promise<Map<string, string>> {
+    // TicketOrder(raffleId) is indexed; no IN list, so no bind limit.
+    const rows = await this.tx.ticketOrder.findMany({
+      where: { raffleId },
+      select: { id: true, userId: true },
+    });
+    return new Map(rows.map((r) => [r.id, r.userId]));
   }
 
   async lockOrdersByStatus(
@@ -257,6 +271,9 @@ class PrismaLedgerTransaction implements LedgerTransaction {
         drandRound: raffle.drandRound,
         drandChainHash: raffle.drandChainHash,
         soldListHash: raffle.soldListHash,
+        winnerExclusionMode: raffle.winnerExclusionMode,
+        drawConfigHash: raffle.drawConfigHash,
+        drawConfigFrozenAt: raffle.drawConfigFrozenAt,
         salesCloseAt: raffle.salesCloseAt,
         drawAt: raffle.drawAt,
         cancellationReason: raffle.cancellationReason,
@@ -454,6 +471,7 @@ class PrismaLedgerTransaction implements LedgerTransaction {
   }
 
   async addDraw(draw: Draw): Promise<void> {
+    await this.assertPrizesPersisted(draw);
     await this.tx.draw.create({
       data: {
         id: draw.id,
@@ -472,6 +490,33 @@ class PrismaLedgerTransaction implements LedgerTransaction {
         executedAt: draw.executedAt,
       },
     });
+    await this.tx.drawWinner.createMany({
+      data: draw.winners.map((w) => drawWinnerRow(draw.id, w)),
+    });
+  }
+
+  /**
+   * Every winner must point at a RafflePrize row of the raffle, at its own
+   * position. A raffle row written without its prizes reads back with prize 1
+   * synthesized from the legacy columns, and that id exists nowhere. Such a
+   * prize cannot be created here (prizes are writable only in DRAFT, a
+   * trigger), and inventing one inside the draw would publish a result for a
+   * prize nobody committed to: the draw is refused before anything is
+   * written, and the transaction rolls back.
+   */
+  private async assertPrizesPersisted(draw: Draw): Promise<void> {
+    const persisted = await this.tx.rafflePrize.findMany({
+      where: { raffleId: draw.raffleId },
+      select: { id: true, position: true },
+    });
+    const positionOf = new Map(persisted.map((p) => [p.id, p.position]));
+    for (const winner of draw.winners) {
+      if (positionOf.get(winner.prizeId) !== winner.position) {
+        throw new MissingRaffleDataError(
+          `Raffle ${draw.raffleId} has no persisted prize ${winner.prizeId} at position ${winner.position}: the draw cannot be recorded`,
+        );
+      }
+    }
   }
 
   async enqueueNotification(notification: NewNotification): Promise<boolean> {

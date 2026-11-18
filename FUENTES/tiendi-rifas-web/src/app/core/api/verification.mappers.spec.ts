@@ -51,6 +51,12 @@ describe('toVerificationData', () => {
         digestHex: 'e'.repeat(64),
         executedAt: new Date('2026-11-16T01:30:03.000Z'),
       },
+      prizes: [{ position: 1, title: 'Un televisor', description: null, images: [] }],
+      winnerExclusionMode: 'TICKET_ONLY',
+      drawConfigHash: '',
+      drawConfigVerified: false,
+      buyerGroups: [],
+      winners: [],
     });
   });
 
@@ -145,7 +151,13 @@ describe('toLiveRaffleData', () => {
         winningAttempt: undefined,
         extractions: [],
         executedAt: new Date('2026-11-16T01:30:03.000Z'),
+        algorithmVersion: 'v1',
+        winners: [],
       },
+      prizes: [],
+      winnerExclusionMode: 'TICKET_ONLY',
+      drawConfigHash: null,
+      buyerGroups: [],
     });
   });
 
@@ -185,6 +197,10 @@ describe('toLiveRaffleData', () => {
       seedRevealed: null,
       soldNumbers: null,
       result: null,
+      prizes: [],
+      winnerExclusionMode: 'TICKET_ONLY',
+      drawConfigHash: null,
+      buyerGroups: [],
     });
   });
 });

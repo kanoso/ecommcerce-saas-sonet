@@ -24,6 +24,51 @@
       </div>
     }
 
+    @if (isMultiPrize()) {
+      <section class="prize-panel" aria-label="Premios del sorteo" aria-live="polite">
+        <div class="prize-panel__head">
+          @if (currentPrize(); as prize) {
+            <span class="prize-panel__current">
+              Premio {{ prize.position }} de {{ prizeCount() }}: <strong>{{ prize.title }}</strong>
+            </span>
+          }
+          @if (currentPoolSize() !== null) {
+            <span class="prize-panel__pool">Boletos en juego: {{ currentPoolSize() }}</span>
+          }
+          <span class="prize-panel__mode" title="Fijado al cierre de ventas">
+            🔒 Exclusión: {{ exclusionModeLabel() }}
+          </span>
+        </div>
+        <ol class="prize-panel__list">
+          @for (row of prizeRows(); track row.position) {
+            <li
+              class="prize-panel__item"
+              [class.prize-panel__item--current]="row.current"
+              [attr.data-status]="row.status"
+            >
+              <span class="prize-panel__title">{{ row.position }}. {{ row.title }}</span>
+              <span class="prize-panel__result">
+                @switch (row.status) {
+                  @case ('WON') {
+                    #{{ padNumber(row.number) }}{{ row.buyer ? ' · ' + row.buyer : '' }}
+                  }
+                  @case ('VOID') {
+                    Desierto
+                  }
+                  @default {
+                    Por sortear
+                  }
+                }
+              </span>
+            </li>
+          }
+        </ol>
+        @if (betweenPrizes()) {
+          <p class="prize-panel__next">Siguiente premio en breve…</p>
+        }
+      </section>
+    }
+
     <!-- Main Stage Card -->
     <section class="main-card" aria-live="polite">
       <canvas #confettiCanvas class="confetti-canvas" aria-hidden="true"></canvas>
@@ -459,6 +504,24 @@
             }
           </div>
         </article>
+
+        @if (isMultiPrize()) {
+          <article class="check-item" [attr.data-status]="checks().drawConfig">
+            <span class="check-icon" [ngClass]="checks().drawConfig">
+              @if (checks().drawConfig === 'passed') {
+                ✓
+              } @else if (checks().drawConfig === 'failed') {
+                ✕
+              } @else {
+                …
+              }
+            </span>
+            <div class="check-content">
+              <span class="check-title">Premios y exclusión congelados al cierre</span>
+              <span class="check-detail">{{ prizeCount() }} premios · {{ exclusionModeLabel() }}</span>
+            </div>
+          </article>
+        }
 
         <!-- Step 2: Sold List -->
         <article class="check-item" [attr.data-status]="checks().soldList">

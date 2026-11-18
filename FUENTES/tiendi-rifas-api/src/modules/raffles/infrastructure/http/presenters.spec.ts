@@ -3,6 +3,7 @@ import {
   DrawEffect,
   DrawMode,
   DrawSpeed,
+  WinnerExclusionMode,
   OperatorAlert,
   OperatorAlertType,
   OrderStatus,
@@ -42,6 +43,17 @@ describe('raffleSummary presenter (spec §11)', () => {
     drawSpeed: DrawSpeed.SLOW,
     prizeDescription: 'Auto sedan 0km',
     prizeImages: ['https://example.com/auto.jpg'],
+    prizes: [
+      {
+        id: 'p-1',
+        position: 1,
+        title: 'Un auto',
+        description: 'Auto sedan 0km',
+        images: ['https://example.com/auto.jpg'],
+      },
+      { id: 'p-2', position: 2, title: 'Una moto', description: null, images: [] },
+    ],
+    winnerExclusionMode: WinnerExclusionMode.BUYER,
     status: RaffleStatus.ACTIVE,
     salesCloseAt: '2026-11-10T18:00:00.000Z',
     drawAt: '2026-11-11T18:00:00.000Z',
@@ -66,6 +78,16 @@ describe('raffleSummary presenter (spec §11)', () => {
       velocidad_efecto: DrawSpeed.SLOW,
       descripcion_premio: 'Auto sedan 0km',
       imagenes_premio: ['https://example.com/auto.jpg'],
+      premios: [
+        {
+          posicion: 1,
+          titulo: 'Un auto',
+          descripcion: 'Auto sedan 0km',
+          imagenes: ['https://example.com/auto.jpg'],
+        },
+        { posicion: 2, titulo: 'Una moto', descripcion: null, imagenes: [] },
+      ],
+      modo_exclusion_ganador: 'BUYER',
       estado: 'ACTIVE',
       cierre_ventas: '2026-11-10T18:00:00.000Z',
       fecha_sorteo: '2026-11-11T18:00:00.000Z',
@@ -90,6 +112,9 @@ describe('liveData and verification presenters', () => {
       drawMode: DrawMode.MANUAL,
       drawDurationSec: 6,
       drawSpeed: DrawSpeed.FAST,
+      prizes: [{ id: 'p-1', position: 1, title: 'Moto', description: null, images: [] }],
+      winnerExclusionMode: WinnerExclusionMode.TICKET_ONLY,
+      drawConfigHash: 'config-hash',
       commitmentHash: 'comm-hash',
       drandChainHash: 'chain-hash',
       drandRound: '12345',
@@ -109,10 +134,43 @@ describe('liveData and verification presenters', () => {
           { attempt: 2, number: 2, index: 1, digestHex: 'd2', isWinner: true },
         ],
         executedAt: '2026-11-05T10:00:05.000Z',
+        algorithmVersion: 'v1',
+        winners: [
+          {
+            id: 'w-1',
+            prizeId: 'p-1',
+            position: 1,
+            status: 'WON',
+            ticketId: 't-2',
+            winningNumber: 2,
+            winnerIndex: 1,
+            digestHex: 'd2',
+            poolSize: 3,
+            excludedTickets: [2],
+            extractions: [{ attempt: 1, number: 2, index: 1, digestHex: 'd2', isWinner: true }],
+          },
+        ],
       },
     };
 
     const presented = liveData(live as any);
+    expect(presented.premios).toEqual([
+      { posicion: 1, titulo: 'Moto', descripcion: null, imagenes: [] },
+    ]);
+    expect(presented.modo_exclusion_ganador).toBe('TICKET_ONLY');
+    expect(presented.hash_configuracion).toBe('config-hash');
+    expect(presented.resultado?.ganadores).toEqual([
+      {
+        posicion: 1,
+        estado: 'WON',
+        numero_ganador: 2,
+        indice_ganador: 1,
+        digest_hex: 'd2',
+        boletos_en_juego: 3,
+        excluidos: [2],
+        extracciones: [{ intento: 1, numero: 2, indice: 1, digest_hex: 'd2', es_ganador: true }],
+      },
+    ]);
     expect(presented.numero_min).toBe(1);
     expect(presented.numero_max).toBe(30);
     expect(presented.intento_ganador).toBe(2);
@@ -153,9 +211,37 @@ describe('liveData and verification presenters', () => {
         { attempt: 2, number: 2, index: 1, digestHex: 'd2', isWinner: true },
       ],
       executedAt: '2026-11-05T10:00:05.000Z',
+      prizes: [{ position: 1, title: 'Moto 150cc', description: null, images: [] }],
+      winnerExclusionMode: 'BUYER',
+      drawConfigHash: 'config-hash',
+      drawConfigVerified: true,
+      buyerGroups: [[1, 3], [2]],
+      winners: [
+        {
+          position: 1,
+          prizeTitle: 'Moto 150cc',
+          status: 'WON',
+          winningNumber: 2,
+          winnerIndex: 1,
+          digestHex: 'd2',
+          poolSize: 3,
+          excludedTickets: [2],
+          extractions: [],
+        },
+      ],
     };
 
     const presented = verification(verif as any);
+    expect(presented.modo_exclusion_ganador).toBe('BUYER');
+    expect(presented.hash_configuracion).toBe('config-hash');
+    expect(presented.configuracion_verificada).toBe(true);
+    expect(presented.grupos_compradores).toEqual([[1, 3], [2]]);
+    expect(presented.ganadores[0]).toMatchObject({
+      posicion: 1,
+      titulo_premio: 'Moto 150cc',
+      estado: 'WON',
+      numero_ganador: 2,
+    });
     expect(presented.intento_ganador).toBe(2);
     expect(presented.extracciones).toHaveLength(2);
     expect(presented.extracciones[0]).toEqual({

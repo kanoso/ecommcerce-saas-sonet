@@ -2596,6 +2596,10 @@ describe('Manual payment use cases', () => {
           drandRound: '24680135',
           drawAt: '2026-11-11T01:30:00.000Z',
           salesCloseAt: '2026-11-10T18:00:00.000Z',
+          // Fixed at payment time; the mode may still change until the close.
+          winnerExclusionMode: 'TICKET_ONLY',
+          winningAttempt: 1,
+          prizeCount: 1,
         },
       });
     });

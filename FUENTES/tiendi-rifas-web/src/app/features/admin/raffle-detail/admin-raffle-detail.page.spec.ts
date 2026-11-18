@@ -19,6 +19,8 @@ const mockDraftRaffle: RaffleSummary = {
   soldCount: 0,
   availableCount: 1000,
   authorizationResolution: null,
+  prizes: [],
+  winnerExclusionMode: 'TICKET_ONLY',
 };
 
 const mockActiveRaffle: RaffleSummary = {
@@ -35,6 +37,8 @@ const mockActiveRaffle: RaffleSummary = {
   soldCount: 200,
   availableCount: 300,
   authorizationResolution: 'RD-2026-001',
+  prizes: [],
+  winnerExclusionMode: 'TICKET_ONLY',
 };
 
 const mockSalesReport: AdminSalesReport = {
@@ -84,6 +88,8 @@ describe('AdminRaffleDetailPage', () => {
     availableTickets: ReturnType<typeof vi.fn>;
     sellInPerson: ReturnType<typeof vi.fn>;
     proofFileUrl: ReturnType<typeof vi.fn>;
+    updateDraftRaffle: ReturnType<typeof vi.fn>;
+    changeExclusionMode: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -112,6 +118,8 @@ describe('AdminRaffleDetailPage', () => {
       availableTickets: vi.fn().mockReturnValue(of([42, 43, 44])),
       sellInPerson: vi.fn(),
       proofFileUrl: vi.fn((id: string) => `/api/ordenes/${id}/comprobante?token=test-tok`),
+      updateDraftRaffle: vi.fn().mockReturnValue(of({})),
+      changeExclusionMode: vi.fn().mockReturnValue(of({ raffleId: 'r-1', status: 'ACTIVE', winnerExclusionMode: 'BUYER' })),
     };
 
     await TestBed.configureTestingModule({
@@ -374,6 +382,66 @@ describe('AdminRaffleDetailPage', () => {
 
       const thumbs = showcase?.querySelectorAll('.admin-thumb-img');
       expect(thumbs?.length).toBe(2);
+    });
+  });
+
+  describe('prizes and winner exclusion mode', () => {
+    const twoPrizes = [
+      { position: 1, title: 'Auto 0km', description: 'Sedán rojo', images: ['https://example.com/a.jpg'] },
+      { position: 2, title: 'Moto', description: null, images: [] },
+    ];
+
+    it('lists every prize in draw order', () => {
+      component.raffle.set({ ...mockActiveRaffle, prizes: twoPrizes });
+      fixture.detectChanges();
+
+      const items = el.querySelectorAll('[data-testid="prize-item"]');
+      expect(items.length).toBe(2);
+      expect(items[0].textContent).toContain('Premio 1');
+      expect(items[0].textContent).toContain('Auto 0km');
+      expect(items[1].textContent).toContain('Moto');
+    });
+
+    it('saves the edited prize list and mode of a draft', () => {
+      component.raffle.set({ ...mockDraftRaffle, prizes: twoPrizes });
+      component.openEditShowcaseModal();
+      component.editPrizes.update((list) => [...list].reverse());
+      component.editExclusionMode.set('BUYER');
+
+      component.saveEditShowcase();
+
+      expect(adminApiMock.updateDraftRaffle).toHaveBeenCalledWith(
+        'r-1',
+        expect.objectContaining({
+          premios: [
+            { titulo: 'Moto', descripcion: null, imagenes: [] },
+            { titulo: 'Auto 0km', descripcion: 'Sedán rojo', imagenes: ['https://example.com/a.jpg'] },
+          ],
+          modo_exclusion_ganador: 'BUYER',
+        }),
+      );
+      expect(adminApiMock.updateDraftRaffle.mock.calls[0][1]).not.toHaveProperty('descripcion_premio');
+    });
+
+    it('changes the mode of an ACTIVE raffle through its own endpoint', () => {
+      component.raffle.set({ ...mockActiveRaffle, prizes: twoPrizes });
+      fixture.detectChanges();
+
+      component.modeDraft.set('BUYER');
+      fixture.detectChanges();
+      (el.querySelector('[data-testid="save-exclusion-mode"]') as HTMLButtonElement).click();
+
+      expect(adminApiMock.changeExclusionMode).toHaveBeenCalledWith('r-1', 'BUYER');
+    });
+
+    it('locks the mode once sales are closed', () => {
+      component.raffle.set({ ...mockActiveRaffle, status: 'CLOSED', prizes: twoPrizes });
+      fixture.detectChanges();
+
+      const fieldset = el.querySelector('app-exclusion-mode-field fieldset') as HTMLFieldSetElement;
+      expect(fieldset.disabled).toBe(true);
+      expect(el.querySelector('[data-testid="save-exclusion-mode"]')).toBeNull();
+      expect(el.textContent).toContain('Bloqueado');
     });
   });
 });
