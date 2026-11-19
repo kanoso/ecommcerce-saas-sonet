@@ -96,6 +96,37 @@ Aplica a rifas con más de un premio (algoritmo v2). Detalle funcional: [SORTEO-
 
 Respuestas posibles: 409 `DRAW_NOT_REFUSED_FOR_CONFIG` si la rifa no tiene un rechazo de configuración (si el rechazo fue `SOLD_LIST_MISMATCH`, usar DT-15, §3.1); 409 `INVALID_RAFFLE_TRANSITION` si la rifa ya no está `CLOSED` (por ejemplo, otro operador la canceló primero). La excepción de base `Raffle_closed_exit` indica una escritura directa que intentó sacar una rifa `CLOSED` sin motivo o hacia `ACTIVE`/`DRAFT`: identificar el origen y no desactivar el trigger.
 
+### 3.5 Conducir un sorteo en vivo (modalidad `MANUAL`, DT-23)
+
+En una rifa `MANUAL` el sorteo oficial se registra cuando el operador inicia la sesión en vivo, y cada paso que ve el público lo revela el servidor. El operador solo decide **cuándo** se muestra cada paso; el resultado ya quedó grabado al iniciar.
+
+**Antes de salir al aire**
+1. En `/admin/rifas` buscar la rifa con estado **Sorteo pendiente** (o el contador **Sorteos pendientes** del panel). Si dice **Ventas cerradas · Sorteo el {fecha}**, todavía no llegó la fecha: la página en vivo muestra la cuenta regresiva de la ronda drand.
+2. Pulsar **Ir al sorteo en vivo** (abre `/rifas/:id/en-vivo` con la sesión de operador). Comprobar que las verificaciones del navegador (compromiso, lista, ronda, configuración) estén en verde.
+
+**Durante la transmisión**
+3. Pulsar **▶ Iniciar sorteo**. La API ejecuta el sorteo oficial (`POST /api/admin/rifas/:id/en-vivo/iniciar`) y abre la sesión en el paso 0. Desde este momento la rifa está `DRAWN` y los correos de ganador ya están en la bandeja.
+4. Pulsar **▶ Lanzar intento #N de M** para cada intento y, entre premios, **▶ Sortear Premio K — {título}**. Los botones se deshabilitan mientras la petición está en curso y mientras la animación del paso corre. El contador "Paso X de Y revelado al público" confirma lo que ven los espectadores.
+5. Para terminar sin pausas: **⚡ Reproducir en automático** (avanza un paso cada pocos segundos) o **⏭ Revelar todo y finalizar** (muestra todo de inmediato).
+6. Al terminar, la página muestra todos los premios y "Coincide con el resultado oficial". El detalle de la rifa en `/admin/rifas/:id` lista cada premio con su número y el alias del comprador.
+
+**Situaciones frecuentes**
+
+| Situación | Qué pasó | Acción |
+|---|---|---|
+| "Iniciar sorteo" muestra un error (409 `DRAW_NOT_POSSIBLE`, `SOLD_LIST_MISMATCH`, `DRAW_CONFIG_*`) | El sorteo se rechazó; no se creó sesión ni cambió nada. | Seguir §3.1 o §3.4 según el motivo. No reintentar en bucle. |
+| 503 `BEACON_UNAVAILABLE` al iniciar | La ronda drand aún no está disponible en los relays. | Esperar unos segundos y volver a pulsar **Iniciar sorteo** (es idempotente). Ver §3.3. |
+| 409 `LIVE_DRAW_NOT_AVAILABLE` | La rifa es `AUTOMATIC`: la sortea el job. | No hay sesión que conducir; el público la ve al quedar `DRAWN`. |
+| 409 `LIVE_DRAW_STEP_CONFLICT` | Doble clic u otro operador avanzó primero. | Ninguna: la pantalla se resincroniza sola con el paso del servidor. |
+| Se cerró o recargó la pestaña del operador | La sesión sigue en el servidor en el mismo paso. | Volver a abrir `/rifas/:id/en-vivo`: la vista retoma el paso y los botones siguen desde ahí. |
+| El operador no puede continuar | La sesión queda en curso con el resultado ya registrado. | Otro operador abre la página en vivo y continúa o pulsa **Revelar todo y finalizar**. |
+
+**Rastro y garantías**
+- Auditoría: `LIVE_DRAW_STARTED` (`drawId`, `totalSteps`, `operatorId`) y `LIVE_DRAW_FINISHED` (`how`: `STEPS` o `REVEAL_ALL`). Los pasos intermedios no se auditan; `LiveDrawSession.updatedAt` guarda el último avance.
+- La tabla `LiveDrawSession` tiene un trigger (`trg_live_draw_session_forward`) que rechaza retroceder el paso o tocar una sesión finalizada. Las excepciones de base `LiveDrawSession_backwards`, `LiveDrawSession_finished` o `LiveDrawSession_immutable` indican una escritura directa: identificar el origen y no desactivar el trigger.
+- La semilla y la ronda drand son públicas desde que se inicia el sorteo: un usuario técnico puede calcular los ganadores antes de que se revelen. Es esperado y no es un incidente.
+- Una rifa `MANUAL` que se sorteó con **Ejecutar sorteo manual** desde el detalle (sin sesión) se muestra al público como una automática: cada navegador la anima completa.
+
 ---
 
 ## 4. Gestión de Reembolsos y Cuatro Ojos (DT-04, DT-17)

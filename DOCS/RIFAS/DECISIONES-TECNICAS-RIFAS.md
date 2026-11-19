@@ -676,3 +676,54 @@ La venta presencial en efectivo (`POST /api/admin/rifas/:id/venta-presencial`) e
 - Un comprador que olvida su código y no dio teléfono ni DNI se registra como un comprador nuevo (con el siguiente correlativo). El operador puede buscar su código en las órdenes de la rifa.
 - El código no es un secreto ni una credencial: solo identifica al comprador en el punto de venta.
 - La migración es `20261120000000_buyer_code`.
+
+---
+
+## DT-23: Sorteo en vivo sincronizado por el servidor y estados visibles
+
+**Fecha:** 2026-11-21
+**Estado:** Implementada (pendiente de commit); integración y e2e pendientes de ejecutar contra PostgreSQL
+**Fase:** Sorteo manual en vivo y catálogo
+
+### Contexto
+En la modalidad `MANUAL` los clics del operador en la página en vivo solo movían la animación de su propio navegador. El público esperaba en "Esperando inicio del sorteo en vivo" consultando cada 3 s hasta ver la rifa `DRAWN`, y luego cada navegador reproducía la animación completa a su propio ritmo. El sorteo oficial (`POST /api/admin/rifas/:id/sorteo`) se pedía recién **al final** de la animación del operador. Con varios premios, la pausa entre premios esperaba un clic en una fase de la plantilla que no tenía botón: la animación quedaba en "Siguiente premio en breve…" y el sorteo oficial nunca se pedía (una rifa real de 2 premios quedó `CLOSED` por esto en rifa-test).
+
+Además, el catálogo trataba `CLOSED` como `DRAWN`, mezclaba ambas en "Finalizadas" y la tarjeta mostraba solo el premio 1; el panel decía "Cerrada" sin indicar que faltaba el sorteo.
+
+### Decisión
+1. **Primero el sorteo, después el espectáculo.** El primer clic del operador, "▶ Iniciar sorteo", llama a `POST /api/admin/rifas/:id/en-vivo/iniciar`. Ese endpoint ejecuta y registra el sorteo oficial con el mismo `ExecuteDrawUseCase` del job (idempotente: si la rifa ya está `DRAWN`, reutiliza el sorteo guardado) y **solo después** crea la sesión en vivo en el paso 0. Si el sorteo se rechaza (guardas de configuración, lista alterada, sin boletos, etc.) se devuelve ese error y no se crea sesión. El servidor y el operador deciden solo **cuándo** se muestra cada paso, nunca **qué** sale: el resultado ya está grabado (commit-reveal de la semilla + ronda drand + SHA-256) antes del primer paso.
+2. **Pasos.** La sesión es un contador monótono `paso` de 0 a `total_pasos`. Los pasos recorren los premios en orden de posición: un premio ganado aporta un paso por cada extracción (intento al agua o ganador; al menos uno) y un premio desierto (`VOID`) aporta un único paso que lo revela. `paso = 0` significa sesión iniciada sin nada revelado; `paso = k` significa que los primeros `k` pasos ya se mostraron. La pausa entre premios no es un paso: el clic siguiente revela el intento 1 del premio siguiente. Ejemplo: 2 premios con intento ganador 3 → 6 pasos.
+3. **Avance atómico y monótono.** `POST /api/admin/rifas/:id/en-vivo/avanzar` recibe `{ "paso_esperado": n }`. Se escribe con un `UPDATE ... WHERE raffleId = ? AND step = n AND finishedAt IS NULL` (compare-and-set): de dos clics simultáneos o repetidos solo uno avanza; el otro recibe 409 `LIVE_DRAW_STEP_CONFLICT` con `details: { paso_actual, total_pasos }`. Nunca se supera `total_pasos`; al revelar el último paso la sesión se marca finalizada sola. Un trigger (`trg_live_draw_session_forward`) rechaza cualquier otra escritura que retroceda el paso, cambie el sorteo, el total o el inicio, o toque una sesión finalizada.
+4. **Revelar todo.** `POST /api/admin/rifas/:id/en-vivo/finalizar` pone `paso = total_pasos` y `finalizada_en` (idempotente). "⚡ Reproducir en automático" no usa este endpoint: el navegador del operador llama a `avanzar` con un temporizador, de modo que el público ve cada paso.
+5. **Persistencia.** Tabla nueva `LiveDrawSession` (`raffleId` PK, `drawId` único, `step`, `totalSteps`, `startedAt`, `updatedAt`, `finishedAt`) con CHECKs de límites. Se eligió una tabla aparte en lugar de columnas en `Draw` para no mezclar estado mutable con la fila del sorteo, cuyos resultados son de solo inserción. Migración `20261121000000_live_draw_session`.
+6. **Auditoría.** Se registran `LIVE_DRAW_STARTED` (`drawId`, `totalSteps`, `operatorId`) y `LIVE_DRAW_FINISHED` (`drawId`, `step`, `totalSteps`, `how`: `STEPS` o `REVEAL_ALL`, `operatorId`). Los pasos intermedios no se auditan: solo pautan la revelación de un resultado ya auditado en `DRAW_EXECUTED`; `updatedAt` conserva el último avance.
+7. **Endpoint público.** `GET /api/rifas/:id/en-vivo` agrega `sesion_en_vivo: { paso, total_pasos, iniciada_en, actualizada_en, finalizada_en } | null` y baja su caché a `public, max-age=1`. Mientras la sesión está en curso, `resultado.ganadores` lista solo los premios cuyos pasos ya se revelaron completos, y los campos heredados del premio 1 (`numero_ganador`, `indice_ganador`, `digest_hex`, `extracciones`) quedan en `null`/`[]` hasta revelar el premio 1. Con la sesión finalizada (o sin sesión) el resultado es completo. `GET /api/rifas/:id/verificacion` no cambia: está completo desde que la rifa es `DRAWN`.
+8. **Modalidad automática sin cambios.** Las rifas `AUTOMATIC` (sorteadas por el job) no tienen sesión; iniciar una sesión sobre ellas responde 409 `LIVE_DRAW_NOT_AVAILABLE`. Cada navegador las anima localmente al verlas `DRAWN`, como antes. Una rifa `MANUAL` sorteada antes de DT-23 (sin sesión) también se anima localmente.
+9. **Página en vivo.** Público: consulta el endpoint cada ~1 s, anima hasta el paso del servidor, muestra al instante lo que se perdió (llegada tardía) y sigue en vivo; al finalizar muestra todos los premios y compara cada uno con el resultado oficial recalculado en el navegador con la semilla y la ronda drand. Operador: los botones llaman al servidor ("▶ Iniciar sorteo", "▶ Lanzar intento #N de M", "▶ Sortear Premio K — título" entre premios, "⚡ Reproducir en automático", "⏭ Revelar todo y finalizar"), se deshabilitan mientras hay una petición en curso y la vista del operador también sigue al servidor, así que recargar la página retoma el paso. Se eliminó la llamada a `executeDraw` al final de la animación.
+10. **Estados visibles.** Un estado derivado (`visible-status.ts` en la web) a partir de `estado`, `fecha_sorteo`, `sorteo_en_vivo` y, para el operador, `sorteo_rechazado`:
+
+    | Condición | Etiqueta |
+    |---|---|
+    | `ACTIVE` | En venta |
+    | `CLOSED` y ahora < `fecha_sorteo` | Ventas cerradas · Sorteo el {fecha} |
+    | `CLOSED`, ahora ≥ `fecha_sorteo`, sin sesión | Sorteo pendiente |
+    | Sesión en vivo en curso | Sorteando en vivo |
+    | `DRAWN` | Sorteada |
+    | `CANCELLED` | Cancelada |
+    | Solo operador: `CLOSED` con rechazo de configuración (DT-21) | Sorteo rechazado |
+
+11. **Listas.** Nuevo `GET /api/rifas/por-sortear` (rifas `CLOSED` y `DRAWN` con sesión en curso, estas primero, luego por fecha de sorteo). `GET /api/rifas/finalizadas` mantiene la ruta pero devuelve solo `DRAWN` sin sesión en curso y `CANCELLED` publicadas (su único consumidor es el catálogo web). Todos los resúmenes agregan `sorteo_en_vivo` y `ganadores[]` (`posicion`, `titulo_premio`, `estado`, `numero_ganador`; vacío mientras hay sesión en curso). `GET /api/admin/rifas` agrega `sorteo_rechazado`; `GET /api/admin/rifas/:id` agrega `sesion_en_vivo` y `ganadores[]` con `alias_comprador`, completos aunque la sesión siga en curso.
+12. **Web.** Catálogo con tres pestañas: "En venta", "Por sortear" (con enlace "Ver sorteo en vivo") y "Finalizadas" (sorteadas y canceladas con su insignia). La tarjeta muestra todos los premios ("Olla arrocera + 1 premio más"), la insignia de estado y, si está sorteada, el ganador de cada premio. El listado de administración usa las mismas etiquetas, filtra por estado visible y ofrece "Ir al sorteo en vivo" para "Sorteo pendiente" y "Sorteando en vivo"; el panel muestra el contador "Sorteos pendientes". El detalle de administración lista cada premio con su número y el alias del comprador (o "Desierto").
+
+### Alternativas descartadas
+- **Sortear al final del espectáculo (comportamiento anterior):** el resultado oficial dependía de que el navegador del operador terminara la animación; un cierre de pestaña o el error entre premios lo dejaba sin sortear.
+- **Transmitir los números del sorteo desde el servidor en cada paso:** innecesario. El navegador ya calcula el resultado con datos públicos; el servidor solo publica el ritmo.
+- **WebSocket/SSE:** más infraestructura para un ritmo de un paso cada varios segundos. La consulta cada segundo con caché de 1 s basta.
+- **Auditar cada paso:** agrega filas sin valor probatorio; el resultado ya está auditado y el inicio y el fin de la sesión quedan registrados.
+
+### Consecuencias
+- **La semilla y la ronda drand son públicas desde el sorteo.** Un usuario técnico puede calcular todos los ganadores antes de que el operador los revele. Es inherente al diseño verificable y no es una filtración: la sesión pausa el espectáculo, no protege ningún secreto, y el resultado ya no puede cambiar.
+- La rifa queda `DRAWN` desde "Iniciar sorteo"; los correos de ganador salen al registrarse el sorteo, como en la modalidad automática, aunque el público todavía no haya visto el paso.
+- Si el operador abandona la sesión, el resultado sigue registrado y verificable; cualquier operador puede retomarla desde la página en vivo o terminarla con "Revelar todo".
+- El total de pasos lo fija el servidor con el sorteo grabado; la web aplica la misma regla sobre su cálculo local.
+- La migración es `20261121000000_live_draw_session`.

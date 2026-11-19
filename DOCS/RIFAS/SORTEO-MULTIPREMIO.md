@@ -218,6 +218,29 @@ La comparación con el resultado oficial recorre **todos** los premios: estado, 
 ### 8.3 Correos de ganador
 Un correo `WINNER` por premio ganado, con clave `<drawId>:prize:<posición>` (un comprador puede ganar varios premios en `TICKET_ONLY`). Asunto: "¡Ganaste el N.º premio de …!".
 
+### 8.4 Sorteo en vivo sincronizado (modalidad `MANUAL`, DT-23)
+En la modalidad `MANUAL` el ritmo del espectáculo lo marca el servidor, no el navegador del operador. Decisión completa: [DECISIONES-TECNICAS-RIFAS.md, DT-23](DECISIONES-TECNICAS-RIFAS.md).
+
+**Orden fijo: primero el sorteo, después el espectáculo.**
+1. El operador pulsa "▶ Iniciar sorteo" (`POST /api/admin/rifas/:id/en-vivo/iniciar`). La API ejecuta y registra el sorteo oficial con el mismo caso de uso del job (v1 o v2 según la cantidad de premios) y recién entonces crea la sesión en el paso 0. Si el sorteo se rechaza, no hay sesión y el error se muestra al operador.
+2. Cada clic siguiente (`POST .../en-vivo/avanzar` con `{ "paso_esperado": n }`) revela un paso más. Un paso repetido o desactualizado responde 409 `LIVE_DRAW_STEP_CONFLICT` y la pantalla se resincroniza.
+3. "⏭ Revelar todo y finalizar" (`POST .../en-vivo/finalizar`) muestra lo que falte. "⚡ Reproducir en automático" avanza paso a paso con un temporizador del navegador del operador.
+
+**Pasos.** Se recorren los premios por posición. Un premio ganado aporta un paso por extracción (sus intentos al agua y el ganador); un premio desierto aporta un paso que lo muestra como "Desierto". La pausa entre premios no es un paso: el clic "▶ Sortear Premio K — título" revela el intento 1 del premio K.
+
+| Premios | Intento ganador | Estados | Pasos |
+|---|---|---|---|
+| 1 | 1 | `WON` | 1 |
+| 1 | 3 | `WON` | 3 |
+| 2 | 3 | `WON`, `WON` | 6 |
+| 3 | 2 | `WON`, `WON`, `VOID` | 5 |
+
+**Lo que ve el público.** La página consulta `GET /api/rifas/:id/en-vivo` cada ~1 s (caché `max-age=1`) y anima hasta `sesion_en_vivo.paso`. Quien llega tarde ve al instante lo ya revelado y continúa en vivo. Mientras la sesión sigue en curso, `resultado.ganadores` solo trae los premios ya revelados por completo; al finalizar trae todos y el navegador compara cada premio (estado, número, índice y digest) con su propio cálculo.
+
+> La semilla y la ronda drand son públicas desde el sorteo, así que un usuario técnico puede calcular todos los ganadores antes de que se revelen. Es inherente al sorteo verificable y no es una filtración: la sesión solo pausa el espectáculo; el resultado ya está grabado y no puede cambiar.
+
+Las rifas `AUTOMATIC` no usan sesión: el job las sortea y cada navegador las anima a su ritmo.
+
 ---
 
 ## 9. API de administración
@@ -255,4 +278,5 @@ Procedimiento de respuesta: [RUNBOOK-RIFAS.md §3.4](RUNBOOK-RIFAS.md).
 - **Correo sin hash:** el ancla del correo es el modo vigente al pagar, no `drawConfigHash` (§5.1).
 - **Rifa rechazada por configuración (resuelto, DT-21 punto 7):** una rifa v2 rechazada por `DRAW_CONFIG_FROZEN_LATE`, `DRAW_CONFIG_MISMATCH` o `DRAW_CONFIG_MISSING` queda `CLOSED` con `DRAW_BLOCKED` hasta que un operador la cancela con reembolso total (`POST /api/admin/rifas/:id/cancelar-sorteo-rechazado`, botón "Cancelar y reembolsar" del detalle de la rifa). No se reprograma a otra ronda. **Costo aceptado:** con la lista intacta, ningún comprador gana los premios. El detalle de administración expone `sorteo_rechazado: { motivo, fecha }` mientras la rifa sigue `CLOSED`; la página pública muestra la rifa cancelada igual que cualquier otra cancelación, sin el motivo del operador.
 - **Pruebas de integración dependientes del orden:** 2 pruebas de `describe('stuck jobs')` en `tiendi-rifas-api/test/jobs.integration-spec.ts` fallan al correr la suite completa. También fallan en el commit anterior (`5c285f3`), así que no las introdujo este cambio.
+- **Sorteo en vivo (resuelto, DT-23):** el sorteo manual con varios premios quedaba detenido en la pausa entre premios y nunca pedía el sorteo oficial. Ahora el sorteo se registra al iniciar la sesión en vivo y cada paso lo revela el servidor (§8.4). Migración `20261121000000_live_draw_session`.
 - **Migraciones:** `20261117000000_multi_prize_raffles` y `20261118000000_draw_config_integrity_guards`. La segunda redefine funciones de la primera sin modificarla. `20261119000000_cancel_refused_draw` agrega `trg_raffle_closed_exit`: una rifa `CLOSED` solo pasa a `DRAWN` o a `CANCELLED` con motivo.
