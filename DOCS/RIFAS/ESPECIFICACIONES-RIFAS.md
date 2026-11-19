@@ -259,6 +259,8 @@ erDiagram
         text email
         text nombre
         text documento
+        text celular "opcional"
+        text codigo_comprador "único, solo compradores creados por venta presencial (DT-22)"
         text rol "comprador | admin"
         timestamptz creado_en
     }
@@ -689,6 +691,7 @@ La página de verificación no depende solo de lo que la plataforma muestra hoy.
 | POST | `/api/admin/rifas` | Admin | Crea una rifa (borrador) |
 | POST | `/api/admin/rifas/:id/publicar` | Admin | Genera el compromiso y activa la rifa |
 | GET | `/api/admin/rifas/:id/ventas` | Admin | Reporte de ventas |
+| POST | `/api/admin/rifas/:id/venta-presencial` | Admin | Venta en efectivo en persona `{numeros, alias, telefono?, documento?, codigo_comprador?}`: la orden queda pagada y los números vendidos en una transacción. El comprador se busca por código, luego teléfono, luego DNI; si no hay coincidencia se crea con el alias y un código nuevo. Un código inexistente responde 404 `BUYER_CODE_NOT_FOUND` sin vender (DT-22) |
 | GET | `/api/admin/comprobantes` | Admin | Órdenes pendientes de verificación de todas las rifas (RF-16) |
 | GET | `/api/admin/rifas/:id/comprobantes` | Admin | Órdenes pendientes de verificación |
 | GET | `/api/admin/alertas` | Admin | Alertas sin leer, la más antigua primero (DT-09) |
@@ -730,6 +733,7 @@ La página de verificación no depende solo de lo que la plataforma muestra hoy.
 | Cuenta de pago (admin) | Las de la pública más `orden`, `activa`, `creada_en`, `actualizada_en`, `creada_por`, `actualizada_por` | `GET /api/admin/cuentas-pago`; las respuestas 200 de `PATCH`, `desactivar`, `activar` y `aprobar` |
 | Cambio de cuenta | `solicitud_id`, `tipo` (`CREATE`, `UPDATE` o `ACTIVATE`), `cuenta_id`, `estado` (`PENDING`, `APPROVED`, `REJECTED` o `CANCELLED`), `propuesta` y `anterior`: `{metodo, titular, numero, cci, orden}` o `null`, `propuesta_por`, `propuesta_en`, `decidida_por`, `decidida_en` | `GET /api/admin/cuentas-pago/cambios`; las respuestas 202 de `POST`, `PATCH` y `activar`; `rechazar` y `cancelar` |
 | Mis boletos | `orden_id`, `rifa_id`, `titulo_rifa`, `numeros`, `estado`, `monto_total`, `vence_en`: el fin de la reserva, con el mismo significado y formato (ISO 8601, UTC) que en la Orden; nunca es `null`, porque toda orden tiene vencimiento. La respuesta es una lista sin `hora_servidor`: la web muestra la hora límite, no una cuenta regresiva, que solo corre en la página de pago | `GET /api/mis-boletos` |
+| Venta presencial | Una Orden más `comprador`: `{id, alias, codigo_comprador, existente, coincidencia}`. `codigo_comprador` es `null` si el comprador existente no tiene código; `coincidencia` es `BUYER_CODE`, `PHONE`, `DOCUMENT` o `null` cuando se creó un comprador nuevo (DT-22) | `POST /api/admin/rifas/:id/venta-presencial` |
 | Ventas | `rifa_id`, `titulo`, `estado`, `boletos_vendidos`, `boletos_reservados`, `boletos_disponibles`, `monto_pagado`, `ordenes_por_estado` | `GET /api/admin/rifas/:id/ventas` |
 | Alerta | `alerta_id`, `tipo`, `rifa_id`, `titulo_rifa`, `orden_id`, `cuenta_pago_id`, `monto`, `creada_en`. Una alerta `PAYMENT_ACCOUNT_CHANGE` no tiene rifa: `rifa_id` y `titulo_rifa` valen `null` y `cuenta_pago_id` nombra la cuenta | `GET /api/admin/alertas` |
 | Reembolso | `reembolso_id`, `orden_id`, `rifa_id`, `pago_id`, `monto`, `motivo`, `estado`, `creado_en` | `GET /api/admin/reembolsos` |
@@ -765,6 +769,9 @@ Una orden de otro comprador responde lo mismo que una orden inexistente: 404 `OR
 |---|---|---|---|
 | `VALIDATION_FAILED` | 400 | Lista de `{path, message}`, una por campo inválido | Toda ruta con cuerpo o parámetros |
 | `TICKETS_UNAVAILABLE` | 409 | `{numeros_no_disponibles: number[]}`: los números pedidos que no se pudieron reservar, ordenados y sin repetir. Se calculan en la misma transacción que la reserva. Solo dicen que el número no está disponible: no indican si está reservado o vendido, ni quién lo tiene | `POST /api/reservas` |
+| `BUYER_CODE_NOT_FOUND` | 404 | `{codigo_comprador: string}`: el código pedido ya normalizado (por ejemplo `JUAN-PEREZ-9`). No se crea comprador ni se vende (DT-22) | `POST /api/admin/rifas/:id/venta-presencial` |
+
+`BUYER_CODE_CONFLICT` (409, sin `details`): ventas presenciales simultáneas tomaron el siguiente código de comprador en cada uno de los 5 intentos; no se vendió y se puede volver a intentar (DT-22).
 
 ---
 

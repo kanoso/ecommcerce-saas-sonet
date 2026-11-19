@@ -644,3 +644,35 @@ Una rifa puede tener hasta 20 premios ordenados, sorteados uno tras otro con la 
 - **Límite residual:** el correo ancla el modo al momento del pago, no el hash, que se calcula después. Si el modo cambia mientras la rifa está `ACTIVE`, no se avisa a los compradores que ya pagaron: queda como pregunta de producto abierta.
 - El navegador no comprueba `drawConfigFrozenAt` contra la hora de la ronda; esa regla la aplica solo la API.
 - Las migraciones son `20261117000000_multi_prize_raffles`, `20261118000000_draw_config_integrity_guards` y `20261119000000_cancel_refused_draw` (salida de la rifa rechazada).
+
+---
+
+## DT-22: Venta presencial con teléfono opcional y código de comprador
+
+**Fecha:** 2026-11-20
+**Estado:** Implementada (pendiente de commit); integración y e2e pendientes de ejecutar contra PostgreSQL
+**Fase:** Venta presencial (POS)
+
+### Contexto
+La venta presencial en efectivo (`POST /api/admin/rifas/:id/venta-presencial`) exigía el teléfono del comprador y lo usaba para reconocerlo en una compra siguiente. Muchos compradores en persona no quieren dar su teléfono ni su DNI. Sin un dato propio, cada venta creaba un comprador nuevo, y el modo de exclusión `BUYER` (DT-21) no podía agrupar sus boletos: el comprador de una orden es `TicketOrder.userId`.
+
+### Decisión
+1. **Teléfono opcional en todas partes:** en la venta presencial `telefono`, `documento` y el nuevo `codigo_comprador` son opcionales; un valor en blanco cuenta como ausente. El registro y el ingreso en línea ya pedían un solo identificador (DNI, celular o correo), y ninguna otra ruta de la API ni pantalla de la web exige el teléfono.
+2. **Código de comprador (`User.buyerCode`):** un identificador legible derivado del alias. Se quitan tildes y diacríticos, se pasa a mayúsculas, cada tramo de caracteres que no son letras ni dígitos se vuelve un guion, se quitan los guiones de los extremos y se corta en 40 caracteres. Ejemplos: "Juan Perez" y "juan  perez" dan `JUAN-PEREZ`; "María Ríos" da `MARIA-RIOS`. Si no queda nada, la base es `COMPRADOR`.
+3. **Correlativo:** si la base está libre se usa tal cual; si no, se toma el mayor correlativo en uso (`BASE-<n>`) más uno: `JUAN-PEREZ-2`, `JUAN-PEREZ-3`. Los huecos no se reutilizan. El índice único `User_buyerCode_key` decide entre dos ventas simultáneas: la que pierde vuelve a calcular el correlativo, hasta 5 intentos, y después responde 409 `BUYER_CODE_CONFLICT` sin vender. El CHECK `User_buyerCode_format` exige el formato normalizado, así que la búsqueda exacta de una entrada normalizada no distingue mayúsculas.
+4. **Asignación:** todo comprador **creado** por una venta presencial recibe un código, aunque haya dado teléfono o DNI. Los usuarios existentes quedan con `NULL`: no hay migración de datos. Un comprador ya existente que se reconoce por teléfono o DNI tampoco recibe código.
+5. **Orden de búsqueda:** código de comprador (exacto, normalizando lo que escribe el operador con la misma regla) → teléfono → DNI → comprador nuevo con el alias y un código nuevo. Un código que no existe responde 404 `BUYER_CODE_NOT_FOUND` con `details: {codigo_comprador}`, sin crear comprador ni vender.
+6. **El código manda y no reescribe datos:** si llegan código y teléfono o DNI, gana el código. El teléfono y el DNI guardados del comprador no se modifican, ni siquiera si están vacíos: lo escrito por el operador queda en el pago y en la auditoría. Completarlos podría chocar con los índices únicos de `phone` y `document` (si pertenecen a otro usuario) o unir en silencio dos identidades.
+7. **Respuesta y rastro:** la respuesta de la venta agrega `comprador: {id, alias, codigo_comprador, existente, coincidencia}`, con `coincidencia` en `BUYER_CODE`, `PHONE`, `DOCUMENT` o `null` (comprador nuevo). El evento `IN_PERSON_SALE_COMPLETED` y el contenido del pago en efectivo registran `buyerCode` y `matchedBy`.
+8. **Panel:** el formulario de venta presencial marca el teléfono como opcional y agrega "Código de comprador (opcional)". Tras vender muestra "Comprador: Juan Perez · Código JUAN-PEREZ-2" y, si se asoció a uno existente, "Asociado al comprador existente". Las órdenes de la rifa y los comprobantes pendientes muestran el código cuando existe, y la búsqueda de órdenes lo incluye.
+
+### Alternativas descartadas
+- **Código aleatorio (por ejemplo, 6 caracteres):** no colisiona, pero el comprador no lo recuerda ni lo reconoce. Se prefirió uno derivado de su alias.
+- **Reutilizar huecos del correlativo:** obliga a buscar el menor libre y puede dar a un comprador nuevo el código de uno dado de baja. Se toma el mayor más uno.
+- **Asignar código a todos los usuarios existentes:** no hace falta para vender y cambiaría datos de compradores en línea que nunca lo usarán.
+
+### Consecuencias
+- El modo `BUYER` no cambia: sigue agrupando por `TicketOrder.userId`. El mismo código lleva al mismo usuario y, por lo tanto, al mismo comprador.
+- Un comprador que olvida su código y no dio teléfono ni DNI se registra como un comprador nuevo (con el siguiente correlativo). El operador puede buscar su código en las órdenes de la rifa.
+- El código no es un secreto ni una credencial: solo identifica al comprador en el punto de venta.
+- La migración es `20261120000000_buyer_code`.
