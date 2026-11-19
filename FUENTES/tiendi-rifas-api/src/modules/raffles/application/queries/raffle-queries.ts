@@ -210,18 +210,18 @@ export class RaffleQueries {
   /**
    * Raffles whose sales closed and whose result is not shown yet: CLOSED
    * ones, and DRAWN ones with a live session in progress, those first. Then
-   * by draw date.
+   * the most recently created first, like the other raffle lists.
    */
   async pendingDrawRaffles() {
     const candidates = await this.raffles.findByStatus([RaffleStatus.CLOSED, RaffleStatus.DRAWN]);
+    const createdAt = new Map(candidates.map((r) => [r.id, r.createdAt.getTime()]));
     const summaries = await this.summariesOf(candidates);
-    const time = (at: string | null) => (at ? new Date(at).getTime() : Number.MAX_SAFE_INTEGER);
     return summaries
       .filter((s) => s.status === RaffleStatus.CLOSED || s.liveDrawInProgress)
       .sort(
         (a, b) =>
           Number(b.liveDrawInProgress) - Number(a.liveDrawInProgress) ||
-          time(a.drawAt) - time(b.drawAt),
+          (createdAt.get(b.id) ?? 0) - (createdAt.get(a.id) ?? 0),
       );
   }
 

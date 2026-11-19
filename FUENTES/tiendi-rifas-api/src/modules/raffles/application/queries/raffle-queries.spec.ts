@@ -605,6 +605,28 @@ describe('RaffleQueries (F6 read side)', () => {
       expect(pending[0].winners).toEqual([]);
     });
 
+    it('lists pending raffles after the live ones, the most recently created first', async () => {
+      await raffles.save(
+        raffleWith(RaffleStatus.CLOSED, {
+          id: 'old',
+          createdAt: new Date('2026-11-01T00:00:00Z'),
+          drawAt: new Date('2026-11-02T00:00:00Z'),
+        }),
+      );
+      await raffles.save(
+        raffleWith(RaffleStatus.CLOSED, {
+          id: 'new',
+          createdAt: new Date('2026-11-18T00:00:00Z'),
+          drawAt: new Date('2026-11-19T00:00:00Z'),
+        }),
+      );
+      await drawnLive('live', 1);
+
+      const pending = await queries.pendingDrawRaffles();
+
+      expect(pending.map((r) => r.id)).toEqual(['live', 'new', 'old']);
+    });
+
     it('lists only drawn (not live) and cancelled raffles as finished', async () => {
       await raffles.save(raffleWith(RaffleStatus.CLOSED, { id: 'closed' }));
       await raffles.save(raffleWith(RaffleStatus.CANCELLED, { id: 'cancelled' }));
