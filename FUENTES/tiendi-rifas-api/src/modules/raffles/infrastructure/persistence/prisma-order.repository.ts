@@ -60,6 +60,7 @@ export class PrismaOrderRepository implements OrderRepository {
             document: true,
             phone: true,
             email: true,
+            buyerCode: true,
           },
         },
       },
@@ -75,6 +76,7 @@ export class PrismaOrderRepository implements OrderRepository {
             document: r.user.document ?? null,
             phone: r.user.phone ?? null,
             email: r.user.email ?? null,
+            buyerCode: r.user.buyerCode ?? null,
           }
         : null,
     }));

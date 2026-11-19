@@ -15,7 +15,8 @@ import { LedgerTransaction } from '../ports';
 /**
  * The sold tickets grouped by buyer, for BUYER exclusion. The buyer is the
  * order's userId: every order has one (online purchases and in-person sales,
- * which resolve the buyer by phone, then document, before creating a user),
+ * which resolve the buyer by buyer code, then phone, then document, before
+ * creating a user),
  * and it never changes. A sold ticket without an order counts as its own
  * buyer: the draw refuses such a winner anyway (WinningTicketWithoutOrder).
  */

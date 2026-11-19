@@ -386,9 +386,12 @@ export interface BuyerSummaryDto {
   documento?: string | null;
   celular?: string | null;
   email?: string | null;
+  /** Buyers created by an in-person sale only (JUAN-PEREZ-2). */
+  codigo_comprador?: string | null;
   name?: string | null;
   document?: string | null;
   phone?: string | null;
+  buyerCode?: string | null;
 }
 
 export interface RaffleOrderWithBuyerDto {
@@ -413,6 +416,7 @@ export interface PendingProofDto extends OrderDto {
     documento?: string | null;
     celular: string | null;
     email: string | null;
+    codigo_comprador?: string | null;
   } | null;
   numero_operacion: string;
 }
@@ -532,6 +536,19 @@ export interface OperationCollisionDto {
 export interface InPersonSaleRequestDto {
   numeros: number[];
   alias: string;
-  telefono: string;
+  telefono?: string | null;
   documento?: string | null;
+  /** The code of a returning buyer; it wins over phone and document. */
+  codigo_comprador?: string | null;
+}
+
+/** The response of the in-person sale: the order and the buyer it went to. */
+export interface InPersonSaleDto extends OrderDto {
+  comprador?: {
+    id: string;
+    alias: string;
+    codigo_comprador: string | null;
+    existente: boolean;
+    coincidencia: 'BUYER_CODE' | 'PHONE' | 'DOCUMENT' | null;
+  } | null;
 }

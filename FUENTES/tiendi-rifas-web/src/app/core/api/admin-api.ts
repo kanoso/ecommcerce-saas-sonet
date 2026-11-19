@@ -20,6 +20,7 @@ import {
   CreatedRaffleDto,
   DismissLatePaymentRequestDto,
   ExecuteDrawDto,
+  InPersonSaleDto,
   OperationCollisionDto,
   OperatorAlertDto,
   OrderDto,
@@ -39,6 +40,7 @@ import {
   toRaffleOrderWithBuyer,
   toCreatedRaffle,
   toExecuteDrawResult,
+  toInPersonSale,
   toInPersonSaleDto,
   toOperationCollision,
   toOperatorAlert,
@@ -55,6 +57,7 @@ import {
   RaffleOrderWithBuyer,
   CreatedRaffle,
   ExecuteDrawResult,
+  InPersonSale,
   InPersonSaleRequest,
   OperationCollision,
   OperatorAlert,
@@ -188,14 +191,14 @@ export class AdminApi {
   /**
    * `POST /admin/rifas/:id/venta-presencial`: direct in-person ticket sale.
    */
-  sellInPerson(raffleId: string, req: InPersonSaleRequest): Observable<Order> {
+  sellInPerson(raffleId: string, req: InPersonSaleRequest): Observable<InPersonSale> {
     const body = toInPersonSaleDto(req);
     return this.http
-      .post<OrderDto>(
+      .post<InPersonSaleDto>(
         `${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}/venta-presencial`,
         body,
       )
-      .pipe(map(toOrder), catchError(rethrowAsApiError));
+      .pipe(map(toInPersonSale), catchError(rethrowAsApiError));
   }
 
   /**

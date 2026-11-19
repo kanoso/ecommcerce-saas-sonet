@@ -330,6 +330,7 @@ describe('Admin queue and account mappers', () => {
         documento: '87654321',
         celular: '+51 999888777',
         email: 'maria@example.com',
+        codigo_comprador: 'MARIA-TORRES',
       },
     });
     expect(proof.raffleTitle).toBe('Rifa Moto');
@@ -339,6 +340,7 @@ describe('Admin queue and account mappers', () => {
       document: '87654321',
       phone: '+51 999888777',
       email: 'maria@example.com',
+      buyerCode: 'MARIA-TORRES',
     });
     expect(proof.totalAmount).toBe(10);
   });
@@ -428,6 +430,33 @@ describe('Admin queue and account mappers', () => {
       expect(mapped.buyer?.document).toBe('12345678');
       expect(mapped.buyer?.phone).toBe('999888777');
       expect(mapped.buyer?.email).toBe('juan@test.com');
+      expect(mapped.buyer?.buyerCode).toBeNull();
+    });
+
+    it('maps the buyer code of an in-person buyer', () => {
+      const mapped = toRaffleOrderWithBuyer({
+        orden_id: 'ord-3',
+        rifa_id: 'rifa-1',
+        estado: 'PAID',
+        numeros: [9],
+        monto_total: 10,
+        monto_declarado: 10,
+        banco_o_billetera: 'EFECTIVO',
+        numero_operacion: null,
+        tiene_comprobante: false,
+        creada_en: '2026-11-04T20:00:00.000Z',
+        verificada_en: '2026-11-04T20:00:00.000Z',
+        comprador: {
+          id: 'user-3',
+          nombre: 'Juan Perez',
+          documento: null,
+          celular: null,
+          email: null,
+          codigo_comprador: 'JUAN-PEREZ-2',
+        },
+      });
+      expect(mapped.buyer?.buyerCode).toBe('JUAN-PEREZ-2');
+      expect(mapped.buyer?.phone).toBeNull();
     });
 
     it('falls back to english keys when present', () => {

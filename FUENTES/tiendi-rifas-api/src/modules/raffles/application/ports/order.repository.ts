@@ -6,6 +6,8 @@ export interface BuyerSummary {
   document: string | null;
   phone: string | null;
   email: string | null;
+  /** Buyers created by an in-person sale only (JUAN-PEREZ-2). */
+  buyerCode?: string | null;
 }
 
 export interface OrderWithBuyer {

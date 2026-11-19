@@ -237,6 +237,12 @@
                   </div>
 
                   <div class="buyer-fields">
+                    @if (ord.buyer?.buyerCode) {
+                      <div class="field-item">
+                        <span class="field-label">Código:</span>
+                        <code class="field-value" data-testid="order-buyer-code">{{ ord.buyer?.buyerCode }}</code>
+                      </div>
+                    }
                     @if (ord.buyer?.document) {
                       <div class="field-item">
                         <span class="field-label">DNI / Doc:</span>
@@ -255,7 +261,7 @@
                         <span class="field-value text-break">{{ ord.buyer?.email }}</span>
                       </div>
                     }
-                    @if (!ord.buyer?.document && !ord.buyer?.phone && !ord.buyer?.email) {
+                    @if (!ord.buyer?.buyerCode && !ord.buyer?.document && !ord.buyer?.phone && !ord.buyer?.email) {
                       <span class="text-muted text-sm">Sin datos de contacto adicionales</span>
                     }
                   </div>
@@ -636,6 +642,18 @@
                 <div class="pos-receipt__icon">✅</div>
                 <h3 class="pos-receipt__title">¡Venta Registrada Exitosamente!</h3>
                 <p class="pos-receipt__order-id">Orden #{{ order.id }}</p>
+
+                @if (order.buyer; as buyer) {
+                  <p class="pos-receipt__buyer" data-testid="pos-receipt-buyer">
+                    Comprador: <strong>{{ buyer.alias }}</strong>
+                    @if (buyer.buyerCode) {
+                      · Código <strong class="pos-receipt__buyer-code">{{ buyer.buyerCode }}</strong>
+                    }
+                  </p>
+                  @if (buyer.existing) {
+                    <p class="pos-receipt__existing" data-testid="pos-receipt-existing">Asociado al comprador existente</p>
+                  }
+                }
                 
                 <div class="pos-receipt__details">
                   <div class="pos-receipt__row">
@@ -734,7 +752,7 @@
                 </div>
 
                 <div class="field">
-                  <label for="pos_phone" class="field__label">Teléfono / Celular *</label>
+                  <label for="pos_phone" class="field__label">Teléfono / Celular (opcional)</label>
                   <input
                     id="pos_phone"
                     type="tel"
@@ -743,6 +761,22 @@
                     placeholder="Ej: +51 987654321"
                     class="field__input"
                   />
+                </div>
+
+                <div class="field">
+                  <label for="pos_buyer_code" class="field__label">Código de comprador (opcional)</label>
+                  <input
+                    id="pos_buyer_code"
+                    type="text"
+                    [ngModel]="posBuyerCode()"
+                    (ngModelChange)="posBuyerCode.set($event)"
+                    placeholder="Ej: JUAN-PEREZ-2"
+                    autocapitalize="characters"
+                    class="field__input"
+                  />
+                  <span class="field__hint">
+                    Para un comprador que ya compró antes. Si lo ingresas, la venta se asocia a ese comprador.
+                  </span>
                 </div>
 
                 <div class="field">

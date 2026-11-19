@@ -6,10 +6,25 @@ import { TRANSACTION_OPTIONS } from '../raffles/infrastructure/persistence/trans
 import {
   AuthStore,
   AuthUser,
+  BuyerCodeTakenError,
   NewLink,
+  NewUser,
   QueuedAccessLink,
   StoredSession,
 } from './auth.store';
+
+const UNIQUE_VIOLATION = 'P2002';
+
+const USER_FIELDS = {
+  id: true,
+  email: true,
+  phone: true,
+  document: true,
+  name: true,
+  buyerCode: true,
+  role: true,
+  passwordHash: true,
+} as const;
 
 @Injectable()
 export class PrismaAuthStore implements AuthStore {
@@ -81,15 +96,7 @@ export class PrismaAuthStore implements AuthStore {
   async findUser(id: string): Promise<AuthUser | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        document: true,
-        name: true,
-        role: true,
-        passwordHash: true,
-      },
+      select: USER_FIELDS,
     });
   }
 
@@ -104,45 +111,49 @@ export class PrismaAuthStore implements AuthStore {
           { phone: clean },
         ],
       },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        document: true,
-        name: true,
-        role: true,
-        passwordHash: true,
-      },
+      select: USER_FIELDS,
     });
   }
 
-  async createUser(data: {
-    email?: string | null;
-    phone?: string | null;
-    document?: string | null;
-    name?: string | null;
-    passwordHash?: string | null;
-    role?: string;
-  }): Promise<AuthUser> {
-    return this.prisma.user.create({
-      data: {
-        email: data.email?.toLowerCase().trim() || null,
-        phone: data.phone?.trim() || null,
-        document: data.document?.trim() || null,
-        name: data.name?.trim() || null,
-        passwordHash: data.passwordHash || null,
-        role: data.role || 'buyer',
-      },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        document: true,
-        name: true,
-        role: true,
-        passwordHash: true,
-      },
+  async findUserByBuyerCode(code: string): Promise<AuthUser | null> {
+    return this.prisma.user.findUnique({
+      where: { buyerCode: code },
+      select: USER_FIELDS,
     });
+  }
+
+  async findBuyerCodesWithBase(base: string): Promise<string[]> {
+    const rows = await this.prisma.user.findMany({
+      where: {
+        OR: [{ buyerCode: base }, { buyerCode: { startsWith: `${base}-` } }],
+      },
+      select: { buyerCode: true },
+    });
+    return rows.map((r) => r.buyerCode).filter((code): code is string => code !== null);
+  }
+
+  async createUser(data: NewUser): Promise<AuthUser> {
+    const buyerCode = data.buyerCode?.trim() || null;
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email: data.email?.toLowerCase().trim() || null,
+          phone: data.phone?.trim() || null,
+          document: data.document?.trim() || null,
+          name: data.name?.trim() || null,
+          buyerCode,
+          passwordHash: data.passwordHash || null,
+          role: data.role || 'buyer',
+        },
+        select: USER_FIELDS,
+      });
+    } catch (error) {
+      // Only the buyer code is retried; a taken phone or document is not.
+      if (buyerCode && isBuyerCodeViolation(error)) {
+        throw new BuyerCodeTakenError(buyerCode);
+      }
+      throw error;
+    }
   }
 
   async setPassword(userId: string, passwordHash: string): Promise<void> {
@@ -174,4 +185,12 @@ export class PrismaAuthStore implements AuthStore {
       data: { revokedAt: now },
     });
   }
+}
+
+function isBuyerCodeViolation(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== UNIQUE_VIOLATION) {
+    return false;
+  }
+  const target = JSON.stringify((error.meta as { target?: unknown } | undefined)?.target ?? '');
+  return target.includes('buyerCode');
 }

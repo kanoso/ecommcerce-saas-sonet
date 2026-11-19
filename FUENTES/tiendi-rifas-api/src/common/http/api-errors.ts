@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import {
+  BuyerCodeNotFoundError,
   DomainError,
   NotOrderOwnerError,
   OrderNotFoundError,
@@ -70,6 +71,8 @@ export const API_ERRORS: Record<string, { status: number; code: string }> = {
   RefundNotFoundError: { status: 404, code: 'REFUND_NOT_FOUND' },
   // A 403 would confirm that the order exists: it looks missing instead.
   NotOrderOwnerError: { status: 404, code: 'ORDER_NOT_FOUND' },
+  BuyerCodeNotFoundError: { status: 404, code: 'BUYER_CODE_NOT_FOUND' },
+  BuyerCodeConflictError: { status: 409, code: 'BUYER_CODE_CONFLICT' },
   MissingRaffleDataError: { status: 409, code: 'RAFFLE_DATA_MISSING' },
   RaffleNotDrawnError: { status: 409, code: 'RAFFLE_NOT_DRAWN' },
   InvalidPaymentProofError: { status: 422, code: 'INVALID_PAYMENT_PROOF' },
@@ -174,6 +177,9 @@ export function apiErrorOf(error: unknown): ApiError {
 function detailsOf(error: Error): Pick<ApiErrorBody, 'details'> {
   if (error instanceof TicketNotAvailableError) {
     return { details: { numeros_no_disponibles: error.numbers } };
+  }
+  if (error instanceof BuyerCodeNotFoundError) {
+    return { details: { codigo_comprador: error.code } };
   }
   return {};
 }

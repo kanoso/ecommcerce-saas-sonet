@@ -72,7 +72,10 @@ describe('AdminController - Venta Presencial', () => {
       expiresAt: new Date('2026-11-01T10:00:00Z'),
     });
 
-    sellInPersonUseCase.execute.mockResolvedValue(dummyOrder);
+    sellInPersonUseCase.execute.mockResolvedValue({
+      order: dummyOrder,
+      buyer: { id: 'user-1', alias: 'Carlos Gomez', buyerCode: 'CARLOS-GOMEZ', matchedBy: null },
+    });
 
     const body = {
       numeros: [42, 43],
@@ -94,6 +97,7 @@ describe('AdminController - Venta Presencial', () => {
       alias: 'Carlos Gomez',
       phone: '+573001112233',
       document: 'CC123456',
+      buyerCode: null,
     });
 
     expect(response.orden_id).toBe(dummyOrder.id);
@@ -101,7 +105,98 @@ describe('AdminController - Venta Presencial', () => {
     expect(response.estado).toBe('PAID');
     expect(response.banco_o_billetera).toBe('EFECTIVO');
     expect(response.monto_total).toBe(20.0);
+    expect(response.comprador).toEqual({
+      id: 'user-1',
+      alias: 'Carlos Gomez',
+      codigo_comprador: 'CARLOS-GOMEZ',
+      existente: false,
+      coincidencia: null,
+    });
   });
+
+  it('accepts a sale without telefono nor documento', async () => {
+    sellInPersonUseCase.execute.mockResolvedValue(inPersonResult('MATCH'));
+
+    await (controller as any).sellInPerson(principal, validRaffleId, {
+      numeros: [42],
+      alias: 'Carlos',
+    });
+
+    expect(sellInPersonUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: null, document: null, buyerCode: null }),
+    );
+  });
+
+  it('treats a blank telefono and codigo_comprador as absent', async () => {
+    sellInPersonUseCase.execute.mockResolvedValue(inPersonResult('MATCH'));
+
+    await (controller as any).sellInPerson(principal, validRaffleId, {
+      numeros: [42],
+      alias: 'Carlos',
+      telefono: '  ',
+      codigo_comprador: '',
+    });
+
+    expect(sellInPersonUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: null, buyerCode: null }),
+    );
+  });
+
+  it('passes the buyer code and presents the matched buyer', async () => {
+    sellInPersonUseCase.execute.mockResolvedValue(inPersonResult('BUYER_CODE'));
+
+    const response = await (controller as any).sellInPerson(principal, validRaffleId, {
+      numeros: [42],
+      alias: 'Carlos',
+      codigo_comprador: 'juan-perez-2',
+    });
+
+    expect(sellInPersonUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ buyerCode: 'juan-perez-2' }),
+    );
+    expect(response.comprador).toEqual({
+      id: 'user-9',
+      alias: 'Juan Perez',
+      codigo_comprador: 'JUAN-PEREZ-2',
+      existente: true,
+      coincidencia: 'BUYER_CODE',
+    });
+  });
+
+  it('rejects a codigo_comprador longer than allowed', async () => {
+    await expect(
+      (controller as any).sellInPerson(principal, validRaffleId, {
+        numeros: [42],
+        alias: 'Carlos',
+        codigo_comprador: 'X'.repeat(101),
+      }),
+    ).rejects.toThrow();
+    expect(sellInPersonUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  function inPersonResult(matchedBy: 'BUYER_CODE' | 'MATCH') {
+    return {
+      order: new TicketOrder({
+        id: 'b0000000-0000-0000-0000-000000000003',
+        raffleId: validRaffleId,
+        userId: 'user-9',
+        numbers: [42],
+        totalAmount: 10,
+        status: OrderStatus.PAID,
+        bankOrWallet: BankOrWallet.EFECTIVO,
+        declaredAmount: 10,
+        verifiedBy: 'op-01',
+        verifiedAt: new Date('2026-11-01T10:00:00Z'),
+        expiresAt: new Date('2026-11-01T10:00:00Z'),
+      }),
+      buyer: {
+        id: 'user-9',
+        alias: 'Juan Perez',
+        buyerCode: 'JUAN-PEREZ-2',
+        matchedBy: matchedBy === 'BUYER_CODE' ? ('BUYER_CODE' as const) : null,
+      },
+    };
+  }
 
   it('rejects payload when numeros is empty', async () => {
     const body = {
@@ -119,17 +214,6 @@ describe('AdminController - Venta Presencial', () => {
     const body = {
       numeros: [42],
       telefono: '+573001112233',
-    };
-
-    await expect(
-      (controller as any).sellInPerson(principal, validRaffleId, body),
-    ).rejects.toThrow();
-  });
-
-  it('rejects payload when telefono is missing', async () => {
-    const body = {
-      numeros: [42],
-      alias: 'Carlos',
     };
 
     await expect(

@@ -8,7 +8,11 @@ import type {
   Refund,
   TicketOrder,
 } from '../../domain';
-import type { OperationCollisionUse, VerificationDataResponse } from '../../application';
+import type {
+  InPersonSaleResult,
+  OperationCollisionUse,
+  VerificationDataResponse,
+} from '../../application';
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 
 /**
@@ -226,6 +230,20 @@ export function order(o: OrderView) {
 
 export const orderOf = (o: TicketOrder) => order(RaffleQueries.orderView(o));
 
+/** The order of an in-person sale, with the buyer it was recorded to. */
+export function inPersonSale(sale: InPersonSaleResult) {
+  return {
+    ...orderOf(sale.order),
+    comprador: {
+      id: sale.buyer.id,
+      alias: sale.buyer.alias,
+      codigo_comprador: sale.buyer.buyerCode,
+      existente: sale.buyer.matchedBy !== null,
+      coincidencia: sale.buyer.matchedBy,
+    },
+  };
+}
+
 export function pendingProof(p: PendingProof) {
   return {
     ...order(p),
@@ -238,6 +256,7 @@ export function pendingProof(p: PendingProof) {
           documento: p.buyer.document,
           celular: p.buyer.phone,
           email: p.buyer.email,
+          codigo_comprador: p.buyer.buyerCode ?? null,
         }
       : null,
   };

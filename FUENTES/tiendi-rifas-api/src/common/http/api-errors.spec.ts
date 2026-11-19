@@ -102,6 +102,19 @@ describe('API error table (F6)', () => {
     });
   });
 
+  it('names the normalized buyer code that does not exist', () => {
+    const answer = apiErrorOf(new domainErrors.BuyerCodeNotFoundError('JUAN-PEREZ-9'));
+
+    expect(answer).toEqual({
+      status: 404,
+      body: {
+        code: 'BUYER_CODE_NOT_FOUND',
+        message: expect.any(String),
+        details: { codigo_comprador: 'JUAN-PEREZ-9' },
+      },
+    });
+  });
+
   it('keeps the status of a Nest HTTP exception, with a code from it', () => {
     expect(apiErrorOf(new NotFoundException()).body.code).toBe('NOT_FOUND');
     expect(apiErrorOf(new BadRequestException()).status).toBe(400);

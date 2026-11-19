@@ -21,6 +21,8 @@ const MESSAGES: Record<string, string> = {
   RESERVATION_LIMIT: 'Alcanzaste el máximo de números que puedes reservar.',
   RESERVATION_EXPIRED: 'Tu reserva venció.',
   ORDER_NOT_FOUND: 'No encontramos esta orden.',
+  BUYER_CODE_NOT_FOUND: 'No existe un comprador con ese código.',
+  BUYER_CODE_CONFLICT: 'No se pudo asignar el código de comprador. Inténtalo de nuevo.',
   PROOF_DEADLINE_PASSED: 'El plazo para enviar el comprobante terminó.',
   INVALID_PAYMENT_PROOF: 'El comprobante no es válido. Sube una imagen PNG, JPEG o WEBP, o un PDF de hasta 5 MB.',
   INVALID_OPERATION_NUMBER: 'El número de operación no es válido.',

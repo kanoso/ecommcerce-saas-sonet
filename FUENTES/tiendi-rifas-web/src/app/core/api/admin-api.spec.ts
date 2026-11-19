@@ -487,6 +487,7 @@ describe('AdminApi', () => {
       alias: 'Carlos Gomez',
       telefono: '+573001112233',
       documento: 'CC123456',
+      codigo_comprador: null,
     });
 
     req.flush({
@@ -511,5 +512,59 @@ describe('AdminApi', () => {
     expect(order.bankOrWallet).toBe('EFECTIVO');
     expect(order.totalAmount).toBe(20);
     expect(order.numbers).toEqual([42, 43]);
+    expect(order.buyer).toBeNull();
+  });
+
+  it('sends an in-person sale without phone, with a buyer code, and maps the buyer', async () => {
+    const salePromise = firstValueFrom(
+      api.sellInPerson('r-100', {
+        numbers: [7],
+        alias: 'Juan Perez',
+        phone: null,
+        document: null,
+        buyerCode: 'JUAN-PEREZ-2',
+      }),
+    );
+
+    const req = http.expectOne(`${BASE_URL}/admin/rifas/r-100/venta-presencial`);
+    expect(req.request.body).toEqual({
+      numeros: [7],
+      alias: 'Juan Perez',
+      telefono: null,
+      documento: null,
+      codigo_comprador: 'JUAN-PEREZ-2',
+    });
+
+    req.flush({
+      orden_id: 'ord-pos-2',
+      rifa_id: 'r-100',
+      estado: 'PAID',
+      numeros: [7],
+      monto_total: 10,
+      vence_en: '2026-11-05T12:00:00.000Z',
+      verificacion_vence_en: null,
+      monto_declarado: 10,
+      banco_o_billetera: 'EFECTIVO',
+      motivo_rechazo: null,
+      tiene_comprobante: false,
+      cuenta_destino: null,
+      comprador: {
+        id: 'user-9',
+        alias: 'Juan Perez',
+        codigo_comprador: 'JUAN-PEREZ-2',
+        existente: true,
+        coincidencia: 'BUYER_CODE',
+      },
+    });
+
+    const sale = await salePromise;
+    expect(sale.id).toBe('ord-pos-2');
+    expect(sale.buyer).toEqual({
+      id: 'user-9',
+      alias: 'Juan Perez',
+      buyerCode: 'JUAN-PEREZ-2',
+      existing: true,
+      matchedBy: 'BUYER_CODE',
+    });
   });
 });

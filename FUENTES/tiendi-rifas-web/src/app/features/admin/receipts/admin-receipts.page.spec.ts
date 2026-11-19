@@ -81,6 +81,18 @@ describe('AdminReceiptsPage (RF-16)', () => {
     expect(compiled.textContent).toContain('12345678');
     expect(compiled.textContent).toContain('+51 987654321');
     expect(compiled.textContent).toContain('carlos@example.com');
+    expect(compiled.querySelector('[data-testid="proof-buyer-code"]')).toBeNull();
+  });
+
+  it('shows the buyer code when the buyer has one', () => {
+    adminApiMock.pendingProofs.mockReturnValue(
+      of([{ ...mockProof, buyer: { ...mockProof.buyer!, buyerCode: 'CARLOS-GOMEZ' } }]),
+    );
+    const coded = TestBed.createComponent(AdminReceiptsPage);
+    coded.detectChanges();
+
+    const code = (coded.nativeElement as HTMLElement).querySelector('[data-testid="proof-buyer-code"]');
+    expect(code?.textContent).toContain('CARLOS-GOMEZ');
   });
 
   it('approves a payment when amount matches', () => {

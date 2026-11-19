@@ -363,9 +363,11 @@ export class RaffleQueries {
             documento: buyer.document,
             celular: buyer.phone,
             email: buyer.email,
+            codigo_comprador: buyer.buyerCode ?? null,
             name: buyer.name,
             document: buyer.document,
             phone: buyer.phone,
+            buyerCode: buyer.buyerCode ?? null,
           }
         : null,
     }));
@@ -405,6 +407,7 @@ export class RaffleQueries {
               document: buyer.document,
               phone: buyer.phone,
               email: buyer.email,
+              buyerCode: buyer.buyerCode ?? null,
             }
           : null,
       }));

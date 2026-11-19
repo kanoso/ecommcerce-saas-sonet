@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import {
   BankOrWallet,
+  BuyerCodeConflictError,
+  BuyerCodeNotFoundError,
   OrderStatus,
   Payment,
   RaffleNotFoundError,
@@ -12,9 +14,12 @@ import {
   TicketNotAvailableError,
   TicketOrder,
   TicketStatus,
+  buyerCodeBaseOf,
+  nextBuyerCode,
+  normalizeBuyerCode,
   parseOperatorId,
 } from '../../domain';
-import { AuthStore } from '../../../auth/auth.store';
+import { AuthStore, AuthUser, BuyerCodeTakenError } from '../../../auth/auth.store';
 import {
   Clock,
   LedgerTransaction,
@@ -27,8 +32,34 @@ export interface SellInPersonCommand {
   operatorId: string;
   numbers: number[];
   alias: string;
-  phone: string;
+  phone?: string | null;
   document?: string | null;
+  /** The code of a returning buyer; when given it wins over phone and document. */
+  buyerCode?: string | null;
+}
+
+/** How the sale found an existing buyer; null when it created one. */
+export type BuyerMatch = 'BUYER_CODE' | 'PHONE' | 'DOCUMENT';
+
+export interface InPersonSaleBuyer {
+  id: string;
+  /** The stored name of the buyer, or the alias typed for this sale. */
+  alias: string;
+  /** Null for an existing buyer created before buyer codes, or online. */
+  buyerCode: string | null;
+  matchedBy: BuyerMatch | null;
+}
+
+export interface InPersonSaleResult {
+  order: TicketOrder;
+  buyer: InPersonSaleBuyer;
+}
+
+/** How many correlatives are tried when concurrent sales take them first. */
+const MAX_BUYER_CODE_ATTEMPTS = 5;
+
+function present(value: string | null | undefined): string | null {
+  return value?.trim() || null;
 }
 
 export class SellInPersonUseCase {
@@ -39,7 +70,7 @@ export class SellInPersonUseCase {
     private readonly raffleRepo?: RaffleRepository,
   ) {}
 
-  async execute(command: SellInPersonCommand): Promise<TicketOrder> {
+  async execute(command: SellInPersonCommand): Promise<InPersonSaleResult> {
     const operatorId = parseOperatorId(command.operatorId);
 
     const rawNumbers = command.numbers;
@@ -48,20 +79,16 @@ export class SellInPersonUseCase {
     }
     const numbers = [...new Set(rawNumbers)].sort((a, b) => a - b);
 
-    const cleanPhone = command.phone.trim();
-    let buyer = await this.authStore.findUserByIdentifier(cleanPhone);
-    if (!buyer && command.document) {
-      buyer = await this.authStore.findUserByIdentifier(command.document.trim());
-    }
-
-    if (!buyer) {
-      buyer = await this.authStore.createUser({
-        name: command.alias.trim(),
-        phone: cleanPhone,
-        document: command.document?.trim() || null,
-        role: 'buyer',
-      });
-    }
+    const alias = command.alias.trim();
+    const phone = present(command.phone);
+    const document = present(command.document);
+    const { user: buyer, matchedBy } = await this.resolveBuyer(
+      alias,
+      phone,
+      document,
+      command.buyerCode,
+    );
+    const buyerCode = buyer.buyerCode ?? null;
 
     const now = this.clock.now();
 
@@ -98,7 +125,7 @@ export class SellInPersonUseCase {
       const newOrder = new TicketOrder({
         id: orderId,
         raffleId: raffle.id,
-        userId: buyer!.id,
+        userId: buyer.id,
         numbers,
         totalAmount,
         status: OrderStatus.PAID,
@@ -122,9 +149,11 @@ export class SellInPersonUseCase {
           receivedAmount: totalAmount,
           declaredAmount: totalAmount,
           verifiedBy: operatorId,
-          buyerAlias: command.alias.trim(),
-          buyerPhone: cleanPhone,
-          buyerDocument: command.document?.trim() || null,
+          buyerAlias: alias,
+          buyerPhone: phone,
+          buyerDocument: document,
+          buyerCode,
+          matchedBy,
         },
         receivedAt: now,
       });
@@ -149,15 +178,17 @@ export class SellInPersonUseCase {
         type: 'IN_PERSON_SALE_COMPLETED',
         data: {
           orderId: newOrder.id,
-          userId: buyer!.id,
+          userId: buyer.id,
           numbers: newOrder.numbers,
           totalAmount: newOrder.totalAmount,
           operatorId,
           verifiedAt: now.toISOString(),
+          matchedBy,
           buyer: {
-            name: command.alias.trim(),
-            phone: cleanPhone,
-            document: command.document?.trim() || null,
+            name: alias,
+            phone,
+            document,
+            buyerCode,
           },
         },
       });
@@ -165,6 +196,75 @@ export class SellInPersonUseCase {
       return newOrder;
     });
 
-    return order;
+    return {
+      order,
+      buyer: {
+        id: buyer.id,
+        alias: buyer.name?.trim() || alias,
+        buyerCode,
+        matchedBy,
+      },
+    };
+  }
+
+  /**
+   * Buyer code first (exact, after normalizing), then phone, then document;
+   * otherwise a new buyer named after the alias, with a new buyer code. A
+   * matched buyer keeps its stored phone and document: what the operator
+   * typed is kept in the payment and the audit, never written over it.
+   * @throws BuyerCodeNotFoundError when a code is given and no buyer has it.
+   */
+  private async resolveBuyer(
+    alias: string,
+    phone: string | null,
+    document: string | null,
+    rawCode: string | null | undefined,
+  ): Promise<{ user: AuthUser; matchedBy: BuyerMatch | null }> {
+    const code = normalizeBuyerCode(rawCode ?? '');
+    if (code) {
+      const user = await this.authStore.findUserByBuyerCode(code);
+      if (!user) {
+        throw new BuyerCodeNotFoundError(code);
+      }
+      return { user, matchedBy: 'BUYER_CODE' };
+    }
+    if (phone) {
+      const user = await this.authStore.findUserByIdentifier(phone);
+      if (user) return { user, matchedBy: 'PHONE' };
+    }
+    if (document) {
+      const user = await this.authStore.findUserByIdentifier(document);
+      if (user) return { user, matchedBy: 'DOCUMENT' };
+    }
+    return { user: await this.createBuyer(alias, phone, document), matchedBy: null };
+  }
+
+  /**
+   * The next free correlative of the alias' base. Two sales can compute the
+   * same one: the UNIQUE index rejects the second, which tries again.
+   */
+  private async createBuyer(
+    alias: string,
+    phone: string | null,
+    document: string | null,
+  ): Promise<AuthUser> {
+    const base = buyerCodeBaseOf(alias);
+    for (let attempt = 1; attempt <= MAX_BUYER_CODE_ATTEMPTS; attempt++) {
+      const taken = await this.authStore.findBuyerCodesWithBase(base);
+      try {
+        return await this.authStore.createUser({
+          name: alias,
+          phone,
+          document,
+          buyerCode: nextBuyerCode(base, taken),
+          role: 'buyer',
+        });
+      } catch (err) {
+        if (!(err instanceof BuyerCodeTakenError)) {
+          throw err;
+        }
+      }
+    }
+    throw new BuyerCodeConflictError(base, MAX_BUYER_CODE_ATTEMPTS);
   }
 }

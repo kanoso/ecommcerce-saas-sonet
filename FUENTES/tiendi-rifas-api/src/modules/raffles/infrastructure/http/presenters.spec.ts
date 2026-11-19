@@ -372,6 +372,7 @@ describe('pendingProof presenter', () => {
         document: '12345678',
         phone: '+51 987654321',
         email: 'carlos@example.com',
+        buyerCode: 'CARLOS-GOMEZ',
       },
     });
 
@@ -385,6 +386,7 @@ describe('pendingProof presenter', () => {
         documento: '12345678',
         celular: '+51 987654321',
         email: 'carlos@example.com',
+        codigo_comprador: 'CARLOS-GOMEZ',
       },
     });
   });

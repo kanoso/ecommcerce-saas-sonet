@@ -13,6 +13,7 @@ import {
   OperatorAlertDto,
   PublishedRaffleDto,
   OrderDto,
+  InPersonSaleDto,
   InPersonSaleRequestDto,
   PaymentAccountDto,
   RaffleDetailDto,
@@ -36,6 +37,7 @@ import {
   OperatorAlert,
   PublishedRaffle,
   Order,
+  InPersonSale,
   InPersonSaleRequest,
   PaymentAccount,
   RaffleDetail,
@@ -422,6 +424,7 @@ export function toPendingProof(dto: PendingProofDto): PendingProof {
           document: dto.comprador.documento ?? null,
           phone: dto.comprador.celular ?? null,
           email: dto.comprador.email ?? null,
+          buyerCode: dto.comprador.codigo_comprador ?? null,
         }
       : null,
     operationNumber: dto.numero_operacion,
@@ -514,6 +517,7 @@ export function toRaffleOrderWithBuyer(dto: RaffleOrderWithBuyerDto): RaffleOrde
           document: dto.comprador.documento ?? dto.comprador.document ?? null,
           phone: dto.comprador.celular ?? dto.comprador.phone ?? null,
           email: dto.comprador.email ?? null,
+          buyerCode: dto.comprador.codigo_comprador ?? dto.comprador.buyerCode ?? null,
         }
       : null,
   };
@@ -523,8 +527,24 @@ export function toInPersonSaleDto(req: InPersonSaleRequest): InPersonSaleRequest
   return {
     numeros: req.numbers,
     alias: req.alias,
-    telefono: req.phone,
+    telefono: req.phone ?? null,
     documento: req.document ?? null,
+    codigo_comprador: req.buyerCode ?? null,
+  };
+}
+
+export function toInPersonSale(dto: InPersonSaleDto): InPersonSale {
+  return {
+    ...toOrder(dto),
+    buyer: dto.comprador
+      ? {
+          id: dto.comprador.id,
+          alias: dto.comprador.alias,
+          buyerCode: dto.comprador.codigo_comprador ?? null,
+          existing: dto.comprador.existente,
+          matchedBy: dto.comprador.coincidencia ?? null,
+        }
+      : null,
   };
 }
 

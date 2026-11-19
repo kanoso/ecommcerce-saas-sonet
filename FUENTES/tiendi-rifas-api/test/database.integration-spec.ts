@@ -88,7 +88,12 @@ import {
   TicketOrder,
   TicketReservationLimitError,
   TicketStatus,
+  BuyerCodeNotFoundError,
+  normalizeBuyerCode,
 } from '../src/modules/raffles/domain';
+import { BuyerCodeTakenError } from '../src/modules/auth/auth.store';
+import { PrismaAuthStore } from '../src/modules/auth/prisma-auth.store';
+import { SellInPersonUseCase } from '../src/modules/raffles/application/use-cases/sell-in-person.use-case';
 import { PrismaAuditLog } from '../src/modules/raffles/infrastructure/persistence/prisma-audit-log';
 import {
   PrismaNotificationOutbox,
@@ -6583,6 +6588,122 @@ describe('Raffle persistence on real PostgreSQL', () => {
       await expect(
         prisma.auditEvent.delete({ where: { id } }),
       ).rejects.toThrow(/append-only/);
+    });
+  });
+
+  describe('buyer code of in-person sales', () => {
+    const authStore = new PrismaAuthStore(prisma);
+    const sellInPerson = new SellInPersonUseCase(ledger, authStore, clock, raffleRepo);
+
+    /** An alias no other test uses, so its codes start from the base. */
+    function uniqueAlias(): { alias: string; base: string } {
+      const alias = `Comprador Prueba ${randomUUID().slice(0, 8)}`;
+      return { alias, base: normalizeBuyerCode(alias) };
+    }
+
+    it('rejects a second user with the same buyer code (unique index)', async () => {
+      const { base } = uniqueAlias();
+      await prisma.user.create({ data: { buyerCode: base } });
+
+      await expect(prisma.user.create({ data: { buyerCode: base } })).rejects.toMatchObject({
+        code: 'P2002',
+      });
+      await expect(authStore.createUser({ name: 'Otro', buyerCode: base })).rejects.toBeInstanceOf(
+        BuyerCodeTakenError,
+      );
+    });
+
+    it('rejects a buyer code that is not normalized', async () => {
+      await expect(
+        prisma.user.create({ data: { buyerCode: `juan perez ${randomUUID().slice(0, 4)}` } }),
+      ).rejects.toThrow(/User_buyerCode_format/);
+    });
+
+    it('lets many users have no buyer code', async () => {
+      await prisma.user.createMany({ data: [{ name: 'Sin código A' }, { name: 'Sin código B' }] });
+
+      expect(await prisma.user.count({ where: { buyerCode: null } })).toBeGreaterThanOrEqual(2);
+    });
+
+    it('sells without phone or document and stores a buyer with only alias and code', async () => {
+      const raffleId = await givenActiveRaffle([1, 2]);
+      const { alias, base } = uniqueAlias();
+
+      const { order, buyer } = await sellInPerson.execute({
+        raffleId,
+        operatorId: 'admin-1',
+        numbers: [1],
+        alias,
+      });
+
+      expect(buyer).toMatchObject({ buyerCode: base, matchedBy: null });
+      const stored = await prisma.user.findUniqueOrThrow({ where: { id: order.userId } });
+      expect(stored).toMatchObject({
+        name: alias,
+        phone: null,
+        document: null,
+        email: null,
+        buyerCode: base,
+      });
+      expect((await ticketOf(raffleId, 1)).status).toBe('SOLD');
+      const audit = await prisma.auditEvent.findFirstOrThrow({
+        where: { raffleId, type: 'IN_PERSON_SALE_COMPLETED' },
+      });
+      expect(audit.data).toMatchObject({
+        matchedBy: null,
+        buyer: { name: alias, phone: null, document: null, buyerCode: base },
+      });
+    });
+
+    it('numbers buyers with the same alias and finds a returning one by code', async () => {
+      const raffleId = await givenActiveRaffle([1, 2, 3]);
+      const { alias, base } = uniqueAlias();
+      const sale = (numbers: number[], buyerCode?: string) =>
+        sellInPerson.execute({ raffleId, operatorId: 'admin-1', numbers, alias, buyerCode });
+
+      const first = await sale([1]);
+      const second = await sale([2]);
+      const again = await sale([3], `${base.toLowerCase()}-2`);
+
+      expect(first.buyer.buyerCode).toBe(base);
+      expect(second.buyer.buyerCode).toBe(`${base}-2`);
+      expect(again.buyer).toMatchObject({ buyerCode: `${base}-2`, matchedBy: 'BUYER_CODE' });
+      expect(again.order.userId).toBe(second.order.userId);
+    });
+
+    it('gives concurrent sales with the same alias distinct correlatives', async () => {
+      const raffleId = await givenActiveRaffle([1, 2, 3, 4]);
+      const { alias, base } = uniqueAlias();
+
+      const sales = await Promise.all(
+        [1, 2, 3, 4].map((number) =>
+          sellInPerson.execute({ raffleId, operatorId: 'admin-1', numbers: [number], alias }),
+        ),
+      );
+
+      expect(sales.map((s) => s.buyer.buyerCode).sort()).toEqual(
+        [base, `${base}-2`, `${base}-3`, `${base}-4`].sort(),
+      );
+      expect(new Set(sales.map((s) => s.order.userId)).size).toBe(4);
+    });
+
+    it('rejects an unknown buyer code without creating a buyer', async () => {
+      const raffleId = await givenActiveRaffle([1]);
+      const { alias, base } = uniqueAlias();
+      const usersBefore = await prisma.user.count();
+
+      await expect(
+        sellInPerson.execute({
+          raffleId,
+          operatorId: 'admin-1',
+          numbers: [1],
+          alias,
+          buyerCode: base,
+        }),
+      ).rejects.toBeInstanceOf(BuyerCodeNotFoundError);
+
+      expect(await prisma.user.count()).toBe(usersBefore);
+      expect((await ticketOf(raffleId, 1)).status).toBe('AVAILABLE');
     });
   });
 });

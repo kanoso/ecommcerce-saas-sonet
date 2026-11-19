@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -397,6 +398,13 @@ describe('AdminRaffleDetailPage', () => {
           rejectionReason: null,
           hasProof: false,
           paidToAccount: null,
+          buyer: {
+            id: 'user-1',
+            alias: 'Carlos Gomez',
+            buyerCode: 'CARLOS-GOMEZ',
+            existing: false,
+            matchedBy: null,
+          },
         }),
       );
 
@@ -419,6 +427,7 @@ describe('AdminRaffleDetailPage', () => {
         alias: 'Carlos Gomez',
         phone: '+573001112233',
         document: 'CC123456',
+        buyerCode: null,
       });
 
       expect(activeComponent.posSuccessOrder()).not.toBeNull();
@@ -426,6 +435,108 @@ describe('AdminRaffleDetailPage', () => {
       expect(receipt).not.toBeNull();
       expect(receipt?.textContent).toContain('ord-pos-777');
       expect(receipt?.textContent).toContain('S/ 40.00');
+      const buyerLine = activeEl.querySelector('[data-testid="pos-receipt-buyer"]');
+      expect(buyerLine?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+        'Comprador: Carlos Gomez · Código CARLOS-GOMEZ',
+      );
+      expect(receipt?.textContent).not.toContain('Asociado al comprador existente');
+    });
+
+    it('does not require the phone and labels it as optional', () => {
+      adminApiMock.sellInPerson.mockReturnValue(of(posSale({ buyerCode: 'JUAN-PEREZ' })));
+      activeComponent.openPosModal();
+      activeFixture.detectChanges();
+
+      expect(activeEl.querySelector('label[for="pos_phone"]')?.textContent).toContain(
+        'Teléfono / Celular (opcional)',
+      );
+
+      activeComponent.posNumbersInput.set('42');
+      activeComponent.posAlias.set('Juan Perez');
+      activeComponent.submitPosSale();
+      activeFixture.detectChanges();
+
+      expect(activeComponent.posError()).toBeNull();
+      expect(adminApiMock.sellInPerson).toHaveBeenCalledWith('r-1', {
+        numbers: [42],
+        alias: 'Juan Perez',
+        phone: null,
+        document: null,
+        buyerCode: null,
+      });
+    });
+
+    it('sends the buyer code of a returning buyer and tells it was associated', () => {
+      adminApiMock.sellInPerson.mockReturnValue(
+        of(posSale({ alias: 'Juan Perez', buyerCode: 'JUAN-PEREZ-2', existing: true, matchedBy: 'BUYER_CODE' })),
+      );
+      activeComponent.openPosModal();
+      activeFixture.detectChanges();
+
+      const codeInput = activeEl.querySelector('#pos_buyer_code') as HTMLInputElement;
+      expect(codeInput).not.toBeNull();
+      expect(activeEl.querySelector('label[for="pos_buyer_code"]')?.textContent).toContain(
+        'Código de comprador',
+      );
+
+      activeComponent.posNumbersInput.set('42');
+      activeComponent.posAlias.set('Juan');
+      activeComponent.posBuyerCode.set('  juan-perez-2 ');
+      activeComponent.submitPosSale();
+      activeFixture.detectChanges();
+
+      expect(adminApiMock.sellInPerson).toHaveBeenCalledWith(
+        'r-1',
+        expect.objectContaining({ buyerCode: 'juan-perez-2' }),
+      );
+      const buyerLine = activeEl.querySelector('[data-testid="pos-receipt-buyer"]');
+      expect(buyerLine?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+        'Comprador: Juan Perez · Código JUAN-PEREZ-2',
+      );
+      expect(activeEl.querySelector('[data-testid="pos-receipt-existing"]')?.textContent).toContain(
+        'Asociado al comprador existente',
+      );
+    });
+
+    it('shows the buyer without code when an existing buyer has none', () => {
+      adminApiMock.sellInPerson.mockReturnValue(
+        of(posSale({ alias: 'Rosa', buyerCode: null, existing: true, matchedBy: 'PHONE' })),
+      );
+      activeComponent.openPosModal();
+      activeComponent.posNumbersInput.set('42');
+      activeComponent.posAlias.set('Rosa');
+      activeComponent.posPhone.set('911111111');
+      activeComponent.submitPosSale();
+      activeFixture.detectChanges();
+
+      const buyerLine = activeEl.querySelector('[data-testid="pos-receipt-buyer"]');
+      expect(buyerLine?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Comprador: Rosa');
+      expect(activeEl.querySelector('[data-testid="pos-receipt-existing"]')).not.toBeNull();
+    });
+
+    it('explains that an unknown buyer code does not exist', () => {
+      adminApiMock.sellInPerson.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              status: 404,
+              error: {
+                code: 'BUYER_CODE_NOT_FOUND',
+                message: 'No buyer with code JUAN-PEREZ-9',
+                details: { codigo_comprador: 'JUAN-PEREZ-9' },
+              },
+            }),
+        ),
+      );
+      activeComponent.openPosModal();
+      activeComponent.posNumbersInput.set('42');
+      activeComponent.posAlias.set('Juan');
+      activeComponent.posBuyerCode.set('juan perez 9');
+      activeComponent.submitPosSale();
+      activeFixture.detectChanges();
+
+      expect(activeComponent.posError()).toBe('No existe un comprador con el código JUAN-PEREZ-9.');
+      expect(activeComponent.posSuccessOrder()).toBeNull();
     });
 
     it('displays error alert when sale submission fails', () => {
@@ -468,6 +579,40 @@ describe('AdminRaffleDetailPage', () => {
 
       const thumbs = showcase?.querySelectorAll('.admin-thumb-img');
       expect(thumbs?.length).toBe(2);
+    });
+  });
+
+  describe('buyer code in the orders list', () => {
+    it('shows the buyer code of an in-person buyer', () => {
+      adminApiMock.raffleDetail.mockReturnValue(of(mockActiveRaffle));
+      adminApiMock.salesReport.mockReturnValue(of(mockSalesReport));
+      adminApiMock.raffleOrders.mockReturnValue(
+        of([
+          {
+            ...mockOrder,
+            bankOrWallet: 'EFECTIVO',
+            buyer: { id: 'user-2', name: 'Juan Perez', document: null, phone: null, email: null, buyerCode: 'JUAN-PEREZ-2' },
+          },
+        ]),
+      );
+      const listFixture = TestBed.createComponent(AdminRaffleDetailPage);
+      listFixture.detectChanges();
+      const listEl = listFixture.nativeElement as HTMLElement;
+
+      const code = listEl.querySelector('[data-testid="order-buyer-code"]');
+      expect(code?.textContent).toContain('JUAN-PEREZ-2');
+      expect(listEl.textContent).not.toContain('Sin datos de contacto adicionales');
+    });
+
+    it('finds an order by its buyer code', () => {
+      const listComponent = TestBed.createComponent(AdminRaffleDetailPage).componentInstance;
+      listComponent.orders.set([
+        { ...mockOrder, id: 'ord-a', buyer: { ...mockOrder.buyer!, buyerCode: 'JUAN-PEREZ-2' } },
+        { ...mockOrder, id: 'ord-b', buyer: { ...mockOrder.buyer!, buyerCode: null } },
+      ]);
+      listComponent.orderSearchTerm.set('juan-perez-2');
+
+      expect(listComponent.filteredOrders().map((o) => o.id)).toEqual(['ord-a']);
     });
   });
 
@@ -531,3 +676,32 @@ describe('AdminRaffleDetailPage', () => {
     });
   });
 });
+
+function posSale(buyer: {
+  alias?: string;
+  buyerCode: string | null;
+  existing?: boolean;
+  matchedBy?: 'BUYER_CODE' | 'PHONE' | 'DOCUMENT' | null;
+}) {
+  return {
+    id: 'ord-pos-1',
+    raffleId: 'r-2',
+    status: 'PAID',
+    numbers: [42],
+    totalAmount: 20,
+    bankOrWallet: 'EFECTIVO',
+    expiresAt: null,
+    verificationDueAt: null,
+    declaredAmount: 20,
+    rejectionReason: null,
+    hasProof: false,
+    paidToAccount: null,
+    buyer: {
+      id: 'user-1',
+      alias: buyer.alias ?? 'Juan Perez',
+      buyerCode: buyer.buyerCode,
+      existing: buyer.existing ?? false,
+      matchedBy: buyer.matchedBy ?? null,
+    },
+  };
+}

@@ -307,6 +307,8 @@ export interface BuyerSummary {
   document: string | null;
   phone: string | null;
   email: string | null;
+  /** Buyers created by an in-person sale only (JUAN-PEREZ-2). */
+  buyerCode?: string | null;
 }
 
 export interface RaffleOrderWithBuyer {
@@ -351,6 +353,7 @@ export interface PendingProof extends Order {
     document: string | null;
     phone: string | null;
     email: string | null;
+    buyerCode?: string | null;
   } | null;
   operationNumber: string;
 }
@@ -411,6 +414,24 @@ export interface OperationCollision {
 export interface InPersonSaleRequest {
   numbers: number[];
   alias: string;
-  phone: string;
+  phone?: string | null;
   document?: string | null;
+  /** The code of a returning buyer; it wins over phone and document. */
+  buyerCode?: string | null;
+}
+
+/** How the sale found an existing buyer; null when it created one. */
+export type InPersonBuyerMatch = 'BUYER_CODE' | 'PHONE' | 'DOCUMENT';
+
+export interface InPersonSaleBuyer {
+  id: string;
+  alias: string;
+  /** Null for an existing buyer that has no code (created online or before codes). */
+  buyerCode: string | null;
+  existing: boolean;
+  matchedBy: InPersonBuyerMatch | null;
+}
+
+export interface InPersonSale extends Order {
+  buyer: InPersonSaleBuyer | null;
 }

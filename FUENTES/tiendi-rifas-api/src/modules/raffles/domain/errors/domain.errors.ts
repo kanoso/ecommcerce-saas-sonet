@@ -241,6 +241,20 @@ export class RefundNotFoundError extends DomainError {
   }
 }
 
+/** An in-person sale named a buyer code no buyer has; no buyer is created. */
+export class BuyerCodeNotFoundError extends DomainError {
+  constructor(readonly code: string) {
+    super(`No buyer with code ${code}`);
+  }
+}
+
+/** Concurrent sales kept taking the next buyer code; the sale can be retried. */
+export class BuyerCodeConflictError extends DomainError {
+  constructor(base: string, attempts: number) {
+    super(`Could not assign a free buyer code for ${base} after ${attempts} attempts`);
+  }
+}
+
 export class NotOrderOwnerError extends DomainError {
   constructor(readonly orderId: string) {
     super(`Order ${orderId} does not belong to this user`);

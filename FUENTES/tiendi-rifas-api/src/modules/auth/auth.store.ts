@@ -4,8 +4,32 @@ export interface AuthUser {
   phone?: string | null;
   document?: string | null;
   name?: string | null;
+  /** The readable code of a buyer created by an in-person sale; null otherwise. */
+  buyerCode?: string | null;
   passwordHash?: string | null;
   role: string;
+}
+
+/**
+ * Thrown by createUser when the buyer code is already stored: a concurrent
+ * sale took it. The caller picks the next correlative and tries again.
+ */
+export class BuyerCodeTakenError extends Error {
+  constructor(readonly code: string) {
+    super(`Buyer code ${code} is already taken`);
+    this.name = 'BuyerCodeTakenError';
+  }
+}
+
+/** The fields a new user can be created with; all of them may be absent. */
+export interface NewUser {
+  email?: string | null;
+  phone?: string | null;
+  document?: string | null;
+  name?: string | null;
+  buyerCode?: string | null;
+  passwordHash?: string | null;
+  role?: string;
 }
 
 export interface StoredSession {
@@ -54,14 +78,12 @@ export interface AuthStore {
   findOrCreateUser(email: string): Promise<AuthUser>;
   findUser(id: string): Promise<AuthUser | null>;
   findUserByIdentifier(identifier: string): Promise<AuthUser | null>;
-  createUser(data: {
-    email?: string | null;
-    phone?: string | null;
-    document?: string | null;
-    name?: string | null;
-    passwordHash?: string | null;
-    role?: string;
-  }): Promise<AuthUser>;
+  /** The user with exactly this (already normalized) buyer code. */
+  findUserByBuyerCode(code: string): Promise<AuthUser | null>;
+  /** The stored buyer codes equal to `base` or starting with `base-`. */
+  findBuyerCodesWithBase(base: string): Promise<string[]>;
+  /** @throws BuyerCodeTakenError when `buyerCode` is already stored. */
+  createUser(data: NewUser): Promise<AuthUser>;
   setPassword(userId: string, passwordHash: string): Promise<void>;
   addSession(session: {
     id: string;

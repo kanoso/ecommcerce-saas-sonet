@@ -16,7 +16,7 @@ import { AdminApi } from '../../../core/api/admin-api';
 import {
   AdminSalesReport,
   ExecuteDrawResult,
-  Order,
+  InPersonSale,
   PublishedRaffle,
   RaffleOrderWithBuyer,
   RaffleSummary,
@@ -248,12 +248,14 @@ export class AdminRaffleDetailPage implements OnInit {
   readonly posAlias = signal('');
   readonly posPhone = signal('');
   readonly posDocument = signal('');
+  /** The code of a returning buyer (for example JUAN-PEREZ-2); optional. */
+  readonly posBuyerCode = signal('');
   readonly posNumbersInput = signal('');
   readonly posLoading = signal(false);
   readonly posLoadingAvailable = signal(false);
   readonly posAvailableNumbers = signal<number[]>([]);
   readonly posError = signal<string | null>(null);
-  readonly posSuccessOrder = signal<Order | null>(null);
+  readonly posSuccessOrder = signal<InPersonSale | null>(null);
 
   isPosNumberSelected(num: number): boolean {
     return this.parsedPosNumbers().includes(num);
@@ -316,6 +318,7 @@ export class AdminRaffleDetailPage implements OnInit {
       if (o.buyer?.document?.toLowerCase().includes(term)) return true;
       if (o.buyer?.phone?.toLowerCase().includes(term)) return true;
       if (o.buyer?.email?.toLowerCase().includes(term)) return true;
+      if (o.buyer?.buyerCode?.toLowerCase().includes(term)) return true;
       if (o.operationNumber?.toLowerCase().includes(term)) return true;
       return false;
     });
@@ -510,6 +513,7 @@ export class AdminRaffleDetailPage implements OnInit {
     this.posAlias.set('');
     this.posPhone.set('');
     this.posDocument.set('');
+    this.posBuyerCode.set('');
     this.posNumbersInput.set('');
     this.posError.set(null);
     this.posSuccessOrder.set(null);
@@ -537,8 +541,9 @@ export class AdminRaffleDetailPage implements OnInit {
   submitPosSale(): void {
     const numbers = this.parsedPosNumbers();
     const alias = this.posAlias().trim();
-    const phone = this.posPhone().trim();
+    const phone = this.posPhone().trim() || null;
     const document = this.posDocument().trim() || null;
+    const buyerCode = this.posBuyerCode().trim() || null;
 
     if (numbers.length === 0) {
       this.posError.set('Debes ingresar al menos un número de boleto.');
@@ -546,10 +551,6 @@ export class AdminRaffleDetailPage implements OnInit {
     }
     if (!alias) {
       this.posError.set('El nombre o alias del comprador es obligatorio.');
-      return;
-    }
-    if (!phone) {
-      this.posError.set('El teléfono o celular del comprador es obligatorio.');
       return;
     }
 
@@ -562,17 +563,25 @@ export class AdminRaffleDetailPage implements OnInit {
         alias,
         phone,
         document,
+        buyerCode,
       })
       .subscribe({
-        next: (order) => {
+        next: (sale) => {
           this.posLoading.set(false);
-          this.posSuccessOrder.set(order);
+          this.posSuccessOrder.set(sale);
           this.loadData();
         },
         error: (err: unknown) => {
           this.posLoading.set(false);
+          const apiError = toApiError(err);
+          if (apiError.code === 'BUYER_CODE_NOT_FOUND') {
+            const details = apiError.details as { codigo_comprador?: string } | undefined;
+            const code = details?.codigo_comprador ?? buyerCode ?? '';
+            this.posError.set(`No existe un comprador con el código ${code}.`);
+            return;
+          }
           this.posError.set(
-            toApiError(err).userMessage || 'No se pudo registrar la venta presencial. Verifica los boletos ingresados.',
+            apiError.userMessage || 'No se pudo registrar la venta presencial. Verifica los boletos ingresados.',
           );
         },
       });

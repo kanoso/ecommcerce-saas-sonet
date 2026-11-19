@@ -416,6 +416,7 @@ describe('RaffleQueries (F6 read side)', () => {
       document: '42636253',
       phone: '987654321',
       email: 'hector@test.com',
+      buyerCode: 'HECTOR-LOPEZ',
     });
 
     const result = await queries.ordersWithBuyers('raffle-1');
@@ -427,9 +428,37 @@ describe('RaffleQueries (F6 read side)', () => {
       documento: '42636253',
       celular: '987654321',
       email: 'hector@test.com',
+      codigo_comprador: 'HECTOR-LOPEZ',
       name: 'Hector Lopez',
       document: '42636253',
       phone: '987654321',
+      buyerCode: 'HECTOR-LOPEZ',
     });
+  });
+
+  it('returns a null buyer code for buyers created before buyer codes', async () => {
+    await raffles.save(raffleWith(RaffleStatus.ACTIVE, { id: 'raffle-1' }));
+    await orders.save(
+      new TicketOrder({
+        id: 'order-1',
+        raffleId: 'raffle-1',
+        userId: 'buyer-1',
+        numbers: [10],
+        totalAmount: 10,
+        status: OrderStatus.PAID,
+        expiresAt: new Date(),
+      }),
+    );
+    orders.setBuyer('order-1', {
+      id: 'buyer-1',
+      name: 'Online',
+      document: null,
+      phone: null,
+      email: 'online@test.com',
+    });
+
+    const [row] = await queries.ordersWithBuyers('raffle-1');
+
+    expect(row.comprador).toMatchObject({ codigo_comprador: null, buyerCode: null });
   });
 });

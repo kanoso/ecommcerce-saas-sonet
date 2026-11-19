@@ -2,7 +2,9 @@ import { randomUUID } from 'crypto';
 import {
   AuthStore,
   AuthUser,
+  BuyerCodeTakenError,
   NewLink,
+  NewUser,
   QueuedAccessLink,
   StoredSession,
 } from './auth.store';
@@ -78,20 +80,29 @@ export class InMemoryAuthStore implements AuthStore {
     );
   }
 
-  async createUser(data: {
-    email?: string | null;
-    phone?: string | null;
-    document?: string | null;
-    name?: string | null;
-    passwordHash?: string | null;
-    role?: string;
-  }): Promise<AuthUser> {
+  async findUserByBuyerCode(code: string): Promise<AuthUser | null> {
+    return this.users.find((u) => u.buyerCode === code) ?? null;
+  }
+
+  async findBuyerCodesWithBase(base: string): Promise<string[]> {
+    return this.users
+      .map((u) => u.buyerCode)
+      .filter((code): code is string => !!code && (code === base || code.startsWith(`${base}-`)));
+  }
+
+  async createUser(data: NewUser): Promise<AuthUser> {
+    const buyerCode = data.buyerCode?.trim() || null;
+    // The same rule as the UNIQUE index on User.buyerCode.
+    if (buyerCode && this.users.some((u) => u.buyerCode === buyerCode)) {
+      throw new BuyerCodeTakenError(buyerCode);
+    }
     const user: AuthUser = {
       id: randomUUID(),
       email: data.email?.toLowerCase().trim() || null,
       phone: data.phone?.trim() || null,
       document: data.document?.trim() || null,
       name: data.name?.trim() || null,
+      buyerCode,
       passwordHash: data.passwordHash || null,
       role: data.role || 'buyer',
     };

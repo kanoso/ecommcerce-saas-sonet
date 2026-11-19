@@ -174,8 +174,10 @@ const inPersonSale = z
   .object({
     numeros: z.array(z.number().int()).min(1),
     alias: z.string().trim().min(1).max(100),
-    telefono: z.string().trim().min(1).max(50),
-    documento: z.string().trim().min(1).max(50).optional().nullable(),
+    // Phone, document and buyer code are optional; blank means absent.
+    telefono: z.string().trim().max(50).optional().nullable(),
+    documento: z.string().trim().max(50).optional().nullable(),
+    codigo_comprador: z.string().trim().max(100).optional().nullable(),
   })
   .strict();
 
@@ -408,15 +410,16 @@ export class AdminController {
     @Body() body: unknown,
   ) {
     const fields = parseWith(inPersonSale, body);
-    const order = await this.sellInPersonUseCase.execute({
+    const sale = await this.sellInPersonUseCase.execute({
       raffleId: parseWith(uuidParam, id),
       operatorId: operatorIdOf(user),
       numbers: fields.numeros,
       alias: fields.alias,
-      phone: fields.telefono,
-      document: fields.documento ?? null,
+      phone: fields.telefono || null,
+      document: fields.documento || null,
+      buyerCode: fields.codigo_comprador || null,
     });
-    return present.orderOf(order);
+    return present.inPersonSale(sale);
   }
 
   @Get('rifas/:id/ventas')

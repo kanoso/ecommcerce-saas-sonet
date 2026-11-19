@@ -51,6 +51,9 @@
               </div>
               @if (proof.buyer) {
                 <div class="receipt-item__buyer-details">
+                  @if (proof.buyer.buyerCode) {
+                    <span class="buyer-detail" data-testid="proof-buyer-code"><strong>Código:</strong> {{ proof.buyer.buyerCode }}</span>
+                  }
                   @if (proof.buyer.document) {
                     <span class="buyer-detail"><strong>DNI:</strong> {{ proof.buyer.document }}</span>
                   }

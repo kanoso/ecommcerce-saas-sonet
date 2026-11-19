@@ -14,6 +14,7 @@ export * from './rules/proof-policy';
 export * from './rules/operation-number';
 export * from './rules/notification-retry-policy';
 export * from './rules/operator-id';
+export * from './rules/buyer-code';
 export * from './models/payment-account';
 export * from './models/payment-account-change';
 export * from './services/alert-reason-sanitizer';
