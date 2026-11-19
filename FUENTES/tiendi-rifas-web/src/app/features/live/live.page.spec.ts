@@ -157,7 +157,40 @@ describe('LivePage', () => {
     expect(el.textContent).toContain('NÚMERO GANADOR');
     expect(el.textContent).toContain(String(VECTOR.expected.winner));
     expect(el.textContent).toContain('Coincide con el resultado oficial');
-    expect(el.querySelector('a[href*="/verificacion"]')).not.toBeNull();
+    expect(el.querySelector('a[href*="/verificacion"]')).toBeNull();
+    expect(el.textContent).not.toContain('Ver verificación completa');
+    expect(el.textContent).toContain('Ganador calculado localmente');
+    expect(el.textContent).toContain(`mod ${VECTOR.soldNumbers.length} → ${VECTOR.expected.winner}`);
+  });
+
+  it('summarises the local check of a multi-prize draw without the single-prize formula', async () => {
+    const base = givenLiveData();
+    const winningAttempt = base.winningAttempt ?? 1;
+    const liveData = givenLiveData({
+      prizes: [
+        { position: 1, title: 'Auto', description: null, images: [] },
+        { position: 2, title: 'Moto', description: null, images: [] },
+      ],
+      drawConfigHash: await drawConfigHash({
+        exclusionMode: 'TICKET_ONLY',
+        winningAttempt,
+        prizeCount: 2,
+        buyerGroups: [],
+      }),
+    });
+    const { fixture, service } = await render({ liveData, reducedMotion: true });
+
+    await vi.waitFor(() => {
+      if (service.phase() !== 'result') {
+        throw new Error('waiting result');
+      }
+    });
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Ganadores calculados en tu navegador');
+    expect(el.textContent).toContain('2 premios recalculados con la semilla y la ronda drand');
+    expect(el.textContent).not.toContain('sha256(semilla‖drand‖id) mod');
   });
 
   it('renders discrepancy when official result differs from computed winner', async () => {

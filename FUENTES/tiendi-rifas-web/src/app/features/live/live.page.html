@@ -619,11 +619,25 @@
           </span>
           <div class="check-content">
             <span class="check-title">
-              {{ checks().winner === 'passed' ? (phase() === 'spinning' ? 'Cálculo del ganador en curso' : 'Ganador calculado localmente') : 'Cálculo del ganador' }}
+              @if (checks().winner !== 'passed') {
+                Cálculo del ganador
+              } @else if (phase() === 'spinning') {
+                Cálculo del ganador en curso
+              } @else if (isMultiPrize()) {
+                Ganadores calculados en tu navegador
+              } @else {
+                Ganador calculado localmente
+              }
             </span>
             <span class="check-detail font-mono">
               @if (checks().winner === 'passed') {
-                {{ phase() === 'spinning' ? 'Semilla y ronda listas · revelando en el sorteo…' : 'sha256(semilla‖drand‖id) mod ' + (data()?.soldNumbers?.length || 0) + ' → ' + localResult()?.winner }}
+                @if (phase() === 'spinning') {
+                  Semilla y ronda listas · revelando en el sorteo…
+                } @else if (isMultiPrize()) {
+                  {{ data()?.prizes?.length }} premios recalculados con la semilla y la ronda drand
+                } @else {
+                  {{ 'sha256(semilla‖drand‖id) mod ' + (data()?.soldNumbers?.length || 0) + ' → ' + localResult()?.winner }}
+                }
               } @else {
                 pendiente
               }
@@ -635,14 +649,6 @@
 
     <!-- Footer Actions -->
     <footer class="live-footer">
-      @if (phase() === 'result') {
-        <a
-          [routerLink]="['/rifas', raffleId(), 'verificacion']"
-          class="btn-verification"
-        >
-          Ver verificación completa
-        </a>
-      }
       <a
         [routerLink]="['/rifas', raffleId()]"
         class="btn-back"
