@@ -2,6 +2,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   BuyerCodeNotFoundError,
   DomainError,
+  LiveDrawStepConflictError,
   NotOrderOwnerError,
   OrderNotFoundError,
   TicketNotAvailableError,
@@ -75,6 +76,10 @@ export const API_ERRORS: Record<string, { status: number; code: string }> = {
   BuyerCodeConflictError: { status: 409, code: 'BUYER_CODE_CONFLICT' },
   MissingRaffleDataError: { status: 409, code: 'RAFFLE_DATA_MISSING' },
   RaffleNotDrawnError: { status: 409, code: 'RAFFLE_NOT_DRAWN' },
+  // Live draw sessions (DT-23).
+  LiveDrawNotAvailableError: { status: 409, code: 'LIVE_DRAW_NOT_AVAILABLE' },
+  LiveDrawNotStartedError: { status: 409, code: 'LIVE_DRAW_NOT_STARTED' },
+  LiveDrawStepConflictError: { status: 409, code: 'LIVE_DRAW_STEP_CONFLICT' },
   InvalidPaymentProofError: { status: 422, code: 'INVALID_PAYMENT_PROOF' },
   InvalidOperationNumberError: { status: 422, code: 'INVALID_OPERATION_NUMBER' },
   ProofDeadlinePassedError: { status: 409, code: 'PROOF_DEADLINE_PASSED' },
@@ -180,6 +185,10 @@ function detailsOf(error: Error): Pick<ApiErrorBody, 'details'> {
   }
   if (error instanceof BuyerCodeNotFoundError) {
     return { details: { codigo_comprador: error.code } };
+  }
+  // The caller resyncs to the step the session really is at.
+  if (error instanceof LiveDrawStepConflictError) {
+    return { details: { paso_actual: error.currentStep, total_pasos: error.totalSteps } };
   }
   return {};
 }

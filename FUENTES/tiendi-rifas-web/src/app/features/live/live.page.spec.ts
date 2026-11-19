@@ -9,6 +9,9 @@ import { QUICKNET } from '../../core/drand/quicknet';
 import { DrawLive, LIVE_TIMING, LiveTiming } from '../../core/live/draw-live';
 import { DRAW_VECTORS } from '../../core/verification/testing/verification.fixture';
 import { LivePage } from './live.page';
+import { AdminApi } from '../../core/api/admin-api';
+import { SessionStore } from '../../core/session/session.store';
+import { drawConfigHash } from '@kanoso/raffle-draw';
 
 const VECTOR = DRAW_VECTORS[0];
 
@@ -35,6 +38,7 @@ function givenLiveData(overrides: Partial<LiveRaffleData> = {}): LiveRaffleData 
     prizes: [{ position: 1, title: 'Un televisor', description: null, images: [] }],
     winnerExclusionMode: 'TICKET_ONLY',
     drawConfigHash: null,
+    liveSession: null,
     ...overrides,
   };
 }
@@ -244,7 +248,7 @@ describe('LivePage', () => {
     });
     fixture.detectChanges();
     expect(el.textContent).toContain('¡AL AGUA!');
-    expect(el.textContent).toContain('Lanzar Intento #2 de 2');
+    expect(el.querySelector('.live-controls .btn-presenter-play')?.textContent).toContain('▶ Lanzar intento #2 de 2');
 
     // Click Play for Attempt #2 (winner)
     fixture.componentInstance.triggerNextStep();
@@ -255,5 +259,145 @@ describe('LivePage', () => {
     });
     fixture.detectChanges();
     expect(el.textContent).toContain('NÚMERO GANADOR');
+  });
+});
+
+describe('LivePage of a server-paced MANUAL draw (DT-23)', () => {
+  async function renderPaced(liveData: LiveRaffleData, admin: boolean, adminApi: object = {}) {
+    await TestBed.configureTestingModule({
+      imports: [LivePage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ id: VECTOR.raffleId }) } },
+        },
+        { provide: RafflesApi, useValue: { live: vi.fn(() => of(liveData)) } },
+        {
+          provide: DrandClient,
+          useValue: {
+            pollRound: vi.fn(async (round: string) => ({
+              round,
+              randomness: VECTOR.drandRandomnessHex,
+              signature: 'ab'.repeat(48),
+            })),
+          },
+        },
+        {
+          provide: LIVE_TIMING,
+          useValue: {
+            pollIntervalMs: 0,
+            maxWaitMs: 1000,
+            spinDurationMs: 0,
+            spinIntervalMs: 10,
+            attemptPauseMs: 0,
+            now: () => new Date('2023-09-27T08:29:24.000Z').getTime(),
+            prefersReducedMotion: () => false,
+          } satisfies LiveTiming,
+        },
+        {
+          provide: SessionStore,
+          useValue: {
+            user: () => (admin ? { role: 'admin' } : null),
+            isAuthenticated: () => false,
+          },
+        },
+        { provide: AdminApi, useValue: adminApi },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LivePage);
+    const service = TestBed.inject(DrawLive);
+    fixture.detectChanges();
+    return { fixture, service, el: fixture.nativeElement as HTMLElement };
+  }
+
+  const settle = async (
+    fixture: { detectChanges: () => void },
+    check: () => boolean,
+  ) => {
+    await vi.waitFor(() => {
+      if (!check()) throw new Error('not yet');
+    });
+    fixture.detectChanges();
+  };
+
+  const closedManual = () =>
+    givenLiveData({ drawMode: 'MANUAL', status: 'CLOSED', result: null, liveSession: null });
+
+  it('gives the operator a start button that drives the server', async () => {
+    const { fixture, service, el } = await renderPaced(closedManual(), true);
+    await settle(fixture, () => service.phase() === 'waiting-manual-draw');
+    const next = vi.spyOn(service, 'controlNext').mockResolvedValue();
+
+    const play = el.querySelector('.live-controls .btn-presenter-play') as HTMLButtonElement;
+    expect(play.textContent).toContain('▶ Iniciar sorteo');
+    expect(play.disabled).toBe(false);
+    play.click();
+
+    expect(next).toHaveBeenCalled();
+    service.cancel();
+  });
+
+  it('disables the operator buttons while a request is in flight', async () => {
+    const { fixture, service, el } = await renderPaced(closedManual(), true);
+    await settle(fixture, () => service.phase() === 'waiting-manual-draw');
+
+    service.controlBusy.set(true);
+    fixture.detectChanges();
+
+    expect((el.querySelector('.live-controls .btn-presenter-play') as HTMLButtonElement).disabled).toBe(true);
+    expect((el.querySelector('.live-controls .btn-presenter-auto') as HTMLButtonElement).disabled).toBe(true);
+    service.cancel();
+  });
+
+  it('shows the error of a refused start', async () => {
+    const { fixture, service, el } = await renderPaced(closedManual(), true);
+    await settle(fixture, () => service.phase() === 'waiting-manual-draw');
+
+    service.controlError.set('No se puede sortear esta rifa.');
+    fixture.detectChanges();
+
+    expect(el.querySelector('.live-controls [role="alert"]')?.textContent).toContain('No se puede sortear esta rifa.');
+    service.cancel();
+  });
+
+  it('shows a viewer no controls while waiting for the operator', async () => {
+    const { fixture, service, el } = await renderPaced(closedManual(), false);
+    await settle(fixture, () => service.phase() === 'waiting-manual-draw');
+
+    expect(el.querySelector('.live-controls')).toBeNull();
+    expect(el.textContent).toContain('Esperando inicio del sorteo en vivo');
+    service.cancel();
+  });
+
+  it('offers the next prize between prizes, and no replay while live', async () => {
+    const prizes = [
+      { position: 1, title: 'Olla arrocera', description: null, images: [] },
+      { position: 2, title: 'Licuadora', description: null, images: [] },
+    ];
+    const config = { exclusionMode: 'TICKET_ONLY' as const, winningAttempt: 1, prizeCount: 2, buyerGroups: [] };
+    const liveData = givenLiveData({
+      drawMode: 'MANUAL',
+      status: 'DRAWN',
+      prizes,
+      drawConfigHash: await drawConfigHash(config),
+      liveSession: {
+        step: 1,
+        totalSteps: 2,
+        startedAt: new Date(),
+        updatedAt: new Date(),
+        finishedAt: null,
+      },
+      result: { ...givenLiveData().result!, winners: [] },
+    });
+    const { fixture, service, el } = await renderPaced(liveData, true);
+    await settle(fixture, () => service.shownStep() === 1 && service.canAdvance());
+
+    const play = el.querySelector('.live-controls .btn-presenter-play') as HTMLButtonElement;
+    expect(play.textContent).toContain('▶ Sortear Premio 2 — Licuadora');
+    expect(el.querySelector('.live-controls__step')?.textContent).toContain('Paso 1 de 2');
+    expect(el.querySelector('.btn-replay')).toBeNull();
+    service.cancel();
   });
 });

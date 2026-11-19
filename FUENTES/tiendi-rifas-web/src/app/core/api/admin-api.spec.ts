@@ -227,9 +227,91 @@ describe('AdminApi', () => {
     expect(draw).toEqual({
       drawId: 'd-1',
       winningNumber: 42,
+      // An API without the per-prize list: prize 1 from the legacy number.
+      winners: [{ position: 1, status: 'WON', winningNumber: 42 }],
       drandRound: '99999',
       executedAt: new Date('2026-12-02T18:05:00.000Z'),
     });
+  });
+
+  describe('live draw session (DT-23)', () => {
+    const sessionDto = (paso: number, finalizada_en: string | null = null) => ({
+      rifa_id: 'r-1',
+      sorteo_id: 'd-1',
+      paso,
+      total_pasos: 3,
+      iniciada_en: '2026-12-02T18:00:00.000Z',
+      actualizada_en: '2026-12-02T18:00:05.000Z',
+      finalizada_en,
+    });
+
+    it('starts the live draw', async () => {
+      const result = firstValueFrom(api.startLiveDraw('r-1'));
+      const req = http.expectOne(`${BASE_URL}/admin/rifas/r-1/en-vivo/iniciar`);
+      expect(req.request.method).toBe('POST');
+      req.flush(sessionDto(0));
+
+      expect(await result).toEqual({
+        step: 0,
+        totalSteps: 3,
+        startedAt: new Date('2026-12-02T18:00:00.000Z'),
+        updatedAt: new Date('2026-12-02T18:00:05.000Z'),
+        finishedAt: null,
+      });
+    });
+
+    it('advances from the step the operator saw', async () => {
+      const result = firstValueFrom(api.advanceLiveDraw('r-1', 1));
+      const req = http.expectOne(`${BASE_URL}/admin/rifas/r-1/en-vivo/avanzar`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ paso_esperado: 1 });
+      req.flush(sessionDto(2));
+
+      expect((await result).step).toBe(2);
+    });
+
+    it('finishes the live draw', async () => {
+      const result = firstValueFrom(api.finishLiveDraw('r-1'));
+      const req = http.expectOne(`${BASE_URL}/admin/rifas/r-1/en-vivo/finalizar`);
+      expect(req.request.method).toBe('POST');
+      req.flush(sessionDto(3, '2026-12-02T18:01:00.000Z'));
+
+      expect((await result).finishedAt).toEqual(new Date('2026-12-02T18:01:00.000Z'));
+    });
+  });
+
+  it('maps every winner with the buyer alias and the live session in the raffle detail', async () => {
+    const result = firstValueFrom(api.raffleDetail('r-1'));
+    http.expectOne(`${BASE_URL}/admin/rifas/r-1`).flush({
+      rifa_id: 'r-1',
+      titulo: 'Olla',
+      premio: 'Olla arrocera',
+      precio_boleto: 5,
+      numero_min: 1,
+      numero_max: 50,
+      estado: 'DRAWN',
+      cierre_ventas: null,
+      fecha_sorteo: null,
+      resolucion_autorizacion: null,
+      boletos_vendidos: 2,
+      boletos_reservados: 0,
+      boletos_disponibles: 48,
+      sorteo_rechazado: null,
+      sorteo_en_vivo: false,
+      sesion_en_vivo: null,
+      ganadores: [
+        { posicion: 1, titulo_premio: 'Olla arrocera', estado: 'WON', numero_ganador: 7, alias_comprador: 'Juan Perez' },
+        { posicion: 2, titulo_premio: 'Licuadora', estado: 'VOID', numero_ganador: null, alias_comprador: null },
+      ],
+    });
+
+    const detail = await result;
+    expect(detail.liveDrawInProgress).toBe(false);
+    expect(detail.liveSession).toBeNull();
+    expect(detail.winners).toEqual([
+      { position: 1, prizeTitle: 'Olla arrocera', status: 'WON', winningNumber: 7, buyerAlias: 'Juan Perez' },
+      { position: 2, prizeTitle: 'Licuadora', status: 'VOID', winningNumber: null, buyerAlias: null },
+    ]);
   });
 
   it('cancels altered raffle via POST /admin/rifas/:id/cancelar-lista-alterada', async () => {

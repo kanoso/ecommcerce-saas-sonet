@@ -34,6 +34,14 @@ export class RafflesApi {
     );
   }
 
+  /** Sales closed, result not shown yet: live draws in progress first (DT-23). */
+  listPendingDraw(): Observable<RaffleSummary[]> {
+    return this.http.get<RaffleSummaryDto[]>(`${this.baseUrl}/rifas/por-sortear`).pipe(
+      map((list) => list.map(toRaffleSummary)),
+      catchError(rethrowAsApiError),
+    );
+  }
+
   /** The raffle and one page of its grid (`pagina` from 1, `tamano` 1 to 200). */
   detail(raffleId: string, page: number, pageSize: number): Observable<RaffleDetail> {
     return this.http

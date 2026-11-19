@@ -4,10 +4,13 @@ import { RaffleSummary } from '../../core/api/api.models';
 import { RaffleCard } from './raffle-card';
 import { aRaffle } from './testing/raffle.fixture';
 
-function render(raffle: RaffleSummary): HTMLElement {
+function render(raffle: RaffleSummary, now?: Date): HTMLElement {
   TestBed.configureTestingModule({ imports: [RaffleCard], providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(RaffleCard);
   fixture.componentRef.setInput('raffle', raffle);
+  if (now) {
+    fixture.componentRef.setInput('now', now);
+  }
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }
@@ -72,5 +75,68 @@ describe('RaffleCard', () => {
     const link = render(aRaffle({ id: 'r-9' })).querySelector('a');
     expect(link?.getAttribute('href')).toBe('/rifas/r-9');
     expect(link?.textContent).toContain('Elegir números');
+  });
+
+  describe('prizes and visible status (DT-23)', () => {
+    const prizes = [
+      { position: 1, title: 'Olla arrocera', description: null, images: [] },
+      { position: 2, title: 'Licuadora', description: null, images: [] },
+      { position: 3, title: 'Tostadora', description: null, images: [] },
+    ];
+    const drawAt = new Date('2026-11-21T23:00:00Z');
+    const badge = (el: HTMLElement) => el.querySelector('[data-visible-status]');
+
+    it('names the first prize and how many more there are', () => {
+      expect(text(render(aRaffle({ prizes })))).toContain('Olla arrocera + 2 premios más');
+      TestBed.resetTestingModule();
+      expect(text(render(aRaffle({ prizes: prizes.slice(0, 2) })))).toContain('Olla arrocera + 1 premio más');
+    });
+
+    it('badges a raffle on sale', () => {
+      expect(badge(render(aRaffle()))?.textContent).toContain('En venta');
+    });
+
+    it('badges a closed raffle with its draw date and links to the live draw', () => {
+      const el = render(aRaffle({ status: 'CLOSED', drawAt }), new Date('2026-11-21T20:00:00Z'));
+      expect(badge(el)?.textContent).toContain('Ventas cerradas · Sorteo el');
+      expect(el.querySelector('a[href="/rifas/11111111-1111-4111-8111-111111111111/en-vivo"]')).not.toBeNull();
+    });
+
+    it('badges a pending draw', () => {
+      const el = render(aRaffle({ status: 'CLOSED', drawAt }), new Date('2026-11-22T00:00:00Z'));
+      expect(badge(el)?.getAttribute('data-visible-status')).toBe('DRAW_PENDING');
+      expect(badge(el)?.textContent).toContain('Sorteo pendiente');
+    });
+
+    it('badges a live draw and invites to watch it, without winners', () => {
+      const el = render(aRaffle({ status: 'DRAWN', drawAt, liveDrawInProgress: true }));
+      expect(badge(el)?.textContent).toContain('Sorteando en vivo');
+      expect(text(el)).toContain('Ver sorteo en vivo');
+      expect(el.querySelector('.card__winners')).toBeNull();
+    });
+
+    it('lists the winner of every prize of a drawn raffle', () => {
+      const el = render(
+        aRaffle({
+          status: 'DRAWN',
+          prizes: prizes.slice(0, 2),
+          winners: [
+            { position: 1, prizeTitle: 'Olla arrocera', status: 'WON', winningNumber: 7 },
+            { position: 2, prizeTitle: 'Licuadora', status: 'VOID', winningNumber: null },
+          ],
+        }),
+      );
+      expect(badge(el)?.textContent).toContain('Sorteada');
+      const rows = [...el.querySelectorAll('.card__winners li')].map((li) => text(li as HTMLElement));
+      expect(rows[0]).toContain('Olla arrocera');
+      expect(rows[0]).toContain('#0007');
+      expect(rows[1]).toContain('Licuadora');
+      expect(rows[1]).toContain('Desierto');
+      expect(text(el)).toContain('Verificación');
+    });
+
+    it('badges a cancelled raffle', () => {
+      expect(badge(render(aRaffle({ status: 'CANCELLED' })))?.textContent).toContain('Cancelada');
+    });
   });
 });

@@ -28,14 +28,35 @@
       </a>
     </div>
   } @else {
+    <div class="raffles-filter">
+      <label class="raffles-filter__label" for="raffles-status-filter">Estado</label>
+      <select
+        id="raffles-status-filter"
+        class="raffles-filter__select"
+        aria-label="Filtrar por estado"
+        [value]="statusFilter()"
+        (change)="onFilterChange($any($event.target).value)"
+      >
+        <option value="">Todas</option>
+        @for (option of filters; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+    @if (visibleRows().length === 0) {
+      <div class="state-box state-box--empty">
+        <p>No hay rifas con este estado.</p>
+      </div>
+    }
     <ul class="raffles-list" aria-label="Lista de rifas">
-      @for (raffle of raffles(); track raffle.id) {
+      @for (row of visibleRows(); track row.raffle.id) {
+        @let raffle = row.raffle;
         <li class="raffle-item">
           <div class="raffle-item__main">
             <div class="raffle-item__header">
               <h2 class="raffle-item__title">{{ raffle.title }}</h2>
-              <span class="status-badge" [attr.data-status]="raffle.status">
-                {{ statusLabel(raffle.status) }}
+              <span class="status-badge" [attr.data-status]="raffle.status" [attr.data-visible-status]="row.status">
+                {{ row.label }}
               </span>
             </div>
             <p class="raffle-item__prize"><strong>Premio:</strong> {{ raffle.prize }}</p>
@@ -48,6 +69,11 @@
             </div>
           </div>
           <div class="raffle-item__actions">
+            @if (row.canGoLive) {
+              <a [routerLink]="['/rifas', raffle.id, 'en-vivo']" class="raffle-item__live-btn">
+                {{ row.status === 'LIVE' ? '🔴' : '🎥' }} Ir al sorteo en vivo
+              </a>
+            }
             @if (raffle.status !== 'DRAFT') {
               <a [routerLink]="['/rifas', raffle.id]" target="_blank" rel="noopener noreferrer" class="raffle-item__public-btn" title="Ver página pública de la rifa">
                 👁️ Ver pública ↗

@@ -11,11 +11,24 @@
     type="button"
     role="tab"
     class="tab-btn"
-    [class.tab-btn--active]="activeTab() === 'activas'"
-    [attr.aria-selected]="activeTab() === 'activas'"
-    (click)="activeTab.set('activas')"
+    [class.tab-btn--active]="activeTab() === 'en-venta'"
+    [attr.aria-selected]="activeTab() === 'en-venta'"
+    (click)="activeTab.set('en-venta')"
   >
-    Rifas Activas ({{ store.raffles().length }})
+    En venta ({{ store.raffles().length }})
+  </button>
+  <button
+    type="button"
+    role="tab"
+    class="tab-btn"
+    [class.tab-btn--active]="activeTab() === 'por-sortear'"
+    [attr.aria-selected]="activeTab() === 'por-sortear'"
+    (click)="activeTab.set('por-sortear')"
+  >
+    Por sortear ({{ store.pendingRaffles().length }})
+    @if (store.liveCount() > 0) {
+      <span class="tab-btn__live" aria-label="Sorteos en vivo ahora"></span>
+    }
   </button>
   <button
     type="button"
@@ -25,7 +38,7 @@
     [attr.aria-selected]="activeTab() === 'finalizadas'"
     (click)="activeTab.set('finalizadas')"
   >
-    Sorteos Realizados ({{ store.finishedRaffles().length }})
+    Finalizadas ({{ store.finishedRaffles().length }})
   </button>
 </div>
 
@@ -40,25 +53,39 @@
       </div>
     }
     @case ('ready') {
-      @if (activeTab() === 'activas') {
-        @if (store.isEmpty()) {
-          <p class="state">No hay rifas activas por ahora. Vuelve pronto.</p>
-        } @else {
-          <ul class="catalog__list">
-            @for (raffle of store.raffles(); track raffle.id) {
-              <li><app-raffle-card [raffle]="raffle" /></li>
-            }
-          </ul>
+      @switch (activeTab()) {
+        @case ('en-venta') {
+          @if (store.isEmpty()) {
+            <p class="state">No hay rifas activas por ahora. Vuelve pronto.</p>
+          } @else {
+            <ul class="catalog__list">
+              @for (raffle of store.raffles(); track raffle.id) {
+                <li><app-raffle-card [raffle]="raffle" /></li>
+              }
+            </ul>
+          }
         }
-      } @else {
-        @if (store.finishedRaffles().length === 0) {
-          <p class="state">Aún no hay sorteos finalizados para mostrar.</p>
-        } @else {
-          <ul class="catalog__list">
-            @for (raffle of store.finishedRaffles(); track raffle.id) {
-              <li><app-raffle-card [raffle]="raffle" /></li>
-            }
-          </ul>
+        @case ('por-sortear') {
+          @if (store.pendingRaffles().length === 0) {
+            <p class="state">No hay rifas por sortear en este momento.</p>
+          } @else {
+            <ul class="catalog__list">
+              @for (raffle of store.pendingRaffles(); track raffle.id) {
+                <li><app-raffle-card [raffle]="raffle" /></li>
+              }
+            </ul>
+          }
+        }
+        @default {
+          @if (store.finishedRaffles().length === 0) {
+            <p class="state">Aún no hay sorteos finalizados para mostrar.</p>
+          } @else {
+            <ul class="catalog__list">
+              @for (raffle of store.finishedRaffles(); track raffle.id) {
+                <li><app-raffle-card [raffle]="raffle" /></li>
+              }
+            </ul>
+          }
         }
       }
     }

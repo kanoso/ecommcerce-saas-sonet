@@ -276,7 +276,7 @@ export class AdminController {
 
   @Get('rifas')
   async listRaffles() {
-    return (await this.queries.allRaffles()).map(present.raffleSummary);
+    return (await this.queries.allRaffles()).map(present.adminRaffleSummary);
   }
 
 

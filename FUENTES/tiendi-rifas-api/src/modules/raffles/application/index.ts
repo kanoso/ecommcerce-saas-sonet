@@ -32,3 +32,4 @@ export * from './use-cases/sell-in-person.use-case';
 export * from './use-cases/update-draft-raffle.use-case';
 export * from './use-cases/delete-draft-raffle.use-case';
 export * from './use-cases/change-winner-exclusion-mode.use-case';
+export * from './use-cases/live-draw.use-case';

@@ -64,7 +64,9 @@
           }
         </ol>
         @if (betweenPrizes()) {
-          <p class="prize-panel__next">Siguiente premio en breve…</p>
+          <p class="prize-panel__next">
+            {{ canControl() ? 'Premio resuelto. Lanza el siguiente premio cuando estés listo.' : 'Siguiente premio en breve…' }}
+          </p>
         }
       </section>
     }
@@ -94,10 +96,16 @@
           <div class="state-card">
             <span class="presenter-badge">🎥 SORTEO MANUAL EN VIVO</span>
             <span class="state-subtitle">Esperando inicio del sorteo en vivo</span>
-            <p class="state-description">
-              Este sorteo es en modalidad Manual en Vivo. El administrador iniciará la extracción de boletos en breve. Esta pantalla se actualizará automáticamente apenas comience.
-            </p>
-            <div class="spinner" aria-hidden="true"></div>
+            @if (canControl()) {
+              <p class="state-description">
+                Al presionar «Iniciar sorteo» se registra el resultado oficial con la semilla y la ronda drand comprometidas, y el público lo verá paso a paso, al ritmo de tus clics.
+              </p>
+            } @else {
+              <p class="state-description">
+                Este sorteo es en modalidad Manual en Vivo. El administrador iniciará la extracción de boletos en breve. Esta pantalla se actualizará automáticamente apenas comience.
+              </p>
+              <div class="spinner" aria-hidden="true"></div>
+            }
           </div>
         }
 
@@ -142,16 +150,9 @@
                 <span class="presenter-badge">🎥 MODO TRANSMISIÓN EN VIVO (PASO A PASO)</span>
                 <h2 class="presenter-title">Sorteo verificado y listo para iniciar</h2>
                 <p class="presenter-desc">
-                  La ronda drand #{{ data()?.drandRound }} y los {{ data()?.soldNumbers?.length || 0 }} boletos participantes están listos. Presiona Play cuando estés al aire.
+                  La ronda drand #{{ data()?.drandRound }} y los {{ data()?.soldNumbers?.length || 0 }} boletos participantes están listos.
+                  {{ canControl() ? 'Usa los controles del presentador cuando estés al aire.' : 'El presentador lanzará el siguiente intento en breve.' }}
                 </p>
-                <div class="presenter-actions">
-                  <button type="button" class="btn-presenter-play" (click)="triggerNextStep()">
-                    ▶ Iniciar Sorteo — {{ winningAttempt() > 1 ? 'Lanzar Intento #1 de ' + winningAttempt() : '¡Extraer Boleto Ganador!' }}
-                  </button>
-                  <button type="button" class="btn-presenter-auto" (click)="switchToAutoPlay()">
-                    ⚡ Reproducir en automático sin pausas
-                  </button>
-                </div>
               </div>
             } @else if (betweenAttempts()) {
               <div class="al-agua-banner">
@@ -160,13 +161,8 @@
                 <span class="al-agua-buyer">👤 {{ buyerNameFor(spunNumber()) || 'Participante verificado' }}</span>
                 @if (waitingForAdminClick()) {
                   <span class="al-agua-note">
-                    Sorteo en pausa para la transmisión. Haz clic para lanzar el siguiente intento.
+                    {{ canControl() ? 'Sorteo en pausa para la transmisión. Lanza el siguiente intento cuando estés listo.' : 'Sorteo en pausa. El presentador lanzará el siguiente intento en breve.' }}
                   </span>
-                  <div class="presenter-actions">
-                    <button type="button" class="btn-presenter-play" (click)="triggerNextStep()">
-                      ▶ Lanzar Intento #{{ currentAttemptIndex() + 2 }} de {{ winningAttempt() }} {{ (currentAttemptIndex() + 2) === winningAttempt() ? '(¡Por el Premio!)' : '(Al agua)' }}
-                    </button>
-                  </div>
                 } @else {
                   <span class="al-agua-note">Este número no gana. Preparando siguiente intento…</span>
                 }
@@ -356,16 +352,18 @@
               </div>
             }
 
-            <div class="replay-actions">
-              <button type="button" class="btn-replay" (click)="replayAuto()">
-                🔄 Repetir sorteo en vivo
-              </button>
-              @if (isAdmin()) {
-                <button type="button" class="btn-replay btn-replay--manual" (click)="replayManual()">
-                  🎥 Repetir paso a paso (Modo Transmisión)
+            @if (replayAllowed()) {
+              <div class="replay-actions">
+                <button type="button" class="btn-replay" (click)="replayAuto()">
+                  🔄 Repetir sorteo en vivo
                 </button>
-              }
-            </div>
+                @if (isAdmin()) {
+                  <button type="button" class="btn-replay btn-replay--manual" (click)="replayManual()">
+                    🎥 Repetir paso a paso (Modo Transmisión)
+                  </button>
+                }
+              </div>
+            }
 
             <!-- Multi-attempt extraction sequence audit trail -->
             @if (completedExtractions().length > 1) {
@@ -394,6 +392,47 @@
         }
       }
     </section>
+
+    <!-- Presenter controls (DT-23): each click asks the server to reveal the next step -->
+    @if (showControls()) {
+      <section class="live-controls" aria-label="Controles del presentador">
+        <span class="presenter-badge">🎥 CONTROLES DEL PRESENTADOR</span>
+        @if (controlError(); as message) {
+          <p class="live-controls__error" role="alert">{{ message }}</p>
+        }
+        <div class="presenter-actions">
+          <button
+            type="button"
+            class="btn-presenter-play"
+            [disabled]="!canAdvance()"
+            (click)="triggerNextStep()"
+          >
+            {{ controlBusy() ? 'Enviando…' : nextStepLabel() }}
+          </button>
+          <button
+            type="button"
+            class="btn-presenter-auto"
+            [disabled]="!canAdvance() || autoPlay()"
+            (click)="switchToAutoPlay()"
+          >
+            ⚡ Reproducir en automático
+          </button>
+          @if (paced() && liveSession()) {
+            <button
+              type="button"
+              class="btn-presenter-finish"
+              [disabled]="controlBusy()"
+              (click)="finishLive()"
+            >
+              ⏭ Revelar todo y finalizar
+            </button>
+          }
+        </div>
+        @if (paced() && liveSession(); as session) {
+          <p class="live-controls__step">Paso {{ session.step }} de {{ session.totalSteps }} revelado al público</p>
+        }
+      </section>
+    }
 
     <!-- Interactive Live Raffle Board (matching Prototypes 1..5) -->
     @if (showLiveBoard()) {

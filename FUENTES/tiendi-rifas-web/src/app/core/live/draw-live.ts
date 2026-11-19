@@ -15,11 +15,17 @@ import {
   timeOfRound,
   verifyCommitment,
 } from '@kanoso/raffle-draw';
-import { firstValueFrom, fromEvent } from 'rxjs';
+import { Observable, firstValueFrom, fromEvent } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AdminApi } from '../api/admin-api';
 import { toApiError } from '../api/api-error';
-import { DrawEffect, LiveRaffleData, OfficialResult, RafflePrize } from '../api/api.models';
+import {
+  DrawEffect,
+  LiveDrawSession,
+  LiveRaffleData,
+  OfficialResult,
+  RafflePrize,
+} from '../api/api.models';
 import { RafflesApi } from '../api/raffles-api';
 import { SessionStore } from '../session/session.store';
 import { isAbortError } from '../drand/abort';
@@ -102,6 +108,38 @@ function formatCountdown(sec: number): string {
 
 /** Several prizes: drawn one by one with computeMultiPrizeWinners (v2). */
 const hasSeveralPrizes = (data: LiveRaffleData | null): boolean => (data?.prizes?.length ?? 1) > 1;
+
+/**
+ * One prize of a server-paced show (DT-23): its local result, the sequence
+ * the animation plays, and the tickets that leave the pool after it.
+ */
+interface ShowPrize {
+  won: boolean;
+  sequence: ComputeWinnerSequenceOutput | null;
+  /** Multi-prize only: what completedPrizes lists. */
+  result: PrizeDrawResult | null;
+  excludedTickets: number[];
+}
+
+/**
+ * One step of the show, the same rule as the API: an extraction of a won
+ * prize (attemptIndex from 0), or the reveal of a void prize (null).
+ */
+interface ShowStep {
+  prizeIndex: number;
+  attemptIndex: number | null;
+}
+
+function stepsOf(prizes: ShowPrize[]): ShowStep[] {
+  return prizes.flatMap((prize, prizeIndex): ShowStep[] =>
+    prize.won && prize.sequence
+      ? Array.from({ length: Math.max(1, prize.sequence.extractions.length) }, (_, attemptIndex) => ({
+          prizeIndex,
+          attemptIndex,
+        }))
+      : [{ prizeIndex, attemptIndex: null }],
+  );
+}
 
 /** One prize's draw in the shape the single-prize animation plays. */
 function sequenceOf(prize: PrizeDrawResult, winningAttempt: number): ComputeWinnerSequenceOutput {
@@ -221,7 +259,67 @@ export class DrawLive {
   private spinTimer: ReturnType<typeof setInterval> | null = null;
   private officialPollTimer: ReturnType<typeof setInterval> | null = null;
   private pauseTimer: ReturnType<typeof setTimeout> | null = null;
+  private livePollTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoTimer: ReturnType<typeof setTimeout> | null = null;
   private nextStepResolver: (() => void) | null = null;
+
+  // Server-paced live draw of a MANUAL raffle (DT-23).
+  private showPrizes: ShowPrize[] = [];
+  private showSteps: ShowStep[] = [];
+  private syncing = false;
+  /** The show follows the server's live session instead of a local timer. */
+  readonly paced = signal<boolean>(false);
+  readonly liveSession = signal<LiveDrawSession | null>(null);
+  /** Steps shown on this screen; catches up with liveSession().step. */
+  readonly shownStep = signal<number>(0);
+  readonly showReady = signal<boolean>(false);
+  readonly controlBusy = signal<boolean>(false);
+  readonly controlError = signal<string | null>(null);
+  readonly autoPlay = signal<boolean>(false);
+  private readonly admin = signal<boolean>(false);
+  /** Who may drive the show: the operator of a paced draw, or a local step-by-step replay. */
+  readonly canControl = computed(() => (this.paced() && this.admin()) || this.manualStepMode());
+  /** The next click can go: nothing in flight, nothing animating. */
+  readonly canAdvance = computed(() => {
+    if (!this.paced()) {
+      return this.manualStepMode() && this.waitingForAdminClick();
+    }
+    if (!this.admin() || this.controlBusy()) {
+      return false;
+    }
+    const session = this.liveSession();
+    if (!session) {
+      return this.phase() === 'waiting-manual-draw';
+    }
+    return (
+      this.showReady() &&
+      session.finishedAt === null &&
+      this.waitingForAdminClick() &&
+      this.shownStep() === session.step
+    );
+  });
+  /** The operator's next button: start, next attempt, or next prize. */
+  readonly nextStepLabel = computed(() => {
+    if (this.paced() && !this.liveSession()) {
+      return '▶ Iniciar sorteo';
+    }
+    const attempts = this.data()?.winningAttempt ?? 1;
+    let prizeIndex = this.currentPrizeIndex();
+    let attempt = 1;
+    if (this.betweenPrizes()) {
+      prizeIndex += 1;
+    } else if (this.betweenAttempts()) {
+      attempt = this.currentAttemptIndex() + 2;
+    }
+    const prize = this.data()?.prizes?.[prizeIndex];
+    if (prizeIndex > 0 && attempt === 1 && prize) {
+      return `▶ Sortear Premio ${prize.position} — ${prize.title}`;
+    }
+    if (attempts > 1) {
+      return `▶ Lanzar intento #${attempt} de ${attempts}`;
+    }
+    return '▶ Extraer boleto ganador';
+  });
 
   readonly manualStepMode = signal<boolean>(false);
   readonly waitingForAdminClick = signal<boolean>(false);
@@ -302,6 +400,12 @@ export class DrawLive {
       clearTimeout(this.pauseTimer);
       this.pauseTimer = null;
     }
+    this.clearLivePoll();
+    if (this.autoTimer) {
+      clearTimeout(this.autoTimer);
+      this.autoTimer = null;
+    }
+    this.autoPlay.set(false);
     this.waitingForAdminClick.set(false);
     this.nextStepResolver = null;
   }
@@ -355,6 +459,15 @@ export class DrawLive {
     this.currentPrizeIndex.set(0);
     this.completedPrizes.set([]);
     this.betweenPrizes.set(false);
+    this.paced.set(false);
+    this.liveSession.set(null);
+    this.shownStep.set(0);
+    this.showReady.set(false);
+    this.controlBusy.set(false);
+    this.controlError.set(null);
+    this.showPrizes = [];
+    this.showSteps = [];
+    this.syncing = false;
     this.resetEffectsState();
   }
 
@@ -417,10 +530,10 @@ export class DrawLive {
 
     if (currentRun !== this.runId) return;
     this.data.set(liveData);
-    const isAdmin = this.isAdminUser();
-    if (liveData.drawMode === 'MANUAL') {
-      this.manualStepMode.set(isAdmin && liveData.status !== 'DRAWN');
-    }
+    this.admin.set(this.isAdminUser());
+    // The operator drives a MANUAL draw from the server (DT-23): local step
+    // mode is only for replays (and the callers that ask for it).
+    this.liveSession.set(liveData.liveSession ?? null);
 
     if (liveData.status === 'CANCELLED') {
       this.phase.set('cancelled');
@@ -560,6 +673,9 @@ export class DrawLive {
     const seqResult = this.localSequence();
     const data = this.data();
     const winners = this.localWinners();
+    // A replay is local: the live session, if any, is over.
+    this.paced.set(false);
+    this.clearLivePoll();
     if (winners && data?.soldNumbers) {
       this.stopAnimationTimers();
       this.manualStepMode.set(manual);
@@ -646,71 +762,20 @@ export class DrawLive {
     }
   }
 
-  private pollUntilManualDrawCompleted(raffleId: string, runId: number): void {
-    if (this.officialPollTimer) {
-      clearInterval(this.officialPollTimer);
-    }
-    this.officialPollTimer = setInterval(async () => {
-      if (runId !== this.runId) {
-        clearInterval(this.officialPollTimer!);
-        return;
-      }
-      try {
-        const freshData = await firstValueFrom(
-          this.api.live(raffleId).pipe(takeUntil(fromEvent(this.controller!.signal, 'abort'))),
-        );
-        if (runId === this.runId && (freshData.status === 'DRAWN' || freshData.result)) {
-          clearInterval(this.officialPollTimer!);
-          this.officialPollTimer = null;
-          this.data.set(freshData);
-          this.manualStepMode.set(false);
-          await this.startDrawFlow(freshData, runId);
-        }
-      } catch {
-        // Keep polling while page is mounted
-      }
-    }, 3000);
-  }
-
-  private async triggerBackendManualDraw(
-    data: LiveRaffleData,
-    localWinner: number | null,
-    runId: number,
-  ): Promise<void> {
-    if (data.status === 'DRAWN' || data.result || !this.isAdminUser()) {
-      this.checkOfficialResult(this.data() ?? data, localWinner);
-      return;
-    }
-    try {
-      const adminApi = this.injector.get(AdminApi, null);
-      if (adminApi) {
-        const drawRes = await firstValueFrom(adminApi.executeDraw(data.raffleId));
-        // A multi-prize draw is compared prize by prize, from the live data.
-        if (runId === this.runId && drawRes && !hasSeveralPrizes(data)) {
-          this.evaluateOfficialResult(drawRes.winningNumber, localWinner);
-          return;
-        }
-      }
-    } catch {
-      // Fall back to polling official result
-    }
-    if (runId === this.runId) {
-      this.checkOfficialResult(this.data() ?? data, localWinner);
-    }
-  }
-
   private async startDrawFlow(data: LiveRaffleData, runId: number): Promise<void> {
     if (runId !== this.runId) return;
 
-    if (
-      data.drawMode === 'MANUAL' &&
-      data.status !== 'DRAWN' &&
-      !this.isAdminUser() &&
-      !this.manualStepMode()
-    ) {
-      this.phase.set('waiting-manual-draw');
-      this.pollUntilManualDrawCompleted(data.raffleId, runId);
-      return;
+    // DT-23: a MANUAL draw is shown at the pace of its live session. Before
+    // the operator starts it, everyone waits; a draw recorded without a
+    // session (before DT-23) plays locally as an AUTOMATIC one.
+    if (data.drawMode === 'MANUAL' && (data.liveSession || data.status !== 'DRAWN')) {
+      this.paced.set(true);
+      this.liveSession.set(data.liveSession ?? null);
+      if (!data.liveSession) {
+        this.phase.set('waiting-manual-draw');
+        this.scheduleLivePoll(data.raffleId, runId);
+        return;
+      }
     }
 
     this.phase.set('polling');
@@ -772,6 +837,15 @@ export class DrawLive {
     });
     this.checks.update((c) => ({ ...c, winner: 'passed' }));
 
+    if (this.paced()) {
+      this.startPacedShow(
+        [{ won: true, sequence: seqResult, result: null, excludedTickets: [seqResult.winningTicket] }],
+        data,
+        runId,
+      );
+      return;
+    }
+
     // Compare with official result immediately if already drawn or automatic
     if (!this.manualStepMode() || data.status === 'DRAWN' || data.result) {
       this.checkOfficialResult(data, seqResult.winningTicket);
@@ -828,6 +902,21 @@ export class DrawLive {
     if (runId !== this.runId) return;
     this.localWinners.set(winners);
     this.checks.update((c) => ({ ...c, winner: 'passed' }));
+
+    if (this.paced()) {
+      const winningAttempt = data.winningAttempt ?? 1;
+      this.startPacedShow(
+        winners.prizes.map((prize) => ({
+          won: prize.status === 'WON',
+          sequence: prize.status === 'WON' ? sequenceOf(prize, winningAttempt) : null,
+          result: prize,
+          excludedTickets: prize.status === 'WON' ? prize.excludedTickets : [],
+        })),
+        data,
+        runId,
+      );
+      return;
+    }
 
     if (!this.manualStepMode() || data.status === 'DRAWN' || data.result) {
       this.checkOfficialResult(data, null);
@@ -906,8 +995,6 @@ export class DrawLive {
         );
         if (runId !== this.runId) return;
         prize.excludedTickets.forEach((n) => excluded.add(n));
-      } else if (i === lastIndex) {
-        this.triggerManualDrawIfDue(runId);
       }
       this.completedPrizes.update((done) => [...done, prize]);
 
@@ -941,14 +1028,6 @@ export class DrawLive {
         resolve();
       }, ms);
     });
-  }
-
-  /** In a manual draw the operator's browser asks the API to draw at the final reveal. */
-  private triggerManualDrawIfDue(runId: number): void {
-    const curData = this.data();
-    if (curData && curData.drawMode === 'MANUAL' && curData.status !== 'DRAWN' && this.isAdminUser()) {
-      void this.triggerBackendManualDraw(curData, this.localResult()?.winner ?? null, runId);
-    }
   }
 
   private resolveAttemptPauseMs(): number {
@@ -1001,9 +1080,6 @@ export class DrawLive {
       if (runId !== this.runId) return;
       this.currentAttemptIndex.set(i);
       const extraction = seqResult.extractions[i];
-      if (final && i === seqResult.extractions.length - 1) {
-        this.triggerManualDrawIfDue(runId);
-      }
       await this.runSpinAnimation(soldNumbers, extraction.number, runId, durationMs);
       if (runId !== this.runId) return;
       this.completedExtractions.update((prev) => [...prev, extraction]);
@@ -1028,6 +1104,359 @@ export class DrawLive {
     this.applyFinalEffectsState(seqResult.winningTicket);
     if (final) {
       this.phase.set('result');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Server-paced live draw (DT-23). The official draw is recorded when the
+  // operator starts the session; the session only says how many steps are
+  // shown. Every screen, the operator's included, catches up with it.
+  // ---------------------------------------------------------------------------
+
+  private get livePollMs(): number {
+    return Math.max(0, this.timing.pollIntervalMs);
+  }
+
+  private clearLivePoll(): void {
+    if (this.livePollTimer) {
+      clearTimeout(this.livePollTimer);
+      this.livePollTimer = null;
+    }
+  }
+
+  private scheduleLivePoll(raffleId: string, runId: number): void {
+    this.clearLivePoll();
+    if (runId !== this.runId) return;
+    this.livePollTimer = setTimeout(() => {
+      this.livePollTimer = null;
+      void this.pollLiveOnce(raffleId, runId);
+    }, this.livePollMs);
+  }
+
+  private async pollLiveOnce(raffleId: string, runId: number): Promise<void> {
+    if (runId !== this.runId) return;
+    let fresh: LiveRaffleData;
+    try {
+      fresh = await firstValueFrom(
+        this.api.live(raffleId).pipe(takeUntil(fromEvent(this.controller!.signal, 'abort'))),
+      );
+    } catch {
+      // Keep following while the page is open.
+      this.scheduleLivePoll(raffleId, runId);
+      return;
+    }
+    if (runId !== this.runId) return;
+    await this.onLiveData(fresh, runId);
+  }
+
+  /** A newer session only: a late poll never moves the show back. */
+  private acceptSession(next: LiveDrawSession | null): void {
+    const current = this.liveSession();
+    if (!next || (current && next.step < current.step)) {
+      return;
+    }
+    this.liveSession.set(next);
+  }
+
+  private async onLiveData(fresh: LiveRaffleData, runId: number): Promise<void> {
+    if (!this.showReady()) {
+      this.data.set(fresh);
+      if (fresh.status === 'CANCELLED') {
+        this.paced.set(false);
+        this.phase.set('cancelled');
+        return;
+      }
+      if (fresh.liveSession || fresh.status === 'DRAWN') {
+        if (!fresh.liveSession) {
+          this.paced.set(false);
+        }
+        await this.startDrawFlow(fresh, runId);
+        return;
+      }
+      this.scheduleLivePoll(fresh.raffleId, runId);
+      return;
+    }
+    // The result and the session travel together: a finished session means
+    // the result in this snapshot is complete.
+    this.data.update((current) =>
+      current ? { ...current, result: fresh.result, liveSession: fresh.liveSession } : fresh,
+    );
+    this.acceptSession(fresh.liveSession);
+    await this.syncToSession(runId);
+    if (runId !== this.runId) return;
+    if (!this.showFinished()) {
+      this.scheduleLivePoll(fresh.raffleId, runId);
+    }
+  }
+
+  private showFinished(): boolean {
+    const session = this.liveSession();
+    return (
+      this.showReady() &&
+      !!session?.finishedAt &&
+      this.shownStep() >= this.showSteps.length &&
+      this.officialMatch() !== null &&
+      this.officialMatch() !== 'pending'
+    );
+  }
+
+  private startPacedShow(prizes: ShowPrize[], data: LiveRaffleData, runId: number): void {
+    this.showPrizes = prizes;
+    this.showSteps = stepsOf(prizes);
+    this.shownStep.set(0);
+    this.completedExtractions.set([]);
+    this.completedPrizes.set([]);
+    this.betweenAttempts.set(false);
+    this.betweenPrizes.set(false);
+    this.enterPrize(0);
+    this.spunNumber.set('--');
+    this.phase.set('spinning');
+    this.showReady.set(true);
+
+    const session = this.liveSession();
+    if (session?.finishedAt) {
+      // Over before this screen opened: everything at once.
+      for (let i = 0; i < this.showSteps.length; i++) {
+        this.revealStepNow(i);
+      }
+      this.finishShow();
+      return;
+    }
+    void this.syncToSession(runId).then(() => {
+      if (runId === this.runId && !this.showFinished()) {
+        this.scheduleLivePoll(data.raffleId, runId);
+      }
+    });
+  }
+
+  /** Plays the steps the server revealed and this screen did not show yet. */
+  private async syncToSession(runId: number): Promise<void> {
+    if (this.syncing || !this.showReady()) return;
+    this.syncing = true;
+    try {
+      while (runId === this.runId) {
+        const target = Math.min(this.liveSession()?.step ?? 0, this.showSteps.length);
+        const shown = this.shownStep();
+        if (shown >= target) break;
+        this.waitingForAdminClick.set(false);
+        // A late screen shows what it missed at once and plays the last one.
+        for (let i = shown; i < target - 1; i++) {
+          this.revealStepNow(i);
+        }
+        await this.playStep(this.shownStep(), runId);
+      }
+    } finally {
+      this.syncing = false;
+    }
+    if (runId !== this.runId) return;
+    this.afterSync(runId);
+  }
+
+  private afterSync(runId: number): void {
+    if (this.shownStep() >= this.showSteps.length) {
+      this.finishShow();
+      return;
+    }
+    this.waitingForAdminClick.set(true);
+    if (this.autoPlay() && this.admin()) {
+      this.scheduleAutoAdvance(runId);
+    }
+  }
+
+  private finishShow(): void {
+    this.waitingForAdminClick.set(false);
+    this.betweenAttempts.set(false);
+    this.betweenPrizes.set(false);
+    this.autoPlay.set(false);
+    const last = this.showPrizes[this.showPrizes.length - 1];
+    if (this.isMultiPrize() && last && !last.won) {
+      const lastWon = [...this.showPrizes].reverse().find((p) => p.won)?.result ?? null;
+      this.showPrizeResult(lastWon, this.data()?.winningAttempt ?? 1);
+    }
+    this.phase.set('result');
+    const data = this.data();
+    if (data?.liveSession?.finishedAt && data.result) {
+      const result = data.result;
+      this.evaluateOfficial(result, this.localResult()?.winner ?? null);
+    } else {
+      // Until the session ends, the API pages the result: wait for the end.
+      this.officialMatch.set('pending');
+    }
+  }
+
+  /** Sets the stage for a prize: its sequence, an empty trail and a fresh board. */
+  private enterPrize(prizeIndex: number): void {
+    const prize = this.showPrizes[prizeIndex];
+    this.currentPrizeIndex.set(prizeIndex);
+    this.betweenPrizes.set(false);
+    this.betweenAttempts.set(false);
+    this.completedExtractions.set([]);
+    this.currentAttemptIndex.set(0);
+    this.resetEffectsState();
+    if (prize?.sequence) {
+      this.localSequence.set(prize.sequence);
+      this.localResult.set({
+        winner: prize.sequence.winningTicket,
+        index: prize.sequence.winnerIndex,
+        digestHex: prize.sequence.digestHex,
+      });
+    }
+  }
+
+  private poolFor(prizeIndex: number): number[] {
+    const excluded = new Set(
+      this.showPrizes.slice(0, prizeIndex).flatMap((p) => p.excludedTickets),
+    );
+    return (this.data()?.soldNumbers ?? []).filter((n) => !excluded.has(n));
+  }
+
+  private revealStepNow(index: number): void {
+    const step = this.showSteps[index];
+    this.beginStep(step);
+    const extraction = this.extractionOf(step);
+    if (extraction) {
+      this.spunNumber.set(String(extraction.number));
+      this.completedExtractions.update((prev) => [...prev, extraction]);
+    }
+    this.endStep(index);
+  }
+
+  private async playStep(index: number, runId: number): Promise<void> {
+    const step = this.showSteps[index];
+    this.beginStep(step);
+    const extraction = this.extractionOf(step);
+    if (extraction) {
+      const duration = this.timing.prefersReducedMotion() ? 0 : this.resolveSpinDurationMs(this.data());
+      await this.runSpinAnimation(this.poolFor(step.prizeIndex), extraction.number, runId, duration);
+      if (runId !== this.runId) return;
+      this.completedExtractions.update((prev) => [...prev, extraction]);
+    }
+    this.endStep(index);
+  }
+
+  private beginStep(step: ShowStep): void {
+    if (step.attemptIndex === null || step.attemptIndex === 0) {
+      this.enterPrize(step.prizeIndex);
+    } else {
+      this.betweenAttempts.set(false);
+      this.currentAttemptIndex.set(step.attemptIndex);
+    }
+  }
+
+  private extractionOf(step: ShowStep): DrawExtraction | null {
+    if (step.attemptIndex === null) return null;
+    return this.showPrizes[step.prizeIndex]?.sequence?.extractions[step.attemptIndex] ?? null;
+  }
+
+  /** After a step: between attempts, between prizes, or the prize resolved. */
+  private endStep(index: number): void {
+    const step = this.showSteps[index];
+    const prize = this.showPrizes[step.prizeIndex];
+    this.shownStep.set(index + 1);
+    const nextStep = this.showSteps[index + 1];
+    const prizeDone = !nextStep || nextStep.prizeIndex !== step.prizeIndex;
+    if (!prizeDone) {
+      this.betweenAttempts.set(true);
+      this.phase.set('spinning');
+      return;
+    }
+    if (prize.won && prize.sequence) {
+      this.applyFinalEffectsState(prize.sequence.winningTicket);
+    }
+    if (prize.result) {
+      this.completedPrizes.update((done) => [...done, prize.result as PrizeDrawResult]);
+    }
+    if (nextStep) {
+      this.betweenAttempts.set(false);
+      this.betweenPrizes.set(true);
+      this.phase.set('result');
+    }
+  }
+
+  // -- The operator's controls (DT-23) ---------------------------------------
+
+  /** Starts the live draw, or reveals the next step; a local replay steps locally. */
+  async controlNext(): Promise<void> {
+    if (!this.paced()) {
+      this.triggerNextStep();
+      return;
+    }
+    if (!this.canAdvance()) return;
+    const session = this.liveSession();
+    await this.callControl((api, raffleId) =>
+      session ? api.advanceLiveDraw(raffleId, session.step) : api.startLiveDraw(raffleId),
+    );
+  }
+
+  /** Plays the rest by advancing the server on a timer; a local replay just runs. */
+  controlAuto(): void {
+    if (!this.paced()) {
+      this.switchToAutoPlay();
+      return;
+    }
+    if (!this.admin()) return;
+    this.autoPlay.set(true);
+    if (this.canAdvance()) {
+      void this.controlNext();
+    }
+  }
+
+  /** Reveals every remaining step at once and ends the show. */
+  async controlFinish(): Promise<void> {
+    if (!this.paced() || !this.admin() || !this.liveSession() || this.controlBusy()) return;
+    this.autoPlay.set(false);
+    await this.callControl((api, raffleId) => api.finishLiveDraw(raffleId));
+  }
+
+  private scheduleAutoAdvance(runId: number): void {
+    if (this.autoTimer) {
+      clearTimeout(this.autoTimer);
+    }
+    this.autoTimer = setTimeout(() => {
+      this.autoTimer = null;
+      if (runId === this.runId && this.autoPlay() && this.canAdvance()) {
+        void this.controlNext();
+      }
+    }, this.resolveAttemptPauseMs());
+  }
+
+  private async callControl(
+    call: (api: AdminApi, raffleId: string) => Observable<LiveDrawSession>,
+  ): Promise<void> {
+    const data = this.data();
+    const api = this.injector.get(AdminApi, null);
+    if (!data || !api) return;
+    const runId = this.runId;
+    const started = this.liveSession() !== null;
+    this.controlBusy.set(true);
+    this.controlError.set(null);
+    try {
+      const next = await firstValueFrom(call(api, data.raffleId));
+      if (runId !== this.runId) return;
+      if (!started) {
+        // The draw is recorded: load the frozen data and the session, then show.
+        this.controlBusy.set(false);
+        await this.pollLiveOnce(data.raffleId, runId);
+        return;
+      }
+      this.acceptSession(next);
+      this.controlBusy.set(false);
+      await this.syncToSession(runId);
+    } catch (err) {
+      if (runId !== this.runId) return;
+      this.controlBusy.set(false);
+      this.autoPlay.set(false);
+      const apiError = toApiError(err);
+      if (apiError.code === 'LIVE_DRAW_STEP_CONFLICT') {
+        // Another click or operator got there first: follow the server.
+        await this.pollLiveOnce(data.raffleId, runId);
+        return;
+      }
+      this.controlError.set(apiError.userMessage || 'No se pudo completar la acción del sorteo en vivo.');
+    } finally {
+      if (runId === this.runId) {
+        this.controlBusy.set(false);
+      }
     }
   }
 

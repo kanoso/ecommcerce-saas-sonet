@@ -13,7 +13,7 @@ import type {
   OperationCollisionUse,
   VerificationDataResponse,
 } from '../../application';
-import { RaffleQueries } from '../../application/queries/raffle-queries';
+import { PrizeWinnerView, RaffleQueries } from '../../application/queries/raffle-queries';
 
 /**
  * The response contract of spec §11: the same snake_case Spanish keys as the
@@ -27,6 +27,7 @@ type OrderView = ReturnType<typeof RaffleQueries.orderView>;
 type Summary = Awaited<ReturnType<Queries['activeRaffles']>>[number];
 type Detail = Awaited<ReturnType<Queries['raffleDetail']>>;
 type AdminDetail = Awaited<ReturnType<Queries['adminRaffleDetail']>>;
+type AdminSummary = Awaited<ReturnType<Queries['allRaffles']>>[number];
 type Live = Awaited<ReturnType<Queries['liveData']>>;
 type MyTicket = Awaited<ReturnType<Queries['ticketsOf']>>[number];
 type Sales = Awaited<ReturnType<Queries['salesReport']>>;
@@ -67,6 +68,45 @@ function winner(w: Omit<DrawWinner, 'id' | 'prizeId' | 'ticketId'> & { prizeTitl
   };
 }
 
+const iso = (at: Date | string | null): string | null =>
+  at instanceof Date ? at.toISOString() : at;
+
+/**
+ * A live draw session (DT-23): paso of total_pasos revealed. finalizada_en
+ * set means everything is shown and the session never moves again.
+ */
+interface LiveDrawSessionView {
+  step: number;
+  totalSteps: number;
+  startedAt: Date | string;
+  updatedAt: Date | string;
+  finishedAt: Date | string | null;
+}
+
+export function liveDrawSessionOf(s: LiveDrawSessionView) {
+  return {
+    paso: s.step,
+    total_pasos: s.totalSteps,
+    iniciada_en: iso(s.startedAt),
+    actualizada_en: iso(s.updatedAt),
+    finalizada_en: iso(s.finishedAt),
+  };
+}
+
+export function liveDrawSession(s: LiveDrawSessionView | null) {
+  return s ? liveDrawSessionOf(s) : null;
+}
+
+/** A prize's public result on a list: the number only, never the buyer. */
+function prizeWinner(w: PrizeWinnerView) {
+  return {
+    posicion: w.position,
+    titulo_premio: w.prizeTitle,
+    estado: w.status,
+    numero_ganador: w.winningNumber,
+  };
+}
+
 export function raffleSummary(r: Summary) {
   return {
     rifa_id: r.id,
@@ -91,6 +131,9 @@ export function raffleSummary(r: Summary) {
     boletos_vendidos: r.ticketsSold,
     boletos_reservados: r.ticketsReserved,
     boletos_disponibles: r.ticketsAvailable,
+    /** A live draw is in progress: ganadores stays empty until it finishes (DT-23). */
+    sorteo_en_vivo: r.liveDrawInProgress ?? false,
+    ganadores: (r.winners ?? []).map(prizeWinner),
   };
 }
 
@@ -99,12 +142,28 @@ export function raffleSummary(r: Summary) {
  * raffle was refused for its configuration, so it can only be cancelled with
  * a full refund (DT-21); null otherwise.
  */
+/** An operator's list row: the summary and the DT-21 refusal of a CLOSED raffle. */
+export function adminRaffleSummary(r: AdminSummary) {
+  return {
+    ...raffleSummary(r),
+    sorteo_rechazado: r.refusedDraw
+      ? { motivo: r.refusedDraw.reason, fecha: r.refusedDraw.at }
+      : null,
+  };
+}
+
 export function adminRaffleDetail(d: AdminDetail) {
   return {
     ...raffleSummary(d),
     sorteo_rechazado: d.refusedDraw
       ? { motivo: d.refusedDraw.reason, fecha: d.refusedDraw.at }
       : null,
+    sesion_en_vivo: liveDrawSession(d.liveSession ?? null),
+    // The operator sees every prize's winner, live session or not.
+    ganadores: (d.adminWinners ?? []).map((w) => ({
+      ...prizeWinner(w),
+      alias_comprador: w.buyerAlias,
+    })),
   };
 }
 
@@ -147,6 +206,11 @@ export function liveData(l: Live) {
     semilla_revelada: l.seedRevealed,
     numeros_vendidos: l.soldNumbers,
     compradores_boletos: l.soldTicketBuyers ?? {},
+    /**
+     * DT-23: the server-paced reveal of a MANUAL draw. While it is in
+     * progress, resultado only lists the prizes whose steps were all shown.
+     */
+    sesion_en_vivo: liveDrawSession(l.liveSession ?? null),
     resultado: l.result
       ? {
           numero_ganador: l.result.winningNumber,

@@ -1441,3 +1441,53 @@
     font-size: 0.875rem;
   }
 }
+
+/* Presenter controls of a server-paced live draw (DT-23). */
+.live-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #0f172a;
+  border: 1px solid #f59e0b;
+  text-align: center;
+
+  .btn-presenter-play,
+  .btn-presenter-auto,
+  .btn-presenter-finish {
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+.live-controls__error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #7f1d1d;
+  color: #fee2e2;
+  font-size: 13px;
+}
+
+.live-controls__step {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.btn-presenter-finish {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #b91c1c;
+  background: transparent;
+  color: #fecaca;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}

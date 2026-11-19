@@ -51,6 +51,18 @@
       <a routerLink="/admin/reembolsos" class="card__action">Procesar reembolsos</a>
     </section>
 
+    <!-- Sorteos pendientes (DT-23) -->
+    <section class="card card--draws">
+      <div class="card__header">
+        <h3 class="card__title">Sorteos pendientes</h3>
+        <span class="card__count" [class.card__count--has-alerts]="pendingDraws() > 0">
+          {{ pendingDraws() }}
+        </span>
+      </div>
+      <p class="card__desc">Rifas con la fecha de sorteo cumplida o con un sorteo en vivo en curso.</p>
+      <a routerLink="/admin/rifas" class="card__action">Ir a las rifas</a>
+    </section>
+
     <!-- Rifas -->
     <section class="card card--rifas">
       <div class="card__header">

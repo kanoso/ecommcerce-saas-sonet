@@ -68,6 +68,33 @@ export class LivePage implements OnInit {
   readonly betweenAttempts = this.service.betweenAttempts;
   readonly winningAttempt = computed(() => this.data()?.winningAttempt ?? 1);
 
+  // Server-paced live draw (DT-23): the operator's clicks drive the server.
+  readonly paced = this.service.paced;
+  readonly liveSession = this.service.liveSession;
+  readonly canControl = this.service.canControl;
+  readonly canAdvance = this.service.canAdvance;
+  readonly nextStepLabel = this.service.nextStepLabel;
+  readonly controlBusy = this.service.controlBusy;
+  readonly controlError = this.service.controlError;
+  readonly autoPlay = this.service.autoPlay;
+  /** The operator's bar: before the start, during the session, or in a local replay. */
+  readonly showControls = computed(() => {
+    if (!this.canControl()) {
+      return false;
+    }
+    if (!this.paced()) {
+      return this.waitingForAdminClick();
+    }
+    const session = this.liveSession();
+    return session
+      ? session.finishedAt === null && this.service.showReady()
+      : this.phase() === 'waiting-manual-draw';
+  });
+  /** Replays are local: never while a prize is pending or the live session runs. */
+  readonly replayAllowed = computed(
+    () => !this.betweenPrizes() && !(this.paced() && this.liveSession()?.finishedAt === null),
+  );
+
   // Multi-prize draws: one prize after another, with a locked exclusion mode.
   readonly isMultiPrize = this.service.isMultiPrize;
   readonly currentPrize = this.service.currentPrize;
@@ -325,11 +352,15 @@ export class LivePage implements OnInit {
   }
 
   triggerNextStep(): void {
-    this.service.triggerNextStep();
+    void this.service.controlNext();
   }
 
   switchToAutoPlay(): void {
-    this.service.switchToAutoPlay();
+    this.service.controlAuto();
+  }
+
+  finishLive(): void {
+    void this.service.controlFinish();
   }
 
   replayAuto(): void {

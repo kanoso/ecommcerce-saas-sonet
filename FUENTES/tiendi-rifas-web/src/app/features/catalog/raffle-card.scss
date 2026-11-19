@@ -195,3 +195,109 @@
   background: #64748b !important;
   color: #fff !important;
 }
+
+/* Visible status badge (DT-23). */
+.card__status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+
+  &[data-visible-status='ON_SALE'] {
+    color: var(--accent);
+  }
+
+  &[data-visible-status='DRAW_PENDING'],
+  &[data-visible-status='SALES_CLOSED'] {
+    background: #fff7ed;
+    border-color: #fdba74;
+    color: #9a3412;
+  }
+
+  &[data-visible-status='LIVE'] {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  &[data-visible-status='DRAWN'] {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #047857;
+  }
+
+  &[data-visible-status='CANCELLED'] {
+    color: var(--muted);
+  }
+}
+
+.card__media:has(.card__status) .card__close {
+  top: auto;
+  bottom: 10px;
+}
+
+.card__live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+  animation: card-live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes card-live-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card__live-dot {
+    animation: none;
+  }
+}
+
+.card__winners {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card__winner {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+
+  &[data-status='VOID'] .card__winner-result {
+    color: var(--muted);
+  }
+}
+
+.card__winner-prize {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__winner-result {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.card__action--muted {
+  opacity: 0.8;
+}

@@ -123,6 +123,7 @@ model Raffle {
   draw        Draw?
   auditEvents AuditEvent[]
   prizes      RafflePrize[]
+  liveDrawSession LiveDrawSession?
 
   @@map("Raffle")
 }
@@ -263,9 +264,27 @@ model Draw {
   extractions      Json?
   executedAt       DateTime   @default(now())
 
-  winners DrawWinner[]
+  winners     DrawWinner[]
+  liveSession LiveDrawSession?
 
   @@map("Draw")
+}
+
+/// The paced reveal of a MANUAL raffle's recorded draw (DT-23). It decides
+/// only WHEN each step is shown, never WHAT was drawn: the Draw exists first.
+/// step only grows (a trigger), up to totalSteps; finishedAt ends it for good.
+model LiveDrawSession {
+  raffleId   String    @id
+  raffle     Raffle    @relation(fields: [raffleId], references: [id], onDelete: Restrict)
+  drawId     String    @unique
+  draw       Draw      @relation(fields: [drawId], references: [id], onDelete: Restrict)
+  step       Int
+  totalSteps Int
+  startedAt  DateTime
+  updatedAt  DateTime
+  finishedAt DateTime?
+
+  @@map("LiveDrawSession")
 }
 
 /// The result of one prize of a draw. Append-only (a trigger).

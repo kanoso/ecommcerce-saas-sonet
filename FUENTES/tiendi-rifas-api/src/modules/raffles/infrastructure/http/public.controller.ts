@@ -24,9 +24,16 @@ export class PublicController {
     return (await this.queries.activeRaffles()).map(present.raffleSummary);
   }
 
+  /** Drawn (no live draw in progress) and cancelled raffles (DT-23). */
   @Get('finalizadas')
   async listFinished() {
     return (await this.queries.finishedRaffles()).map(present.raffleSummary);
+  }
+
+  /** Sales closed, result not shown yet: CLOSED, and live draws in progress first (DT-23). */
+  @Get('por-sortear')
+  async listPendingDraw() {
+    return (await this.queries.pendingDrawRaffles()).map(present.raffleSummary);
   }
 
   /** Cacheable for 3 seconds: the grid changes, but not per request. */
@@ -47,8 +54,9 @@ export class PublicController {
     return present.verification(await this.verification.execute(parseWith(uuidParam, id)));
   }
 
+  /** One second: viewers follow the live draw's step (DT-23). */
   @Get(':id/en-vivo')
-  @Header('Cache-Control', 'public, max-age=3')
+  @Header('Cache-Control', 'public, max-age=1')
   async live(@Param('id') id: string) {
     return present.liveData(await this.queries.liveData(parseWith(uuidParam, id)));
   }

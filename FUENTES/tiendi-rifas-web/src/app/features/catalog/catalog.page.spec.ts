@@ -9,9 +9,13 @@ import { aRaffle } from './testing/raffle.fixture';
 
 describe('CatalogPage', () => {
   let responses: Subject<RaffleSummary[]>[];
+  let pending: Subject<RaffleSummary[]>;
+  let finished: Subject<RaffleSummary[]>;
 
   function render() {
     responses = [];
+    pending = new Subject<RaffleSummary[]>();
+    finished = new Subject<RaffleSummary[]>();
     TestBed.configureTestingModule({
       imports: [CatalogPage],
       providers: [
@@ -24,6 +28,8 @@ describe('CatalogPage', () => {
               responses.push(response);
               return response;
             },
+            listPendingDraw: () => pending,
+            listFinished: () => finished,
           },
         },
       ],
@@ -45,6 +51,41 @@ describe('CatalogPage', () => {
     fixture.detectChanges();
     const titles = [...fixture.nativeElement.querySelectorAll('article h2')].map((h) => h.textContent);
     expect(titles).toEqual(['Moto', 'Canasta']);
+  });
+
+  it('has three tabs: on sale, to be drawn and finished (DT-23)', () => {
+    const fixture = render();
+    responses[0].next([aRaffle({ id: 'a', title: 'Moto' })]);
+    pending.next([aRaffle({ id: 'p', title: 'Olla', status: 'CLOSED' })]);
+    finished.next([
+      aRaffle({ id: 'd', title: 'Licuadora', status: 'DRAWN' }),
+      aRaffle({ id: 'c', title: 'Canasta', status: 'CANCELLED' }),
+    ]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const tabs = [...el.querySelectorAll('[role="tab"]')] as HTMLButtonElement[];
+    const titles = () => [...el.querySelectorAll('article h2')].map((h) => h.textContent);
+
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['En venta (1)', 'Por sortear (1)', 'Finalizadas (2)']);
+    expect(titles()).toEqual(['Moto']);
+
+    tabs[1].click();
+    fixture.detectChanges();
+    expect(titles()).toEqual(['Olla']);
+
+    tabs[2].click();
+    fixture.detectChanges();
+    expect(titles()).toEqual(['Licuadora', 'Canasta']);
+  });
+
+  it('says so when no raffle waits for its draw', () => {
+    const fixture = render();
+    responses[0].next([]);
+    pending.next([]);
+    fixture.detectChanges();
+    ((fixture.nativeElement as HTMLElement).querySelectorAll('[role="tab"]')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('No hay rifas por sortear');
   });
 
   it('says so when there are no active raffles', () => {

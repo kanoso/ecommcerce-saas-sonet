@@ -16,3 +16,4 @@ export * from './clock';
 export * from './notification-outbox';
 export * from './raffle-job-scheduler';
 export * from './payment-account.repository';
+export * from './live-draw-session.repository';

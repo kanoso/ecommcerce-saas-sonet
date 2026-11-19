@@ -1,6 +1,8 @@
 import {
   DrawExtractionDto,
   DrawWinnerDto,
+  LiveDrawSessionDto,
+  PrizeWinnerSummaryDto,
   PrizeDto,
   WinnerExclusionModeDto,
   LiveDataDto,
@@ -25,6 +27,8 @@ import {
 import {
   DrawExtraction,
   DrawWinner,
+  LiveDrawSession,
+  PrizeWinnerSummary,
   RafflePrize,
   WinnerExclusionMode,
   Commitment,
@@ -123,6 +127,28 @@ const toDrawWinner = (w: DrawWinnerDto): DrawWinner => ({
   extractions: (w.extracciones ?? []).map(toExtraction),
 });
 
+/** The live draw session (DT-23); anything missing or malformed is no session. */
+export function toLiveDrawSession(dto: LiveDrawSessionDto | null | undefined): LiveDrawSession | null {
+  if (!dto || typeof dto.paso !== 'number' || typeof dto.total_pasos !== 'number') {
+    return null;
+  }
+  return {
+    step: dto.paso,
+    totalSteps: dto.total_pasos,
+    startedAt: dateOrNull(dto.iniciada_en),
+    updatedAt: dateOrNull(dto.actualizada_en),
+    finishedAt: dateOrNull(dto.finalizada_en),
+  };
+}
+
+const toPrizeWinnerSummary = (w: PrizeWinnerSummaryDto): PrizeWinnerSummary => ({
+  position: w.posicion,
+  prizeTitle: w.titulo_premio,
+  status: w.estado === 'VOID' ? 'VOID' : 'WON',
+  winningNumber: w.numero_ganador,
+  ...(w.alias_comprador !== undefined && { buyerAlias: textOrNull(w.alias_comprador) }),
+});
+
 export function toRaffleSummary(dto: RaffleSummaryDto): RaffleSummary {
   return {
     id: dto.rifa_id,
@@ -152,6 +178,11 @@ export function toRaffleSummary(dto: RaffleSummaryDto): RaffleSummary {
         ? { reason: dto.sorteo_rechazado.motivo, at: dateOrNull(dto.sorteo_rechazado.fecha) }
         : null,
     }),
+    liveDrawInProgress: dto.sorteo_en_vivo === true,
+    winners: Array.isArray(dto.ganadores)
+      ? [...dto.ganadores].sort((a, b) => a.posicion - b.posicion).map(toPrizeWinnerSummary)
+      : [],
+    ...(dto.sesion_en_vivo !== undefined && { liveSession: toLiveDrawSession(dto.sesion_en_vivo) }),
   };
 }
 
@@ -355,6 +386,7 @@ export function toLiveRaffleData(dto: LiveDataDto): LiveRaffleData {
     winnerExclusionMode: toExclusionMode(dto.modo_exclusion_ganador),
     drawConfigHash: dto.hash_configuracion ?? null,
     buyerGroups: Array.isArray(dto.grupos_compradores) ? dto.grupos_compradores : [],
+    liveSession: toLiveDrawSession(dto.sesion_en_vivo),
     numberMax: dto.numero_max ?? (dto.numeros_vendidos?.length ? Math.max(...dto.numeros_vendidos, 30) : 30),
   };
 }
@@ -391,6 +423,22 @@ export function toExecuteDrawResult(dto: ExecuteDrawDto): ExecuteDrawResult {
   return {
     drawId: dto.sorteo_id,
     winningNumber: dto.numero_ganador,
+    winners:
+      Array.isArray(dto.ganadores) && dto.ganadores.length > 0
+        ? [...dto.ganadores]
+            .sort((a, b) => a.posicion - b.posicion)
+            .map((w) => ({
+              position: w.posicion,
+              status: w.estado === 'VOID' ? ('VOID' as const) : ('WON' as const),
+              winningNumber: w.numero_ganador,
+            }))
+        : [
+            {
+              position: 1,
+              status: dto.numero_ganador === null ? ('VOID' as const) : ('WON' as const),
+              winningNumber: dto.numero_ganador,
+            },
+          ],
     drandRound: dto.ronda_drand,
     executedAt: new Date(dto.ejecutado_en),
   };

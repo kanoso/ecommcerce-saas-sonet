@@ -35,6 +35,9 @@ import {
   SetPaymentAccountActiveUseCase,
   SubmitPaymentProofUseCase,
   UpdatePaymentAccountUseCase,
+  StartLiveDrawUseCase,
+  AdvanceLiveDrawUseCase,
+  FinishLiveDrawUseCase,
 } from '../../application';
 import { CancelAlteredRaffleUseCase as CancelAltered } from '../../application/use-cases/cancel-altered-raffle.use-case';
 import { CancelRefusedDrawRaffleUseCase } from '../../application/use-cases/cancel-refused-draw-raffle.use-case';
@@ -44,6 +47,7 @@ import {
   PersistenceModule,
   PrismaAuditLog,
   PrismaDrawRepository,
+  PrismaLiveDrawSessionRepository,
   PrismaOperatorAlertRepository,
   PrismaOrderRepository,
   PrismaPaymentAccountRepository,
@@ -65,6 +69,7 @@ import {
 } from '../wiring';
 import { AdminController } from './admin.controller';
 import { BuyerController } from './buyer.controller';
+import { LiveDrawController } from './live-draw.controller';
 import { PaymentAccountsController } from './payment-accounts.controller';
 import { PublicController } from './public.controller';
 
@@ -73,7 +78,13 @@ const clock = new SystemClock();
 /** The HTTP API of spec §11 (F6). */
 @Module({
   imports: [PersistenceModule, AuthModule],
-  controllers: [PublicController, PaymentAccountsController, BuyerController, AdminController],
+  controllers: [
+    PublicController,
+    PaymentAccountsController,
+    BuyerController,
+    AdminController,
+    LiveDrawController,
+  ],
   providers: [
     // The server clock: hora_servidor in the order a buyer reads.
     { provide: SystemClock, useValue: clock },
@@ -90,8 +101,9 @@ const clock = new SystemClock();
         PrismaOrderRepository,
         PrismaDrawRepository,
         PrismaAuditLog,
+        PrismaLiveDrawSessionRepository,
       ],
-      useFactory: (r, t, o, d, a) => new RaffleQueries(r, t, o, d, a),
+      useFactory: (r, t, o, d, a, s) => new RaffleQueries(r, t, o, d, a, s),
     },
     {
       provide: ReserveTicketsUseCase,
@@ -137,6 +149,22 @@ const clock = new SystemClock();
       inject: [PrismaRaffleRepository, PrismaTicketRepository, PrismaTicketLedger, PrismaDrawRepository, ConfigService],
       useFactory: (r, t, l, d, config: Env) =>
         new ExecuteDrawUseCase(r, t, l, beaconFrom(config), clock, d),
+    },
+    // Live draw sessions (DT-23): the start records the draw with ExecuteDrawUseCase.
+    {
+      provide: StartLiveDrawUseCase,
+      inject: [PrismaRaffleRepository, ExecuteDrawUseCase, PrismaLiveDrawSessionRepository, PrismaAuditLog],
+      useFactory: (r, d, s, a) => new StartLiveDrawUseCase(r, d, s, a, clock),
+    },
+    {
+      provide: AdvanceLiveDrawUseCase,
+      inject: [PrismaLiveDrawSessionRepository, PrismaAuditLog],
+      useFactory: (s, a) => new AdvanceLiveDrawUseCase(s, a, clock),
+    },
+    {
+      provide: FinishLiveDrawUseCase,
+      inject: [PrismaLiveDrawSessionRepository, PrismaAuditLog],
+      useFactory: (s, a) => new FinishLiveDrawUseCase(s, a, clock),
     },
     {
       provide: GetVerificationDataUseCase,

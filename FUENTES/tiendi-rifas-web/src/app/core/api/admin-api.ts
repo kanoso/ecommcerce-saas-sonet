@@ -21,6 +21,7 @@ import {
   DismissLatePaymentRequestDto,
   ExecuteDrawDto,
   InPersonSaleDto,
+  LiveDrawSessionResponseDto,
   OperationCollisionDto,
   OperatorAlertDto,
   OrderDto,
@@ -42,6 +43,7 @@ import {
   toExecuteDrawResult,
   toInPersonSale,
   toInPersonSaleDto,
+  toLiveDrawSession,
   toOperationCollision,
   toOperatorAlert,
   toOrder,
@@ -58,6 +60,7 @@ import {
   CreatedRaffle,
   ExecuteDrawResult,
   InPersonSale,
+  LiveDrawSession,
   InPersonSaleRequest,
   OperationCollision,
   OperatorAlert,
@@ -208,6 +211,39 @@ export class AdminApi {
     return this.http
       .post<ExecuteDrawDto>(`${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}/sorteo`, {})
       .pipe(map(toExecuteDrawResult), catchError(rethrowAsApiError));
+  }
+
+  /**
+   * `POST /admin/rifas/:id/en-vivo/iniciar` (DT-23): records the official draw
+   * first, then opens the live session at step 0. Idempotent.
+   */
+  startLiveDraw(raffleId: string): Observable<LiveDrawSession> {
+    return this.liveDrawCall(raffleId, 'iniciar', {});
+  }
+
+  /**
+   * `POST /admin/rifas/:id/en-vivo/avanzar` (DT-23): reveals the next step.
+   * 409 LIVE_DRAW_STEP_CONFLICT when expectedStep is stale.
+   */
+  advanceLiveDraw(raffleId: string, expectedStep: number): Observable<LiveDrawSession> {
+    return this.liveDrawCall(raffleId, 'avanzar', { paso_esperado: expectedStep });
+  }
+
+  /** `POST /admin/rifas/:id/en-vivo/finalizar` (DT-23): reveals every step at once. */
+  finishLiveDraw(raffleId: string): Observable<LiveDrawSession> {
+    return this.liveDrawCall(raffleId, 'finalizar', {});
+  }
+
+  private liveDrawCall(raffleId: string, action: string, body: object): Observable<LiveDrawSession> {
+    return this.http
+      .post<LiveDrawSessionResponseDto>(
+        `${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}/en-vivo/${action}`,
+        body,
+      )
+      .pipe(
+        map((dto) => toLiveDrawSession(dto) as LiveDrawSession),
+        catchError(rethrowAsApiError),
+      );
   }
 
   /**

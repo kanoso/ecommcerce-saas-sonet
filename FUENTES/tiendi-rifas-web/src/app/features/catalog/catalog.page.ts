@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CatalogStore } from './catalog.store';
 import { RaffleCard } from './raffle-card';
 
-/** Route `/`: the active and finished raffles. */
+export type CatalogTab = 'en-venta' | 'por-sortear' | 'finalizadas';
+
+/** Route `/`: raffles on sale, to be drawn (live first) and finished (DT-23). */
 @Component({
   selector: 'app-catalog-page',
   imports: [RaffleCard],
@@ -13,7 +15,7 @@ import { RaffleCard } from './raffle-card';
 })
 export class CatalogPage implements OnInit {
   protected readonly store = inject(CatalogStore);
-  readonly activeTab = signal<'activas' | 'finalizadas'>('activas');
+  readonly activeTab = signal<CatalogTab>('en-venta');
 
   ngOnInit(): void {
     this.store.load();

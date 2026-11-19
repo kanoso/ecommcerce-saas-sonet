@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '../api/api-error';
-import { LiveRaffleData } from '../api/api.models';
+import { LiveDrawSession, LiveRaffleData } from '../api/api.models';
+import { AdminApi } from '../api/admin-api';
+import { SessionStore } from '../session/session.store';
 import { RafflesApi } from '../api/raffles-api';
 import { DrandClient, VerifiedRound } from '../drand/drand-client';
 import { QUICKNET } from '../drand/quicknet';
@@ -34,6 +36,7 @@ function givenLiveData(overrides: Partial<LiveRaffleData> = {}): LiveRaffleData 
     prizes: [{ position: 1, title: 'Un televisor', description: null, images: [] }],
     winnerExclusionMode: 'TICKET_ONLY',
     drawConfigHash: null,
+    liveSession: null,
     ...overrides,
   };
 }
@@ -454,5 +457,276 @@ describe('DrawLive of a multi-prize raffle', () => {
 
     expect(service.officialMatch()).toBe('mismatch');
     expect(service.checks().official).toBe('failed');
+  });
+});
+
+describe('DrawLive of a server-paced MANUAL draw (DT-23)', () => {
+  interface PacedOptions {
+    admin?: boolean;
+    reducedMotion?: boolean;
+    adminApi?: Partial<Record<'startLiveDraw' | 'advanceLiveDraw' | 'finishLiveDraw', ReturnType<typeof vi.fn>>>;
+  }
+
+  const session = (step: number, totalSteps: number, finished = false): LiveDrawSession => ({
+    step,
+    totalSteps,
+    startedAt: new Date('2026-11-21T20:00:00Z'),
+    updatedAt: new Date('2026-11-21T20:00:00Z'),
+    finishedAt: finished ? new Date('2026-11-21T20:05:00Z') : null,
+  });
+
+  /** Two prizes of two attempts: four steps. The official result as the API pages it. */
+  async function manualDraw() {
+    const drawn = await givenMultiPrizeLiveData({ prizeCount: 2, exclusionMode: 'TICKET_ONLY', winningAttempt: 2 });
+    const full = drawn.result!;
+    const at = (step: number, finished = step === 4): LiveRaffleData => ({
+      ...drawn,
+      drawMode: 'MANUAL',
+      status: 'DRAWN',
+      liveSession: session(step, 4, finished),
+      result: finished ? full : { ...full, winners: (full.winners ?? []).filter((w) => w.position <= Math.floor(step / 2)) },
+    });
+    const closed: LiveRaffleData = { ...drawn, drawMode: 'MANUAL', status: 'CLOSED', liveSession: null, result: null };
+    return { drawn, at, closed, official: full };
+  }
+
+  function setupPaced(first: LiveRaffleData, options: PacedOptions = {}) {
+    const state = { current: first };
+    const mockApi = { live: vi.fn(() => of(state.current)) };
+    const mockDrand = {
+      pollRound: vi.fn(async (round: string) => ({
+        round,
+        randomness: VECTOR.drandRandomnessHex,
+        signature: 'ab'.repeat(48),
+      })),
+    };
+    const timing: LiveTiming = {
+      pollIntervalMs: 0,
+      maxWaitMs: 1000,
+      spinDurationMs: 0,
+      spinIntervalMs: 10,
+      attemptPauseMs: 0,
+      now: () => new Date('2023-09-27T08:29:24.000Z').getTime(),
+      prefersReducedMotion: () => options.reducedMotion ?? false,
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        DrawLive,
+        { provide: RafflesApi, useValue: mockApi },
+        { provide: DrandClient, useValue: mockDrand },
+        { provide: LIVE_TIMING, useValue: timing },
+        { provide: SessionStore, useValue: { user: () => (options.admin ? { role: 'admin' } : null) } },
+        { provide: AdminApi, useValue: options.adminApi ?? {} },
+      ],
+    });
+    return { service: TestBed.inject(DrawLive), state, mockApi };
+  }
+
+  const until = (check: () => boolean, what: string) =>
+    vi.waitFor(() => {
+      if (!check()) throw new Error(`waiting for ${what}`);
+    });
+
+  it('keeps a viewer waiting until the operator starts, then follows each step of the server', async () => {
+    const { at, closed } = await manualDraw();
+    const { service, state } = setupPaced(closed);
+
+    await service.init(VECTOR.raffleId);
+    expect(service.phase()).toBe('waiting-manual-draw');
+    expect(service.paced()).toBe(true);
+    expect(service.canControl()).toBe(false);
+
+    state.current = at(0);
+    await until(() => service.liveSession()?.step === 0 && service.phase() === 'spinning', 'the start');
+    expect(service.shownStep()).toBe(0);
+    expect(service.completedExtractions()).toEqual([]);
+    expect(service.waitingForAdminClick()).toBe(true);
+
+    state.current = at(1);
+    await until(() => service.shownStep() === 1, 'step 1');
+    expect(service.completedExtractions()).toHaveLength(1);
+    expect(service.betweenAttempts()).toBe(true);
+    expect(service.completedPrizes()).toEqual([]);
+
+    state.current = at(2);
+    await until(() => service.shownStep() === 2, 'step 2');
+    expect(service.completedPrizes()).toHaveLength(1);
+    expect(service.betweenPrizes()).toBe(true);
+
+    state.current = at(4);
+    await until(() => service.officialMatch() === 'match', 'the official result');
+    expect(service.phase()).toBe('result');
+    expect(service.shownStep()).toBe(4);
+    expect(service.completedPrizes()).toHaveLength(2);
+    expect(service.betweenPrizes()).toBe(false);
+    service.cancel();
+  });
+
+  it('shows a late joiner the steps already revealed and goes on live', async () => {
+    const { at } = await manualDraw();
+    const { service, state } = setupPaced(at(3));
+
+    await service.init(VECTOR.raffleId);
+    await until(() => service.shownStep() === 3, 'the revealed steps');
+
+    expect(service.completedPrizes()).toHaveLength(1);
+    expect(service.currentPrizeIndex()).toBe(1);
+    expect(service.completedExtractions()).toHaveLength(1);
+    expect(service.betweenAttempts()).toBe(true);
+
+    state.current = at(4);
+    await until(() => service.officialMatch() === 'match', 'the end');
+    expect(service.completedPrizes()).toHaveLength(2);
+    service.cancel();
+  });
+
+  it('shows a finished live draw at once, with every prize checked', async () => {
+    const { at } = await manualDraw();
+    const { service } = setupPaced(at(4));
+
+    await service.init(VECTOR.raffleId);
+    await until(() => service.officialMatch() !== null && service.officialMatch() !== 'pending', 'the check');
+
+    expect(service.phase()).toBe('result');
+    expect(service.completedPrizes()).toHaveLength(2);
+    expect(service.officialMatch()).toBe('match');
+    service.cancel();
+  });
+
+  it('lets the operator drive every step from the server, between prizes included', async () => {
+    const { at, closed } = await manualDraw();
+    let serverStep = -1;
+    const adminApi = {
+      startLiveDraw: vi.fn(() => {
+        serverStep = 0;
+        state.current = at(0);
+        return of(session(0, 4));
+      }),
+      advanceLiveDraw: vi.fn((_id: string, expected: number) => {
+        serverStep = expected + 1;
+        state.current = at(serverStep);
+        return of(session(serverStep, 4, serverStep === 4));
+      }),
+      finishLiveDraw: vi.fn(),
+    };
+    const { service, state } = setupPaced(closed, { admin: true, adminApi });
+
+    await service.init(VECTOR.raffleId);
+    expect(service.canControl()).toBe(true);
+    expect(service.nextStepLabel()).toBe('▶ Iniciar sorteo');
+
+    await service.controlNext();
+    await until(() => service.phase() === 'spinning' && service.canAdvance(), 'the show to start');
+    expect(adminApi.startLiveDraw).toHaveBeenCalledWith(VECTOR.raffleId);
+    expect(service.nextStepLabel()).toBe('▶ Lanzar intento #1 de 2');
+
+    await service.controlNext();
+    await until(() => service.shownStep() === 1 && service.canAdvance(), 'step 1');
+    expect(adminApi.advanceLiveDraw).toHaveBeenLastCalledWith(VECTOR.raffleId, 0);
+    expect(service.nextStepLabel()).toBe('▶ Lanzar intento #2 de 2');
+
+    await service.controlNext();
+    await until(() => service.shownStep() === 2 && service.canAdvance(), 'step 2');
+    expect(service.betweenPrizes()).toBe(true);
+    expect(service.nextStepLabel()).toBe('▶ Sortear Premio 2 — Premio 2');
+
+    await service.controlNext();
+    await until(() => service.shownStep() === 3 && service.canAdvance(), 'step 3');
+    await service.controlNext();
+    await until(() => service.phase() === 'result' && service.shownStep() === 4, 'the end');
+    expect(adminApi.advanceLiveDraw).toHaveBeenCalledTimes(4);
+    expect(service.canAdvance()).toBe(false);
+    service.cancel();
+  });
+
+  it('shows why the start was refused and starts nothing', async () => {
+    const { closed } = await manualDraw();
+    const adminApi = {
+      startLiveDraw: vi.fn(() =>
+        throwError(() => new ApiError(409, 'DRAW_NOT_POSSIBLE', 'No se puede sortear esta rifa.')),
+      ),
+    };
+    const { service } = setupPaced(closed, { admin: true, adminApi });
+
+    await service.init(VECTOR.raffleId);
+    await service.controlNext();
+
+    expect(service.controlError()).toBe('No se puede sortear esta rifa.');
+    expect(service.phase()).toBe('waiting-manual-draw');
+    expect(service.liveSession()).toBeNull();
+    expect(service.controlBusy()).toBe(false);
+    service.cancel();
+  });
+
+  it('resyncs on a stale step instead of failing', async () => {
+    const { at } = await manualDraw();
+    const adminApi = {
+      advanceLiveDraw: vi.fn(() => {
+        state.current = at(1);
+        return throwError(() => new ApiError(409, 'LIVE_DRAW_STEP_CONFLICT', 'Paso desactualizado'));
+      }),
+    };
+    const { service, state } = setupPaced(at(0), { admin: true, adminApi });
+
+    await service.init(VECTOR.raffleId);
+    await until(() => service.canAdvance(), 'the show');
+    await service.controlNext();
+
+    await until(() => service.shownStep() === 1, 'the resync');
+    expect(service.controlError()).toBeNull();
+    service.cancel();
+  });
+
+  it('plays automatically by advancing the server on a timer', async () => {
+    const { at } = await manualDraw();
+    const adminApi = {
+      advanceLiveDraw: vi.fn((_id: string, expected: number) => {
+        state.current = at(expected + 1);
+        return of(session(expected + 1, 4, expected + 1 === 4));
+      }),
+    };
+    const { service, state } = setupPaced(at(0), { admin: true, adminApi });
+
+    await service.init(VECTOR.raffleId);
+    await until(() => service.canAdvance(), 'the show');
+    service.controlAuto();
+
+    await until(() => service.shownStep() === 4 && service.phase() === 'result', 'the automatic end');
+    expect(adminApi.advanceLiveDraw.mock.calls.map((c) => c[1])).toEqual([0, 1, 2, 3]);
+    service.cancel();
+  });
+
+  it('reveals everything when the operator finishes the show', async () => {
+    const { at } = await manualDraw();
+    const adminApi = {
+      finishLiveDraw: vi.fn(() => {
+        state.current = at(4);
+        return of(session(4, 4, true));
+      }),
+    };
+    const { service, state } = setupPaced(at(1), { admin: true, adminApi });
+
+    await service.init(VECTOR.raffleId);
+    await until(() => service.shownStep() === 1, 'step 1');
+    await service.controlFinish();
+
+    await until(() => service.officialMatch() === 'match', 'the end');
+    expect(service.shownStep()).toBe(4);
+    service.cancel();
+  });
+
+  it('never asks the API to draw at the end of the animation', async () => {
+    const { at } = await manualDraw();
+    const executeDraw = vi.fn();
+    const { service } = setupPaced(at(4), {
+      admin: true,
+      adminApi: { executeDraw } as unknown as PacedOptions['adminApi'],
+    });
+
+    await service.init(VECTOR.raffleId);
+    await until(() => service.phase() === 'result', 'the result');
+
+    expect(executeDraw).not.toHaveBeenCalled();
+    service.cancel();
   });
 });

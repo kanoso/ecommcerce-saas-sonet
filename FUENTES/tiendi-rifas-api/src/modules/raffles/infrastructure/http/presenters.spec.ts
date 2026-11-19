@@ -16,7 +16,9 @@ import {
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 import {
   adminPaymentAccount,
+  adminRaffleDetail,
   liveData,
+  liveDrawSession,
   myTicket,
   alert as presentAlert,
   order as presentOrder,
@@ -61,6 +63,8 @@ describe('raffleSummary presenter (spec §11)', () => {
     ticketsSold: 12,
     ticketsReserved: 3,
     ticketsAvailable: 84,
+    liveDrawInProgress: false,
+    winners: [],
   };
 
   it('speaks the snake_case Spanish contract, counts and resolution included', () => {
@@ -95,6 +99,113 @@ describe('raffleSummary presenter (spec §11)', () => {
       boletos_vendidos: 12,
       boletos_reservados: 3,
       boletos_disponibles: 84,
+      sorteo_en_vivo: false,
+      ganadores: [],
+    });
+  });
+
+  it('gives the live flag and each prize winner of a drawn raffle (DT-23)', () => {
+    const presented = raffleSummary({
+      ...summary,
+      status: RaffleStatus.DRAWN,
+      winners: [
+        { position: 1, prizeTitle: 'Un auto', status: 'WON', winningNumber: 7 },
+        { position: 2, prizeTitle: 'Una moto', status: 'VOID', winningNumber: null },
+      ],
+    });
+
+    expect(presented.sorteo_en_vivo).toBe(false);
+    expect(presented.ganadores).toEqual([
+      { posicion: 1, titulo_premio: 'Un auto', estado: 'WON', numero_ganador: 7 },
+      { posicion: 2, titulo_premio: 'Una moto', estado: 'VOID', numero_ganador: null },
+    ]);
+  });
+
+  it('gives the operator every winner with the buyer alias and the live session', () => {
+    const presented = adminRaffleDetail({
+      ...summary,
+      status: RaffleStatus.DRAWN,
+      liveDrawInProgress: true,
+      refusedDraw: null,
+      liveSession: {
+        step: 2,
+        totalSteps: 6,
+        startedAt: '2026-11-11T18:01:00.000Z',
+        updatedAt: '2026-11-11T18:02:00.000Z',
+        finishedAt: null,
+      },
+      adminWinners: [
+        { position: 1, prizeTitle: 'Un auto', status: 'WON', winningNumber: 7, buyerAlias: 'Juan Perez' },
+      ],
+    });
+
+    expect(presented.sorteo_en_vivo).toBe(true);
+    expect(presented.sesion_en_vivo).toEqual({
+      paso: 2,
+      total_pasos: 6,
+      iniciada_en: '2026-11-11T18:01:00.000Z',
+      actualizada_en: '2026-11-11T18:02:00.000Z',
+      finalizada_en: null,
+    });
+    expect(presented.ganadores).toEqual([
+      {
+        posicion: 1,
+        titulo_premio: 'Un auto',
+        estado: 'WON',
+        numero_ganador: 7,
+        alias_comprador: 'Juan Perez',
+      },
+    ]);
+  });
+});
+
+describe('live draw session presenter (DT-23)', () => {
+  it('speaks the Spanish contract, from the domain session or its view', () => {
+    const expected = {
+      paso: 1,
+      total_pasos: 3,
+      iniciada_en: '2026-11-11T18:01:00.000Z',
+      actualizada_en: '2026-11-11T18:01:05.000Z',
+      finalizada_en: null,
+    };
+    expect(
+      liveDrawSession({
+        step: 1,
+        totalSteps: 3,
+        startedAt: new Date('2026-11-11T18:01:00.000Z'),
+        updatedAt: new Date('2026-11-11T18:01:05.000Z'),
+        finishedAt: null,
+      }),
+    ).toEqual(expected);
+    expect(liveDrawSession(null)).toBeNull();
+  });
+
+  it('adds sesion_en_vivo to the live data, null without a session', () => {
+    const base = {
+      raffleId: 'r-1',
+      prizes: [],
+      buyerGroups: [],
+      soldTicketBuyers: {},
+      result: null,
+    };
+    expect(liveData({ ...base, liveSession: null } as any).sesion_en_vivo).toBeNull();
+    expect(
+      liveData({
+        ...base,
+        liveSession: {
+          step: 0,
+          totalSteps: 2,
+          startedAt: '2026-11-11T18:01:00.000Z',
+          updatedAt: '2026-11-11T18:01:00.000Z',
+          finishedAt: null,
+        },
+      } as any).sesion_en_vivo,
+    ).toEqual({
+      paso: 0,
+      total_pasos: 2,
+      iniciada_en: '2026-11-11T18:01:00.000Z',
+      actualizada_en: '2026-11-11T18:01:00.000Z',
+      finalizada_en: null,
     });
   });
 });

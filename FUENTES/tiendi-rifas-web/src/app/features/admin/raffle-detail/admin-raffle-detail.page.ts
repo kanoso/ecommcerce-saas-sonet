@@ -24,6 +24,11 @@ import {
   WinnerExclusionMode,
 } from '../../../core/api/api.models';
 import { QUICKNET } from '../../../core/drand/quicknet';
+import {
+  canGoToLiveDraw,
+  visibleStatusLabel,
+  visibleStatusOf,
+} from '../../../core/raffle-status/visible-status';
 import { ExclusionModeFieldComponent } from '../shared/exclusion-mode-field.component';
 import {
   PrizeDraft,
@@ -117,6 +122,61 @@ export class AdminRaffleDetailPage implements OnInit {
   readonly showRefusedCancelDialog = signal(false);
   readonly refusedCancelReason = signal('');
   readonly refusedCancelConfirmed = signal(false);
+
+  /** DT-23: the status the operator acts on, live draw and refusal included. */
+  readonly visibleStatus = computed(() => {
+    const r = this.raffle();
+    return r ? visibleStatusOf(r, new Date(), { admin: true }) : null;
+  });
+
+  readonly visibleStatusText = computed(() => {
+    const status = this.visibleStatus();
+    const r = this.raffle();
+    return status && r ? visibleStatusLabel(status, r.drawAt) : '';
+  });
+
+  /** A MANUAL raffle is drawn from the live page, where the session records it (DT-23). */
+  readonly canGoLive = computed(() => {
+    const status = this.visibleStatus();
+    return (
+      this.raffle()?.drawMode === 'MANUAL' &&
+      status !== null &&
+      (canGoToLiveDraw(status) || status === 'SALES_CLOSED')
+    );
+  });
+
+  /**
+   * Every prize of the draw with its winner (C, DT-23): from the admin detail,
+   * with the buyer alias, or from the draw just run until the detail reloads.
+   */
+  readonly drawWinnerRows = computed(() => {
+    const r = this.raffle();
+    const titleOf = (position: number) =>
+      r?.prizes.find((p) => p.position === position)?.title ?? `Premio ${position}`;
+    if (r?.winners?.length) {
+      return r.winners.map((w) => ({
+        position: w.position,
+        title: w.prizeTitle || titleOf(w.position),
+        status: w.status,
+        number: w.winningNumber,
+        alias: w.buyerAlias ?? null,
+      }));
+    }
+    const draw = this.drawResult();
+    if (!draw) {
+      return [];
+    }
+    const winners = draw.winners?.length
+      ? draw.winners
+      : [{ position: 1, status: draw.winningNumber === null ? 'VOID' : 'WON', winningNumber: draw.winningNumber }];
+    return winners.map((w) => ({
+      position: w.position,
+      title: titleOf(w.position),
+      status: w.status,
+      number: w.winningNumber,
+      alias: null as string | null,
+    }));
+  });
 
   /** A CLOSED raffle whose draw was refused for its configuration (DT-21). */
   readonly refusedDraw = computed(() => {

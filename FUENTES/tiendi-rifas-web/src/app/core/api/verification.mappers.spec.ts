@@ -142,6 +142,7 @@ describe('toLiveRaffleData', () => {
       numberMin: 1,
       numberMax: 30,
       soldTicketBuyers: {},
+      liveSession: null,
       soldNumbers: [10, 20, 30],
       result: {
         drandRandomness: 'r'.repeat(64),
@@ -188,6 +189,7 @@ describe('toLiveRaffleData', () => {
       numberMin: 1,
       numberMax: 30,
       soldTicketBuyers: {},
+      liveSession: null,
       commitmentHash: 'c'.repeat(64),
       drandChainHash: 'd'.repeat(64),
       drandRound: '1000000',

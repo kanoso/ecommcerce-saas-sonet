@@ -401,3 +401,36 @@ export class PaymentAccountChangedError extends DomainError {
     super(`Payment account ${accountId} is no longer at version ${expected}`);
   }
 }
+
+/** Only MANUAL raffles have a live draw session: AUTOMATIC ones are drawn by the job (DT-23). */
+export class LiveDrawNotAvailableError extends DomainError {
+  constructor(raffleId: string, reason: string) {
+    super(`Raffle ${raffleId} cannot have a live draw session: ${reason}`);
+  }
+}
+
+/** The raffle has no live draw session yet: it must be started first (DT-23). */
+export class LiveDrawNotStartedError extends DomainError {
+  constructor(raffleId: string) {
+    super(`The live draw of raffle ${raffleId} has not started`);
+  }
+}
+
+/**
+ * A stale or duplicate advance of a live draw session: the request expected
+ * another step, or the session already revealed everything (DT-23).
+ */
+export class LiveDrawStepConflictError extends DomainError {
+  constructor(
+    readonly currentStep: number,
+    readonly totalSteps: number,
+    expectedStep: number,
+    finished: boolean,
+  ) {
+    super(
+      finished
+        ? `The live draw already finished at step ${currentStep} of ${totalSteps}`
+        : `The live draw is at step ${currentStep} of ${totalSteps}, not ${expectedStep}`,
+    );
+  }
+}

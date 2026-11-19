@@ -53,6 +53,9 @@ describe('toRaffleSummary', () => {
       // An API without a prize list: the legacy prize at position 1.
       prizes: [{ position: 1, title: 'Un televisor', description: null, images: [] }],
       winnerExclusionMode: 'TICKET_ONLY',
+      // No live session, no result: an older API omits both (DT-23).
+      liveDrawInProgress: false,
+      winners: [],
     });
   });
 

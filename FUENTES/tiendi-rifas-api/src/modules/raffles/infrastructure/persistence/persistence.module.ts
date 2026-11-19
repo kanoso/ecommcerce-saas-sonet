@@ -12,6 +12,7 @@ import { PrismaDrawRepository } from './prisma-draw.repository';
 import { PrismaAuditLog } from './prisma-audit-log';
 import { PrismaNotificationOutbox } from './prisma-notification-outbox';
 import { PrismaPaymentAccountRepository } from './prisma-payment-account.repository';
+import { PrismaLiveDrawSessionRepository } from './prisma-live-draw-session.repository';
 
 @Module({
   providers: [
@@ -28,6 +29,7 @@ import { PrismaPaymentAccountRepository } from './prisma-payment-account.reposit
     PrismaAuditLog,
     PrismaNotificationOutbox,
     PrismaPaymentAccountRepository,
+    PrismaLiveDrawSessionRepository,
   ],
   exports: [
     PrismaOperatorAlertRepository,
@@ -43,6 +45,7 @@ import { PrismaPaymentAccountRepository } from './prisma-payment-account.reposit
     PrismaAuditLog,
     PrismaNotificationOutbox,
     PrismaPaymentAccountRepository,
+    PrismaLiveDrawSessionRepository,
   ],
 })
 export class PersistenceModule {}

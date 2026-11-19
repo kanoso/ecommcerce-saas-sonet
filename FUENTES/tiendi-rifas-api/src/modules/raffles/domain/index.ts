@@ -8,6 +8,7 @@ export * from './models/payment';
 export * from './models/refund';
 export * from './models/operator-alert';
 export * from './models/draw';
+export * from './models/live-draw-session';
 export * from './models/audit-event';
 export * from './rules/reservation-policy';
 export * from './rules/proof-policy';

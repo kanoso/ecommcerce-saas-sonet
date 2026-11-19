@@ -75,6 +75,37 @@ export interface RaffleSummaryDto {
    * its configuration, so it can only be cancelled with a full refund.
    */
   sorteo_rechazado?: RefusedDrawDto | null;
+  /** DT-23: a live draw session is in progress; ganadores stays empty meanwhile. */
+  sorteo_en_vivo?: boolean;
+  /** DRAWN raffles: each prize's result. The admin detail adds alias_comprador. */
+  ganadores?: PrizeWinnerSummaryDto[];
+  /** Admin detail only (DT-23): the live draw session, null when none. */
+  sesion_en_vivo?: LiveDrawSessionDto | null;
+}
+
+/** One prize's result on a list or a detail (DT-23). */
+export interface PrizeWinnerSummaryDto {
+  posicion: number;
+  titulo_premio: string;
+  estado: 'WON' | 'VOID' | string;
+  numero_ganador: number | null;
+  /** Admin detail only. */
+  alias_comprador?: string | null;
+}
+
+/** The server-paced reveal of a MANUAL draw (DT-23): paso of total_pasos shown. */
+export interface LiveDrawSessionDto {
+  paso: number;
+  total_pasos: number;
+  iniciada_en: string;
+  actualizada_en: string;
+  finalizada_en: string | null;
+}
+
+/** `POST /admin/rifas/:id/en-vivo/(iniciar|avanzar|finalizar)`. */
+export interface LiveDrawSessionResponseDto extends LiveDrawSessionDto {
+  rifa_id: string;
+  sorteo_id: string;
 }
 
 /** Why and when the draw was refused (DRAW_CONFIG_FROZEN_LATE, ...). */
@@ -142,6 +173,11 @@ export interface LiveDataDto {
   hash_configuracion?: string | null;
   /** BUYER mode, from the close: sold tickets grouped by buyer, without identities. */
   grupos_compradores?: number[][];
+  /**
+   * DT-23: the live draw session of a MANUAL raffle; null when none. While it
+   * is in progress, resultado lists only the prizes already revealed.
+   */
+  sesion_en_vivo?: LiveDrawSessionDto | null;
 }
 
 /**
@@ -369,6 +405,8 @@ export interface ExecuteDrawDto {
   sorteo_id: string;
   /** Prize 1; null when it was VOID. */
   numero_ganador: number | null;
+  /** Every prize's result, in order. */
+  ganadores?: { posicion: number; estado: string; numero_ganador: number | null }[];
   ronda_drand: string;
   ejecutado_en: string;
 }

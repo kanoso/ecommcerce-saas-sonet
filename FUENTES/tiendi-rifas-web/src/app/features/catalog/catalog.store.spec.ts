@@ -8,10 +8,14 @@ import { aRaffle } from './testing/raffle.fixture';
 
 describe('CatalogStore', () => {
   let responses: Subject<RaffleSummary[]>[];
+  let pending: Subject<RaffleSummary[]>;
+  let finished: Subject<RaffleSummary[]>;
   let store: InstanceType<typeof CatalogStore>;
 
   beforeEach(() => {
     responses = [];
+    pending = new Subject<RaffleSummary[]>();
+    finished = new Subject<RaffleSummary[]>();
     TestBed.configureTestingModule({
       providers: [
         CatalogStore,
@@ -23,6 +27,8 @@ describe('CatalogStore', () => {
               responses.push(response);
               return response;
             },
+            listPendingDraw: () => pending,
+            listFinished: () => finished,
           },
         },
       ],
@@ -46,6 +52,28 @@ describe('CatalogStore', () => {
     expect(store.status()).toBe('ready');
     expect(store.raffles().map((r) => r.id)).toEqual(['a', 'b']);
     expect(store.isEmpty()).toBe(false);
+  });
+
+  it('holds the raffles waiting for their draw and the finished ones (DT-23)', () => {
+    store.load();
+    answer([aRaffle({ id: 'a' })]);
+    pending.next([aRaffle({ id: 'live', status: 'DRAWN', liveDrawInProgress: true }), aRaffle({ id: 'closed', status: 'CLOSED' })]);
+    finished.next([aRaffle({ id: 'drawn', status: 'DRAWN' }), aRaffle({ id: 'cancelled', status: 'CANCELLED' })]);
+
+    expect(store.pendingRaffles().map((r) => r.id)).toEqual(['live', 'closed']);
+    expect(store.finishedRaffles().map((r) => r.id)).toEqual(['drawn', 'cancelled']);
+    expect(store.liveCount()).toBe(1);
+  });
+
+  it('keeps the active raffles when the other lists fail', () => {
+    store.load();
+    pending.error(new ApiError(500, 'INTERNAL_ERROR', 'Falló'));
+    finished.error(new ApiError(500, 'INTERNAL_ERROR', 'Falló'));
+    answer([aRaffle({ id: 'a' })]);
+
+    expect(store.status()).toBe('ready');
+    expect(store.pendingRaffles()).toEqual([]);
+    expect(store.finishedRaffles()).toEqual([]);
   });
 
   it('is empty when there are no active raffles', () => {

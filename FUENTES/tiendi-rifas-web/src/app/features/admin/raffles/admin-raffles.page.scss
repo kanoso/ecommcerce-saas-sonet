@@ -246,3 +246,54 @@
     background: #0F766E;
   }
 }
+
+/* Visible status filter and live draw shortcut (DT-23). */
+.raffles-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.raffles-filter__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.raffles-filter__select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.status-badge[data-visible-status='DRAW_PENDING'] {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.status-badge[data-visible-status='LIVE'] {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.status-badge[data-visible-status='DRAW_REFUSED'] {
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.raffle-item__live-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #b91c1c;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}

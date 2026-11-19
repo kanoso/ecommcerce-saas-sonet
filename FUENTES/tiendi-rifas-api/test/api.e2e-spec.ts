@@ -122,11 +122,21 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
     }
   }
 
-  async function activeRaffle(admin: string, { numbers = 50, price = 10 } = {}): Promise<string> {
+  async function activeRaffle(
+    admin: string,
+    { numbers = 50, price = 10, manual = false } = {},
+  ): Promise<string> {
     const created = await http()
       .post('/api/admin/rifas')
       .set(as(admin))
-      .send({ titulo: 'Rifa Auto', premio: 'Un auto', precio_boleto: price, numero_min: 1, numero_max: numbers })
+      .send({
+        titulo: 'Rifa Auto',
+        premio: 'Un auto',
+        precio_boleto: price,
+        numero_min: 1,
+        numero_max: numbers,
+        ...(manual && { modalidad_sorteo: 'MANUAL' }),
+      })
       .expect(201);
     const day = 24 * 3600_000;
     await http()
@@ -305,6 +315,9 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
       ['post', `/api/admin/rifas/${id}/sorteo`],
       ['post', `/api/admin/rifas/${id}/cancelar-lista-alterada`],
       ['post', `/api/admin/rifas/${id}/cancelar-sorteo-rechazado`],
+      ['post', `/api/admin/rifas/${id}/en-vivo/iniciar`],
+      ['post', `/api/admin/rifas/${id}/en-vivo/avanzar`],
+      ['post', `/api/admin/rifas/${id}/en-vivo/finalizar`],
       ['get', '/api/admin/alertas'],
       ['post', `/api/admin/alertas/${id}/leida`],
       ['get', '/api/admin/pagos-tardios'],
@@ -435,7 +448,7 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
           'boletos_vendidos', 'boletos_reservados', 'boletos_disponibles',
           'descripcion_premio', 'imagenes_premio', 'premios', 'modo_exclusion_ganador',
           'intento_ganador', 'efecto_sorteo', 'modalidad_sorteo', 'duracion_efecto_seg',
-          'velocidad_efecto',
+          'velocidad_efecto', 'sorteo_en_vivo', 'ganadores',
         ].sort(),
       );
       // Counts only: no buyer, order or seed leaves this public route.
@@ -954,6 +967,131 @@ describe('HTTP API (F6, spec §11 and §13)', () => {
       );
       const after = await http().get(`/api/rifas/${raffleId}/en-vivo`).expect(200);
       expect(after.body.resultado).toMatchObject({ numero_ganador: 1 });
+    });
+
+    /** A MANUAL raffle with ticket 1 paid, closed: one prize of one step. */
+    async function closedManualRaffle() {
+      const admin = (await signIn('admin')).token;
+      const raffleId = await activeRaffle(admin, { manual: true });
+      const buyer = await signIn();
+      const reservation = await reserve(buyer.token, raffleId, [1]).expect(201);
+      await sendProof(buyer.token, reservation.body.orden_id).expect(200);
+      await http()
+        .post(`/api/admin/ordenes/${reservation.body.orden_id}/aprobar`)
+        .set(as(admin))
+        .send({ numero_operacion: opNumber(), monto_recibido: 10 })
+        .expect(204);
+      await moveCloseOfSales(raffleId, new Date(Date.now() - 1000));
+      await new CloseSalesUseCase(
+        app.get(PrismaRaffleRepository),
+        app.get(PrismaTicketLedger),
+        seedVaultFrom(app.get(ConfigService)),
+        new SystemClock(),
+      ).execute(raffleId);
+      return { admin, raffleId, buyer };
+    }
+
+    const ids = (res: { body: { rifa_id: string }[] }) => res.body.map((r) => r.rifa_id);
+
+    it('runs a live draw paced by the server (DT-23)', async () => {
+      const { admin, raffleId } = await closedManualRaffle();
+      const live = () => http().get(`/api/rifas/${raffleId}/en-vivo`).expect(200);
+
+      const before = await live();
+      expect(before.headers['cache-control']).toBe('public, max-age=1');
+      expect(before.body).toMatchObject({ estado: 'CLOSED', sesion_en_vivo: null, resultado: null });
+      expect(ids(await http().get('/api/rifas/por-sortear').expect(200))).toContain(raffleId);
+      const notStarted = await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/avanzar`)
+        .set(as(admin))
+        .send({ paso_esperado: 0 })
+        .expect(409);
+      expect(notStarted.body.code).toBe('LIVE_DRAW_NOT_STARTED');
+
+      const started = await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/iniciar`)
+        .set(as(admin))
+        .expect(200);
+      expect(started.body).toMatchObject({ rifa_id: raffleId, paso: 0, total_pasos: 1, finalizada_en: null });
+
+      // Recorded, but not shown: the public waits for the step.
+      const during = await live();
+      expect(during.body.estado).toBe('DRAWN');
+      expect(during.body.sesion_en_vivo).toMatchObject({ paso: 0, total_pasos: 1, finalizada_en: null });
+      expect(during.body.resultado).toMatchObject({ numero_ganador: null, ganadores: [] });
+      const pending = await http().get('/api/rifas/por-sortear').expect(200);
+      expect(pending.body.find((r: { rifa_id: string }) => r.rifa_id === raffleId)).toMatchObject({
+        sorteo_en_vivo: true,
+        ganadores: [],
+      });
+      expect(ids(await http().get('/api/rifas/finalizadas').expect(200))).not.toContain(raffleId);
+      // The verification stays complete: the draw is recorded.
+      const verification = await http().get(`/api/rifas/${raffleId}/verificacion`).expect(200);
+      expect(verification.body.numero_ganador).toBe(1);
+
+      const again = await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/iniciar`)
+        .set(as(admin))
+        .expect(200);
+      expect(again.body.sorteo_id).toBe(started.body.sorteo_id);
+
+      const stale = await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/avanzar`)
+        .set(as(admin))
+        .send({ paso_esperado: 1 })
+        .expect(409);
+      expect(stale.body).toMatchObject({
+        code: 'LIVE_DRAW_STEP_CONFLICT',
+        details: { paso_actual: 0, total_pasos: 1 },
+      });
+      await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/avanzar`)
+        .set(as(admin))
+        .send({})
+        .expect(400);
+
+      const advanced = await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/avanzar`)
+        .set(as(admin))
+        .send({ paso_esperado: 0 })
+        .expect(200);
+      expect(advanced.body.paso).toBe(1);
+      expect(advanced.body.finalizada_en).not.toBeNull();
+      await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/avanzar`)
+        .set(as(admin))
+        .send({ paso_esperado: 1 })
+        .expect(409);
+      await http().post(`/api/admin/rifas/${raffleId}/en-vivo/finalizar`).set(as(admin)).expect(200);
+
+      const after = await live();
+      expect(after.body.sesion_en_vivo.finalizada_en).not.toBeNull();
+      expect(after.body.resultado).toMatchObject({ numero_ganador: 1 });
+      expect(after.body.resultado.ganadores).toHaveLength(1);
+      const finished = await http().get('/api/rifas/finalizadas').expect(200);
+      expect(finished.body.find((r: { rifa_id: string }) => r.rifa_id === raffleId)).toMatchObject({
+        sorteo_en_vivo: false,
+        ganadores: [{ posicion: 1, estado: 'WON', numero_ganador: 1 }],
+      });
+      expect(ids(await http().get('/api/rifas/por-sortear').expect(200))).not.toContain(raffleId);
+
+      const detail = await http().get(`/api/admin/rifas/${raffleId}`).set(as(admin)).expect(200);
+      expect(detail.body.sesion_en_vivo).toMatchObject({ paso: 1, total_pasos: 1 });
+      expect(detail.body.ganadores).toEqual([
+        expect.objectContaining({ posicion: 1, numero_ganador: 1, alias_comprador: expect.any(String) }),
+      ]);
+    });
+
+    it('opens no live session for an AUTOMATIC raffle (DT-23)', async () => {
+      const { admin, raffleId } = await closedRaffle();
+
+      const res = await http()
+        .post(`/api/admin/rifas/${raffleId}/en-vivo/iniciar`)
+        .set(as(admin))
+        .expect(409);
+      expect(res.body.code).toBe('LIVE_DRAW_NOT_AVAILABLE');
+      const live = await http().get(`/api/rifas/${raffleId}/en-vivo`).expect(200);
+      expect(live.body).toMatchObject({ estado: 'CLOSED', sesion_en_vivo: null });
     });
 
     it('refuses to cancel a closed raffle whose list is intact (DT-15)', async () => {

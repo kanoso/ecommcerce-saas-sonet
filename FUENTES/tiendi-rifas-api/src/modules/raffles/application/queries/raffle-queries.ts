@@ -1,5 +1,7 @@
 import { normalizeSoldNumbers } from '@kanoso/raffle-draw';
 import {
+  Draw,
+  LiveDrawSession,
   NotOrderOwnerError,
   OrderNotFoundError,
   OrderStatus,
@@ -10,12 +12,15 @@ import {
   TicketOrder,
   TicketStatus,
   WinnerExclusionMode,
+  liveDrawPrizesOf,
+  revealedPrizeCount,
 } from '../../domain';
 import { buyerGroupsOf } from '../use-cases/draw-config';
 import { latestConfigRefusal } from '../use-cases/draw-refusals';
 import {
   AuditLog,
   DrawRepository,
+  LiveDrawSessionRepository,
   OrderRepository,
   RaffleRepository,
   TicketRepository,
@@ -43,7 +48,83 @@ const FROZEN: readonly RaffleStatus[] = [RaffleStatus.CLOSED, RaffleStatus.DRAWN
  * - available: AVAILABLE, the only status a buyer can reserve.
  * A REFUNDED number is none of them: it is never offered again.
  */
-function summaryOf(raffle: Raffle, counts: TicketStatusCounts) {
+/** One prize's public result on a list or a detail: no buyer, no proof. */
+export interface PrizeWinnerView {
+  position: number;
+  prizeTitle: string;
+  status: string;
+  winningNumber: number | null;
+}
+
+/** What a live draw session (DT-23) adds to a raffle's views. */
+interface DrawState {
+  /** A live session started and not finished: winners stay hidden meanwhile. */
+  liveDrawInProgress: boolean;
+  /** DRAWN raffles only, and only once no live session is in progress. */
+  winners: PrizeWinnerView[];
+}
+
+const NO_DRAW_STATE: DrawState = { liveDrawInProgress: false, winners: [] };
+
+function prizeTitleOf(raffle: Raffle, position: number): string {
+  return raffle.prizes.find((p) => p.position === position)?.title ?? raffle.prize;
+}
+
+function winnersOf(raffle: Raffle, draw: Draw | null): PrizeWinnerView[] {
+  if (!draw) return [];
+  return draw.winners.map((w) => ({
+    position: w.position,
+    prizeTitle: prizeTitleOf(raffle, w.position),
+    status: w.status,
+    winningNumber: w.winningNumber,
+  }));
+}
+
+function sessionView(session: LiveDrawSession | null) {
+  return session
+    ? {
+        step: session.step,
+        totalSteps: session.totalSteps,
+        startedAt: session.startedAt.toISOString(),
+        updatedAt: session.updatedAt.toISOString(),
+        finishedAt: session.finishedAt?.toISOString() ?? null,
+      }
+    : null;
+}
+
+/**
+ * While a live session is in progress only the prizes whose every step was
+ * revealed are shown (DT-23). The seed and the drand round are public, so a
+ * technical viewer can compute the rest: this paces the show, it hides no
+ * secret.
+ */
+function revealedWinners(draw: Draw, session: LiveDrawSession | null) {
+  if (!session?.inProgress) {
+    return draw.winners;
+  }
+  const count = revealedPrizeCount(liveDrawPrizesOf(draw), session.step);
+  return draw.winners.filter((w) => w.position <= count);
+}
+
+/** The official result of the live data, paced by its session (DT-23). */
+function resultView(draw: Draw, session: LiveDrawSession | null) {
+  const winners = revealedWinners(draw, session);
+  // Prize 1's legacy columns follow prize 1's reveal.
+  const firstShown = !session?.inProgress || winners.some((w) => w.position === 1);
+  return {
+    winningNumber: firstShown ? draw.winningNumber : null,
+    winnerIndex: firstShown ? draw.winnerIndex : null,
+    digestHex: firstShown ? draw.digestHex : null,
+    drandRandomness: draw.drandRandomness,
+    winningAttempt: draw.winningAttempt,
+    extractions: firstShown ? draw.extractions : [],
+    executedAt: draw.executedAt.toISOString(),
+    algorithmVersion: draw.algorithmVersion,
+    winners,
+  };
+}
+
+function summaryOf(raffle: Raffle, counts: TicketStatusCounts, state: DrawState = NO_DRAW_STATE) {
   return {
     id: raffle.id,
     title: raffle.title,
@@ -67,6 +148,8 @@ function summaryOf(raffle: Raffle, counts: TicketStatusCounts) {
     ticketsSold: counts[TicketStatus.SOLD],
     ticketsReserved: counts[TicketStatus.RESERVED],
     ticketsAvailable: counts[TicketStatus.AVAILABLE],
+    liveDrawInProgress: state.liveDrawInProgress,
+    winners: state.winners,
   };
 }
 
@@ -107,13 +190,72 @@ export class RaffleQueries {
     private readonly orders: OrderRepository,
     private readonly draws: DrawRepository,
     private readonly auditLog: AuditLog,
+    /** Live draw sessions (DT-23); without it no raffle is ever live. */
+    private readonly liveSessions?: LiveDrawSessionRepository,
   ) {}
 
-    async finishedRaffles() {
-    const finished = await this.raffles.findByStatus([RaffleStatus.DRAWN, RaffleStatus.CLOSED]);
-    if (finished.length === 0) return [];
-    const counts = await this.tickets.countByStatus(finished.map((r) => r.id));
-    return finished.map((r) => summaryOf(r, counts.get(r.id) ?? zeroTicketCounts()));
+  /**
+   * Raffles drawn (with no live session in progress) and cancelled ones,
+   * once published. A CLOSED raffle waits for its draw: pendingDrawRaffles.
+   */
+  async finishedRaffles() {
+    const candidates = await this.raffles.findByStatus([RaffleStatus.DRAWN, RaffleStatus.CANCELLED]);
+    const published = candidates.filter(
+      (r) => r.status === RaffleStatus.DRAWN || r.salesCloseAt !== null,
+    );
+    const summaries = await this.summariesOf(published);
+    return summaries.filter((s) => !s.liveDrawInProgress);
+  }
+
+  /**
+   * Raffles whose sales closed and whose result is not shown yet: CLOSED
+   * ones, and DRAWN ones with a live session in progress, those first. Then
+   * by draw date.
+   */
+  async pendingDrawRaffles() {
+    const candidates = await this.raffles.findByStatus([RaffleStatus.CLOSED, RaffleStatus.DRAWN]);
+    const summaries = await this.summariesOf(candidates);
+    const time = (at: string | null) => (at ? new Date(at).getTime() : Number.MAX_SAFE_INTEGER);
+    return summaries
+      .filter((s) => s.status === RaffleStatus.CLOSED || s.liveDrawInProgress)
+      .sort(
+        (a, b) =>
+          Number(b.liveDrawInProgress) - Number(a.liveDrawInProgress) ||
+          time(a.drawAt) - time(b.drawAt),
+      );
+  }
+
+  /** Summaries with their counts in one aggregate read, and their draw state. */
+  private async summariesOf(list: Raffle[]) {
+    if (list.length === 0) return [];
+    const counts = await this.tickets.countByStatus(list.map((r) => r.id));
+    const states = await this.drawStatesOf(list);
+    return list.map((r) =>
+      summaryOf(r, counts.get(r.id) ?? zeroTicketCounts(), states.get(r.id)),
+    );
+  }
+
+  private async sessionsOf(list: Raffle[]): Promise<Map<string, LiveDrawSession>> {
+    const ids = list
+      .filter((r) => r.status === RaffleStatus.CLOSED || r.status === RaffleStatus.DRAWN)
+      .map((r) => r.id);
+    if (!this.liveSessions || ids.length === 0) return new Map();
+    const sessions = await this.liveSessions.findByRaffleIds(ids);
+    return new Map(sessions.map((s) => [s.raffleId, s]));
+  }
+
+  private async drawStatesOf(list: Raffle[]): Promise<Map<string, DrawState>> {
+    const sessions = await this.sessionsOf(list);
+    const states = new Map<string, DrawState>();
+    for (const raffle of list) {
+      const liveDrawInProgress = sessions.get(raffle.id)?.inProgress ?? false;
+      const winners =
+        raffle.status === RaffleStatus.DRAWN && !liveDrawInProgress
+          ? winnersOf(raffle, await this.draws.findByRaffleId(raffle.id))
+          : [];
+      states.set(raffle.id, { liveDrawInProgress, winners });
+    }
+    return states;
   }
 
   async availableTickets(raffleId: string): Promise<number[]> {
@@ -131,12 +273,18 @@ export class RaffleQueries {
     return active.map((r) => summaryOf(r, counts.get(r.id) ?? zeroTicketCounts()));
   }
 
-  /** All raffles in any state for operators (RF-10..15). */
+  /**
+   * All raffles in any state for operators (RF-10..15), each CLOSED one with
+   * its configuration refusal (DT-21) for the visible status (DT-23).
+   */
   async allRaffles() {
     const all = await this.raffles.findAll();
-    if (all.length === 0) return [];
-    const counts = await this.tickets.countByStatus(all.map((r) => r.id));
-    return all.map((r) => summaryOf(r, counts.get(r.id) ?? zeroTicketCounts()));
+    const summaries = await this.summariesOf(all);
+    const refusals = new Map<string, Awaited<ReturnType<RaffleQueries['refusedDrawOf']>>>();
+    for (const raffle of all) {
+      refusals.set(raffle.id, await this.refusedDrawOf(raffle));
+    }
+    return summaries.map((s) => ({ ...s, refusedDraw: refusals.get(s.id) ?? null }));
   }
 
   /** Raffle summary in any state for operators, including DRAFT. */
@@ -146,10 +294,37 @@ export class RaffleQueries {
       throw new RaffleNotFoundError(raffleId);
     }
     const counts = await this.tickets.countByStatus([raffleId]);
+    const session = (await this.sessionsOf([raffle])).get(raffle.id) ?? null;
+    const draw =
+      raffle.status === RaffleStatus.DRAWN ? await this.draws.findByRaffleId(raffleId) : null;
+    const liveDrawInProgress = session?.inProgress ?? false;
     return {
-      ...summaryOf(raffle, counts.get(raffleId) ?? zeroTicketCounts()),
+      ...summaryOf(raffle, counts.get(raffleId) ?? zeroTicketCounts(), {
+        liveDrawInProgress,
+        winners: liveDrawInProgress ? [] : winnersOf(raffle, draw),
+      }),
       refusedDraw: await this.refusedDrawOf(raffle),
+      liveSession: sessionView(session),
+      // The operator sees every result at once, even during the live show.
+      adminWinners: await this.adminWinnersOf(raffle, draw),
     };
+  }
+
+  /** Each prize's winner with the alias of the buyer who paid for the ticket. */
+  private async adminWinnersOf(raffle: Raffle, draw: Draw | null) {
+    const winners = winnersOf(raffle, draw);
+    if (winners.length === 0) return [];
+    const aliases = new Map<number, string>();
+    for (const { order, buyer } of await this.orders.findByRaffleIdWithBuyer(raffle.id)) {
+      const alias = buyer?.name?.trim() || buyer?.buyerCode || buyer?.email || null;
+      if (order.status === OrderStatus.PAID && alias) {
+        order.numbers.forEach((n) => aliases.set(n, alias));
+      }
+    }
+    return winners.map((w) => ({
+      ...w,
+      buyerAlias: w.winningNumber === null ? null : aliases.get(w.winningNumber) ?? null,
+    }));
   }
 
   /**
@@ -172,8 +347,9 @@ export class RaffleQueries {
       (a, b) => a.number - b.number,
     );
     const start = (paging.page - 1) * paging.pageSize;
+    const states = await this.drawStatesOf([raffle]);
     return {
-      raffle: summaryOf(raffle, countsOf(all)),
+      raffle: summaryOf(raffle, countsOf(all), states.get(raffle.id)),
       grid: {
         page: paging.page,
         pageSize: paging.pageSize,
@@ -200,6 +376,7 @@ export class RaffleQueries {
       raffle.status === RaffleStatus.DRAWN
         ? await this.draws.findByRaffleId(raffleId)
         : null;
+    const session = (await this.sessionsOf([raffle])).get(raffle.id) ?? null;
     const soldTicketBuyers: Record<number, string> = {};
     let buyerGroups: number[][] = [];
     if (frozen) {
@@ -251,19 +428,8 @@ export class RaffleQueries {
       seedRevealed: frozen ? raffle.seedRevealed : null,
       soldNumbers: sold,
       soldTicketBuyers,
-      result: draw
-        ? {
-            winningNumber: draw.winningNumber,
-            winnerIndex: draw.winnerIndex,
-            digestHex: draw.digestHex,
-            drandRandomness: draw.drandRandomness,
-            winningAttempt: draw.winningAttempt,
-            extractions: draw.extractions,
-            executedAt: draw.executedAt.toISOString(),
-            algorithmVersion: draw.algorithmVersion,
-            winners: draw.winners,
-          }
-        : null,
+      liveSession: sessionView(session),
+      result: draw ? resultView(draw, session) : null,
     };
   }
 

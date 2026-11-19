@@ -78,6 +78,34 @@ export interface RaffleSummary {
    * absent on routes that do not report it.
    */
   refusedDraw?: RefusedDraw | null;
+  /** DT-23: a live draw session is in progress; winners stay hidden meanwhile. */
+  liveDrawInProgress: boolean;
+  /** DRAWN raffles: each prize's result; empty otherwise. */
+  winners: PrizeWinnerSummary[];
+  /** Admin detail only (DT-23): absent on routes that do not report it. */
+  liveSession?: LiveDrawSession | null;
+}
+
+/** One prize's result on a list or a detail. */
+export interface PrizeWinnerSummary {
+  position: number;
+  prizeTitle: string;
+  status: DrawWinnerStatus;
+  winningNumber: number | null;
+  /** Admin detail only. */
+  buyerAlias?: string | null;
+}
+
+/**
+ * The server-paced reveal of a MANUAL draw (DT-23). step of totalSteps are
+ * shown; finishedAt set means everything is shown for good.
+ */
+export interface LiveDrawSession {
+  step: number;
+  totalSteps: number;
+  startedAt: Date | null;
+  updatedAt: Date | null;
+  finishedAt: Date | null;
 }
 
 export interface RefusedDraw {
@@ -145,6 +173,8 @@ export interface LiveRaffleData {
   drawConfigHash: string | null;
   /** BUYER mode, from the close: sold tickets grouped by buyer, without identities. */
   buyerGroups?: number[][];
+  /** DT-23: the live draw session of a MANUAL raffle; null when none. */
+  liveSession: LiveDrawSession | null;
 }
 
 /** The public status and title of a raffle, read from its live data. */
@@ -340,6 +370,8 @@ export interface ExecuteDrawResult {
   drawId: string;
   /** Prize 1; null when it was VOID. */
   winningNumber: number | null;
+  /** Every prize's result, in order; prize 1 alone from an older API. */
+  winners: { position: number; status: DrawWinnerStatus; winningNumber: number | null }[];
   drandRound: string;
   executedAt: Date;
 }

@@ -1186,3 +1186,45 @@
   gap: 0.5rem;
   align-items: flex-start;
 }
+
+/* Every prize of the draw with its winner (DT-23). */
+.draw-winners {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draw-winners__item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.6);
+
+  &[data-status='VOID'] .draw-winners__result {
+    color: #64748b;
+  }
+}
+
+.draw-winners__prize {
+  font-weight: 600;
+}
+
+.btn-live-draw {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0.5rem 0.5rem 0.5rem 0;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: #b91c1c;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}

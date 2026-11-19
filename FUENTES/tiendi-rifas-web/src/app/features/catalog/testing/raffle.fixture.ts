@@ -17,6 +17,8 @@ export function aRaffle(overrides: Partial<RaffleSummary> = {}): RaffleSummary {
     authorizationResolution: null,
     prizes: [{ position: 1, title: 'Un televisor de 55 pulgadas', description: null, images: [] }],
     winnerExclusionMode: 'TICKET_ONLY',
+    liveDrawInProgress: false,
+    winners: [],
     ...overrides,
   };
 }

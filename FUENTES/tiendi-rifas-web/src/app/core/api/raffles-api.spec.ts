@@ -45,6 +45,62 @@ describe('RafflesApi', () => {
     expect(raffles[0].ticketPrice).toBe(25);
   });
 
+  it('lists the raffles waiting for their draw, with the live flag (DT-23)', async () => {
+    const result = firstValueFrom(api.listPendingDraw());
+    http.expectOne({ method: 'GET', url: 'http://api.test/api/rifas/por-sortear' }).flush([
+      {
+        rifa_id: 'r-2',
+        titulo: 'Olla',
+        premio: 'Olla arrocera',
+        precio_boleto: 5,
+        numero_min: 1,
+        numero_max: 50,
+        estado: 'DRAWN',
+        cierre_ventas: '2026-11-20T18:00:00.000Z',
+        fecha_sorteo: '2026-11-21T18:00:00.000Z',
+        sorteo_en_vivo: true,
+        ganadores: [],
+      },
+    ]);
+    const [raffle] = await result;
+    expect(raffle.id).toBe('r-2');
+    expect(raffle.liveDrawInProgress).toBe(true);
+    expect(raffle.winners).toEqual([]);
+  });
+
+  it('maps the live session of the live data (DT-23)', async () => {
+    const result = firstValueFrom(api.live('r-1'));
+    http.expectOne('http://api.test/api/rifas/r-1/en-vivo').flush({
+      rifa_id: 'r-1',
+      titulo: 'Moto',
+      estado: 'DRAWN',
+      hash_compromiso: null,
+      hash_cadena_drand: null,
+      ronda_drand: null,
+      cierre_ventas: null,
+      fecha_sorteo: null,
+      hash_lista: null,
+      semilla_revelada: null,
+      numeros_vendidos: null,
+      resultado: null,
+      sesion_en_vivo: {
+        paso: 2,
+        total_pasos: 6,
+        iniciada_en: '2026-11-21T18:01:00.000Z',
+        actualizada_en: '2026-11-21T18:02:00.000Z',
+        finalizada_en: null,
+      },
+    });
+    const live = await result;
+    expect(live.liveSession).toEqual({
+      step: 2,
+      totalSteps: 6,
+      startedAt: new Date('2026-11-21T18:01:00.000Z'),
+      updatedAt: new Date('2026-11-21T18:02:00.000Z'),
+      finishedAt: null,
+    });
+  });
+
   it('fails with an ApiError', async () => {
     const result = firstValueFrom(api.listActive());
     http

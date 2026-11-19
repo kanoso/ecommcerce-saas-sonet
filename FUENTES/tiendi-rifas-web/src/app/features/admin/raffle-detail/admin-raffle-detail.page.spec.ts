@@ -22,6 +22,8 @@ const mockDraftRaffle: RaffleSummary = {
   authorizationResolution: null,
   prizes: [],
   winnerExclusionMode: 'TICKET_ONLY',
+  liveDrawInProgress: false,
+  winners: [],
 };
 
 const mockActiveRaffle: RaffleSummary = {
@@ -40,6 +42,8 @@ const mockActiveRaffle: RaffleSummary = {
   authorizationResolution: 'RD-2026-001',
   prizes: [],
   winnerExclusionMode: 'TICKET_ONLY',
+  liveDrawInProgress: false,
+  winners: [],
 };
 
 const mockSalesReport: AdminSalesReport = {
@@ -226,7 +230,104 @@ describe('AdminRaffleDetailPage', () => {
     activeFixture.detectChanges();
 
     expect(adminApiMock.executeDraw).toHaveBeenCalledWith('r-1');
-    expect(activeEl.textContent).toContain('Número ganador: 42');
+    const rows = [...activeEl.querySelectorAll('.draw-winners li')].map((li) => li.textContent);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toContain('#42');
+  });
+
+  describe('every prize of the draw (DT-23)', () => {
+    const drawnRaffle: RaffleSummary = {
+      ...mockActiveRaffle,
+      status: 'DRAWN',
+      drawMode: 'MANUAL',
+      prizes: [
+        { position: 1, title: 'Olla arrocera', description: null, images: [] },
+        { position: 2, title: 'Licuadora', description: null, images: [] },
+      ],
+      winners: [
+        { position: 1, prizeTitle: 'Olla arrocera', status: 'WON', winningNumber: 7, buyerAlias: 'Juan Perez' },
+        { position: 2, prizeTitle: 'Licuadora', status: 'VOID', winningNumber: null, buyerAlias: null },
+      ],
+      liveSession: null,
+    };
+
+    function renderDetail(raffle: RaffleSummary) {
+      adminApiMock.raffleDetail.mockReturnValue(of(raffle));
+      adminApiMock.salesReport.mockReturnValue(of(mockSalesReport));
+      const f = TestBed.createComponent(AdminRaffleDetailPage);
+      f.detectChanges();
+      return f.nativeElement as HTMLElement;
+    }
+
+    it('lists each prize with its winner and buyer alias, or Desierto', () => {
+      const root = renderDetail(drawnRaffle);
+      const rows = [...root.querySelectorAll('.draw-winners li')].map((li) => li.textContent?.replace(/\s+/g, ' '));
+
+      expect(rows[0]).toContain('Olla arrocera');
+      expect(rows[0]).toContain('#7');
+      expect(rows[0]).toContain('Juan Perez');
+      expect(rows[1]).toContain('Licuadora');
+      expect(rows[1]).toContain('Desierto');
+      expect(root.querySelector('a[href="/rifas/r-2/en-vivo"]')).not.toBeNull();
+      expect(root.querySelector('a[href="/rifas/r-2/verificacion"]')).not.toBeNull();
+    });
+
+    it('lists every prize of the draw it just ran', () => {
+      adminApiMock.executeDraw.mockReturnValue(
+        of({
+          drawId: 'd-1',
+          winningNumber: 7,
+          winners: [
+            { position: 1, status: 'WON', winningNumber: 7 },
+            { position: 2, status: 'WON', winningNumber: 9 },
+          ],
+          drandRound: '12345',
+          executedAt: new Date('2026-12-02T18:05:00Z'),
+        }),
+      );
+      adminApiMock.raffleDetail.mockReturnValue(
+        of({ ...mockActiveRaffle, status: 'CLOSED', prizes: drawnRaffle.prizes }),
+      );
+      adminApiMock.salesReport.mockReturnValue(of(mockSalesReport));
+      const f = TestBed.createComponent(AdminRaffleDetailPage);
+      f.detectChanges();
+      const root = f.nativeElement as HTMLElement;
+      (root.querySelector('.btn-draw') as HTMLButtonElement).click();
+      f.detectChanges();
+
+      const rows = [...root.querySelectorAll('.draw-winners li')].map((li) => li.textContent?.replace(/\s+/g, ' '));
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toContain('Olla arrocera');
+      expect(rows[0]).toContain('#7');
+      expect(rows[1]).toContain('Licuadora');
+      expect(rows[1]).toContain('#9');
+    });
+
+    it('shows the live draw in progress and links to it', () => {
+      const root = renderDetail({
+        ...drawnRaffle,
+        liveDrawInProgress: true,
+        liveSession: { step: 2, totalSteps: 6, startedAt: null, updatedAt: null, finishedAt: null },
+      });
+
+      expect(root.querySelector('.status-badge')?.textContent).toContain('Sorteando en vivo');
+      expect(root.textContent).toContain('paso 2 de 6');
+      expect(root.querySelector('a[href="/rifas/r-2/en-vivo"]')).not.toBeNull();
+    });
+
+    it('sends a MANUAL raffle whose sales closed to the live draw', () => {
+      const root = renderDetail({
+        ...mockActiveRaffle,
+        status: 'CLOSED',
+        drawMode: 'MANUAL',
+        drawAt: new Date('2020-01-01T00:00:00Z'),
+      });
+
+      expect(root.querySelector('.status-badge')?.textContent).toContain('Sorteo pendiente');
+      const live = root.querySelector('a.btn-live-draw');
+      expect(live?.getAttribute('href')).toBe('/rifas/r-2/en-vivo');
+      expect(live?.textContent).toContain('Ir al sorteo en vivo');
+    });
   });
 
   it('allows cancellation with mandatory reason and double confirmation for active raffle (RF-15 / DT-15)', () => {

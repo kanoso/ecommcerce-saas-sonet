@@ -22,6 +22,8 @@ const mockRaffles: RaffleSummary[] = [
     authorizationResolution: 'RD-001',
     prizes: [],
     winnerExclusionMode: 'TICKET_ONLY',
+    liveDrawInProgress: false,
+    winners: [],
   },
   {
     id: 'r-2',
@@ -39,6 +41,8 @@ const mockRaffles: RaffleSummary[] = [
     authorizationResolution: null,
     prizes: [],
     winnerExclusionMode: 'TICKET_ONLY',
+    liveDrawInProgress: false,
+    winners: [],
   },
 ];
 
@@ -77,7 +81,7 @@ describe('AdminRafflesPage', () => {
     expect(cards).toHaveLength(2);
 
     expect(cards[0].textContent).toContain('Rifa Toyota Yaris');
-    expect(cards[0].textContent).toContain('Activa');
+    expect(cards[0].textContent).toContain('En venta');
     expect(cards[0].textContent).toContain('350 / 1000');
 
     expect(cards[1].textContent).toContain('Rifa Moto Honda');
@@ -86,6 +90,68 @@ describe('AdminRafflesPage', () => {
     const detailLinks = el.querySelectorAll('a[href^="/admin/rifas/"]');
     expect(Array.from(detailLinks).some((a) => a.getAttribute('href') === '/admin/rifas/r-1')).toBe(true);
     expect(Array.from(detailLinks).some((a) => a.getAttribute('href') === '/admin/rifas/r-2')).toBe(true);
+  });
+
+  describe('visible status (DT-23)', () => {
+    const base = mockRaffles[0];
+    const drawAt = new Date('2026-11-21T18:00:00Z');
+    const closedRaffles: RaffleSummary[] = [
+      { ...base, id: 'pending', title: 'Pendiente', status: 'CLOSED', drawAt },
+      { ...base, id: 'live', title: 'En vivo', status: 'DRAWN', drawAt, liveDrawInProgress: true },
+      {
+        ...base,
+        id: 'refused',
+        title: 'Rechazada',
+        status: 'CLOSED',
+        drawAt,
+        refusedDraw: { reason: 'DRAW_CONFIG_MISMATCH', at: drawAt },
+      },
+      { ...base, id: 'drawn', title: 'Sorteada', status: 'DRAWN', drawAt },
+    ];
+
+    function renderWith(raffles: RaffleSummary[]) {
+      adminApiMock.listRaffles.mockReturnValue(of(raffles));
+      const f = TestBed.createComponent(AdminRafflesPage);
+      f.componentInstance.now.set(new Date('2026-11-22T00:00:00Z'));
+      f.detectChanges();
+      return f;
+    }
+
+    const rowOf = (root: HTMLElement, title: string) =>
+      [...root.querySelectorAll('.raffle-item')].find((li) => li.textContent?.includes(title)) as HTMLElement;
+
+    it('labels each raffle with its visible status', () => {
+      const root = renderWith(closedRaffles).nativeElement as HTMLElement;
+
+      expect(rowOf(root, 'Pendiente').querySelector('.status-badge')?.textContent).toContain('Sorteo pendiente');
+      expect(rowOf(root, 'En vivo').querySelector('.status-badge')?.textContent).toContain('Sorteando en vivo');
+      expect(rowOf(root, 'Rechazada').querySelector('.status-badge')?.textContent).toContain('Sorteo rechazado');
+      expect(rowOf(root, 'Sorteada').querySelector('.status-badge')?.textContent).toContain('Sorteada');
+    });
+
+    it('offers the live draw for pending and live raffles only', () => {
+      const root = renderWith(closedRaffles).nativeElement as HTMLElement;
+      const liveLink = (title: string) => rowOf(root, title).querySelector('a.raffle-item__live-btn');
+
+      expect(liveLink('Pendiente')?.getAttribute('href')).toBe('/rifas/pending/en-vivo');
+      expect(liveLink('Pendiente')?.textContent).toContain('Ir al sorteo en vivo');
+      expect(liveLink('En vivo')?.getAttribute('href')).toBe('/rifas/live/en-vivo');
+      expect(liveLink('Rechazada')).toBeNull();
+      expect(liveLink('Sorteada')).toBeNull();
+    });
+
+    it('filters by visible status', () => {
+      const f = renderWith(closedRaffles);
+      const root = f.nativeElement as HTMLElement;
+      const select = root.querySelector('select[aria-label="Filtrar por estado"]') as HTMLSelectElement;
+
+      select.value = 'DRAW_PENDING';
+      select.dispatchEvent(new Event('change'));
+      f.detectChanges();
+
+      const titles = [...root.querySelectorAll('.raffle-item__title')].map((h) => h.textContent);
+      expect(titles).toEqual(['Pendiente']);
+    });
   });
 
   it('displays empty state when there are no raffles', () => {

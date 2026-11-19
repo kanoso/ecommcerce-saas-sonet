@@ -1,4 +1,7 @@
 import {
+  Draw,
+  DrawWinnerStatus,
+  LiveDrawSession,
   NotOrderOwnerError,
   OrderNotFoundError,
   OrderStatus,
@@ -13,6 +16,7 @@ import {
 import {
   FakeAuditLog,
   InMemoryDrawRepository,
+  InMemoryLiveDrawSessionRepository,
   InMemoryOrderRepository,
   InMemoryRaffleRepository,
   InMemoryTicketRepository,
@@ -357,6 +361,17 @@ describe('RaffleQueries (F6 read side)', () => {
       },
     );
 
+    it('reports the refusal in the admin list too (DT-23 visible status)', async () => {
+      await raffles.save(raffleWith(RaffleStatus.CLOSED));
+      await raffles.save(raffleWith(RaffleStatus.ACTIVE, { id: 'active' }));
+      await refuse('DRAW_CONFIG_MISMATCH');
+
+      const list = await queries.allRaffles();
+
+      expect(list.find((r) => r.id === 'raffle-1')?.refusedDraw?.reason).toBe('DRAW_CONFIG_MISMATCH');
+      expect(list.find((r) => r.id === 'active')?.refusedDraw).toBeNull();
+    });
+
     it('ignores a refusal that is not about the configuration', async () => {
       await raffles.save(raffleWith(RaffleStatus.CLOSED));
       await refuse('SOLD_LIST_MISMATCH');
@@ -460,5 +475,181 @@ describe('RaffleQueries (F6 read side)', () => {
     const [row] = await queries.ordersWithBuyers('raffle-1');
 
     expect(row.comprador).toMatchObject({ codigo_comprador: null, buyerCode: null });
+  });
+
+  describe('live draw session (DT-23)', () => {
+    let sessions: InMemoryLiveDrawSessionRepository;
+    const t0 = new Date('2026-11-11T18:01:00Z');
+    const twoPrizes = [
+      { id: 'p-1', position: 1, title: 'Olla arrocera', description: null, images: [] },
+      { id: 'p-2', position: 2, title: 'Licuadora', description: null, images: [] },
+    ];
+
+    const extraction = (attempt: number, number: number, isWinner: boolean) => ({
+      attempt,
+      number,
+      index: attempt - 1,
+      digestHex: 'ef'.repeat(32),
+      isWinner,
+    });
+    const winnerOf = (position: number, number: number) => ({
+      id: `w-${position}`,
+      prizeId: `p-${position}`,
+      position,
+      status: DrawWinnerStatus.WON,
+      ticketId: `t-${number}`,
+      winningNumber: number,
+      winnerIndex: 1,
+      digestHex: 'ef'.repeat(32),
+      poolSize: 2,
+      extractions: [extraction(1, number + 1, false), extraction(2, number, true)],
+      excludedTickets: [number],
+    });
+
+    /** Two prizes of two attempts each: 4 steps. */
+    async function drawnLive(id = 'raffle-1', step: number | null = 0) {
+      await raffles.save(raffleWith(RaffleStatus.DRAWN, { id, prizes: twoPrizes }));
+      const draw = new Draw({
+        id: `draw-${id}`,
+        raffleId: id,
+        algorithmVersion: 'v2',
+        seedRevealed: 's'.repeat(64),
+        drandRandomness: 'r'.repeat(64),
+        drandRound: 123n,
+        digestHex: 'ef'.repeat(32),
+        totalSold: 2,
+        winningTicketId: 't-7',
+        winningNumber: 7,
+        winnerIndex: 1,
+        winningAttempt: 2,
+        extractions: winnerOf(1, 7).extractions,
+        winners: [winnerOf(1, 7), winnerOf(2, 3)],
+      });
+      await draws.save(draw);
+      if (step !== null) {
+        let session = LiveDrawSession.start({ raffleId: id, drawId: draw.id, totalSteps: 4, now: t0 });
+        for (let s = 0; s < step; s++) session = session.advance(s, t0);
+        await sessions.create(session);
+      }
+    }
+
+    beforeEach(() => {
+      sessions = new InMemoryLiveDrawSessionRepository();
+      queries = new RaffleQueries(raffles, tickets, orders, draws, auditLog, sessions);
+    });
+
+    it('reports the session in the live data', async () => {
+      await drawnLive('raffle-1', 1);
+
+      const live = await queries.liveData('raffle-1');
+
+      expect(live.liveSession).toEqual({
+        step: 1,
+        totalSteps: 4,
+        startedAt: t0.toISOString(),
+        updatedAt: t0.toISOString(),
+        finishedAt: null,
+      });
+    });
+
+    it('reports no session for a draw without one', async () => {
+      await drawnLive('raffle-1', null);
+
+      const live = await queries.liveData('raffle-1');
+
+      expect(live.liveSession).toBeNull();
+      expect(live.result?.winners).toHaveLength(2);
+    });
+
+    it('hides every winner not yet revealed while the session is in progress', async () => {
+      await drawnLive('raffle-1', 1);
+
+      const { result } = await queries.liveData('raffle-1');
+
+      expect(result?.winners).toEqual([]);
+      expect(result?.winningNumber).toBeNull();
+      expect(result?.winnerIndex).toBeNull();
+      expect(result?.digestHex).toBeNull();
+      expect(result?.extractions).toEqual([]);
+    });
+
+    it('shows a prize once all its steps are revealed', async () => {
+      await drawnLive('raffle-1', 2);
+
+      const { result } = await queries.liveData('raffle-1');
+
+      expect(result?.winners.map((w) => w.position)).toEqual([1]);
+      expect(result?.winningNumber).toBe(7);
+    });
+
+    it('shows the whole result once the session finished', async () => {
+      await drawnLive('raffle-1', 4);
+
+      const { result, liveSession } = await queries.liveData('raffle-1');
+
+      expect(liveSession?.finishedAt).toBe(t0.toISOString());
+      expect(result?.winners.map((w) => w.winningNumber)).toEqual([7, 3]);
+    });
+
+    it('lists CLOSED raffles and live draws in progress as pending, the live ones first', async () => {
+      await raffles.save(raffleWith(RaffleStatus.CLOSED, { id: 'closed' }));
+      await drawnLive('live', 1);
+      await drawnLive('done', 4);
+
+      const pending = await queries.pendingDrawRaffles();
+
+      expect(pending.map((r) => [r.id, r.liveDrawInProgress])).toEqual([
+        ['live', true],
+        ['closed', false],
+      ]);
+      expect(pending[0].winners).toEqual([]);
+    });
+
+    it('lists only drawn (not live) and cancelled raffles as finished', async () => {
+      await raffles.save(raffleWith(RaffleStatus.CLOSED, { id: 'closed' }));
+      await raffles.save(raffleWith(RaffleStatus.CANCELLED, { id: 'cancelled' }));
+      await drawnLive('live', 1);
+      await drawnLive('done', 4);
+
+      const finished = await queries.finishedRaffles();
+
+      expect(finished.map((r) => r.id).sort()).toEqual(['cancelled', 'done']);
+      expect(finished.find((r) => r.id === 'done')?.winners).toEqual([
+        { position: 1, prizeTitle: 'Olla arrocera', status: 'WON', winningNumber: 7 },
+        { position: 2, prizeTitle: 'Licuadora', status: 'WON', winningNumber: 3 },
+      ]);
+    });
+
+    it('gives the admin every winner with the buyer alias and the session', async () => {
+      await drawnLive('raffle-1', 1);
+      await orders.save(
+        new TicketOrder({
+          id: 'order-7',
+          raffleId: 'raffle-1',
+          userId: 'buyer-7',
+          numbers: [7],
+          totalAmount: 5,
+          status: OrderStatus.PAID,
+          expiresAt: new Date(),
+        }),
+      );
+      orders.setBuyer('order-7', {
+        id: 'buyer-7',
+        name: 'Juan Perez',
+        document: null,
+        phone: null,
+        email: null,
+        buyerCode: 'JUAN-PEREZ',
+      });
+
+      const detail = await queries.adminRaffleDetail('raffle-1');
+
+      expect(detail.liveDrawInProgress).toBe(true);
+      expect(detail.liveSession?.step).toBe(1);
+      expect(detail.adminWinners).toEqual([
+        { position: 1, prizeTitle: 'Olla arrocera', status: 'WON', winningNumber: 7, buyerAlias: 'Juan Perez' },
+        { position: 2, prizeTitle: 'Licuadora', status: 'WON', winningNumber: 3, buyerAlias: null },
+      ]);
+    });
   });
 });

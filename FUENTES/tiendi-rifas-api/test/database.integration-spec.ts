@@ -90,7 +90,15 @@ import {
   TicketStatus,
   BuyerCodeNotFoundError,
   normalizeBuyerCode,
+  LiveDrawNotAvailableError,
+  LiveDrawStepConflictError,
 } from '../src/modules/raffles/domain';
+import {
+  AdvanceLiveDrawUseCase,
+  FinishLiveDrawUseCase,
+  StartLiveDrawUseCase,
+} from '../src/modules/raffles/application/use-cases/live-draw.use-case';
+import { PrismaLiveDrawSessionRepository } from '../src/modules/raffles/infrastructure/persistence/prisma-live-draw-session.repository';
 import { BuyerCodeTakenError } from '../src/modules/auth/auth.store';
 import { PrismaAuthStore } from '../src/modules/auth/prisma-auth.store';
 import { SellInPersonUseCase } from '../src/modules/raffles/application/use-cases/sell-in-person.use-case';
@@ -5956,6 +5964,138 @@ describe('Raffle persistence on real PostgreSQL', () => {
         expect((await orderRepo.findById(orderId))?.status).toBe('REFUNDED');
         expect((await ticketOf(raffleId, 1)).status).toBe('SOLD');
         await expect(drawWith().execute(raffleId)).resolves.toBeDefined();
+      });
+    });
+
+    describe('live draw session (DT-23)', () => {
+      const sessions = new PrismaLiveDrawSessionRepository(prisma);
+      const start = () =>
+        new StartLiveDrawUseCase(raffleRepo, drawWith(), sessions, auditLog, clock);
+      const advance = new AdvanceLiveDrawUseCase(sessions, auditLog, clock);
+      const finish = new FinishLiveDrawUseCase(sessions, auditLog, clock);
+      const operatorId = 'admin-1';
+
+      /** Two tickets sold, two attempts: one prize of two steps. */
+      async function givenClosedManualRaffle(): Promise<string> {
+        const id = randomUUID();
+        const { commitmentHash, seedCiphertext } = await seedVault.generateAndStoreSeed(id);
+        await createRaffleRow(prisma, {
+          data: {
+            id,
+            title: 'Live draw raffle',
+            prize: 'Prize',
+            ticketPrice: 10,
+            numberMin: 1,
+            numberMax: 100,
+            winningAttempt: 2,
+            drawMode: 'MANUAL',
+            status: 'ACTIVE',
+            commitmentHash,
+            seedCiphertext,
+            drandRound: DRAW_ROUND,
+            drandChainHash: beacon.chainHash,
+            salesCloseAt: new Date(Date.now() + 7 * 24 * 3_600_000),
+          },
+        });
+        await prisma.ticket.createMany({
+          data: [1, 2, 3, 4].map((number) => ({ raffleId: id, number })),
+        });
+        await givenPaidOrder(id, [1, 2]);
+        await closeSalesWith().execute(id);
+        return id;
+      }
+
+      it('records the official draw first, then persists the session at step 0', async () => {
+        const raffleId = await givenClosedManualRaffle();
+
+        const session = await start().execute({ raffleId, operatorId });
+
+        const draw = await drawRepo.findByRaffleId(raffleId);
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('DRAWN');
+        expect(session.drawId).toBe(draw?.id);
+        const row = await prisma.liveDrawSession.findUniqueOrThrow({ where: { raffleId } });
+        expect(row).toMatchObject({ drawId: draw?.id, step: 0, totalSteps: 2, finishedAt: null });
+        expect(await auditTypes(raffleId)).toContain('LIVE_DRAW_STARTED');
+      });
+
+      it('keeps the first session when started twice', async () => {
+        const raffleId = await givenClosedManualRaffle();
+
+        const first = await start().execute({ raffleId, operatorId });
+        const again = await start().execute({ raffleId, operatorId });
+
+        expect(again.drawId).toBe(first.drawId);
+        expect(await prisma.liveDrawSession.count({ where: { raffleId } })).toBe(1);
+        const started = (await auditTypes(raffleId)).filter((t) => t === 'LIVE_DRAW_STARTED');
+        expect(started).toHaveLength(1);
+      });
+
+      it('lets exactly one of several concurrent advances land', async () => {
+        const raffleId = await givenClosedManualRaffle();
+        await start().execute({ raffleId, operatorId });
+
+        const results = await Promise.allSettled(
+          Array.from({ length: 5 }, () =>
+            advance.execute({ raffleId, expectedStep: 0, operatorId }),
+          ),
+        );
+
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+        for (const r of results.filter((r) => r.status === 'rejected')) {
+          expect((r as PromiseRejectedResult).reason).toBeInstanceOf(LiveDrawStepConflictError);
+        }
+        expect((await sessions.findByRaffleId(raffleId))?.step).toBe(1);
+      });
+
+      it('refuses at the database a step going back', async () => {
+        const raffleId = await givenClosedManualRaffle();
+        await start().execute({ raffleId, operatorId });
+        await advance.execute({ raffleId, expectedStep: 0, operatorId });
+
+        await expect(
+          prisma.liveDrawSession.update({ where: { raffleId }, data: { step: 0 } }),
+        ).rejects.toThrow('LiveDrawSession_backwards');
+      });
+
+      it('finishes on the last step and freezes the session', async () => {
+        const raffleId = await givenClosedManualRaffle();
+        await start().execute({ raffleId, operatorId });
+        await advance.execute({ raffleId, expectedStep: 0, operatorId });
+        await advance.execute({ raffleId, expectedStep: 1, operatorId });
+
+        const row = await prisma.liveDrawSession.findUniqueOrThrow({ where: { raffleId } });
+        expect(row.step).toBe(2);
+        expect(row.finishedAt).not.toBeNull();
+        await expect(
+          advance.execute({ raffleId, expectedStep: 2, operatorId }),
+        ).rejects.toThrow(LiveDrawStepConflictError);
+        await expect(
+          prisma.liveDrawSession.update({
+            where: { raffleId },
+            data: { updatedAt: new Date() },
+          }),
+        ).rejects.toThrow('LiveDrawSession_finished');
+        expect(await auditTypes(raffleId)).toContain('LIVE_DRAW_FINISHED');
+      });
+
+      it('reveals everything at once with finish', async () => {
+        const raffleId = await givenClosedManualRaffle();
+        await start().execute({ raffleId, operatorId });
+
+        const done = await finish.execute({ raffleId, operatorId });
+
+        expect(done.step).toBe(2);
+        expect((await sessions.findByRaffleId(raffleId))?.finishedAt).not.toBeNull();
+      });
+
+      it('opens no session for an AUTOMATIC raffle', async () => {
+        const raffleId = await givenClosedRaffle([1]);
+
+        await expect(start().execute({ raffleId, operatorId })).rejects.toThrow(
+          LiveDrawNotAvailableError,
+        );
+        expect(await prisma.liveDrawSession.count({ where: { raffleId } })).toBe(0);
+        expect((await raffleRepo.findById(raffleId))?.status).toBe('CLOSED');
       });
     });
   });

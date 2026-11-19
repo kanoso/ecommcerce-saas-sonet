@@ -137,3 +137,14 @@
     border-color: var(--ink);
   }
 }
+
+/* A live draw is in progress in the "Por sortear" tab (DT-23). */
+.tab-btn__live {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #dc2626;
+  vertical-align: middle;
+}

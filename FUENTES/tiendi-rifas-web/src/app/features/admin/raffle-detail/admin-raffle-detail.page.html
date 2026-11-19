@@ -25,8 +25,8 @@
       <div class="detail-header__main">
         <h1 id="detail-title" class="detail-header__title">{{ r.title }}</h1>
         <div class="detail-header__actions">
-          <span class="status-badge" [attr.data-status]="r.status">
-            {{ statusLabel(r.status) }}
+          <span class="status-badge" [attr.data-status]="r.status" [attr.data-visible-status]="visibleStatus()">
+            {{ visibleStatusText() || statusLabel(r.status) }}
           </span>
           @if (r.status === 'ACTIVE') {
             <button type="button" class="btn btn-primary btn-pos-trigger" (click)="openPosModal()">
@@ -408,10 +408,41 @@
       <section class="section-card" aria-labelledby="draw-title">
         <h2 id="draw-title" class="section-card__title">Sorteo de la Rifa (RF-13)</h2>
 
-        @if (drawResult(); as draw) {
+        <ng-template #winnerList>
+          <ul class="draw-winners" aria-label="Ganadores por premio">
+            @for (row of drawWinnerRows(); track row.position) {
+              <li class="draw-winners__item" [attr.data-status]="row.status">
+                <span class="draw-winners__prize">Premio {{ row.position }} — {{ row.title }}</span>
+                <span class="draw-winners__result">
+                  @if (row.status === 'WON') {
+                    <strong>#{{ row.number }}</strong>{{ row.alias ? ' · ' + row.alias : '' }}
+                  } @else {
+                    Desierto
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+        </ng-template>
+
+        @if (r.liveDrawInProgress) {
+          <div class="alert alert--warning" role="status">
+            <p>
+              <strong>Sorteo en vivo en curso</strong>
+              @if (r.liveSession; as session) {
+                (paso {{ session.step }} de {{ session.totalSteps }})
+              }
+            </p>
+            <p>El resultado oficial ya está registrado; el público lo ve paso a paso.</p>
+            <ng-container [ngTemplateOutlet]="winnerList" />
+            <div class="draw-links">
+              <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link btn-live-draw">🔴 Ir al sorteo en vivo</a>
+            </div>
+          </div>
+        } @else if (drawResult(); as draw) {
           <div class="alert alert--success" role="status">
             <p><strong>Sorteo ejecutado exitosamente.</strong></p>
-            <p class="draw-winner">Número ganador: {{ draw.winningNumber ?? 'Desierto' }}</p>
+            <ng-container [ngTemplateOutlet]="winnerList" />
             <p>Ronda drand: {{ draw.drandRound }} | Ejecutado en: {{ draw.executedAt | date:'medium' }}</p>
             <div class="draw-links">
               <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
@@ -421,6 +452,7 @@
         } @else if (r.status === 'DRAWN') {
           <div class="alert alert--info" role="status">
             <p>Esta rifa ya ha sido sorteada oficialmente.</p>
+            <ng-container [ngTemplateOutlet]="winnerList" />
             <div class="draw-links">
               <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
               <a [routerLink]="['/rifas', r.id, 'verificacion']" class="draw-link">Verificar sorteo</a>
@@ -430,6 +462,12 @@
           <p class="section-card__desc">
             El sorteo automatizado se ejecuta en la fecha y hora programada una vez disponible la ronda de drand. Si el proceso programado falla, puedes ejecutarlo manualmente aquí.
           </p>
+          @if (canGoLive()) {
+            <p class="section-card__desc">
+              Esta rifa es de modalidad Manual en Vivo: al presionar «Iniciar sorteo» en la página en vivo se registra el resultado oficial y el público lo ve paso a paso.
+            </p>
+            <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="btn-action btn-live-draw">🎥 Ir al sorteo en vivo</a>
+          }
           @if (r.status === 'ACTIVE') {
             <p class="section-card__desc" style="color: #64748b; font-size: 0.85rem;">
               Nota: el sorteo oficial requiere que las ventas estén cerradas y que se haya alcanzado la fecha programada con la ronda de drand disponible.
