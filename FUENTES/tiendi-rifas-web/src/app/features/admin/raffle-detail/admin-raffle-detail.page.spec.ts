@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AdminApi } from '../../../core/api/admin-api';
+import { ApiError } from '../../../core/api/api-error';
 import { AdminSalesReport, RaffleOrderWithBuyer, RaffleSummary } from '../../../core/api/api.models';
 import { AdminRaffleDetailPage } from './admin-raffle-detail.page';
 
@@ -89,6 +90,7 @@ describe('AdminRaffleDetailPage', () => {
     publishRaffle: ReturnType<typeof vi.fn>;
     executeDraw: ReturnType<typeof vi.fn>;
     cancelAlteredRaffle: ReturnType<typeof vi.fn>;
+    cancelRaffle: ReturnType<typeof vi.fn>;
     cancelRefusedDrawRaffle: ReturnType<typeof vi.fn>;
     deleteDraftRaffle: ReturnType<typeof vi.fn>;
     availableTickets: ReturnType<typeof vi.fn>;
@@ -120,6 +122,7 @@ describe('AdminRaffleDetailPage', () => {
         }),
       ),
       cancelAlteredRaffle: vi.fn().mockReturnValue(of({ raffleId: 'r-1', status: 'CANCELLED' })),
+      cancelRaffle: vi.fn().mockReturnValue(of({ raffleId: 'r-1', status: 'CANCELLED' })),
       cancelRefusedDrawRaffle: vi.fn().mockReturnValue(of({ raffleId: 'r-1', status: 'CANCELLED' })),
       deleteDraftRaffle: vi.fn().mockReturnValue(of(undefined)),
       availableTickets: vi.fn().mockReturnValue(of([42, 43, 44])),
@@ -435,10 +438,44 @@ describe('AdminRaffleDetailPage', () => {
     confirmCancelBtn.click();
     fixture.detectChanges();
 
-    expect(adminApiMock.cancelAlteredRaffle).toHaveBeenCalledWith(
-      'r-1',
-      'Cancelación administrativa por fuerza mayor',
-    );
+    expect(adminApiMock.cancelRaffle).toHaveBeenCalledWith('r-1', 'Cancelación administrativa por fuerza mayor');
+    expect(adminApiMock.cancelAlteredRaffle).not.toHaveBeenCalled();
+  });
+
+  describe('cancel from the danger zone', () => {
+    const confirmCancel = (raffle: RaffleSummary) => {
+      component.raffle.set(raffle);
+      component.showCancelDialog.set(true);
+      component.cancelReason.set('  Motivo de cancelación  ');
+      component.cancelConfirmed.set(true);
+      fixture.detectChanges();
+      (el.querySelector('.btn-confirm-cancel') as HTMLButtonElement).click();
+      fixture.detectChanges();
+    };
+
+    it('cancels a CLOSED raffle as one with an altered list, as before', () => {
+      confirmCancel({ ...mockActiveRaffle, status: 'CLOSED', refusedDraw: null });
+
+      expect(adminApiMock.cancelAlteredRaffle).toHaveBeenCalledWith('r-1', 'Motivo de cancelación');
+      expect(adminApiMock.cancelRaffle).not.toHaveBeenCalled();
+    });
+
+    it('shows the message of the API when the cancel is refused', () => {
+      adminApiMock.cancelRaffle.mockReturnValue(
+        throwError(() => new ApiError(409, 'RAFFLE_NOT_CANCELLABLE', 'Esta rifa ya no se puede cancelar.')),
+      );
+      confirmCancel(mockActiveRaffle);
+
+      expect(el.textContent).toContain('Esta rifa ya no se puede cancelar.');
+      expect(el.textContent).not.toContain('No se pudo cancelar la rifa.');
+    });
+
+    it('falls back to its own message when the error says nothing specific', () => {
+      adminApiMock.cancelRaffle.mockReturnValue(throwError(() => new Error('boom')));
+      confirmCancel(mockActiveRaffle);
+
+      expect(el.textContent).toContain('No se pudo cancelar la rifa.');
+    });
   });
 
   describe('draw refused for its configuration (DT-21)', () => {
@@ -507,6 +544,22 @@ describe('AdminRaffleDetailPage', () => {
       fixture.detectChanges();
 
       expect(el.textContent).toContain('No se pudo cancelar la rifa.');
+    });
+
+    it('shows the message of the API when the refused-draw cancel fails', () => {
+      adminApiMock.cancelRefusedDrawRaffle.mockReturnValue(
+        throwError(() => new ApiError(409, 'RAFFLE_NOT_CANCELLABLE', 'La rifa ya fue cancelada.')),
+      );
+      component.raffle.set(refusedRaffle);
+      component.showRefusedCancelDialog.set(true);
+      component.refusedCancelReason.set('Motivo');
+      component.refusedCancelConfirmed.set(true);
+      fixture.detectChanges();
+
+      (el.querySelector('[data-testid="refused-draw-confirm"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(el.textContent).toContain('La rifa ya fue cancelada.');
     });
 
     it('shows nothing of it for a CLOSED raffle whose draw was not refused', () => {

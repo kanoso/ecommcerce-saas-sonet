@@ -11,7 +11,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { roundAt, timeOfRound } from '@kanoso/raffle-draw';
-import { toApiError } from '../../../core/api/api-error';
+import { toApiError, userMessageFor } from '../../../core/api/api-error';
 import { AdminApi } from '../../../core/api/admin-api';
 import {
   AdminSalesReport,
@@ -82,6 +82,16 @@ function datesOrderValidator(control: AbstractControl): ValidationErrors | null 
     }
   }
   return null;
+}
+
+/**
+ * The API's message for a refused cancel; our own when the API says nothing
+ * specific (an unknown error only has the generic message).
+ */
+function cancelErrorMessage(err: unknown): string {
+  const message = toApiError(err).userMessage;
+  const generic = userMessageFor('UNKNOWN');
+  return message && message !== generic ? message : 'No se pudo cancelar la rifa.';
 }
 
 @Component({
@@ -533,15 +543,20 @@ export class AdminRaffleDetailPage implements OnInit {
     this.actionLoading.set(true);
     this.actionError.set(null);
 
-    this.adminApi.cancelAlteredRaffle(this.raffleId, reason).subscribe({
+    // DRAFT/ACTIVE cancel directly; a CLOSED raffle can only be cancelled for an altered list.
+    const cancel =
+      this.raffle()?.status === 'CLOSED'
+        ? this.adminApi.cancelAlteredRaffle(this.raffleId, reason)
+        : this.adminApi.cancelRaffle(this.raffleId, reason);
+    cancel.subscribe({
       next: () => {
         this.actionLoading.set(false);
         this.showCancelDialog.set(false);
         this.loadData();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.actionLoading.set(false);
-        this.actionError.set('No se pudo cancelar la rifa.');
+        this.actionError.set(cancelErrorMessage(err));
       },
     });
   }
@@ -559,9 +574,9 @@ export class AdminRaffleDetailPage implements OnInit {
         this.showRefusedCancelDialog.set(false);
         this.loadData();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.actionLoading.set(false);
-        this.actionError.set('No se pudo cancelar la rifa.');
+        this.actionError.set(cancelErrorMessage(err));
       },
     });
   }

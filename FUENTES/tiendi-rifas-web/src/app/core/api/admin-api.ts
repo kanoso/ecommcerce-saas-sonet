@@ -247,6 +247,16 @@ export class AdminApi {
   }
 
   /**
+   * `POST /admin/rifas/:id/cancelar`: cancels a DRAFT or ACTIVE raffle with
+   * refunds. A CLOSED raffle gets 409: it goes through cancelAlteredRaffle.
+   */
+  cancelRaffle(raffleId: string, reason: string): Observable<CreatedRaffle> {
+    return this.http
+      .post<CancelRaffleResponseDto>(`${this.baseUrl}/admin/rifas/${encodeURIComponent(raffleId)}/cancelar`, { motivo: reason })
+      .pipe(map(toCreatedRaffle), catchError(rethrowAsApiError));
+  }
+
+  /**
    * `POST /admin/rifas/:id/cancelar-lista-alterada` (RF-15 / DT-15): cancels raffle with refunds.
    */
   cancelAlteredRaffle(raffleId: string, reason: string): Observable<CreatedRaffle> {

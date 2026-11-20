@@ -363,6 +363,17 @@ describe('AdminApi', () => {
     ]);
   });
 
+  it('cancels a DRAFT or ACTIVE raffle via POST /admin/rifas/:id/cancelar', async () => {
+    const cancelPromise = firstValueFrom(api.cancelRaffle('r-1', 'Fuerza mayor'));
+
+    const req = http.expectOne(`${BASE_URL}/admin/rifas/r-1/cancelar`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ motivo: 'Fuerza mayor' });
+    req.flush({ rifa_id: 'r-1', estado: 'CANCELLED' });
+
+    expect(await cancelPromise).toEqual({ raffleId: 'r-1', status: 'CANCELLED' });
+  });
+
   it('cancels altered raffle via POST /admin/rifas/:id/cancelar-lista-alterada', async () => {
     const cancelPromise = firstValueFrom(api.cancelAlteredRaffle('r-1', 'Lista alterada'));
 
