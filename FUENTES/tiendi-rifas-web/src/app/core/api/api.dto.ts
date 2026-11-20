@@ -81,6 +81,14 @@ export interface RaffleSummaryDto {
   ganadores?: PrizeWinnerSummaryDto[];
   /** Admin detail only (DT-23): the live draw session, null when none. */
   sesion_en_vivo?: LiveDrawSessionDto | null;
+  /** Admin detail only: who ran the draw; null before it. Absent on older APIs. */
+  ejecutado_por?: DrawExecutorDto | null;
+}
+
+/** Who ran a draw: an admin by name, or the scheduled system job (nombre null). */
+export interface DrawExecutorDto {
+  tipo: 'ADMIN' | 'SISTEMA' | string;
+  nombre: string | null;
 }
 
 /** One prize's result on a list or a detail (DT-23). */
@@ -100,6 +108,8 @@ export interface LiveDrawSessionDto {
   iniciada_en: string;
   actualizada_en: string;
   finalizada_en: string | null;
+  /** The operator who conducts it; null for sessions stored before it was recorded. Absent on older APIs. */
+  conducido_por?: { nombre: string } | null;
 }
 
 /** `POST /admin/rifas/:id/en-vivo/(iniciar|avanzar|finalizar)`. */
@@ -141,6 +151,8 @@ export interface OfficialResultDto {
   ejecutado_en: string;
   version_algoritmo?: string;
   ganadores?: DrawWinnerDto[];
+  /** Who ran the draw. Absent on older APIs. */
+  ejecutado_por?: DrawExecutorDto | null;
 }
 
 export interface LiveDataDto {

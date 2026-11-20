@@ -121,47 +121,88 @@
 
         @if (activeTab() === 'ficha') {
           <section class="specs-section" aria-label="Ficha Técnica y Fotos del Premio">
-            @if (raffle.prizeImages; as images) {
-              @if (images.length > 0) {
+            @if (prizeList().length > 1) {
+              <div class="prize-tabs" role="tablist" aria-label="Premios" tabindex="-1" (keydown)="onPrizeTabKeydown($event)">
+                @for (p of prizeList(); track p.position; let i = $index) {
+                  <button
+                    type="button"
+                    role="tab"
+                    class="prize-tab"
+                    [id]="'prize-tab-' + i"
+                    [class.prize-tab--active]="i === selectedPrizeIndex()"
+                    [attr.aria-selected]="i === selectedPrizeIndex()"
+                    aria-controls="prize-panel"
+                    [attr.tabindex]="i === selectedPrizeIndex() ? 0 : -1"
+                    (click)="selectPrize(i)"
+                  >
+                    {{ p.position }}.º {{ p.title }}
+                  </button>
+                }
+              </div>
+            }
+
+            @if (selectedPrize(); as prize) {
+              <div
+                id="prize-panel"
+                class="prize-panel"
+                [attr.role]="prizeList().length > 1 ? 'tabpanel' : null"
+                [attr.aria-labelledby]="prizeList().length > 1 ? 'prize-tab-' + selectedPrizeIndex() : null"
+              >
                 <div class="prize-carousel">
-                  <div class="carousel__viewport">
-                    <img
-                      [src]="images[activeImageIndex()]"
-                      [alt]="raffle.prize"
-                      class="carousel__img"
-                    />
-                    @if (images.length > 1) {
-                      <button type="button" class="carousel__btn prev" (click)="prevImage()" aria-label="Anterior">❮</button>
-                      <button type="button" class="carousel__btn next" (click)="nextImage()" aria-label="Siguiente">❯</button>
-                      <span class="carousel__badge">{{ activeImageIndex() + 1 }} / {{ images.length }}</span>
-                    }
-                  </div>
-                  @if (images.length > 1) {
-                    <div class="carousel__thumbs">
-                      @for (img of images; track $index) {
-                        <button
-                          type="button"
-                          class="carousel__thumb-btn"
-                          [class.active]="$index === activeImageIndex()"
-                          (click)="setImage($index)"
-                        >
-                          <img [src]="img" [alt]="'Miniatura ' + ($index + 1)" />
-                        </button>
+                  @if (prize.images.length > 0) {
+                    <div class="carousel__viewport">
+                      <button
+                        type="button"
+                        class="carousel__zoom"
+                        [attr.aria-label]="'Ampliar foto ' + (activeImageIndex() + 1) + ' de ' + prize.title"
+                        (click)="lightbox.open(prize.images, activeImageIndex(), prize.title)"
+                      >
+                        <img
+                          [src]="prize.images[activeImageIndex()]"
+                          [alt]="prize.title"
+                          class="carousel__img"
+                        />
+                        <span class="carousel__zoom-hint" aria-hidden="true">🔍 Zoom</span>
+                      </button>
+                      @if (prize.images.length > 1) {
+                        <button type="button" class="carousel__btn prev" (click)="prevImage()" aria-label="Anterior">❮</button>
+                        <button type="button" class="carousel__btn next" (click)="nextImage()" aria-label="Siguiente">❯</button>
+                        <span class="carousel__badge">{{ activeImageIndex() + 1 }} / {{ prize.images.length }}</span>
                       }
+                    </div>
+                    @if (prize.images.length > 1) {
+                      <div class="carousel__thumbs">
+                        @for (img of prize.images; track $index) {
+                          <button
+                            type="button"
+                            class="carousel__thumb-btn"
+                            [class.active]="$index === activeImageIndex()"
+                            [attr.aria-label]="'Ver foto ' + ($index + 1)"
+                            (click)="setImage($index)"
+                          >
+                            <img [src]="img" [alt]="'Miniatura ' + ($index + 1)" />
+                          </button>
+                        }
+                      </div>
+                    }
+                  } @else {
+                    <div class="carousel__viewport carousel__placeholder">
+                      <span>Sin fotos para este premio</span>
                     </div>
                   }
                 </div>
-              }
+
+                <div class="specs-card">
+                  <h3 class="specs-card__title">Ficha del premio</h3>
+                  <p class="specs-card__prize">{{ prize.position }}.º {{ prize.title }}</p>
+                  <p class="specs-card__desc">{{ prize.description || 'No se cuenta con descripción detallada para este premio.' }}</p>
+                </div>
+              </div>
             }
 
             <div class="specs-card">
-              <h3 class="specs-card__title">Ficha Técnica</h3>
-              <p class="specs-card__desc">{{ raffle.prizeDescription || 'No se cuenta con descripción detallada para este premio.' }}</p>
+              <h3 class="specs-card__title">Reglas del sorteo</h3>
               <dl class="specs-card__dl">
-                <div class="spec-row">
-                  <dt>Premio:</dt>
-                  <dd>{{ raffle.prize }}</dd>
-                </div>
                 <div class="spec-row">
                   <dt>Regla del sorteo:</dt>
                   <dd>{{ (raffle.winningAttempt ?? 1) === 1 ? 'Sale al primer intento' : 'Sale al ' + raffle.winningAttempt + '° intento' }}</dd>
@@ -180,27 +221,6 @@
                 </div>
               </dl>
             </div>
-
-            @if (otherPrizes().length > 0) {
-              <div class="specs-card other-prizes">
-                <h3 class="specs-card__title">Otros premios</h3>
-                @for (p of otherPrizes(); track p.position) {
-                  <article class="other-prizes__item">
-                    <h4 class="other-prizes__title">{{ p.position }}.º premio: {{ p.title }}</h4>
-                    @if (p.description) {
-                      <p class="specs-card__desc">{{ p.description }}</p>
-                    }
-                    @if (p.images.length > 0) {
-                      <div class="other-prizes__thumbs">
-                        @for (img of p.images; track $index) {
-                          <img [src]="img" [alt]="p.title + ' — foto ' + ($index + 1)" class="other-prizes__img" />
-                        }
-                      </div>
-                    }
-                  </article>
-                }
-              </div>
-            }
           </section>
         }
 
@@ -417,4 +437,8 @@
       </p>
     </div>
   </div>
+}
+
+@if (lightbox.state(); as lb) {
+  <app-image-lightbox [images]="lb.images" [startIndex]="lb.index" [alt]="lb.alt" (closed)="lightbox.close()" />
 }

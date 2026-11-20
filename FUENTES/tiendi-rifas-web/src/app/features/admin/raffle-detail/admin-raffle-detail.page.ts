@@ -29,6 +29,10 @@ import {
   visibleStatusLabel,
   visibleStatusOf,
 } from '../../../core/raffle-status/visible-status';
+import { exclusionModeText } from '../../../core/raffle/exclusion-mode-text';
+import { drawOperatorText } from '../../../core/raffle/draw-operator-text';
+import { ImageLightboxComponent } from '../../../shared/image-lightbox/image-lightbox.component';
+import { createLightbox } from '../../../shared/image-lightbox/lightbox-state';
 import { ExclusionModeFieldComponent } from '../shared/exclusion-mode-field.component';
 import {
   PrizeDraft,
@@ -90,6 +94,7 @@ function datesOrderValidator(control: AbstractControl): ValidationErrors | null 
     RouterLink,
     PrizeListEditorComponent,
     ExclusionModeFieldComponent,
+    ImageLightboxComponent,
   ],
   templateUrl: './admin-raffle-detail.page.html',
   styleUrl: './admin-raffle-detail.page.scss',
@@ -204,6 +209,9 @@ export class AdminRaffleDetailPage implements OnInit {
   readonly editSaving = signal(false);
   readonly editError = signal<string | null>(null);
 
+  /** Prize photos open full screen with zoom. */
+  readonly lightbox = createLightbox();
+
   /** The ordered prizes; an older API without a list gives the legacy single prize. */
   readonly prizes = computed<RafflePrize[]>(() => {
     const r = this.raffle();
@@ -232,9 +240,17 @@ export class AdminRaffleDetailPage implements OnInit {
   readonly modeSaving = signal(false);
   readonly modeError = signal<string | null>(null);
 
-  exclusionModeLabel(mode: WinnerExclusionMode | undefined): string {
-    return mode === 'BUYER' ? 'Por comprador' : 'Solo el boleto ganador';
-  }
+  /** Who ran the draw, in the wording of the live page; null when the API names nobody. */
+  readonly drawOperatorText = computed(() => {
+    const r = this.raffle();
+    return drawOperatorText({
+      executedBy: r?.executedBy,
+      conductedBy: r?.liveSession?.conductedBy,
+      at: r?.liveSession?.finishedAt ?? r?.drawAt ?? null,
+    });
+  });
+
+  readonly exclusionModeText = exclusionModeText;
 
   /** ACTIVE only: the draft modal saves it with the rest of the draft. */
   saveExclusionMode(): void {

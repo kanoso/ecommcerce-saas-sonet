@@ -1,0 +1,124 @@
+// Full-screen overlay above every page modal (auth modal is z-index 101).
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: rgba(2, 6, 23, 0.94);
+  color: #fff;
+  overscroll-behavior: contain;
+
+  &__bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px var(--page-gutter, 16px);
+  }
+
+  &__counter {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__zoom {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  &__level {
+    min-width: 3.5em;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  &__tool,
+  &__nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-target, 44px);
+    height: var(--touch-target, 44px);
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.24);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+  }
+
+  &__close {
+    font-size: 26px;
+  }
+
+  &__stage {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform 0.15s ease-out;
+    cursor: zoom-in;
+    // Pointer events drive pan and pinch; stop the browser from scrolling/zooming the page.
+    touch-action: none;
+    user-select: none;
+
+    &--zoomed {
+      cursor: grab;
+    }
+
+    &--dragging {
+      cursor: grabbing;
+      transition: none;
+    }
+  }
+
+  &__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+
+    &--prev {
+      left: 10px;
+    }
+
+    &--next {
+      right: 10px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__img {
+    transition: none;
+  }
+}

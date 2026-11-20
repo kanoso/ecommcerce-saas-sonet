@@ -56,6 +56,56 @@
   flex-shrink: 0;
 }
 
+.live-badge[data-kind='SCHEDULED'] { background-color: #334155; }
+.live-badge[data-kind='FINISHED'] { background-color: #047857; }
+.live-badge[data-kind='REPLAY'] { background-color: #6d28d9; }
+.live-badge[data-kind='CANCELLED'] { background-color: #475569; }
+
+// Badge plus room for a future "Conducido por <nombre>" line.
+.live-header__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.live-operator {
+  max-width: 220px;
+  font-size: 12px;
+  color: #cbd5e1;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+// On a phone the title takes the row and the status column drops below it.
+@media (max-width: 480px) {
+  .live-header {
+    flex-wrap: wrap;
+  }
+
+  .live-header__status {
+    align-items: flex-start;
+  }
+
+  .live-operator {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+.live-summary {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #a7f3d0;
+}
+
+.live-summary__at {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 .live-dot {
   width: 8px;
   height: 8px;
@@ -1068,6 +1118,15 @@
     box-shadow: 0 0 32px rgba(250, 204, 21, 0.95), 0 -18px 40px rgba(254, 240, 138, 0.65) !important;
   }
 
+  /* Out of the pool: an earlier prize took it (winner or, in BUYER mode, the winner's other tickets) */
+  &.excluded {
+    background: repeating-linear-gradient(135deg, #f1f5f9, #f1f5f9 6px, #e2e8f0 6px, #e2e8f0 12px);
+    border-style: dashed;
+    border-color: #94a3b8;
+    color: #64748b;
+    opacity: 0.75;
+  }
+
   /* Discarded "¡Al Agua!" */
   &.al-agua {
     background: #fee2e2 !important;
@@ -1090,7 +1149,7 @@
   }
 }
 
-.scanning-mode .cell:not(.my-ticket):not(.sold):not(.al-agua):not(.winner-cell):not(.radar-ping) {
+.scanning-mode .cell:not(.my-ticket):not(.sold):not(.al-agua):not(.excluded):not(.winner-cell):not(.radar-ping) {
   background: #060d17;
   border-color: #0b192c;
   color: #1e293b;
@@ -1111,7 +1170,7 @@
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
 }
 
-.stage-dark .cell:not(.my-ticket):not(.sold):not(.al-agua):not(.winner-cell) {
+.stage-dark .cell:not(.my-ticket):not(.sold):not(.al-agua):not(.excluded):not(.winner-cell) {
   background: #11131f;
   border-color: #1e2030;
   color: #2e3248;
@@ -1125,6 +1184,10 @@
   font-weight: 800;
   letter-spacing: 0.03em;
   text-decoration: none;
+}
+
+.cell.excluded .tag-status {
+  color: #475569;
 }
 
 .cell.al-agua .tag-status {
@@ -1172,6 +1235,7 @@
 .swatch--mine { border: 1.5px solid #10b981; background: #ecfdf5; }
 .swatch--sold { background: #253245; }
 .swatch--agua { border: 1.5px solid #ef4444; background: #fee2e2; }
+.swatch--out { border: 1.5px dashed #94a3b8; background: #e2e8f0; }
 .swatch--win { border: 1.5px solid #fbbf24; background: #10b981; }
 
 /* Checks Section */
@@ -1401,12 +1465,16 @@
     align-items: center;
   }
 
+  // The full explanation is long: on a phone it wraps inside the chip instead of overflowing.
   &__mode {
-    padding: 0.125rem 0.5rem;
-    border-radius: 999px;
+    max-width: 100%;
+    padding: 0.125rem 0.625rem;
+    border-radius: 12px;
     border: 1px solid currentColor;
     font-size: 0.8125rem;
     font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
   }
 
   &__list {

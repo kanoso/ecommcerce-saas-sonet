@@ -1,6 +1,7 @@
 import {
   DrawExtractionDto,
   DrawWinnerDto,
+  DrawExecutorDto,
   LiveDrawSessionDto,
   PrizeWinnerSummaryDto,
   PrizeDto,
@@ -27,6 +28,7 @@ import {
 import {
   DrawExtraction,
   DrawWinner,
+  DrawExecutor,
   LiveDrawSession,
   PrizeWinnerSummary,
   RafflePrize,
@@ -127,6 +129,14 @@ const toDrawWinner = (w: DrawWinnerDto): DrawWinner => ({
   extractions: (w.extracciones ?? []).map(toExtraction),
 });
 
+/** Who ran a draw; an unknown kind is treated as not reported. */
+export function toDrawExecutor(dto: DrawExecutorDto | null | undefined): DrawExecutor | null {
+  if (!dto) return null;
+  if (dto.tipo === 'SISTEMA') return { kind: 'SYSTEM', name: null };
+  if (dto.tipo === 'ADMIN') return { kind: 'ADMIN', name: textOrNull(dto.nombre) };
+  return null;
+}
+
 /** The live draw session (DT-23); anything missing or malformed is no session. */
 export function toLiveDrawSession(dto: LiveDrawSessionDto | null | undefined): LiveDrawSession | null {
   if (!dto || typeof dto.paso !== 'number' || typeof dto.total_pasos !== 'number') {
@@ -138,6 +148,7 @@ export function toLiveDrawSession(dto: LiveDrawSessionDto | null | undefined): L
     startedAt: dateOrNull(dto.iniciada_en),
     updatedAt: dateOrNull(dto.actualizada_en),
     finishedAt: dateOrNull(dto.finalizada_en),
+    ...(dto.conducido_por !== undefined && { conductedBy: textOrNull(dto.conducido_por?.nombre) }),
   };
 }
 
@@ -183,6 +194,7 @@ export function toRaffleSummary(dto: RaffleSummaryDto): RaffleSummary {
       ? [...dto.ganadores].sort((a, b) => a.posicion - b.posicion).map(toPrizeWinnerSummary)
       : [],
     ...(dto.sesion_en_vivo !== undefined && { liveSession: toLiveDrawSession(dto.sesion_en_vivo) }),
+    ...(dto.ejecutado_por !== undefined && { executedBy: toDrawExecutor(dto.ejecutado_por) }),
   };
 }
 
@@ -356,6 +368,7 @@ export function toLiveRaffleData(dto: LiveDataDto): LiveRaffleData {
         executedAt: dateOrNull(dto.resultado.ejecutado_en),
         algorithmVersion: dto.resultado.version_algoritmo ?? 'v1',
         winners: (dto.resultado.ganadores ?? []).map(toDrawWinner),
+        ...(dto.resultado.ejecutado_por !== undefined && { executedBy: toDrawExecutor(dto.resultado.ejecutado_por) }),
       }
     : null;
   return {

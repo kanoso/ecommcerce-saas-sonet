@@ -84,6 +84,15 @@ export interface RaffleSummary {
   winners: PrizeWinnerSummary[];
   /** Admin detail only (DT-23): absent on routes that do not report it. */
   liveSession?: LiveDrawSession | null;
+  /** Admin detail only: who ran the draw; null before it, absent when not reported. */
+  executedBy?: DrawExecutor | null;
+}
+
+/** Who ran a draw: an admin (by name) or the scheduled system job. */
+export interface DrawExecutor {
+  kind: 'ADMIN' | 'SYSTEM';
+  /** Null for the system, or an admin the API did not name. */
+  name: string | null;
 }
 
 /** One prize's result on a list or a detail. */
@@ -106,6 +115,8 @@ export interface LiveDrawSession {
   startedAt: Date | null;
   updatedAt: Date | null;
   finishedAt: Date | null;
+  /** The operator's name; null for legacy sessions, absent when the API does not report it. */
+  conductedBy?: string | null;
 }
 
 export interface RefusedDraw {
@@ -197,6 +208,8 @@ export interface OfficialResult {
   algorithmVersion?: string;
   /** One per prize, in order; empty when the API does not report them. */
   winners?: DrawWinner[];
+  /** Who ran the draw; absent when the API does not report it. */
+  executedBy?: DrawExecutor | null;
 }
 
 /** The frozen data of a drawn raffle, for anyone to recompute (RF-20). */

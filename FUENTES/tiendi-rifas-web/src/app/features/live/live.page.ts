@@ -14,8 +14,14 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MyTicket } from '../../core/api/api.models';
 import { OrdersApi } from '../../core/api/orders-api';
-import { DrawLive } from '../../core/live/draw-live';
+import { DrawLive, LIVE_TIMING } from '../../core/live/draw-live';
+import { exclusionModeText } from '../../core/raffle/exclusion-mode-text';
+import { drawOperatorText, formatDrawDate } from '../../core/raffle/draw-operator-text';
+import { liveBadgeOf } from './live-badge';
 import { SessionStore } from '../../core/session/session.store';
+
+/** How often the header badge re-reads the clock. */
+const CLOCK_TICK_MS = 15_000;
 
 interface TombolaBall {
   num: number;
@@ -68,6 +74,59 @@ export class LivePage implements OnInit {
   readonly betweenAttempts = this.service.betweenAttempts;
   readonly winningAttempt = computed(() => this.data()?.winningAttempt ?? 1);
 
+  // Header status: scheduled, live, finished, replay or cancelled.
+  private readonly timing = inject(LIVE_TIMING);
+  /** Set by the replay buttons, cleared when the replay reaches its result. */
+  private readonly replaying = signal(false);
+  /** Coarse tick so the badge moves on time alone (e.g. past the live window). */
+  private readonly clockTick = signal(0);
+  private readonly session$ = computed(() => this.liveSession() ?? this.data()?.liveSession ?? null);
+  readonly badge = computed(() => {
+    this.clockTick();
+    const data = this.data();
+    return liveBadgeOf({
+      status: data?.status,
+      drawMode: data?.drawMode,
+      phase: this.phase(),
+      session: this.session$(),
+      drawAt: data?.drawAt,
+      now: this.timing.now(),
+      replaying: this.replaying(),
+    });
+  });
+  /** "Conducido por …" live; who ran it and when once it is over; nothing otherwise. */
+  readonly operatorLine = computed(() => {
+    const kind = this.badge().kind;
+    const session = this.session$();
+    const result = this.data()?.result;
+    if (kind === 'LIVE') return drawOperatorText({ conductedBy: session?.conductedBy });
+    if (kind !== 'FINISHED') return null;
+    return drawOperatorText({
+      executedBy: result?.executedBy,
+      conductedBy: session?.conductedBy,
+      at: session?.finishedAt ?? result?.executedAt ?? null,
+    });
+  });
+  /**
+   * "Sorteo finalizado · N premios entregados · <hora>": only once the page
+   * shows the result, so a late viewer's animation does not leak the outcome.
+   * Counted from the official result, not from what this screen revealed.
+   */
+  readonly finishedSummary = computed(() => {
+    const showingResult =
+      this.phase() === 'result' && !this.betweenPrizes() && !this.betweenAttempts();
+    if (this.badge().kind !== 'FINISHED' || !showingResult) return null;
+    const result = this.data()?.result;
+    const winners = result?.winners ?? [];
+    const singleWon = result?.winningNumber != null ? 1 : 0;
+    const won = winners.length > 0 ? winners.filter((w) => w.status === 'WON').length : singleWon;
+    const finishedAt = this.session$()?.finishedAt ?? result?.executedAt ?? null;
+    return {
+      prizes: `${won} ${won === 1 ? 'premio entregado' : 'premios entregados'}`,
+      at: finishedAt ? formatDrawDate(finishedAt) : null,
+    };
+  });
+
   // Server-paced live draw (DT-23): the operator's clicks drive the server.
   readonly paced = this.service.paced;
   readonly liveSession = this.service.liveSession;
@@ -102,9 +161,7 @@ export class LivePage implements OnInit {
   readonly currentPoolSize = this.service.currentPoolSize;
   readonly betweenPrizes = this.service.betweenPrizes;
   readonly prizeCount = computed(() => this.data()?.prizes?.length ?? 1);
-  readonly exclusionModeLabel = computed(() =>
-    this.data()?.winnerExclusionMode === 'BUYER' ? 'Por comprador' : 'Solo el boleto ganador',
-  );
+  readonly exclusionModeLabel = computed(() => exclusionModeText(this.data()?.winnerExclusionMode));
   /** Every prize with its result so far: pending, won (number and buyer) or void. */
   readonly prizeRows = computed(() => {
     const done = new Map(this.service.completedPrizes().map((p) => [p.position, p]));
@@ -139,7 +196,11 @@ export class LivePage implements OnInit {
   // Logged-in buyer's tickets in this raffle
   readonly myNumbers = signal<number[]>([]);
   readonly myNumbersSet = computed(() => new Set(this.myNumbers()));
-  readonly soldNumbersSet = computed(() => new Set(this.data()?.soldNumbers ?? []));
+  /** Tickets in play for the current prize: an earlier winner's tickets are out. */
+  readonly currentPool = this.service.currentPool;
+  readonly soldNumbersSet = computed(() => new Set(this.currentPool()));
+  /** Ticket → 1-based prize that took it out of the pool. */
+  readonly excludedNumbers = this.service.excludedByPrize;
   readonly discardedNumbersSet = computed(
     () =>
       new Set(
@@ -174,13 +235,7 @@ export class LivePage implements OnInit {
 
   readonly drawDateFormatted = computed(() => {
     const d = this.data()?.drawAt;
-    if (!d) return '';
-    return new Intl.DateTimeFormat('es-PE', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
+    return d ? formatDrawDate(d) : '';
   });
 
   readonly truncatedCommitment = computed(() => {
@@ -199,6 +254,16 @@ export class LivePage implements OnInit {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.stopTombolaLoop());
+
+    const tick = setInterval(() => this.clockTick.update((n) => n + 1), CLOCK_TICK_MS);
+    this.destroyRef.onDestroy(() => clearInterval(tick));
+
+    // A replay is over once its run reaches the result (not a pause between prizes).
+    effect(() => {
+      if (this.phase() === 'result' && !this.betweenPrizes() && !this.betweenAttempts()) {
+        this.replaying.set(false);
+      }
+    });
 
     effect(() => {
       const ph = this.phase();
@@ -364,11 +429,13 @@ export class LivePage implements OnInit {
   }
 
   replayAuto(): void {
+    this.replaying.set(true);
     this.tombolaInitializedForRaffle = null;
     void this.service.replay(false);
   }
 
   replayManual(): void {
+    this.replaying.set(true);
     this.tombolaInitializedForRaffle = null;
     void this.service.replay(true);
   }
@@ -380,15 +447,16 @@ export class LivePage implements OnInit {
   private initTombolaBalls(): void {
     const cx = 115;
     const cy = 115;
-    const sold = this.data()?.soldNumbers ?? [];
+    const sold = this.currentPool();
     const board = this.boardNumbers();
     const mySet = this.myNumbersSet();
     const soldSet = this.soldNumbersSet();
+    const excluded = this.excludedNumbers();
 
     const poolSet = new Set<number>(sold.slice(0, 12));
     for (const n of board) {
       if (poolSet.size >= 12) break;
-      poolSet.add(n);
+      if (!excluded.has(n)) poolSet.add(n);
     }
     const allBallNums = [...poolSet];
 
@@ -411,6 +479,20 @@ export class LivePage implements OnInit {
     });
   }
 
+  /** What the drum holds depends on the raffle, the buyer's tickets and the current prize's pool. */
+  private tombolaKey(): string {
+    const excluded = [...this.excludedNumbers().keys()].join(',');
+    return `${this.raffleId()}|${this.myNumbers().join(',')}|${this.currentPrizeIndex()}|${excluded}`;
+  }
+
+  private refreshTombolaBalls(): void {
+    const key = this.tombolaKey();
+    if (this.tombolaInitializedForRaffle !== key || this.tombolaBalls.length === 0) {
+      this.initTombolaBalls();
+      this.tombolaInitializedForRaffle = key;
+    }
+  }
+
   private ensureTombolaRunning(): void {
     const canvas = this.tombolaCanvas?.nativeElement;
     if (!canvas) return;
@@ -422,12 +504,7 @@ export class LivePage implements OnInit {
     }
     if (!ctx) return;
 
-    const currentKey = `${this.raffleId()}-${this.myNumbers().join(',')}`;
-    if (this.tombolaInitializedForRaffle !== currentKey || this.tombolaBalls.length === 0) {
-      this.initTombolaBalls();
-      this.tombolaInitializedForRaffle = currentKey;
-    }
-
+    this.refreshTombolaBalls();
     if (this.tombolaRafId !== null) return;
 
     const cx = 115;
@@ -439,6 +516,8 @@ export class LivePage implements OnInit {
         this.tombolaRafId = null;
         return;
       }
+      // A new prize (or the buyer's tickets arriving) refills the drum.
+      this.refreshTombolaBalls();
 
       const discarded = this.discardedNumbersSet();
       const winNum = this.winningCellNumber();

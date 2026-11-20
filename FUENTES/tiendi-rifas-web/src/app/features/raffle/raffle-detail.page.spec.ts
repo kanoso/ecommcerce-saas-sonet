@@ -324,8 +324,7 @@ describe('RaffleDetailPage', () => {
 
     (el.querySelectorAll('.tab-btn')[1] as HTMLButtonElement).click();
     harness.detectChanges();
-    const others = el.querySelector('.other-prizes');
-    expect(others?.textContent).toContain('Moto 150cc');
+    expect(el.querySelector('.other-prizes')).toBeNull();
   });
 
   it('renders prize images carousel and specs tab when raffle has them', async () => {
@@ -358,6 +357,131 @@ describe('RaffleDetailPage', () => {
     const specsCard = el.querySelector('.specs-card');
     expect(specsCard?.textContent).toContain('Pantalla OLED 4K con HDR10+ y Dolby Atmos.');
   });
+
+  describe('prize selector and zoom (ficha tab)', () => {
+    const TV = ['https://example.com/tv1.jpg', 'https://example.com/tv2.jpg'];
+    const MOTO = ['https://example.com/moto1.jpg', 'https://example.com/moto2.jpg'];
+    const withPrizes = (prizes: RaffleDetail['raffle']['prizes']) => {
+      detail = () => {
+        const d = aDetail(1);
+        return {
+          ...d,
+          raffle: {
+            ...d.raffle,
+            prize: prizes[0]?.title ?? 'Premio',
+            drawMode: 'MANUAL' as const,
+            prizes,
+          },
+        };
+      };
+    };
+    const threePrizes = () =>
+      withPrizes([
+        { position: 1, title: 'Smart TV', description: 'Pantalla OLED', images: TV },
+        { position: 2, title: 'Moto', description: 'Moto 150cc', images: MOTO },
+        { position: 3, title: 'Olla Arrocera', description: null, images: [] },
+      ]);
+    const openFicha = async () => {
+      const { harness, el } = await open();
+      (el.querySelectorAll('.tab-btn')[1] as HTMLButtonElement).click();
+      harness.detectChanges();
+      return { harness, el };
+    };
+    const prizeTabs = (el: HTMLElement) => [...el.querySelectorAll('.prize-tabs[role="tablist"] [role="tab"]')] as HTMLButtonElement[];
+    const carouselImg = (el: HTMLElement) => el.querySelector('.carousel__img') as HTMLImageElement | null;
+    const lightboxImg = (el: HTMLElement) => el.querySelector('app-image-lightbox .lightbox__img') as HTMLImageElement | null;
+    const cardByTitle = (el: HTMLElement, title: string) =>
+      [...el.querySelectorAll('.specs-card')].find((c) => c.querySelector('.specs-card__title')?.textContent?.trim() === title);
+
+    afterEach(() => {
+      document.body.style.overflow = '';
+    });
+
+    it('shows no prize selector with a single prize', async () => {
+      withPrizes([{ position: 1, title: 'Smart TV', description: 'Pantalla OLED', images: TV }]);
+      const { el } = await openFicha();
+      expect(el.querySelector('[role="tablist"].prize-tabs')).toBeNull();
+      expect(carouselImg(el)?.src).toBe(TV[0]);
+      expect(cardByTitle(el, 'Ficha del premio')?.textContent).toContain('Pantalla OLED');
+    });
+
+    it('lists every prize as a tab and starts on prize 1', async () => {
+      threePrizes();
+      const { el } = await openFicha();
+      const tabs = prizeTabs(el);
+      expect(tabs.map((t) => t.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['1.º Smart TV', '2.º Moto', '3.º Olla Arrocera']);
+      expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+      expect(tabs[1].getAttribute('aria-selected')).toBe('false');
+      expect(carouselImg(el)?.src).toBe(TV[0]);
+    });
+
+    it('shows the images and description of the selected prize and resets the photo index', async () => {
+      threePrizes();
+      const { harness, el } = await openFicha();
+      (el.querySelector('.carousel__btn.next') as HTMLButtonElement).click();
+      harness.detectChanges();
+      expect(carouselImg(el)?.src).toBe(TV[1]);
+
+      prizeTabs(el)[1].click();
+      harness.detectChanges();
+
+      expect(prizeTabs(el)[1].getAttribute('aria-selected')).toBe('true');
+      expect(carouselImg(el)?.src).toBe(MOTO[0]);
+      expect(el.querySelector('.carousel__badge')?.textContent?.trim()).toBe('1 / 2');
+      const card = cardByTitle(el, 'Ficha del premio');
+      expect(card?.textContent).toContain('Moto 150cc');
+      expect(card?.textContent).not.toContain('Pantalla OLED');
+    });
+
+    it('shows a placeholder and the fallback text for a prize without photos or description', async () => {
+      threePrizes();
+      const { harness, el } = await openFicha();
+      prizeTabs(el)[2].click();
+      harness.detectChanges();
+
+      expect(carouselImg(el)).toBeNull();
+      expect(el.querySelector('.carousel__placeholder')?.textContent).toContain('Sin fotos para este premio');
+      expect(cardByTitle(el, 'Ficha del premio')?.textContent).toContain(
+        'No se cuenta con descripción detallada para este premio.',
+      );
+    });
+
+    it('keeps the draw rules in their own card', async () => {
+      threePrizes();
+      const { el } = await openFicha();
+      const rules = cardByTitle(el, 'Reglas del sorteo');
+      expect(rules?.textContent).toContain('Regla del sorteo');
+      expect(rules?.textContent).toContain('Modalidad del sorteo');
+      expect(rules?.textContent).toContain('Duración por intento');
+      expect(rules?.textContent).toContain('Efecto visual');
+      expect(cardByTitle(el, 'Ficha del premio')?.textContent).not.toContain('Modalidad del sorteo');
+      expect(cardByTitle(el, 'Ficha Técnica')).toBeUndefined();
+    });
+
+    it('opens the lightbox on the active image of the selected prize and closes it', async () => {
+      threePrizes();
+      const { harness, el } = await openFicha();
+      prizeTabs(el)[1].click();
+      harness.detectChanges();
+      (el.querySelector('.carousel__btn.next') as HTMLButtonElement).click();
+      harness.detectChanges();
+      expect(el.querySelector('app-image-lightbox')).toBeNull();
+
+      const zoom = el.querySelector('button.carousel__zoom') as HTMLButtonElement;
+      expect(zoom.getAttribute('aria-label')).toContain('Ampliar');
+      zoom.click();
+      harness.detectChanges();
+
+      expect(lightboxImg(el)?.src).toBe(MOTO[1]);
+      expect(lightboxImg(el)?.alt).toContain('Moto');
+      expect(el.querySelector('app-image-lightbox .lightbox__counter')?.textContent?.trim()).toBe('2 / 2');
+
+      (el.querySelector('app-image-lightbox button[aria-label="Cerrar"]') as HTMLButtonElement).click();
+      harness.detectChanges();
+      expect(el.querySelector('app-image-lightbox')).toBeNull();
+    });
+  });
+
   it('renders my tickets summary banner and marks mine cells when the buyer has tickets', async () => {
     const session = TestBed.inject(SessionStore);
     session.signIn({

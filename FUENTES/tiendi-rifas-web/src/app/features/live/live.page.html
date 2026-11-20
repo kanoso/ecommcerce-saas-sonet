@@ -9,30 +9,52 @@
           </span>
         }
       </div>
-      <span class="live-badge" aria-label="Transmisión en vivo">
-        <span class="live-dot" aria-hidden="true"></span>
-        EN VIVO
-      </span>
+      <div class="live-header__status">
+        <span
+          class="live-badge"
+          [attr.data-kind]="badge().kind"
+          [attr.aria-label]="badge().kind === 'LIVE' ? 'Transmisión en vivo' : 'Estado del sorteo: ' + badge().label"
+        >
+          @if (badge().kind === 'LIVE') {
+            <span class="live-dot" aria-hidden="true"></span>
+          }
+          {{ badge().label }}
+        </span>
+        @if (operatorLine(); as line) {
+          <span class="live-operator">{{ line }}</span>
+        }
+      </div>
     </header>
+
+    @if (finishedSummary(); as summary) {
+      <p class="live-summary" role="status">
+        Sorteo finalizado · {{ summary.prizes }}
+        @if (summary.at) {
+          <span class="live-summary__at">· {{ summary.at }}</span>
+        }
+      </p>
+    }
 
     @if (winningAttempt() > 1 && (phase() === 'spinning' || phase() === 'result' || betweenAttempts())) {
       <div class="attempt-indicator" aria-live="polite">
         <span class="attempt-tag">Regla: Sale al {{ winningAttempt() }}° intento</span>
-        <span class="attempt-current">
-          Intento {{ (currentAttemptIndex() + 1) > winningAttempt() ? winningAttempt() : (currentAttemptIndex() + 1) }} de {{ winningAttempt() }}
-        </span>
+        @if (!finishedSummary()) {
+          <span class="attempt-current">
+            Intento {{ (currentAttemptIndex() + 1) > winningAttempt() ? winningAttempt() : (currentAttemptIndex() + 1) }} de {{ winningAttempt() }}
+          </span>
+        }
       </div>
     }
 
     @if (isMultiPrize()) {
       <section class="prize-panel" aria-label="Premios del sorteo" aria-live="polite">
         <div class="prize-panel__head">
-          @if (currentPrize(); as prize) {
+          @if (!finishedSummary() && currentPrize(); as prize) {
             <span class="prize-panel__current">
               Premio {{ prize.position }} de {{ prizeCount() }}: <strong>{{ prize.title }}</strong>
             </span>
           }
-          @if (currentPoolSize() !== null) {
+          @if (!finishedSummary() && currentPoolSize() !== null) {
             <span class="prize-panel__pool">Boletos en juego: {{ currentPoolSize() }}</span>
           }
           <span class="prize-panel__mode" title="Fijado al cierre de ventas">
@@ -150,7 +172,7 @@
                 <span class="presenter-badge">🎥 MODO TRANSMISIÓN EN VIVO (PASO A PASO)</span>
                 <h2 class="presenter-title">Sorteo verificado y listo para iniciar</h2>
                 <p class="presenter-desc">
-                  La ronda drand #{{ data()?.drandRound }} y los {{ data()?.soldNumbers?.length || 0 }} boletos participantes están listos.
+                  La ronda drand #{{ data()?.drandRound }} y los {{ currentPool().length }} boletos participantes están listos.
                   {{ canControl() ? 'Usa los controles del presentador cuando estés al aire.' : 'El presentador lanzará el siguiente intento en breve.' }}
                 </p>
               </div>
@@ -177,7 +199,7 @@
                       {{ winningAttempt() > 1 ? 'Extrayendo intento #' + (currentAttemptIndex() + 1) + ' de ' + winningAttempt() + '…' : 'La serpiente recorre el tablero buscando al ganador…' }}
                     </div>
                     <div class="proto-sub">
-                      {{ data()?.soldNumbers?.length || 0 }} boletos vendidos participan en el sorteo
+                      {{ currentPool().length }} boletos vendidos participan en el sorteo
                     </div>
                   </div>
                   <div class="proto-number-box">
@@ -484,6 +506,9 @@
                 class="cell font-mono"
                 [class.my-ticket]="myNumbersSet().has(num)"
                 [class.sold]="!myNumbersSet().has(num) && soldNumbersSet().has(num)"
+                [class.excluded]="excludedNumbers().has(num)"
+                [attr.aria-label]="excludedNumbers().has(num) ? 'Boleto ' + padNumber(num) + '. Excluido: ya ganó el premio ' + excludedNumbers().get(num) : null"
+                [attr.title]="excludedNumbers().has(num) ? 'Excluido: ya ganó el premio ' + excludedNumbers().get(num) : null"
                 [ngClass]="snakeClassFor(num)"
                 [class.radar-ping]="isRadarPing(num)"
                 [class.decade-match]="isSlotDecadeMatch(num)"
@@ -498,6 +523,8 @@
                   <span class="tag-status">¡GANADOR!</span>
                 } @else if (discardedNumbersSet().has(num)) {
                   <span class="tag-status">¡AL AGUA!</span>
+                } @else if (excludedNumbers().has(num)) {
+                  <span class="tag-status" aria-hidden="true">FUERA</span>
                 }
               </div>
             }
@@ -510,6 +537,9 @@
             <span class="legend-item"><span class="swatch swatch--mine"></span> Tus boletos (★)</span>
           }
           <span class="legend-item"><span class="swatch swatch--sold"></span> Boleto participante</span>
+          @if (excludedNumbers().size > 0) {
+            <span class="legend-item"><span class="swatch swatch--out"></span> Fuera (ya ganó un premio)</span>
+          }
           @if (winningAttempt() > 1) {
             <span class="legend-item"><span class="swatch swatch--agua"></span> ¡Al Agua!</span>
           }
@@ -636,7 +666,7 @@
                 } @else if (isMultiPrize()) {
                   {{ data()?.prizes?.length }} premios recalculados con la semilla y la ronda drand
                 } @else {
-                  {{ 'sha256(semilla‖drand‖id) mod ' + (data()?.soldNumbers?.length || 0) + ' → ' + localResult()?.winner }}
+                  {{ 'sha256(semilla‖drand‖id) mod ' + currentPool().length + ' → ' + localResult()?.winner }}
                 }
               } @else {
                 pendiente

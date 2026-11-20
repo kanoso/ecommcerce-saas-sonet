@@ -130,10 +130,15 @@
                   <span class="preview-label">Vista previa del carrusel ({{ prize.images.length }} fotos)</span>
                   <div class="admin-thumbs-strip">
                     @for (img of prize.images; track $index) {
-                      <div class="admin-thumb-card">
+                      <button
+                        type="button"
+                        class="admin-thumb-card"
+                        [attr.aria-label]="'Ampliar foto ' + ($index + 1) + ' del premio ' + prize.position"
+                        (click)="lightbox.open(prize.images, $index, 'Premio ' + prize.position + ': ' + prize.title)"
+                      >
                         <img [src]="img" [alt]="'Foto ' + ($index + 1) + ' del premio ' + prize.position" class="admin-thumb-img" />
                         <span class="thumb-tag">#{{ $index + 1 }}</span>
-                      </div>
+                      </button>
                     }
                   </div>
                 </div>
@@ -168,7 +173,7 @@
               <span class="field__error" role="alert">{{ modeError() }}</span>
             }
           } @else if (r.status === 'DRAFT') {
-            <p class="specs-text">{{ exclusionModeLabel(r.winnerExclusionMode) }} (se edita junto con los premios).</p>
+            <p class="specs-text">{{ exclusionModeText(r.winnerExclusionMode) }} (se edita junto con los premios).</p>
           } @else {
             <app-exclusion-mode-field [value]="r.winnerExclusionMode" [locked]="true" />
           }
@@ -443,6 +448,9 @@
           <div class="alert alert--success" role="status">
             <p><strong>Sorteo ejecutado exitosamente.</strong></p>
             <ng-container [ngTemplateOutlet]="winnerList" />
+            @if (drawOperatorText(); as operator) {
+              <p class="draw-executed-by">{{ operator }}</p>
+            }
             <p>Ronda drand: {{ draw.drandRound }} | Ejecutado en: {{ draw.executedAt | date:'medium' }}</p>
             <div class="draw-links">
               <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
@@ -453,6 +461,9 @@
           <div class="alert alert--info" role="status">
             <p>Esta rifa ya ha sido sorteada oficialmente.</p>
             <ng-container [ngTemplateOutlet]="winnerList" />
+            @if (drawOperatorText(); as operator) {
+              <p class="draw-executed-by">{{ operator }}</p>
+            }
             <div class="draw-links">
               <a [routerLink]="['/rifas', r.id, 'en-vivo']" class="draw-link">Ver sorteo en vivo</a>
               <a [routerLink]="['/rifas', r.id, 'verificacion']" class="draw-link">Verificar sorteo</a>
@@ -960,3 +971,7 @@
     }
   }
 </section>
+
+@if (lightbox.state(); as lb) {
+  <app-image-lightbox [images]="lb.images" [startIndex]="lb.index" [alt]="lb.alt" (closed)="lightbox.close()" />
+}

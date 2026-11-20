@@ -1,0 +1,37 @@
+<div #backdrop class="lightbox" role="dialog" aria-modal="true" [attr.aria-label]="'Foto ampliada: ' + alt()">
+  <div class="lightbox__bar">
+    @if (hasMany()) {
+      <span class="lightbox__counter" aria-live="polite">{{ index() + 1 }} / {{ images().length }}</span>
+    }
+    <div class="lightbox__zoom" role="group" aria-label="Zoom">
+      <button type="button" class="lightbox__tool" aria-label="Alejar" [disabled]="scale() <= minScale" (click)="zoomOut()">−</button>
+      <span class="lightbox__level" aria-live="polite">{{ level() }}</span>
+      <button type="button" class="lightbox__tool" aria-label="Acercar" [disabled]="scale() >= maxScale" (click)="zoomIn()">+</button>
+      <button type="button" class="lightbox__tool" aria-label="Restablecer zoom" [disabled]="!zoomed()" (click)="reset()">⟲</button>
+    </div>
+    <button #closeButton type="button" class="lightbox__tool lightbox__close" aria-label="Cerrar" (click)="close()">×</button>
+  </div>
+
+  <div #stage class="lightbox__stage" (wheel)="onWheel($event)">
+    <img
+      #image
+      class="lightbox__img"
+      [class.lightbox__img--zoomed]="zoomed()"
+      [class.lightbox__img--dragging]="dragging()"
+      [src]="current()"
+      [alt]="alt() + (hasMany() ? ' — foto ' + (index() + 1) : '')"
+      [style.transform]="transform()"
+      draggable="false"
+      (dblclick)="onDoubleClick($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+    />
+
+    @if (hasMany()) {
+      <button type="button" class="lightbox__nav lightbox__nav--prev" aria-label="Anterior" (click)="prev()">❮</button>
+      <button type="button" class="lightbox__nav lightbox__nav--next" aria-label="Siguiente" (click)="next()">❯</button>
+    }
+  </div>
+</div>

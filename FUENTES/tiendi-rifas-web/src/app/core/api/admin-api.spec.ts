@@ -280,6 +280,55 @@ describe('AdminApi', () => {
     });
   });
 
+  it('maps who conducted and who ran the draw in the raffle detail, tolerating their absence', async () => {
+    const dto = (extra: object) => ({
+      rifa_id: 'r-1',
+      titulo: 'Olla',
+      premio: 'Olla arrocera',
+      precio_boleto: 5,
+      numero_min: 1,
+      numero_max: 50,
+      estado: 'DRAWN',
+      cierre_ventas: null,
+      fecha_sorteo: null,
+      resolucion_autorizacion: null,
+      boletos_vendidos: 2,
+      boletos_reservados: 0,
+      boletos_disponibles: 48,
+      ...extra,
+    });
+    const load = async (body: object) => {
+      const result = firstValueFrom(api.raffleDetail('r-1'));
+      http.expectOne(`${BASE_URL}/admin/rifas/r-1`).flush(body);
+      return result;
+    };
+
+    const admin = await load(
+      dto({
+        sesion_en_vivo: {
+          paso: 2,
+          total_pasos: 2,
+          iniciada_en: '2026-11-21T18:01:00.000Z',
+          actualizada_en: '2026-11-21T18:02:00.000Z',
+          finalizada_en: '2026-11-21T18:02:00.000Z',
+          conducido_por: { nombre: 'Ana Admin' },
+        },
+        ejecutado_por: { tipo: 'ADMIN', nombre: 'Ana Admin' },
+      }),
+    );
+    expect(admin.liveSession?.conductedBy).toBe('Ana Admin');
+    expect(admin.executedBy).toEqual({ kind: 'ADMIN', name: 'Ana Admin' });
+
+    const system = await load(dto({ ejecutado_por: { tipo: 'SISTEMA', nombre: null } }));
+    expect(system.executedBy).toEqual({ kind: 'SYSTEM', name: null });
+
+    const before = await load(dto({ ejecutado_por: null }));
+    expect(before.executedBy).toBeNull();
+
+    const legacy = await load(dto({}));
+    expect(legacy.executedBy).toBeUndefined();
+  });
+
   it('maps every winner with the buyer alias and the live session in the raffle detail', async () => {
     const result = firstValueFrom(api.raffleDetail('r-1'));
     http.expectOne(`${BASE_URL}/admin/rifas/r-1`).flush({

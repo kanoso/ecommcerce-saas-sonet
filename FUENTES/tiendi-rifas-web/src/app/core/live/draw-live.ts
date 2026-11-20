@@ -31,6 +31,7 @@ import { SessionStore } from '../session/session.store';
 import { isAbortError } from '../drand/abort';
 import { DrandClient, RoundPollProgress, VerifiedRound } from '../drand/drand-client';
 import { QUICKNET } from '../drand/quicknet';
+import { DIGITS, PoolPrize, excludedBefore, playableCells, poolOf, unitDigitsFor } from './draw-pool';
 
 export type LivePhase =
   | 'idle'
@@ -108,6 +109,10 @@ function formatCountdown(sec: number): string {
 
 /** Several prizes: drawn one by one with computeMultiPrizeWinners (v2). */
 const hasSeveralPrizes = (data: LiveRaffleData | null): boolean => (data?.prizes?.length ?? 1) > 1;
+
+/** The pool view of the local results: only a WON prize takes tickets out. */
+const poolPrizesOf = (prizes: readonly PrizeDrawResult[]): PoolPrize[] =>
+  prizes.map((p) => ({ position: p.position, won: p.status === 'WON', excludedTickets: p.excludedTickets }));
 
 /**
  * One prize of a server-paced show (DT-23): its local result, the sequence
@@ -360,6 +365,20 @@ export class DrawLive {
   /** Tickets in play for the current prize. */
   readonly currentPoolSize = computed<number | null>(
     () => this.localWinners()?.prizes[this.currentPrizeIndex()]?.poolSize ?? null,
+  );
+  /**
+   * Tickets the prizes before the current one took out of the pool (BUYER:
+   * every ticket of each winner; TICKET_ONLY: the winning ticket), mapped to
+   * the 1-based position of the prize that took them. Empty for a
+   * single-prize draw and during prize 1. Every path (live, paced, late
+   * join, replay) moves currentPrizeIndex, so all of them get it.
+   */
+  readonly excludedByPrize = computed<ReadonlyMap<number, number>>(() =>
+    excludedBefore(poolPrizesOf(this.localWinners()?.prizes ?? []), this.currentPrizeIndex()),
+  );
+  /** The sold tickets still in play for the current prize, in sold-list order. */
+  readonly currentPool = computed<number[]>(() =>
+    poolOf(this.data()?.soldNumbers ?? [], this.excludedByPrize()),
   );
 
   // Board & 5 Interactive Effects State
@@ -967,7 +986,7 @@ export class DrawLive {
   ): Promise<void> {
     const winningAttempt = data.winningAttempt ?? 1;
     const soldNumbers = data.soldNumbers ?? [];
-    const excluded = new Set<number>();
+    const poolPrizes = poolPrizesOf(winners.prizes);
     this.completedPrizes.set([]);
     const lastIndex = winners.prizes.length - 1;
 
@@ -975,7 +994,7 @@ export class DrawLive {
       if (runId !== this.runId) return;
       this.currentPrizeIndex.set(i);
       this.betweenPrizes.set(false);
-      const pool = soldNumbers.filter((n) => !excluded.has(n));
+      const pool = poolOf(soldNumbers, excludedBefore(poolPrizes, i));
 
       if (prize.status === 'WON') {
         const sequence = sequenceOf(prize, winningAttempt);
@@ -994,7 +1013,6 @@ export class DrawLive {
           i === lastIndex,
         );
         if (runId !== this.runId) return;
-        prize.excludedTickets.forEach((n) => excluded.add(n));
       }
       this.completedPrizes.update((done) => [...done, prize]);
 
@@ -1304,10 +1322,12 @@ export class DrawLive {
   }
 
   private poolFor(prizeIndex: number): number[] {
-    const excluded = new Set(
-      this.showPrizes.slice(0, prizeIndex).flatMap((p) => p.excludedTickets),
-    );
-    return (this.data()?.soldNumbers ?? []).filter((n) => !excluded.has(n));
+    const prizes: PoolPrize[] = this.showPrizes.map((p, i) => ({
+      position: i + 1,
+      won: p.won,
+      excludedTickets: p.excludedTickets,
+    }));
+    return poolOf(this.data()?.soldNumbers ?? [], excludedBefore(prizes, prizeIndex));
   }
 
   private revealStepNow(index: number): void {
@@ -1479,7 +1499,13 @@ export class DrawLive {
       prevCompleted.length > 0
         ? prevCompleted[prevCompleted.length - 1].number
         : (board[0] ?? 1);
-    const snakePath = buildGridSnakePath(board, cols, startCell, winner, totalTicks);
+    // Decoys never stop on a ticket an earlier prize already took out of the pool.
+    const excluded = this.excludedByPrize();
+    const playableBoard = playableCells(board, excluded);
+    const snakeWalk = buildGridSnakePath(board, cols, startCell, winner, totalTicks).filter(
+      (n) => n === winner || !excluded.has(n),
+    );
+    const snakePath = snakeWalk.length > 0 ? snakeWalk : [winner];
 
     this.slotDecadeLocked.set(false);
     this.slotUnitLocked.set(false);
@@ -1549,17 +1575,20 @@ export class DrawLive {
           this.snakeSegments.set(segs);
 
           // Update Radar target & reticle coordinates
-          const radarPool = progress > 0.55 && soldNumbers.length > 0 ? soldNumbers : board;
+          const radarPool = progress > 0.55 && soldNumbers.length > 0 ? soldNumbers : playableBoard;
           const radarPick = radarPool[Math.floor(Math.random() * radarPool.length)] ?? winner;
           this.radarTargetCell.set(radarPick);
           this.updateReticleForCell(radarPick, board, cols);
 
           // Update Slot Machine Decade + Unit reels
           const maxDecade = Math.max(3, Math.floor((board[board.length - 1] ?? 30) / 10));
-          const randUnit = Math.floor(Math.random() * 10);
+          const targetDec = Math.floor(winner / 10);
+          const decadeLocked = progress >= 0.48;
+          // Once the decade is locked the unit reel only offers tickets still in play.
+          const units = decadeLocked ? unitDigitsFor(targetDec, excluded) : DIGITS;
+          const randUnit = units[Math.floor(Math.random() * units.length)] ?? winner % 10;
           this.slotUnitDigit.set(String(randUnit));
-          if (progress >= 0.48) {
-            const targetDec = Math.floor(winner / 10);
+          if (decadeLocked) {
             this.slotDecadeDigit.set(String(targetDec));
             this.slotDecadeLocked.set(true);
             const candidate = targetDec * 10 + randUnit;

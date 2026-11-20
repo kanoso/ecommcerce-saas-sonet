@@ -742,6 +742,9 @@
 .prize-carousel { margin: 16px 0; display: flex; flex-direction: column; gap: 8px; }
 .carousel__viewport { position: relative; border-radius: 12px; overflow: hidden; height: 260px; background: #0f172a; display: flex; align-items: center; justify-content: center; }
 .carousel__img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.carousel__zoom { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 0; border: none; background: none; cursor: zoom-in; }
+.carousel__zoom:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+.carousel__zoom-hint { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; pointer-events: none; }
 .carousel__btn {
   position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px;
   border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; border: none; font-size: 18px;
@@ -754,9 +757,11 @@
 .carousel__thumb-btn { width: 50px; height: 50px; border-radius: 6px; border: 2px solid transparent; overflow: hidden; padding: 0; cursor: pointer; }
 .carousel__thumb-btn.active { border-color: #0284c7; }
 .carousel__thumb-btn img { width: 100%; height: 100%; object-fit: cover; }
+.carousel__placeholder { color: #94a3b8; font-size: 14px; background: #f1f5f9; border: 1px dashed #cbd5e1; }
 /* Specs Card */
 .specs-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-top: 12px; }
 .specs-card__title { margin: 0 0 8px 0; font-size: 16px; color: #1e293b; }
+.specs-card__prize { margin: 0 0 6px 0; font-size: 15px; font-weight: 600; color: #0f172a; }
 .specs-card__desc { font-size: 14px; color: #475569; line-height: 1.5; margin: 0 0 12px 0; }
 .specs-card__dl { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .spec-row { display: flex; gap: 8px; }
@@ -865,26 +870,36 @@
   font-weight: 700;
 }
 
-.other-prizes {
+// Prize selector of the ficha tab (2+ prizes): one chip per prize, scrolls sideways on narrow screens.
+.prize-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding-bottom: 4px;
+  overflow-x: auto;
+}
 
-  &__title {
-    margin: 0 0 0.25rem;
-    font-size: 0.9375rem;
+.prize-tab {
+  flex: none;
+  min-height: var(--touch-target);
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &--active {
+    border-color: #0284c7;
+    background: #e0f2fe;
+    color: #0369a1;
   }
 
-  &__thumbs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  &__img {
-    width: 96px;
-    height: 72px;
-    object-fit: cover;
-    border-radius: 6px;
+  &:focus-visible {
+    outline: 2px solid #0284c7;
+    outline-offset: 2px;
   }
 }

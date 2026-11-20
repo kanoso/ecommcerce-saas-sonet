@@ -460,6 +460,116 @@ describe('DrawLive of a multi-prize raffle', () => {
   });
 });
 
+describe('DrawLive pool of the current prize', () => {
+  it('takes every ticket of a BUYER winner out of the next prize pool, the replay included', async () => {
+    const liveData = await givenMultiPrizeLiveData({ prizeCount: 2, exclusionMode: 'BUYER' });
+    const { service } = setup({ liveData, reducedMotion: true });
+
+    await service.init(VECTOR.raffleId);
+
+    const [first, second] = service.completedPrizes();
+    expect(first.excludedTickets.length).toBeGreaterThan(1);
+    expect(service.currentPrizeIndex()).toBe(1);
+    const pool = service.currentPool();
+    expect(pool).toHaveLength(second.poolSize);
+    expect(pool).toEqual(VECTOR.soldNumbers.filter((n) => !first.excludedTickets.includes(n)));
+    for (const n of first.excludedTickets) {
+      expect(service.excludedByPrize().get(n)).toBe(1);
+    }
+
+    await service.replay();
+    expect(service.currentPrizeIndex()).toBe(1);
+    expect(service.currentPool()).toHaveLength(second.poolSize);
+  });
+
+  it('takes only the winning number out in TICKET_ONLY mode', async () => {
+    const liveData = await givenMultiPrizeLiveData({ prizeCount: 2, exclusionMode: 'TICKET_ONLY' });
+    const { service } = setup({ liveData, reducedMotion: true });
+
+    await service.init(VECTOR.raffleId);
+
+    const first = service.completedPrizes()[0];
+    expect([...service.excludedByPrize().keys()]).toEqual([first.winningTicket]);
+    expect(service.currentPool()).toHaveLength(VECTOR.soldNumbers.length - 1);
+  });
+
+  it('plays prize 1 and a single-prize draw over every sold number', async () => {
+    const { service } = setup({ reducedMotion: true });
+
+    await service.init(VECTOR.raffleId);
+
+    expect(service.excludedByPrize().size).toBe(0);
+    expect(service.currentPool()).toEqual(VECTOR.soldNumbers);
+  });
+
+  it('never lands a decoy of any effect on an excluded number', async () => {
+    const { service } = setup();
+    const sold = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 82];
+    const excluded = [4, 9, 82];
+    const pool = sold.filter((n) => !excluded.includes(n));
+    const winner = 7;
+    const base = givenLiveData({
+      soldNumbers: sold,
+      numberMin: 1,
+      numberMax: 100,
+      prizes: [
+        { position: 1, title: 'Auto', description: null, images: [] },
+        { position: 2, title: 'Moto', description: null, images: [] },
+      ],
+      winnerExclusionMode: 'BUYER',
+    });
+    service.localWinners.set({
+      algorithmVersion: 'v2',
+      exclusionMode: 'BUYER',
+      winningAttempt: 1,
+      prizes: [
+        { position: 1, status: 'WON', poolSize: 13, winningTicket: 4, winnerIndex: 3, digestHex: 'aa', extractions: [], excludedTickets: excluded },
+        { position: 2, status: 'WON', poolSize: 10, winningTicket: winner, winnerIndex: 6, digestHex: 'bb', extractions: [], excludedTickets: [winner] },
+      ],
+    } as never);
+    service.currentPrizeIndex.set(1);
+
+    const seen: number[] = [];
+    const track = (value: unknown) => {
+      if (typeof value === 'number') seen.push(value);
+      else if (typeof value === 'string' && /^\d+$/.test(value)) seen.push(Number(value));
+      else if (Array.isArray(value)) value.forEach(track);
+    };
+    const effectSignals = [
+      service.radarTargetCell,
+      service.spotlightCell,
+      service.snakeSegments,
+      service.slotUnitScanCell,
+      service.spunNumber,
+    ] as unknown as { set: (value: unknown) => void }[];
+    for (const sig of effectSignals) {
+      const original = sig.set.bind(sig);
+      vi.spyOn(sig, 'set').mockImplementation((value: unknown) => {
+        track(value);
+        original(value);
+      });
+    }
+
+    let k = 0;
+    const random = vi.spyOn(Math, 'random').mockImplementation(() => ((k++ * 0.6180339887) % 1));
+    vi.useFakeTimers();
+    try {
+      for (const effect of ['SNAKE', 'RADAR', 'SLOT_MACHINE', 'SUSPENSE_CONFETTI', 'TOMBOLA'] as const) {
+        service.data.set({ ...base, drawEffect: effect });
+        const run = service['runSpinAnimation'](pool, winner, service['runId'], 2000);
+        await vi.advanceTimersByTimeAsync(2100);
+        await run;
+      }
+    } finally {
+      vi.useRealTimers();
+      random.mockRestore();
+    }
+
+    expect(seen.length).toBeGreaterThan(50);
+    expect(seen.filter((n) => excluded.includes(n))).toEqual([]);
+  });
+});
+
 describe('DrawLive of a server-paced MANUAL draw (DT-23)', () => {
   interface PacedOptions {
     admin?: boolean;
@@ -573,6 +683,10 @@ describe('DrawLive of a server-paced MANUAL draw (DT-23)', () => {
     expect(service.currentPrizeIndex()).toBe(1);
     expect(service.completedExtractions()).toHaveLength(1);
     expect(service.betweenAttempts()).toBe(true);
+    const firstWinner = service.completedPrizes()[0].winningTicket!;
+    expect(service.excludedByPrize().get(firstWinner)).toBe(1);
+    expect(service.currentPool()).not.toContain(firstWinner);
+    expect(service.currentPool()).toHaveLength(VECTOR.soldNumbers.length - 1);
 
     state.current = at(4);
     await until(() => service.officialMatch() === 'match', 'the end');

@@ -16,8 +16,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GOOGLE_CLIENT_ID } from '../../core/api/api-config';
 import { toApiError } from '../../core/api/api-error';
 import { AuthApi } from '../../core/api/auth-api';
-import { Session } from '../../core/api/api.models';
+import { RafflePrize, Session } from '../../core/api/api.models';
 import { SessionStore } from '../../core/session/session.store';
+import { exclusionModeText } from '../../core/raffle/exclusion-mode-text';
+import { ImageLightboxComponent } from '../../shared/image-lightbox/image-lightbox.component';
+import { createLightbox } from '../../shared/image-lightbox/lightbox-state';
 import { formatCloseDate, formatCount, formatPrice } from '../catalog/raffle-format';
 import { RaffleDetailStore } from './raffle-detail.store';
 import { formatCents } from './raffle-grid.model';
@@ -53,7 +56,7 @@ function formatRound(round: string): string {
 /** Route `/rifas/:id`: raffle data, commitment, number grid and reservation (RF-02). */
 @Component({
   selector: 'app-raffle-detail-page',
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, ImageLightboxComponent],
   providers: [RaffleDetailStore],
   templateUrl: './raffle-detail.page.html',
   styleUrl: './raffle-detail.page.scss',
@@ -80,31 +83,84 @@ export class RaffleDetailPage implements OnInit {
   // Prize showcase and tabs
   readonly activeTab = signal<'boletos' | 'ficha'>('boletos');
   readonly activeImageIndex = signal<number>(0);
-  readonly hasImages = computed(() => (this.store.raffle()?.prizeImages?.length ?? 0) > 0);
-  /** Prizes after the first: the carousel and specs above show prize 1. */
-  readonly otherPrizes = computed(() => (this.store.raffle()?.prizes ?? []).slice(1));
-  readonly hasSpecs = computed(
-    () =>
-      !!this.store.raffle()?.prizeDescription ||
-      this.hasImages() ||
-      this.otherPrizes().some((p) => !!p.description || p.images.length > 0),
-  );
+  /**
+   * The prizes in draw order. Prize 1 falls back to the legacy single-prize
+   * fields (premio, descripcion_premio, imagenes_premio) where its own are empty.
+   */
+  readonly prizeList = computed<RafflePrize[]>(() => {
+    const raffle = this.store.raffle();
+    if (!raffle) return [];
+    const legacy: RafflePrize = {
+      position: 1,
+      title: raffle.prize,
+      description: raffle.prizeDescription ?? null,
+      images: raffle.prizeImages ?? [],
+    };
+    if (raffle.prizes.length === 0) return [legacy];
+    return raffle.prizes.map((p, i) =>
+      i === 0
+        ? {
+            ...p,
+            description: p.description || legacy.description,
+            images: p.images.length > 0 ? p.images : legacy.images,
+          }
+        : p,
+    );
+  });
+  /** Index in prizeList of the prize shown in the ficha tab. */
+  readonly selectedPrizeIndex = signal(0);
+  readonly selectedPrize = computed<RafflePrize | null>(() => {
+    const prizes = this.prizeList();
+    return prizes[Math.min(this.selectedPrizeIndex(), prizes.length - 1)] ?? null;
+  });
+  private readonly selectedImages = computed(() => this.selectedPrize()?.images ?? []);
+  readonly hasImages = computed(() => this.selectedImages().length > 0);
+  readonly hasSpecs = computed(() => this.prizeList().some((p) => !!p.description || p.images.length > 0));
 
-  exclusionModeText(mode: string | undefined): string {
-    return mode === 'BUYER'
-      ? 'Por comprador: quien gana sale con todos sus boletos'
-      : 'Solo el boleto ganador sale del sorteo';
+  selectPrize(index: number): void {
+    if (index < 0 || index >= this.prizeList().length) return;
+    this.selectedPrizeIndex.set(index);
+    this.activeImageIndex.set(0);
   }
 
+  /** Roving tabindex of the prize tablist: arrows, Home and End move and select. */
+  protected onPrizeTabKeydown(event: KeyboardEvent): void {
+    const total = this.prizeList().length;
+    const current = this.selectedPrizeIndex();
+    let target: number;
+    switch (event.key) {
+      case 'ArrowRight':
+        target = (current + 1) % total;
+        break;
+      case 'ArrowLeft':
+        target = (current - 1 + total) % total;
+        break;
+      case 'Home':
+        target = 0;
+        break;
+      case 'End':
+        target = total - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    this.selectPrize(target);
+    const tabs = (event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="tab"]');
+    tabs[target]?.focus();
+  }
+
+  readonly exclusionModeText = exclusionModeText;
+
   nextImage(): void {
-    const total = this.store.raffle()?.prizeImages?.length ?? 0;
+    const total = this.selectedImages().length;
     if (total > 0) {
       this.activeImageIndex.update((i) => (i + 1) % total);
     }
   }
 
   prevImage(): void {
-    const total = this.store.raffle()?.prizeImages?.length ?? 0;
+    const total = this.selectedImages().length;
     if (total > 0) {
       this.activeImageIndex.update((i) => (i - 1 + total) % total);
     }
@@ -113,6 +169,9 @@ export class RaffleDetailPage implements OnInit {
   setImage(idx: number): void {
     this.activeImageIndex.set(idx);
   }
+
+  /** Prize photos open full screen with zoom. */
+  readonly lightbox = createLightbox();
 
   // In-place auth modal state (Opción B)
   protected readonly showAuthModal = signal(false);

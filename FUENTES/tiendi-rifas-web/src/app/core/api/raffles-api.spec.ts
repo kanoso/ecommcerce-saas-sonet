@@ -101,6 +101,68 @@ describe('RafflesApi', () => {
     });
   });
 
+  describe('who ran the live draw', () => {
+    const liveDto = (extra: { sesion?: object | null; ejecutado_por?: object | null }) => ({
+      rifa_id: 'r-1',
+      titulo: 'Moto',
+      estado: 'DRAWN',
+      hash_compromiso: null,
+      hash_cadena_drand: null,
+      ronda_drand: null,
+      cierre_ventas: null,
+      fecha_sorteo: null,
+      hash_lista: null,
+      semilla_revelada: null,
+      numeros_vendidos: null,
+      resultado: {
+        numero_ganador: 7,
+        indice_ganador: 0,
+        digest_hex: 'ab',
+        aleatoriedad_drand: 'cd',
+        ejecutado_en: '2026-11-21T18:05:00.000Z',
+        ...(extra.ejecutado_por !== undefined && { ejecutado_por: extra.ejecutado_por }),
+      },
+      sesion_en_vivo: {
+        paso: 6,
+        total_pasos: 6,
+        iniciada_en: '2026-11-21T18:01:00.000Z',
+        actualizada_en: '2026-11-21T18:05:00.000Z',
+        finalizada_en: '2026-11-21T18:05:00.000Z',
+        ...extra.sesion,
+      },
+    });
+    const load = async (dto: object) => {
+      const result = firstValueFrom(api.live('r-1'));
+      http.expectOne('http://api.test/api/rifas/r-1/en-vivo').flush(dto);
+      return result;
+    };
+
+    it('maps the operator of the session and the admin who ran the draw', async () => {
+      const live = await load(
+        liveDto({ sesion: { conducido_por: { nombre: 'Ana Admin' } }, ejecutado_por: { tipo: 'ADMIN', nombre: 'Ana Admin' } }),
+      );
+      expect(live.liveSession?.conductedBy).toBe('Ana Admin');
+      expect(live.result?.executedBy).toEqual({ kind: 'ADMIN', name: 'Ana Admin' });
+    });
+
+    it('maps a draw run by the system, without a name', async () => {
+      const live = await load(liveDto({ ejecutado_por: { tipo: 'SISTEMA', nombre: null } }));
+      expect(live.result?.executedBy).toEqual({ kind: 'SYSTEM', name: null });
+    });
+
+    it('maps a legacy session without an operator as null', async () => {
+      const live = await load(liveDto({ sesion: { conducido_por: null }, ejecutado_por: null }));
+      expect(live.liveSession?.conductedBy).toBeNull();
+      expect(live.result?.executedBy).toBeNull();
+    });
+
+    it('tolerates an API that does not send the fields yet', async () => {
+      const live = await load(liveDto({}));
+      expect(live.liveSession?.conductedBy).toBeUndefined();
+      expect(live.result?.executedBy).toBeUndefined();
+    });
+  });
+
   it('fails with an ApiError', async () => {
     const result = firstValueFrom(api.listActive());
     http

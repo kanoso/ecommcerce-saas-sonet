@@ -235,6 +235,50 @@ describe('AdminRaffleDetailPage', () => {
     expect(rows[0]).toContain('#42');
   });
 
+  describe('prize photo zoom', () => {
+    afterEach(() => {
+      document.body.style.overflow = '';
+    });
+
+    it("opens the lightbox with that prize's images at the clicked thumbnail", () => {
+      adminApiMock.raffleDetail.mockReturnValue(
+        of({
+          ...mockActiveRaffle,
+          prizes: [
+            { position: 1, title: 'Auto', description: null, images: ['https://example.com/auto.jpg'] },
+            {
+              position: 2,
+              title: 'Moto',
+              description: null,
+              images: ['https://example.com/moto1.jpg', 'https://example.com/moto2.jpg'],
+            },
+          ],
+        }),
+      );
+      adminApiMock.salesReport.mockReturnValue(of(mockSalesReport));
+      const f = TestBed.createComponent(AdminRaffleDetailPage);
+      f.detectChanges();
+      const root = f.nativeElement as HTMLElement;
+      expect(root.querySelector('app-image-lightbox')).toBeNull();
+
+      const items = root.querySelectorAll('[data-testid="prize-item"]');
+      const thumbs = items[1].querySelectorAll('button.admin-thumb-card');
+      expect(thumbs.length).toBe(2);
+      expect(thumbs[1].getAttribute('aria-label')).toContain('Ampliar');
+      (thumbs[1] as HTMLButtonElement).click();
+      f.detectChanges();
+
+      const img = root.querySelector('app-image-lightbox .lightbox__img') as HTMLImageElement;
+      expect(img.src).toBe('https://example.com/moto2.jpg');
+      expect(img.alt).toContain('Premio 2: Moto');
+      expect(root.querySelector('app-image-lightbox .lightbox__counter')?.textContent?.trim()).toBe('2 / 2');
+
+      (root.querySelector('app-image-lightbox button[aria-label="Cerrar"]') as HTMLButtonElement).click();
+      f.detectChanges();
+      expect(root.querySelector('app-image-lightbox')).toBeNull();
+    });
+  });
+
   describe('every prize of the draw (DT-23)', () => {
     const drawnRaffle: RaffleSummary = {
       ...mockActiveRaffle,
@@ -270,6 +314,46 @@ describe('AdminRaffleDetailPage', () => {
       expect(rows[1]).toContain('Desierto');
       expect(root.querySelector('a[href="/rifas/r-2/en-vivo"]')).not.toBeNull();
       expect(root.querySelector('a[href="/rifas/r-2/verificacion"]')).not.toBeNull();
+    });
+
+    describe('who ran the draw', () => {
+      // Mid-day UTC so the date is the 20th in any test timezone.
+      const finishedAt = new Date('2026-11-20T15:40:00Z');
+      const executedLine = (root: HTMLElement) => root.querySelector('.draw-executed-by')?.textContent?.replace(/\s+/g, ' ').trim();
+
+      it('names the admin who ran it, with the finish time of the session', () => {
+        const root = renderDetail({
+          ...drawnRaffle,
+          liveSession: { step: 2, totalSteps: 2, startedAt: null, updatedAt: null, finishedAt, conductedBy: 'Ana Admin' },
+          executedBy: { kind: 'ADMIN', name: 'Ana Admin' },
+        });
+        expect(executedLine(root)).toMatch(/^Sorteo realizado por Ana Admin · .*20.*nov/);
+      });
+
+      it('says Sistema for an automatic draw', () => {
+        const root = renderDetail({
+          ...drawnRaffle,
+          drawMode: 'AUTOMATIC',
+          drawAt: new Date('2026-11-20T05:17:00Z'),
+          executedBy: { kind: 'SYSTEM', name: null },
+        });
+        expect(executedLine(root)).toMatch(/^Sorteo automático · /);
+      });
+
+      it('shows nothing when the API does not say who ran it', () => {
+        expect(renderDetail({ ...drawnRaffle, executedBy: null }).querySelector('.draw-executed-by')).toBeNull();
+        expect(renderDetail(drawnRaffle).querySelector('.draw-executed-by')).toBeNull();
+      });
+
+      it('only says who conducted it when the executor was not recorded', () => {
+        const root = renderDetail({
+          ...drawnRaffle,
+          liveSession: { step: 2, totalSteps: 2, startedAt: null, updatedAt: null, finishedAt, conductedBy: 'Ana Admin' },
+          executedBy: null,
+        });
+        expect(executedLine(root)).toMatch(/^Conducido por Ana Admin · .*20.*nov/);
+        expect(executedLine(root)).not.toContain('realizado');
+      });
     });
 
     it('lists every prize of the draw it just ran', () => {
