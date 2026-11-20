@@ -132,7 +132,11 @@ describe('RaffleCard', () => {
       expect(rows[0]).toContain('#0007');
       expect(rows[1]).toContain('Licuadora');
       expect(rows[1]).toContain('Desierto');
-      expect(text(el)).toContain('Verificación');
+      expect(text(el)).toContain('Ver sorteo');
+      expect(text(el)).not.toContain('Verificación');
+      expect(el.querySelector('a[href$="/verificacion"]')).toBeNull();
+      const prizesLink = [...el.querySelectorAll('a')].find((a) => a.textContent?.includes('Ver premios'));
+      expect(prizesLink?.getAttribute('href')).toMatch(/^\/rifas\/[^/?]+\?tab=ficha$/);
     });
 
     it('badges a cancelled raffle', () => {

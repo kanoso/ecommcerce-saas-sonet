@@ -90,8 +90,12 @@
           <a class="card__action card__action--live" [routerLink]="['/rifas', raffle().id, 'en-vivo']">
             📺 Ver sorteo
           </a>
-          <a class="card__action card__action--verify" [routerLink]="['/rifas', raffle().id, 'verificacion']">
-            🛡️ Verificación
+          <a
+            class="card__action card__action--prizes"
+            [routerLink]="['/rifas', raffle().id]"
+            [queryParams]="{ tab: 'ficha' }"
+          >
+            🎁 Ver premios
           </a>
         </div>
       }

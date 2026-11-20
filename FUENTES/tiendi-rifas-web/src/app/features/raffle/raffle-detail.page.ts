@@ -45,6 +45,8 @@ export const RESERVE_LABEL = 'Reservar 15 min';
 /** Query param the payment page adds when it sends the buyer back. */
 export const EXPIRED_RESERVATION_PARAM = 'reserva';
 export const EXPIRED_RESERVATION_VALUE = 'vencida';
+/** Query param that picks the opening tab. */
+export const TAB_PARAM = 'tab';
 export const EXPIRED_RESERVATION_NOTICE = 'Tu reserva venció y tus números se liberaron. Puedes elegirlos de nuevo.';
 
 /** A drand round grouped for reading; left as sent when it is not a safe integer. */
@@ -81,7 +83,10 @@ export class RaffleDetailPage implements OnInit {
 
 
   // Prize showcase and tabs
-  readonly activeTab = signal<'boletos' | 'ficha'>('boletos');
+  /** `?tab=ficha` (the catalog's "Ver premios") opens straight on the prizes. */
+  readonly activeTab = signal<'boletos' | 'ficha'>(
+    this.route.snapshot.queryParamMap.get(TAB_PARAM) === 'ficha' ? 'ficha' : 'boletos',
+  );
   readonly activeImageIndex = signal<number>(0);
   /**
    * The prizes in draw order. Prize 1 falls back to the legacy single-prize
@@ -210,6 +215,13 @@ export class RaffleDetailPage implements OnInit {
   });
 
   constructor() {
+    // Without prize details the tabs are hidden: a ?tab=ficha link must not
+    // leave the buyer on a tab they cannot leave.
+    effect(() => {
+      if (this.store.raffle() && !this.hasSpecs() && this.activeTab() === 'ficha') {
+        this.activeTab.set('boletos');
+      }
+    });
     effect(() => {
       const order = this.store.order();
       if (order) {

@@ -397,6 +397,26 @@ describe('RaffleDetailPage', () => {
       document.body.style.overflow = '';
     });
 
+    it('opens straight on the ficha tab with ?tab=ficha', async () => {
+      threePrizes();
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl(`/rifas/${RAFFLE_ID}?tab=ficha`);
+      harness.detectChanges();
+      const el = harness.routeNativeElement as HTMLElement;
+      expect(el.querySelectorAll('.tab-btn')[1].getAttribute('aria-selected')).toBe('true');
+      expect(carouselImg(el)?.src).toBe(TV[0]);
+    });
+
+    it('falls back to the tickets tab with ?tab=ficha when there is nothing to show', async () => {
+      withPrizes([{ position: 1, title: 'Smart TV', description: null, images: [] }]);
+      detail = ((base) => () => ({ ...base(), raffle: { ...base().raffle, prizeImages: [], prizeDescription: null } }))(detail);
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl(`/rifas/${RAFFLE_ID}?tab=ficha`);
+      harness.detectChanges();
+      const el = harness.routeNativeElement as HTMLElement;
+      expect((el.querySelector('.picker') as HTMLElement).style.display).toBe('block');
+    });
+
     it('shows no prize selector with a single prize', async () => {
       withPrizes([{ position: 1, title: 'Smart TV', description: 'Pantalla OLED', images: TV }]);
       const { el } = await openFicha();
