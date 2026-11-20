@@ -649,6 +649,77 @@ describe('RaffleQueries (F6 read side)', () => {
         expect(live.liveSession?.conductedBy).toBeNull();
       });
 
+      describe('a legacy session (no startedBy): conductor from the audit log', () => {
+        const legacy = { startedBy: null, executedBy: null, executedByKind: null } as const;
+        const started = (raffleId: string, operatorId: string) =>
+          auditLog.record({
+            raffleId,
+            type: 'LIVE_DRAW_STARTED',
+            data: { drawId: `draw-${raffleId}`, totalSteps: 4, operatorId },
+          });
+
+        it('names the operator of the earliest LIVE_DRAW_STARTED event', async () => {
+          await drawnLive('raffle-1', 4, legacy);
+          await started('raffle-1', 'admin-1');
+          operators.set('admin-2', 'Otro Admin');
+          await started('raffle-1', 'admin-2');
+
+          const live = await queries.liveData('raffle-1');
+
+          expect(live.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+          // The executor is never taken from the audit: it stays unknown.
+          expect(live.result?.executedBy).toBeNull();
+          expect(JSON.stringify(live)).not.toContain('admin-1');
+        });
+
+        it('gives the admin detail the same conductor', async () => {
+          await drawnLive('raffle-1', 4, legacy);
+          await started('raffle-1', 'admin-1');
+
+          const detail = await queries.adminRaffleDetail('raffle-1');
+
+          expect(detail.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+        });
+
+        it('gives no conductor when no start was audited', async () => {
+          await drawnLive('raffle-1', 4, legacy);
+
+          const live = await queries.liveData('raffle-1');
+
+          expect(live.liveSession?.conductedBy).toBeNull();
+        });
+
+        it('gives no conductor when the audited operator id is not usable', async () => {
+          await drawnLive('raffle-1', 4, legacy);
+          await auditLog.record({ raffleId: 'raffle-1', type: 'LIVE_DRAW_STARTED', data: {} });
+
+          const live = await queries.liveData('raffle-1');
+
+          expect(live.liveSession?.conductedBy).toBeNull();
+        });
+
+        it('degrades to no conductor, with a warning and no 500, when the audit read fails', async () => {
+          await drawnLive('raffle-1', 4, legacy);
+          jest.spyOn(auditLog, 'firstOfType').mockRejectedValue(new Error('timeout'));
+
+          const live = await queries.liveData('raffle-1');
+
+          expect(live.liveSession?.conductedBy).toBeNull();
+          expect(live.result).not.toBeNull();
+          expect(log.warn).toHaveBeenCalledTimes(1);
+        });
+
+        it('never reads the audit log for a session that has startedBy', async () => {
+          await drawnLive('raffle-1', 4);
+          const read = jest.spyOn(auditLog, 'firstOfType');
+
+          await queries.liveData('raffle-1');
+          await queries.adminRaffleDetail('raffle-1');
+
+          expect(read).not.toHaveBeenCalled();
+        });
+      });
+
       it('attributes a draw the job ran to the system, without a name', async () => {
         await drawnLive('raffle-1', null, {
           startedBy: null,

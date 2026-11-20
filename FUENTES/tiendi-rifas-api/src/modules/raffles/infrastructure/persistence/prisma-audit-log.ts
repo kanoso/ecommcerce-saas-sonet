@@ -22,6 +22,22 @@ export class PrismaAuditLog implements AuditLog {
     });
   }
 
+  async firstOfType(raffleId: string, type: string): Promise<AuditEvent | null> {
+    const r = await this.prisma.auditEvent.findFirst({
+      where: { raffleId, type },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    });
+    return r
+      ? new AuditEvent({
+          id: r.id,
+          raffleId: r.raffleId,
+          type: r.type,
+          data: (r.data as Record<string, unknown>) ?? {},
+          occurredAt: r.occurredAt,
+        })
+      : null;
+  }
+
   async findByRaffleId(raffleId: string): Promise<AuditEvent[]> {
     const records = await this.prisma.auditEvent.findMany({
       where: { raffleId },

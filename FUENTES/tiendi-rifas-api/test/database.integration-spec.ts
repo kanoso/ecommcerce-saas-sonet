@@ -6198,6 +6198,59 @@ describe('Raffle persistence on real PostgreSQL', () => {
           expect(live.liveSession?.conductedBy).toEqual({ name: 'Administrador' });
         });
 
+        describe('a session recorded before startedBy was kept', () => {
+          /** A DRAWN manual raffle with a legacy session and a legacy draw. */
+          async function givenLegacyLiveDraw(): Promise<string> {
+            const raffleId = await givenClosedManualRaffle();
+            const draw = await drawWith().execute(raffleId);
+            await prisma.draw.update({
+              where: { raffleId },
+              data: { executedBy: null, executedByKind: null },
+            });
+            await prisma.liveDrawSession.create({
+              data: {
+                raffleId,
+                drawId: draw.id,
+                step: 2,
+                totalSteps: 2,
+                startedAt: new Date(),
+                updatedAt: new Date(),
+                finishedAt: new Date(),
+              },
+            });
+            return raffleId;
+          }
+
+          it('takes the conductor from the earliest LIVE_DRAW_STARTED audit event', async () => {
+            const raffleId = await givenLegacyLiveDraw();
+            const admin = await givenOperator('Carmen López');
+            await auditLog.record({
+              raffleId,
+              type: 'LIVE_DRAW_STARTED',
+              data: { totalSteps: 2, operatorId: admin },
+            });
+            await auditLog.record({
+              raffleId,
+              type: 'LIVE_DRAW_STARTED',
+              data: { totalSteps: 2, operatorId: await givenOperator('Otro Admin') },
+            });
+
+            const live = await queries().liveData(raffleId);
+
+            expect(live.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+            expect(live.result?.executedBy).toBeNull();
+            expect(JSON.stringify(live)).not.toContain(admin);
+          });
+
+          it('gives no conductor when no start was audited', async () => {
+            const raffleId = await givenLegacyLiveDraw();
+
+            const live = await queries().liveData(raffleId);
+
+            expect(live.liveSession?.conductedBy).toBeNull();
+          });
+        });
+
         it('names no executor for a draw recorded before the executor was kept', async () => {
           const raffleId = await givenClosedRaffle([1]);
           await drawWith().execute(raffleId);

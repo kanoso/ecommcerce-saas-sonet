@@ -13,6 +13,7 @@ import {
   TicketOrder,
   TicketStatus,
   WinnerExclusionMode,
+  isOperatorId,
   liveDrawPrizesOf,
   revealedPrizeCount,
 } from '../../domain';
@@ -134,9 +135,17 @@ function executedByView(draw: Draw, names: OperatorNames): DrawExecutorView | nu
   return null;
 }
 
-function sessionView(session: LiveDrawSession | null, names: OperatorNames) {
-  const conductor = (startedBy: string): LiveDrawConductorView => ({
-    name: operatorName(names, startedBy),
+/**
+ * conductorId: who started the session, from startedBy or, for a legacy
+ * session, from the audit log; null when unknown.
+ */
+function sessionView(
+  session: LiveDrawSession | null,
+  names: OperatorNames,
+  conductorId: string | null,
+) {
+  const conductor = (operatorId: string): LiveDrawConductorView => ({
+    name: operatorName(names, operatorId),
   });
   return session
     ? {
@@ -145,8 +154,7 @@ function sessionView(session: LiveDrawSession | null, names: OperatorNames) {
         startedAt: session.startedAt.toISOString(),
         updatedAt: session.updatedAt.toISOString(),
         finishedAt: session.finishedAt?.toISOString() ?? null,
-        // Sessions stored before startedBy was kept name nobody.
-        conductedBy: session.startedBy ? conductor(session.startedBy) : null,
+        conductedBy: conductorId ? conductor(conductorId) : null,
       }
     : null;
 }
@@ -270,11 +278,11 @@ export class RaffleQueries {
    * FALLBACK_OPERATOR_NAME and a warning is logged (no ids in it).
    */
   private async operatorNamesOf(
-    session: LiveDrawSession | null,
+    conductorId: string | null,
     draw: Draw | null,
   ): Promise<OperatorNames> {
     const ids = [
-      ...new Set([session?.startedBy, draw?.executedBy].filter((id): id is string => !!id)),
+      ...new Set([conductorId, draw?.executedBy].filter((id): id is string => !!id)),
     ];
     if (ids.length === 0) return new Map();
     try {
@@ -285,6 +293,27 @@ export class RaffleQueries {
         `Operator name lookup failed (${reason}); showing ${FALLBACK_OPERATOR_NAME} instead`,
       );
       return new Map();
+    }
+  }
+
+  /**
+   * Who started a live session. Sessions stored before startedBy was kept
+   * take it from their earliest LIVE_DRAW_STARTED audit event: the audit log
+   * is read only for those (the public page polls every second). A failed
+   * read degrades to unknown, with a warning without ids. The executor of a
+   * legacy draw is never taken from the audit: DRAW_EXECUTED has no operator.
+   */
+  private async conductorIdOf(session: LiveDrawSession | null): Promise<string | null> {
+    if (!session) return null;
+    if (session.startedBy) return session.startedBy;
+    try {
+      const started = await this.auditLog.firstOfType(session.raffleId, 'LIVE_DRAW_STARTED');
+      const operatorId = started?.data.operatorId;
+      return isOperatorId(operatorId) ? operatorId : null;
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : 'unknown error';
+      this.log.warn(`Live draw conductor lookup in the audit log failed (${reason}); showing none`);
+      return null;
     }
   }
 
@@ -397,14 +426,15 @@ export class RaffleQueries {
     const draw =
       raffle.status === RaffleStatus.DRAWN ? await this.draws.findByRaffleId(raffleId) : null;
     const liveDrawInProgress = session?.inProgress ?? false;
-    const names = await this.operatorNamesOf(session, draw);
+    const conductorId = await this.conductorIdOf(session);
+    const names = await this.operatorNamesOf(conductorId, draw);
     return {
       ...summaryOf(raffle, counts.get(raffleId) ?? zeroTicketCounts(), {
         liveDrawInProgress,
         winners: liveDrawInProgress ? [] : winnersOf(raffle, draw),
       }),
       refusedDraw: await this.refusedDrawOf(raffle),
-      liveSession: sessionView(session, names),
+      liveSession: sessionView(session, names, conductorId),
       drawExecutedBy: draw ? executedByView(draw, names) : null,
       // The operator sees every result at once, even during the live show.
       adminWinners: await this.adminWinnersOf(raffle, draw),
@@ -478,7 +508,8 @@ export class RaffleQueries {
         ? await this.draws.findByRaffleId(raffleId)
         : null;
     const session = (await this.sessionsOf([raffle])).get(raffle.id) ?? null;
-    const names = await this.operatorNamesOf(session, draw);
+    const conductorId = await this.conductorIdOf(session);
+    const names = await this.operatorNamesOf(conductorId, draw);
     const soldTicketBuyers: Record<number, string> = {};
     let buyerGroups: number[][] = [];
     if (frozen) {
@@ -530,7 +561,7 @@ export class RaffleQueries {
       seedRevealed: frozen ? raffle.seedRevealed : null,
       soldNumbers: sold,
       soldTicketBuyers,
-      liveSession: sessionView(session, names),
+      liveSession: sessionView(session, names, conductorId),
       result: draw ? resultView(draw, session, names) : null,
     };
   }

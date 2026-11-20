@@ -18,6 +18,7 @@ describe('DeleteDraftRaffleUseCase', () => {
     auditLog = {
       record: jest.fn(),
       findByRaffleId: jest.fn(),
+      firstOfType: jest.fn(),
     };
     useCase = new DeleteDraftRaffleUseCase(raffleRepo, auditLog);
   });

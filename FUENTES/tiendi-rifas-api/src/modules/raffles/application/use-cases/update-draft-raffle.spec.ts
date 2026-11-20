@@ -19,6 +19,7 @@ describe('UpdateDraftRaffleUseCase', () => {
     auditLog = {
       record: jest.fn().mockResolvedValue(undefined),
       findByRaffleId: jest.fn(),
+      firstOfType: jest.fn(),
     };
 
     clock = {

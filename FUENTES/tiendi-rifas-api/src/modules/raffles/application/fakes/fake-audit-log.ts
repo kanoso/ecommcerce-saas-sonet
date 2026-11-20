@@ -25,6 +25,10 @@ export class FakeAuditLog implements AuditLog {
     return this.events.filter((e) => e.raffleId === raffleId);
   }
 
+  async firstOfType(raffleId: string, type: string): Promise<AuditEvent | null> {
+    return this.events.find((e) => e.raffleId === raffleId && e.type === type) ?? null;
+  }
+
   getAllEvents(): AuditEvent[] {
     return [...this.events];
   }

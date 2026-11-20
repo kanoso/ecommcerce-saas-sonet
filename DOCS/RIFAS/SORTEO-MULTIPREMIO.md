@@ -245,7 +245,7 @@ En la modalidad `MANUAL` el ritmo del espectáculo lo marca el servidor, no el n
 
 Las rifas `AUTOMATIC` no usan sesión: el job las sortea y cada navegador las anima a su ritmo.
 
-**Quién condujo el sorteo (DT-24).** `sesion_en_vivo.conducido_por` es `{ nombre }` del administrador que inició la sesión, o `null` en sesiones anteriores a la migración. `resultado.ejecutado_por` es `{ tipo: "ADMIN", nombre }` cuando un administrador disparó el sorteo, `{ tipo: "SISTEMA", nombre: null }` cuando lo corrió el job, o `null` en sorteos anteriores que no registraron su ejecutor (nunca se los presenta como automáticos). Solo se publica el nombre visible de la cuenta, tal como está guardado; si está vacío, "Administrador". Nunca el id, el correo, el teléfono ni el DNI.
+**Quién condujo el sorteo (DT-24).** `sesion_en_vivo.conducido_por` es `{ nombre }` del administrador que inició la sesión. En sesiones anteriores a la migración se toma del primer evento de auditoría `LIVE_DRAW_STARTED` de la rifa; si no existe, es `null`. `resultado.ejecutado_por` es `{ tipo: "ADMIN", nombre }` cuando un administrador disparó el sorteo, `{ tipo: "SISTEMA", nombre: null }` cuando lo corrió el job, o `null` en sorteos anteriores que no registraron su ejecutor (nunca se los presenta como automáticos). Solo se publica el nombre visible de la cuenta, tal como está guardado; si está vacío, "Administrador". Nunca el id, el correo, el teléfono ni el DNI.
 
 ### 8.5 Ficha del premio y visor de imágenes (web)
 **Pestaña de ficha del detalle público (`/rifas/:id`).**
