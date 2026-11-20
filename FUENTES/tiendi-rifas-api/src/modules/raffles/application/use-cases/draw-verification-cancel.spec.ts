@@ -626,6 +626,30 @@ describe('Draw, Verification, Cancel & Prize Delivery Use Cases', () => {
   });
 
   describe('CancelRaffleUseCase', () => {
+    it('audits the operator who cancelled it, in canonical form', async () => {
+      await setupActiveRaffleWithSoldTickets([10]);
+
+      await cancelRaffleUseCase.execute({
+        raffleId,
+        operatorId: ' OP-1 ',
+        reason: 'Semilla ilegible',
+      });
+
+      const cancelled = (await auditLog.findByRaffleId(raffleId)).find(
+        (e) => e.type === 'RAFFLE_CANCELLED',
+      );
+      expect(cancelled?.data).toMatchObject({ operatorId: 'op-1', reason: 'Semilla ilegible' });
+    });
+
+    it('refuses an invalid operator id before touching the raffle', async () => {
+      await setupActiveRaffleWithSoldTickets([10]);
+
+      await expect(
+        cancelRaffleUseCase.execute({ raffleId, operatorId: 'not valid!', reason: 'x' }),
+      ).rejects.toThrow(InvalidOperatorIdError);
+      expect((await raffleRepo.findById(raffleId))?.status).toBe(RaffleStatus.ACTIVE);
+    });
+
     it('changes nothing and opens no refund when the transaction fails', async () => {
       await setupActiveRaffleWithSoldTickets([10]);
       await orderRepo.save(
@@ -642,7 +666,7 @@ describe('Draw, Verification, Cancel & Prize Delivery Use Cases', () => {
       ledger.failOnNextAudit(new Error('audit down'));
 
       await expect(
-        cancelRaffleUseCase.execute({ raffleId, reason: 'Fuerza mayor' }),
+        cancelRaffleUseCase.execute({ operatorId: 'admin-1', raffleId, reason: 'Fuerza mayor' }),
       ).rejects.toThrow('audit down');
 
       expect((await raffleRepo.findById(raffleId))?.status).toBe(
@@ -681,7 +705,7 @@ describe('Draw, Verification, Cancel & Prize Delivery Use Cases', () => {
       await orderRepo.save(order1);
       await orderRepo.save(order2);
 
-      await cancelRaffleUseCase.execute({
+      await cancelRaffleUseCase.execute({ operatorId: 'admin-1',
         raffleId,
         reason: 'Fuerza mayor legal',
       });

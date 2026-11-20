@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { createRaffleRow } from './raffle-fixtures';
+import { apiErrorOf } from '../src/common/http/api-errors';
 import {
   FakeNotifier,
   FakeRandomnessBeacon,
@@ -364,7 +365,12 @@ describe('Raffle persistence on real PostgreSQL', () => {
   }
 
   function cancelWith(usedLedger: TicketLedger = ledger) {
-    return new CancelRaffleUseCase(usedLedger, clock);
+    const useCase = new CancelRaffleUseCase(usedLedger, clock);
+    // The operator is recorded in the audit; these tests are about the rest.
+    return {
+      execute: (command: { raffleId: string; reason: string; operatorId?: string }) =>
+        useCase.execute({ operatorId: 'admin-1', ...command }),
+    };
   }
 
   function releaseExpired() {
@@ -3840,6 +3846,37 @@ describe('Raffle persistence on real PostgreSQL', () => {
       expect(orderIds).toContain(paid);
       expect(orderIds).not.toContain(verifying.orderId);
       expect(orderIds).not.toContain(unpaid.id);
+    });
+
+    it('cancels an ACTIVE raffle as an operator: refund opened and the operator audited', async () => {
+      const raffleId = await givenActiveRaffle([1]);
+      const order = await givenPaidOrder(raffleId, [1]);
+
+      await cancelWith().execute({ raffleId, operatorId: 'admin-7', reason: 'Semilla ilegible' });
+
+      expect((await raffleRepo.findById(raffleId))?.status).toBe('CANCELLED');
+      expect((await refundRepo.findByOrderId(order))?.orderId).toBe(order);
+      const audit = await prisma.auditEvent.findFirstOrThrow({
+        where: { raffleId, type: 'RAFFLE_CANCELLED' },
+      });
+      expect(audit.data).toMatchObject({ operatorId: 'admin-7', reason: 'Semilla ilegible' });
+    });
+
+    it('refuses a CLOSED raffle with 409 INVALID_RAFFLE_TRANSITION', async () => {
+      const raffleId = await givenClosableRaffle([1]);
+      await givenPaidOrder(raffleId, [1]);
+      await closeSalesWith().execute(raffleId);
+
+      const refused = await cancelWith()
+        .execute({ raffleId, operatorId: 'admin-7', reason: 'Semilla ilegible' })
+        .catch((error: unknown) => error);
+
+      expect(refused).toBeInstanceOf(InvalidRaffleTransitionError);
+      expect(apiErrorOf(refused)).toMatchObject({
+        status: 409,
+        body: { code: 'INVALID_RAFFLE_TRANSITION' },
+      });
+      expect((await raffleRepo.findById(raffleId))?.status).toBe('CLOSED');
     });
 
     it('rolls everything back when the last write fails', async () => {

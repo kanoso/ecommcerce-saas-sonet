@@ -130,6 +130,10 @@ En una rifa `MANUAL` el sorteo oficial se registra cuando el operador inicia la 
 - La semilla y la ronda drand son públicas desde que se inicia el sorteo: un usuario técnico puede calcular los ganadores antes de que se revelen. Es esperado y no es un incidente.
 - Una rifa `MANUAL` que se sorteó con **Ejecutar sorteo manual** desde el detalle (sin sesión) se muestra al público como una automática: cada navegador la anima completa.
 
+### 3.6 Cancelar una rifa activa
+
+Una rifa en borrador o activa (por ejemplo, si su semilla ya no se puede descifrar) se cancela con `POST /api/admin/rifas/:id/cancelar` y `{ "motivo": "..." }`. La rifa pasa a `CANCELLED`, cada orden pagada queda con su reembolso pendiente (completarlo con §4) y se audita `RAFFLE_CANCELLED` con el motivo y el administrador. Si responde 409 `INVALID_RAFFLE_TRANSITION`, la rifa ya está cerrada, sorteada o cancelada: una rifa cerrada se cancela por §3.1 (lista alterada) o §3.4 (sorteo rechazado).
+
 ---
 
 ## 4. Gestión de Reembolsos y Cuatro Ojos (DT-04, DT-17)

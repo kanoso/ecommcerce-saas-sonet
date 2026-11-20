@@ -54,6 +54,7 @@ describe('AdminController - Venta Presencial', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
   });
 

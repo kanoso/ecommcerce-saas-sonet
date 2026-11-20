@@ -715,6 +715,7 @@ La página de verificación no depende solo de lo que la plataforma muestra hoy.
 | POST | `/api/admin/cuentas-pago/cambios/:id/rechazar` | Admin | Rechaza un cambio propuesto por otro administrador (200, el cambio) |
 | POST | `/api/admin/cuentas-pago/cambios/:id/cancelar` | Admin | Quien lo propuso retira su cambio (200, el cambio) |
 | POST | `/api/admin/rifas/:id/sorteo` | Admin | Ejecuta el sorteo y lo registra a nombre del administrador de la sesión (`Draw.executedBy`, DT-24) |
+| POST | `/api/admin/rifas/:id/cancelar` | Admin | Cancela con `{motivo}` (texto de 1 a 500 caracteres, sin espacios en los extremos) una rifa en borrador o activa, y abre el reembolso de cada orden pagada. Audita `RAFFLE_CANCELLED` con el motivo y el administrador de la sesión. Una rifa cerrada, sorteada o cancelada responde 409 `INVALID_RAFFLE_TRANSITION`: una rifa cerrada sale por `cancelar-lista-alterada` o `cancelar-sorteo-rechazado`. Una rifa inexistente responde 404 `RAFFLE_NOT_FOUND` |
 | POST | `/api/admin/rifas/:id/cancelar-lista-alterada` | Admin | Cancela con `{motivo}` una rifa cerrada cuya lista de vendidos ya no coincide con `hash_lista`, y abre el reembolso de cada orden pagada (DT-15) |
 | GET | `/api/rifas/:id/verificacion` | Público | Datos de verificación del sorteo |
 | GET | `/api/rifas/:id/en-vivo` | Público | Datos congelados al cierre (lista, hashes, semilla, ronda) y resultado oficial cuando exista |
@@ -738,7 +739,7 @@ La página de verificación no depende solo de lo que la plataforma muestra hoy.
 | Alerta | `alerta_id`, `tipo`, `rifa_id`, `titulo_rifa`, `orden_id`, `cuenta_pago_id`, `monto`, `creada_en`. Una alerta `PAYMENT_ACCOUNT_CHANGE` no tiene rifa: `rifa_id` y `titulo_rifa` valen `null` y `cuenta_pago_id` nombra la cuenta | `GET /api/admin/alertas` |
 | Reembolso | `reembolso_id`, `orden_id`, `rifa_id`, `pago_id`, `monto`, `motivo`, `estado`, `creado_en` | `GET /api/admin/reembolsos` |
 | Colisión | `pago_id`, `orden_id`, `banco`, `numero_operacion`, `motivo`, `operador_id`, `pago_existente_id`, `orden_existente_id`, `recibido_en` | `GET /api/admin/pagos/colisiones` |
-| Rifa creada o cancelada | `rifa_id`, `estado` | `POST /api/admin/rifas`, `POST /api/admin/rifas/:id/cancelar-lista-alterada` |
+| Rifa creada o cancelada | `rifa_id`, `estado` | `POST /api/admin/rifas`, `POST /api/admin/rifas/:id/cancelar`, `POST /api/admin/rifas/:id/cancelar-lista-alterada` |
 | Rifa publicada | `rifa_id`, `estado`, `hash_compromiso`, `ronda_drand` | `POST /api/admin/rifas/:id/publicar` |
 | Sorteo | `sorteo_id`, `numero_ganador`, `ronda_drand`, `ejecutado_en` | `POST /api/admin/rifas/:id/sorteo` |
 | Sesión | `token_acceso`, `vence_en`, `usuario`: `{usuario_id, email, rol}` | `POST /api/auth/sesion`; `GET /api/auth/yo` devuelve el `usuario` |

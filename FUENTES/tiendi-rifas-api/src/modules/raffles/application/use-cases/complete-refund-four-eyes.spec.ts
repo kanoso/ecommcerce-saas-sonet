@@ -121,7 +121,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
       'the cancel of a paid order',
       async () => {
         await givenPaidOrder();
-        await new CancelRaffleUseCase(ledger, clock).execute({
+        await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
           raffleId,
           reason: 'Force majeure',
         });
@@ -299,7 +299,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
 
   it('refuses a refund whose money has no recorded operator, and audits it', async () => {
     await givenPaidOrder();
-    await new CancelRaffleUseCase(ledger, clock).execute({
+    await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
       raffleId,
       reason: 'Force majeure',
     });
@@ -331,7 +331,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
 
   it('refuses an own refund with no payment behind it', async () => {
     await givenPaidOrder();
-    await new CancelRaffleUseCase(ledger, clock).execute({
+    await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
       raffleId,
       reason: 'Force majeure',
     });
@@ -350,7 +350,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
     'refuses an own refund whose order has %s, as the database does',
     async (_, secondStatus) => {
       await givenPaidOrder();
-      await new CancelRaffleUseCase(ledger, clock).execute({
+      await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
         raffleId,
         reason: 'Force majeure',
       });
@@ -378,7 +378,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
 
   it('names no recorder for an operator stored outside the canonical form', async () => {
     await givenPaidOrder();
-    await new CancelRaffleUseCase(ledger, clock).execute({
+    await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
       raffleId,
       reason: 'Force majeure',
     });
@@ -399,7 +399,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
 
   it('stores the completer without surrounding whitespace', async () => {
     await givenPaidOrder();
-    await new CancelRaffleUseCase(ledger, clock).execute({
+    await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
       raffleId,
       reason: 'Force majeure',
     });
@@ -418,7 +418,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
     'treats the recorder written with %s as the same operator',
     async (_, operatorId) => {
       await givenPaidOrder();
-      await new CancelRaffleUseCase(ledger, clock).execute({
+      await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
         raffleId,
         reason: 'Force majeure',
       });
@@ -437,7 +437,7 @@ describe('CompleteRefund four-eyes control (DT-17)', () => {
     ['a tab inside', 'admin-\trecorder'],
   ])('refuses an %s operator before any write', async (_, operatorId) => {
     await givenPaidOrder();
-    await new CancelRaffleUseCase(ledger, clock).execute({
+    await new CancelRaffleUseCase(ledger, clock).execute({ operatorId: 'admin-1',
       raffleId,
       reason: 'Force majeure',
     });

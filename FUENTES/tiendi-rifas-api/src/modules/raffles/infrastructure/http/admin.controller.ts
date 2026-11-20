@@ -54,6 +54,7 @@ import {
 import { RaffleQueries } from '../../application/queries/raffle-queries';
 import { CancelAlteredRaffleUseCase } from '../../application/use-cases/cancel-altered-raffle.use-case';
 import { CancelRefusedDrawRaffleUseCase } from '../../application/use-cases/cancel-refused-draw-raffle.use-case';
+import { CancelRaffleUseCase } from '../../application/use-cases/cancel-raffle.use-case';
 import {
   BankOrWallet,
   DrawEffect,
@@ -170,6 +171,7 @@ const completeRefund = z
   .strict();
 const cancelAltered = z.object({ motivo: reason }).strict();
 const cancelRefusedDraw = z.object({ motivo: reason }).strict();
+const cancelRaffle = z.object({ motivo: reason }).strict();
 const inPersonSale = z
   .object({
     numeros: z.array(z.number().int()).min(1),
@@ -272,6 +274,7 @@ export class AdminController {
     private readonly deleteDraftRaffleUseCase: DeleteDraftRaffleUseCase,
     private readonly changeExclusionModeUseCase: ChangeWinnerExclusionModeUseCase,
     private readonly cancelRefusedDrawUseCase: CancelRefusedDrawRaffleUseCase,
+    private readonly cancelRaffleUseCase: CancelRaffleUseCase,
   ) {}
 
   @Get('rifas')
@@ -462,6 +465,28 @@ export class AdminController {
       ejecutado_en: draw.executedAt.toISOString(),
       ejecutado_por: executor ? present.executedBy(executor) : null,
     };
+  }
+
+  /**
+   * Cancels a DRAFT or ACTIVE raffle and opens a refund for each paid order.
+   * 409 INVALID_RAFFLE_TRANSITION once CLOSED, DRAWN or CANCELLED: a CLOSED
+   * raffle leaves through cancelar-lista-alterada or cancelar-sorteo-rechazado.
+   */
+  @Post('rifas/:id/cancelar')
+  @HttpCode(200)
+  async cancelRaffle(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const raffleId = parseWith(uuidParam, id);
+    const { motivo } = parseWith(cancelRaffle, body);
+    const raffle = await this.cancelRaffleUseCase.execute({
+      raffleId,
+      operatorId: operatorIdOf(user),
+      reason: motivo,
+    });
+    return { rifa_id: raffle.id, estado: raffle.status };
   }
 
   @Post('rifas/:id/cancelar-lista-alterada')

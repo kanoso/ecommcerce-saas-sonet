@@ -190,7 +190,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     });
 
     it('never marks an order REFUNDED before the money is returned', async () => {
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
 
       expect((await raffleRepo.findById(raffleId))?.status).toBe(
         RaffleStatus.CANCELLED,
@@ -200,7 +200,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     });
 
     it('refunds only the verified payment (DT-10)', async () => {
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
 
       expect((await refundRepo.findByOrderId('paid'))?.amount).toBe(50);
       expect(await refundRepo.findByOrderId('verifying')).toBeNull();
@@ -212,7 +212,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     });
 
     it('queues the refund and review emails in the cancel transaction (DT-13)', async () => {
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
 
       expect(notifier.pendingRefunds).toEqual([]);
       expect(notifier.paymentReviews).toEqual([]);
@@ -241,7 +241,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     it('keeps the operator reason out of the buyer emails and the refund', async () => {
       const internal = 'Internal: fraud suspected at the venue';
 
-      await cancel.execute({ raffleId, reason: internal });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason: internal });
 
       const reasons = ledger.outbox
         .all()
@@ -263,7 +263,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     it('a cancel that rolls back queues nothing', async () => {
       ledger.failOnNextAudit(new Error('audit down'));
 
-      await expect(cancel.execute({ raffleId, reason })).rejects.toThrow(
+      await expect(cancel.execute({ operatorId: 'admin-1', raffleId, reason })).rejects.toThrow(
         'audit down',
       );
 
@@ -271,7 +271,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     });
 
     it('releases what was never paid and frees held tickets', async () => {
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
 
       expect(await status('unpaid')).toBe(OrderStatus.EXPIRED);
       expect(await status('verifying')).toBe(OrderStatus.LATE_PAYMENT_REVIEW);
@@ -282,14 +282,14 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     it('still resolves an order in verification past its deadline', async () => {
       clock.advanceMinutes(2);
 
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
 
       expect(await status('verifying')).toBe(OrderStatus.LATE_PAYMENT_REVIEW);
       expect(await refundRepo.findByOrderId('verifying')).toBeNull();
     });
 
     it('audits which orders went to review, and how many were paid', async () => {
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
 
       const events = await auditLog.findByRaffleId(raffleId);
       const event = events.find((e) => e.type === 'RAFFLE_CANCELLED');
@@ -301,7 +301,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     it('changes nothing and notifies nobody when the transaction fails', async () => {
       ledger.failOnNextAudit(new Error('audit down'));
 
-      await expect(cancel.execute({ raffleId, reason })).rejects.toThrow(
+      await expect(cancel.execute({ operatorId: 'admin-1', raffleId, reason })).rejects.toThrow(
         'audit down',
       );
 
@@ -392,7 +392,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     ['CloseSales', () => close.execute(raffleId).then(() => undefined)],
     [
       'CancelRaffle',
-      () => cancel.execute({ raffleId, reason }).then(() => undefined),
+      () => cancel.execute({ operatorId: 'admin-1', raffleId, reason }).then(() => undefined),
     ],
   ])('%s with a payment nobody verified (DT-10)', (_name, resolve) => {
     beforeEach(async () => {
@@ -479,7 +479,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
     });
 
     it('CancelRaffle fails without touching the queue', async () => {
-      const resolve = () => cancel.execute({ raffleId, reason });
+      const resolve = () => cancel.execute({ operatorId: 'admin-1', raffleId, reason });
       await resolve();
       await deliver();
       notifier.clear();
@@ -513,7 +513,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
       await deliver();
       notifier.clear();
 
-      await expect(cancel.execute({ raffleId, reason })).rejects.toThrow(
+      await expect(cancel.execute({ operatorId: 'admin-1', raffleId, reason })).rejects.toThrow(
         InvalidRaffleTransitionError,
       );
 
@@ -575,7 +575,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
 
     async function givenCancelledRaffle(): Promise<string> {
       await givenOrder('paid', 1, OrderStatus.PAID);
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
       auditLog.clear();
       await deliver();
       notifier.clear();
@@ -630,7 +630,7 @@ describe('Refunds and unresolved orders (DT-04, DT-05)', () => {
 
     it('leaves tickets alone when the order no longer holds them', async () => {
       await givenOrder('verifying', 2, OrderStatus.PENDING_VERIFICATION);
-      await cancel.execute({ raffleId, reason });
+      await cancel.execute({ operatorId: 'admin-1', raffleId, reason });
       await confirmReview.execute({
         orderId: 'verifying',
         operatorId: 'admin-7',
