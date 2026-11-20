@@ -1,6 +1,7 @@
 import { normalizeSoldNumbers } from '@kanoso/raffle-draw';
 import {
   Draw,
+  DrawExecutorKind,
   LiveDrawSession,
   NotOrderOwnerError,
   OrderNotFoundError,
@@ -21,6 +22,7 @@ import {
   AuditLog,
   DrawRepository,
   LiveDrawSessionRepository,
+  OperatorDirectory,
   OrderRepository,
   RaffleRepository,
   TicketRepository,
@@ -80,7 +82,62 @@ function winnersOf(raffle: Raffle, draw: Draw | null): PrizeWinnerView[] {
   }));
 }
 
-function sessionView(session: LiveDrawSession | null) {
+/** Shown when an operator's account has no name (or is not found). */
+export const FALLBACK_OPERATOR_NAME = 'Administrador';
+
+type OperatorNames = Map<string, string | null>;
+
+/** The account display name exactly as stored; the fallback when it is blank. */
+function operatorName(names: OperatorNames, operatorId: string): string {
+  const name = names.get(operatorId);
+  return name && name.trim() !== '' ? name : FALLBACK_OPERATOR_NAME;
+}
+
+/** Who ran a draw, as the read side shows it: a kind and a display name, never an id. */
+export interface DrawExecutorView {
+  kind: DrawExecutorKind;
+  name: string | null;
+}
+
+/** Who conducted a live session: the account display name, nothing else. */
+export interface LiveDrawConductorView {
+  name: string;
+}
+
+/** The dependencies of the read side. All are required: a missing one would hide data silently. */
+export interface RaffleQueriesDeps {
+  raffles: RaffleRepository;
+  tickets: TicketRepository;
+  orders: OrderRepository;
+  draws: DrawRepository;
+  auditLog: AuditLog;
+  /** Live draw sessions (DT-23). */
+  liveSessions: LiveDrawSessionRepository;
+  /** Operator display names (DT-24). */
+  operators: OperatorDirectory;
+  /** Nest's Logger fits this shape. */
+  log: { warn(message: string): void };
+}
+
+/**
+ * Who ran the official draw: an operator by name, or the system (the draw
+ * job). Never the operator's id. A draw recorded before the executor was
+ * kept names nobody (null): it may well have been run live by an admin.
+ */
+function executedByView(draw: Draw, names: OperatorNames): DrawExecutorView | null {
+  if (draw.executedByKind === 'ADMIN' && draw.executedBy) {
+    return { kind: 'ADMIN', name: operatorName(names, draw.executedBy) };
+  }
+  if (draw.executedByKind === 'SYSTEM') {
+    return { kind: 'SYSTEM', name: null };
+  }
+  return null;
+}
+
+function sessionView(session: LiveDrawSession | null, names: OperatorNames) {
+  const conductor = (startedBy: string): LiveDrawConductorView => ({
+    name: operatorName(names, startedBy),
+  });
   return session
     ? {
         step: session.step,
@@ -88,6 +145,8 @@ function sessionView(session: LiveDrawSession | null) {
         startedAt: session.startedAt.toISOString(),
         updatedAt: session.updatedAt.toISOString(),
         finishedAt: session.finishedAt?.toISOString() ?? null,
+        // Sessions stored before startedBy was kept name nobody.
+        conductedBy: session.startedBy ? conductor(session.startedBy) : null,
       }
     : null;
 }
@@ -107,7 +166,7 @@ function revealedWinners(draw: Draw, session: LiveDrawSession | null) {
 }
 
 /** The official result of the live data, paced by its session (DT-23). */
-function resultView(draw: Draw, session: LiveDrawSession | null) {
+function resultView(draw: Draw, session: LiveDrawSession | null, names: OperatorNames) {
   const winners = revealedWinners(draw, session);
   // Prize 1's legacy columns follow prize 1's reveal.
   const firstShown = !session?.inProgress || winners.some((w) => w.position === 1);
@@ -120,6 +179,7 @@ function resultView(draw: Draw, session: LiveDrawSession | null) {
     extractions: firstShown ? draw.extractions : [],
     executedAt: draw.executedAt.toISOString(),
     algorithmVersion: draw.algorithmVersion,
+    executedBy: executedByView(draw, names),
     winners,
   };
 }
@@ -184,15 +244,54 @@ function orderView(order: TicketOrder) {
  * public routes, no seed before the close, no proof key ever.
  */
 export class RaffleQueries {
-  constructor(
-    private readonly raffles: RaffleRepository,
-    private readonly tickets: TicketRepository,
-    private readonly orders: OrderRepository,
-    private readonly draws: DrawRepository,
-    private readonly auditLog: AuditLog,
-    /** Live draw sessions (DT-23); without it no raffle is ever live. */
-    private readonly liveSessions?: LiveDrawSessionRepository,
-  ) {}
+  private readonly raffles: RaffleRepository;
+  private readonly tickets: TicketRepository;
+  private readonly orders: OrderRepository;
+  private readonly draws: DrawRepository;
+  private readonly auditLog: AuditLog;
+  private readonly liveSessions: LiveDrawSessionRepository;
+  private readonly operators: OperatorDirectory;
+  private readonly log: RaffleQueriesDeps['log'];
+
+  constructor(deps: RaffleQueriesDeps) {
+    this.raffles = deps.raffles;
+    this.tickets = deps.tickets;
+    this.orders = deps.orders;
+    this.draws = deps.draws;
+    this.auditLog = deps.auditLog;
+    this.liveSessions = deps.liveSessions;
+    this.operators = deps.operators;
+    this.log = deps.log;
+  }
+
+  /**
+   * The names of the operators named by a session and a draw, in one read.
+   * A failed lookup must not take the page down: every name falls back to
+   * FALLBACK_OPERATOR_NAME and a warning is logged (no ids in it).
+   */
+  private async operatorNamesOf(
+    session: LiveDrawSession | null,
+    draw: Draw | null,
+  ): Promise<OperatorNames> {
+    const ids = [
+      ...new Set([session?.startedBy, draw?.executedBy].filter((id): id is string => !!id)),
+    ];
+    if (ids.length === 0) return new Map();
+    try {
+      return await this.operators.displayNamesOf(ids);
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : 'unknown error';
+      this.log.warn(
+        `Operator name lookup failed (${reason}); showing ${FALLBACK_OPERATOR_NAME} instead`,
+      );
+      return new Map();
+    }
+  }
+
+  /** Who ran a draw, by name (DT-24): for the response of the draw itself. */
+  async drawExecutorOf(draw: Draw): Promise<DrawExecutorView | null> {
+    return executedByView(draw, await this.operatorNamesOf(null, draw));
+  }
 
   /**
    * Raffles drawn (with no live session in progress) and cancelled ones,
@@ -239,7 +338,7 @@ export class RaffleQueries {
     const ids = list
       .filter((r) => r.status === RaffleStatus.CLOSED || r.status === RaffleStatus.DRAWN)
       .map((r) => r.id);
-    if (!this.liveSessions || ids.length === 0) return new Map();
+    if (ids.length === 0) return new Map();
     const sessions = await this.liveSessions.findByRaffleIds(ids);
     return new Map(sessions.map((s) => [s.raffleId, s]));
   }
@@ -298,13 +397,15 @@ export class RaffleQueries {
     const draw =
       raffle.status === RaffleStatus.DRAWN ? await this.draws.findByRaffleId(raffleId) : null;
     const liveDrawInProgress = session?.inProgress ?? false;
+    const names = await this.operatorNamesOf(session, draw);
     return {
       ...summaryOf(raffle, counts.get(raffleId) ?? zeroTicketCounts(), {
         liveDrawInProgress,
         winners: liveDrawInProgress ? [] : winnersOf(raffle, draw),
       }),
       refusedDraw: await this.refusedDrawOf(raffle),
-      liveSession: sessionView(session),
+      liveSession: sessionView(session, names),
+      drawExecutedBy: draw ? executedByView(draw, names) : null,
       // The operator sees every result at once, even during the live show.
       adminWinners: await this.adminWinnersOf(raffle, draw),
     };
@@ -377,6 +478,7 @@ export class RaffleQueries {
         ? await this.draws.findByRaffleId(raffleId)
         : null;
     const session = (await this.sessionsOf([raffle])).get(raffle.id) ?? null;
+    const names = await this.operatorNamesOf(session, draw);
     const soldTicketBuyers: Record<number, string> = {};
     let buyerGroups: number[][] = [];
     if (frozen) {
@@ -428,8 +530,8 @@ export class RaffleQueries {
       seedRevealed: frozen ? raffle.seedRevealed : null,
       soldNumbers: sold,
       soldTicketBuyers,
-      liveSession: sessionView(session),
-      result: draw ? resultView(draw, session) : null,
+      liveSession: sessionView(session, names),
+      result: draw ? resultView(draw, session, names) : null,
     };
   }
 

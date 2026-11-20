@@ -11,6 +11,8 @@ interface LiveDrawSessionRecord {
   startedAt: Date;
   updatedAt: Date;
   finishedAt: Date | null;
+  startedBy: string | null;
+  finishedBy: string | null;
 }
 
 const sessionOf = (record: LiveDrawSessionRecord) => new LiveDrawSession(record);
@@ -35,6 +37,8 @@ export class PrismaLiveDrawSessionRepository implements LiveDrawSessionRepositor
           startedAt: session.startedAt,
           updatedAt: session.updatedAt,
           finishedAt: session.finishedAt,
+          startedBy: session.startedBy,
+          finishedBy: session.finishedBy,
         },
       ],
       skipDuplicates: true,
@@ -46,7 +50,12 @@ export class PrismaLiveDrawSessionRepository implements LiveDrawSessionRepositor
   async update(next: LiveDrawSession, expectedStep: number): Promise<boolean> {
     const { count } = await this.prisma.liveDrawSession.updateMany({
       where: { raffleId: next.raffleId, step: expectedStep, finishedAt: null },
-      data: { step: next.step, updatedAt: next.updatedAt, finishedAt: next.finishedAt },
+      data: {
+        step: next.step,
+        updatedAt: next.updatedAt,
+        finishedAt: next.finishedAt,
+        finishedBy: next.finishedBy,
+      },
     });
     return count === 1;
   }

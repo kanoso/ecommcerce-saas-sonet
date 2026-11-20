@@ -23,6 +23,7 @@ import {
   Ticket,
   TicketOrder,
   WinningTicketWithoutOrderError,
+  drawExecutorOf,
 } from '../../domain';
 import {
   Clock,
@@ -62,7 +63,11 @@ interface ConfigMismatch {
   actualHash: string;
 }
 
-/** Marks the raffle's own alerts read when the job gets through. */
+/**
+ * Marks the raffle's own alerts read when the job gets through. An alert
+ * reader id, not a draw executor: who ran a draw is Draw.executedByKind
+ * ('ADMIN' | 'SYSTEM', DT-24), which never stores this value.
+ */
 export const SYSTEM_OPERATOR = 'system';
 
 interface Refusal {
@@ -89,7 +94,11 @@ export class ExecuteDrawUseCase {
     private readonly drawRepo: DrawRepository,
   ) {}
 
-  async execute(raffleId: string): Promise<Draw> {
+  /**
+   * @param executedBy the operator who triggers the draw; null (the default)
+   * when the system's draw job runs it. A draw already made keeps its own.
+   */
+  async execute(raffleId: string, executedBy: string | null = null): Promise<Draw> {
     const raffle = await this.raffleRepo.findById(raffleId);
     if (!raffle) {
       throw new DrawNotPossibleError(`Raffle ${raffleId} not found`);
@@ -142,8 +151,8 @@ export class ExecuteDrawUseCase {
 
     const draw =
       algorithmVersionOf(raffle) === DRAW_ALGORITHM_V2
-        ? await this.drawMultiPrize(raffle, soldTickets, soldNumbers)
-        : await this.drawSinglePrize(raffle, soldTickets, soldNumbers);
+        ? await this.drawMultiPrize(raffle, soldTickets, soldNumbers, executedBy)
+        : await this.drawSinglePrize(raffle, soldTickets, soldNumbers, executedBy);
 
     const refusal = await this.ledger.run((tx) => this.record(tx, draw));
     if (refusal === ALREADY_DRAWN) {
@@ -182,6 +191,7 @@ export class ExecuteDrawUseCase {
     raffle: Raffle,
     soldTickets: Ticket[],
     soldNumbers: number[],
+    executedBy: string | null,
   ): Promise<Draw> {
     // Under-threshold sales guard: soldNumbers.length must be >= raffle.winningAttempt
     if (soldNumbers.length < raffle.winningAttempt) {
@@ -236,6 +246,7 @@ export class ExecuteDrawUseCase {
       extractions: result.extractions,
       winners: [winner],
       executedAt: this.clock.now(),
+      ...drawExecutorOf(executedBy),
     });
   }
 
@@ -247,6 +258,7 @@ export class ExecuteDrawUseCase {
     raffle: Raffle,
     soldTickets: Ticket[],
     soldNumbers: number[],
+    executedBy: string | null,
   ): Promise<Draw> {
     if (!raffle.drawConfigHash) {
       return this.refuseMissingConfig(raffle);
@@ -305,6 +317,7 @@ export class ExecuteDrawUseCase {
       extractions: first.extractions,
       winners,
       executedAt: this.clock.now(),
+      ...drawExecutorOf(executedBy),
     });
   }
 

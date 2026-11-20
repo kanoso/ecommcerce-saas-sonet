@@ -12,9 +12,12 @@ import {
 } from '../../domain';
 import { AuditLog, Clock, LiveDrawSessionRepository, RaffleRepository } from '../ports';
 
-/** What records the official draw: ExecuteDrawUseCase, idempotent once DRAWN. */
+/**
+ * What records the official draw: ExecuteDrawUseCase, idempotent once DRAWN.
+ * executedBy is the operator who triggers it; a draw already made keeps its own.
+ */
 export interface DrawExecutor {
-  execute(raffleId: string): Promise<Draw>;
+  execute(raffleId: string, executedBy?: string | null): Promise<Draw>;
 }
 
 export interface LiveDrawCommand {
@@ -58,13 +61,14 @@ export class StartLiveDrawUseCase {
     }
 
     // Idempotent: a raffle already DRAWN gives back its stored draw.
-    const draw = await this.draws.execute(raffle.id);
+    const draw = await this.draws.execute(raffle.id, operatorId);
     const { session, created } = await this.sessions.create(
       LiveDrawSession.start({
         raffleId: raffle.id,
         drawId: draw.id,
         totalSteps: liveDrawStepsOf(liveDrawPrizesOf(draw)).length,
         now: this.clock.now(),
+        startedBy: operatorId,
       }),
     );
     if (created) {
@@ -124,7 +128,7 @@ export class AdvanceLiveDrawUseCase {
   async execute(command: AdvanceLiveDrawCommand): Promise<LiveDrawSession> {
     const operatorId = parseOperatorId(command.operatorId);
     const current = await sessionOf(this.sessions, command.raffleId);
-    const next = current.advance(command.expectedStep, this.clock.now());
+    const next = current.advance(command.expectedStep, this.clock.now(), operatorId);
     if (!(await this.sessions.update(next, current.step))) {
       const latest = await sessionOf(this.sessions, command.raffleId);
       throw new LiveDrawStepConflictError(
@@ -159,7 +163,7 @@ export class FinishLiveDrawUseCase {
       if (!current.inProgress) {
         return current;
       }
-      const done = current.finish(this.clock.now());
+      const done = current.finish(this.clock.now(), operatorId);
       if (await this.sessions.update(done, current.step)) {
         await auditFinished(this.auditLog, done, operatorId, 'REVEAL_ALL');
         return done;

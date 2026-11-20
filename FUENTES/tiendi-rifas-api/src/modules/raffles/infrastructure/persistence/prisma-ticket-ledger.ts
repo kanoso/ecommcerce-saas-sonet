@@ -488,6 +488,8 @@ class PrismaLedgerTransaction implements LedgerTransaction {
         winningAttempt: draw.winningAttempt,
         extractions: draw.extractions as unknown as object,
         executedAt: draw.executedAt,
+        executedBy: draw.executedBy,
+        executedByKind: draw.executedByKind,
       },
     });
     await this.tx.drawWinner.createMany({

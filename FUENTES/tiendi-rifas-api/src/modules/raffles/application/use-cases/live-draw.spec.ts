@@ -74,11 +74,13 @@ function recordedDraw(): Draw {
 /** Records the call order: the draw must exist before the session. */
 class FakeDrawExecutor implements DrawExecutor {
   readonly calls: string[] = [];
+  readonly executors: (string | null | undefined)[] = [];
   failure: Error | null = null;
 
   constructor(private readonly sessions: InMemoryLiveDrawSessionRepository) {}
 
-  async execute(id: string): Promise<Draw> {
+  async execute(id: string, executedBy?: string | null): Promise<Draw> {
+    this.executors.push(executedBy);
     this.calls.push(`draw:${id}:sessions=${(await this.sessions.findByRaffleId(id)) ? 1 : 0}`);
     if (this.failure) {
       throw this.failure;
@@ -138,6 +140,15 @@ describe('Live draw session (DT-23)', () => {
       expect(session.startedAt).toEqual(clock.now());
       expect(session.inProgress).toBe(true);
       expect(await auditTypes()).toEqual(['LIVE_DRAW_STARTED']);
+    });
+
+    it('stores the operator who started it, and records the draw in their name', async () => {
+      const session = await start.execute({ raffleId, operatorId: ' Operator-1 ' });
+
+      expect(session.startedBy).toBe(operatorId);
+      expect(session.finishedBy).toBeNull();
+      expect((await sessions.findByRaffleId(raffleId))?.startedBy).toBe(operatorId);
+      expect(executor.executors).toEqual([operatorId]);
     });
 
     it('is idempotent: a second start returns the same session and draws nothing', async () => {
@@ -223,6 +234,22 @@ describe('Live draw session (DT-23)', () => {
       expect(await auditTypes()).toEqual(['LIVE_DRAW_STARTED', 'LIVE_DRAW_FINISHED']);
     });
 
+    it('stores who reached the last step, and keeps the starter', async () => {
+      for (let step = 0; step < 6; step++) {
+        await advance.execute({ raffleId, expectedStep: step, operatorId: 'operator-2' });
+      }
+
+      const session = await sessions.findByRaffleId(raffleId);
+      expect(session?.startedBy).toBe(operatorId);
+      expect(session?.finishedBy).toBe('operator-2');
+    });
+
+    it('stores no finisher while the session is in progress', async () => {
+      const session = await advance.execute({ raffleId, expectedStep: 0, operatorId: 'operator-2' });
+
+      expect(session.finishedBy).toBeNull();
+    });
+
     it('needs a started session', async () => {
       await expect(
         advance.execute({ raffleId: 'other', expectedStep: 0, operatorId }),
@@ -242,6 +269,16 @@ describe('Live draw session (DT-23)', () => {
       expect(done.finishedAt).toEqual(clock.now());
       expect(again.finishedAt).toEqual(done.finishedAt);
       expect(await auditTypes()).toEqual(['LIVE_DRAW_STARTED', 'LIVE_DRAW_FINISHED']);
+    });
+
+    it('stores a different admin who finishes it, and keeps the starter', async () => {
+      await start.execute({ raffleId, operatorId });
+
+      const done = await finish.execute({ raffleId, operatorId: 'operator-2' });
+
+      expect(done.startedBy).toBe(operatorId);
+      expect(done.finishedBy).toBe('operator-2');
+      expect((await sessions.findByRaffleId(raffleId))?.finishedBy).toBe('operator-2');
     });
 
     it('needs a started session', async () => {

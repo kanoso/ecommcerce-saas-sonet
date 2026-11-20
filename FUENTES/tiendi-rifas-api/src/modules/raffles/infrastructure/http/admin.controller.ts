@@ -445,8 +445,10 @@ export class AdminController {
 
   @Post('rifas/:id/sorteo')
   @HttpCode(200)
-  async draw(@Param('id') id: string) {
-    const draw = await this.executeDraw.execute(parseWith(uuidParam, id));
+  async draw(@CurrentUser() user: Principal, @Param('id') id: string) {
+    // The draw is recorded in the name of the operator who triggers it.
+    const draw = await this.executeDraw.execute(parseWith(uuidParam, id), operatorIdOf(user));
+    const executor = await this.queries.drawExecutorOf(draw);
     return {
       sorteo_id: draw.id,
       version_algoritmo: draw.algorithmVersion,
@@ -458,6 +460,7 @@ export class AdminController {
       })),
       ronda_drand: draw.drandRound.toString(),
       ejecutado_en: draw.executedAt.toISOString(),
+      ejecutado_por: executor ? present.executedBy(executor) : null,
     };
   }
 

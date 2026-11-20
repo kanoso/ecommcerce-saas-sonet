@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthModule } from '../../../auth/auth.module';
 import { PrismaAuthStore } from '../../../auth/prisma-auth.store';
@@ -49,6 +49,7 @@ import {
   PrismaDrawRepository,
   PrismaLiveDrawSessionRepository,
   PrismaOperatorAlertRepository,
+  PrismaOperatorDirectory,
   PrismaOrderRepository,
   PrismaPaymentAccountRepository,
   PrismaPaymentRepository,
@@ -102,8 +103,27 @@ const clock = new SystemClock();
         PrismaDrawRepository,
         PrismaAuditLog,
         PrismaLiveDrawSessionRepository,
+        PrismaOperatorDirectory,
       ],
-      useFactory: (r, t, o, d, a, s) => new RaffleQueries(r, t, o, d, a, s),
+      useFactory: (
+        raffles: PrismaRaffleRepository,
+        tickets: PrismaTicketRepository,
+        orders: PrismaOrderRepository,
+        draws: PrismaDrawRepository,
+        auditLog: PrismaAuditLog,
+        liveSessions: PrismaLiveDrawSessionRepository,
+        operators: PrismaOperatorDirectory,
+      ) =>
+        new RaffleQueries({
+          raffles,
+          tickets,
+          orders,
+          draws,
+          auditLog,
+          liveSessions,
+          operators,
+          log: new Logger(RaffleQueries.name),
+        }),
     },
     {
       provide: ReserveTicketsUseCase,

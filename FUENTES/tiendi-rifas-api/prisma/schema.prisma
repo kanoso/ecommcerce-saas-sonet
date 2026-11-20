@@ -263,6 +263,10 @@ model Draw {
   winningAttempt   Int        @default(1)
   extractions      Json?
   executedAt       DateTime   @default(now())
+  /// The operator (User id) who triggered the draw; NULL when the system ran it, or for older draws.
+  executedBy       String?
+  /// ADMIN (with executedBy) or SYSTEM (the draw job); NULL for draws recorded before it was kept.
+  executedByKind   String?
 
   winners     DrawWinner[]
   liveSession LiveDrawSession?
@@ -283,6 +287,10 @@ model LiveDrawSession {
   startedAt  DateTime
   updatedAt  DateTime
   finishedAt DateTime?
+  /// The operator (User id) who started the session; NULL for sessions stored before it was kept. Fixed (a trigger).
+  startedBy  String?
+  /// The operator whose action ended the session; NULL while in progress.
+  finishedBy String?
 
   @@map("LiveDrawSession")
 }

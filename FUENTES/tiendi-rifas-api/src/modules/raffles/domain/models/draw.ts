@@ -5,6 +5,37 @@ export const DRAW_ALGORITHM_V1 = 'v1';
 /** Multi-prize algorithm (computeMultiPrizeWinners). */
 export const DRAW_ALGORITHM_V2 = 'v2';
 
+/**
+ * Who ran a draw: an operator (ADMIN, with executedBy) or the system's draw
+ * job (SYSTEM). Draws recorded before it was kept have none (null): they
+ * name no executor rather than guess one.
+ */
+export type DrawExecutorKind = 'ADMIN' | 'SYSTEM';
+
+const DRAW_EXECUTOR_KINDS: readonly DrawExecutorKind[] = ['ADMIN', 'SYSTEM'];
+
+/**
+ * The single rule for who ran a draw: an operator id makes it ADMIN, no
+ * operator makes it SYSTEM (the draw job).
+ */
+export function drawExecutorOf(
+  operatorId: string | null,
+): { executedBy: string | null; executedByKind: DrawExecutorKind } {
+  return operatorId
+    ? { executedBy: operatorId, executedByKind: 'ADMIN' }
+    : { executedBy: null, executedByKind: 'SYSTEM' };
+}
+
+/**
+ * A stored executor kind: null/undefined is a legacy draw (no executor
+ * recorded). Anything else unknown is refused rather than guessed.
+ */
+export function parseDrawExecutorKind(raw: unknown): DrawExecutorKind | null {
+  if (raw === null || raw === undefined) return null;
+  if (DRAW_EXECUTOR_KINDS.includes(raw as DrawExecutorKind)) return raw as DrawExecutorKind;
+  throw new Error(`Unknown draw executor kind: ${String(raw)}`);
+}
+
 export enum DrawWinnerStatus {
   WON = 'WON',
   /** "Desierto": the pool had fewer tickets than the winning attempt. */
@@ -49,6 +80,10 @@ export interface DrawProps {
   /** One per prize, ordered by position. */
   winners?: DrawWinner[];
   executedAt?: Date;
+  /** The operator who triggered the draw; null when the system ran it, or for older draws. */
+  executedBy?: string | null;
+  /** ADMIN or SYSTEM; null for draws recorded before it was kept. */
+  executedByKind?: DrawExecutorKind | null;
 }
 
 export class Draw {
@@ -67,6 +102,8 @@ export class Draw {
   readonly extractions: DrawExtraction[];
   readonly winners: DrawWinner[];
   readonly executedAt: Date;
+  readonly executedBy: string | null;
+  readonly executedByKind: DrawExecutorKind | null;
 
   constructor(props: DrawProps) {
     this.id = props.id;
@@ -84,6 +121,8 @@ export class Draw {
     this.extractions = props.extractions ?? [];
     this.winners = [...(props.winners ?? [])].sort((a, b) => a.position - b.position);
     this.executedAt = props.executedAt ?? new Date();
+    this.executedBy = props.executedBy ?? null;
+    this.executedByKind = props.executedByKind ?? null;
   }
 
   /** The prizes that were won, in order. */

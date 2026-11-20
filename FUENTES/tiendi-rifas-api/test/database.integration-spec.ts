@@ -99,6 +99,8 @@ import {
   StartLiveDrawUseCase,
 } from '../src/modules/raffles/application/use-cases/live-draw.use-case';
 import { PrismaLiveDrawSessionRepository } from '../src/modules/raffles/infrastructure/persistence/prisma-live-draw-session.repository';
+import { PrismaOperatorDirectory } from '../src/modules/raffles/infrastructure/persistence/prisma-operator-directory';
+import { RaffleQueries } from '../src/modules/raffles/application/queries/raffle-queries';
 import { BuyerCodeTakenError } from '../src/modules/auth/auth.store';
 import { PrismaAuthStore } from '../src/modules/auth/prisma-auth.store';
 import { SellInPersonUseCase } from '../src/modules/raffles/application/use-cases/sell-in-person.use-case';
@@ -6096,6 +6098,118 @@ describe('Raffle persistence on real PostgreSQL', () => {
         );
         expect(await prisma.liveDrawSession.count({ where: { raffleId } })).toBe(0);
         expect((await raffleRepo.findById(raffleId))?.status).toBe('CLOSED');
+      });
+
+      describe('who ran it (DT-24)', () => {
+        /** An operator account with the given display name; its id is the operator id. */
+        async function givenOperator(name: string | null): Promise<string> {
+          const id = randomUUID();
+          await prisma.user.create({
+            data: { id, email: `${id}@tiendi.test`, name, role: 'admin' },
+          });
+          return id;
+        }
+
+        const queries = () =>
+          new RaffleQueries({
+            raffles: raffleRepo,
+            tickets: ticketRepo,
+            orders: orderRepo,
+            draws: drawRepo,
+            auditLog,
+            liveSessions: sessions,
+            operators: new PrismaOperatorDirectory(prisma),
+            log: { warn: () => undefined },
+          });
+
+        it('stores the starter on the session and the admin on the draw', async () => {
+          const raffleId = await givenClosedManualRaffle();
+          const admin = await givenOperator('Carmen López');
+
+          await start().execute({ raffleId, operatorId: admin });
+
+          const session = await prisma.liveDrawSession.findUniqueOrThrow({ where: { raffleId } });
+          expect(session).toMatchObject({ startedBy: admin, finishedBy: null });
+          const draw = await prisma.draw.findUniqueOrThrow({ where: { raffleId } });
+          expect(draw).toMatchObject({ executedBy: admin, executedByKind: 'ADMIN' });
+        });
+
+        it('stores who finished it', async () => {
+          const raffleId = await givenClosedManualRaffle();
+          await start().execute({ raffleId, operatorId });
+
+          await finish.execute({ raffleId, operatorId: 'admin-2' });
+
+          const row = await prisma.liveDrawSession.findUniqueOrThrow({ where: { raffleId } });
+          expect(row).toMatchObject({ startedBy: operatorId, finishedBy: 'admin-2' });
+        });
+
+        it('refuses at the database a change of the starter', async () => {
+          const raffleId = await givenClosedManualRaffle();
+          await start().execute({ raffleId, operatorId });
+
+          await expect(
+            prisma.liveDrawSession.update({ where: { raffleId }, data: { startedBy: 'admin-2' } }),
+          ).rejects.toThrow('LiveDrawSession_immutable');
+        });
+
+        it('stores a draw run by the job as SYSTEM, without an operator', async () => {
+          const raffleId = await givenClosedRaffle([1]);
+
+          await drawWith().execute(raffleId);
+
+          const draw = await prisma.draw.findUniqueOrThrow({ where: { raffleId } });
+          expect(draw).toMatchObject({ executedBy: null, executedByKind: 'SYSTEM' });
+        });
+
+        it('refuses at the database an executor kind that does not match the operator', async () => {
+          const raffleId = await givenClosedRaffle([1]);
+          await drawWith().execute(raffleId);
+
+          await expect(
+            prisma.draw.update({ where: { raffleId }, data: { executedByKind: 'ADMIN' } }),
+          ).rejects.toThrow('Draw_executedBy_kind');
+          await expect(
+            prisma.draw.update({ where: { raffleId }, data: { executedBy: 'admin-1' } }),
+          ).rejects.toThrow('Draw_executedBy_kind');
+        });
+
+        it('publishes the display name, never the id or the email', async () => {
+          const raffleId = await givenClosedManualRaffle();
+          const admin = await givenOperator('Carmen López');
+          await start().execute({ raffleId, operatorId: admin });
+
+          const live = await queries().liveData(raffleId);
+
+          expect(live.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+          expect(live.result?.executedBy).toEqual({ kind: 'ADMIN', name: 'Carmen López' });
+          const json = JSON.stringify(live);
+          expect(json).not.toContain(admin);
+          expect(json).not.toContain('@tiendi.test');
+        });
+
+        it('falls back to "Administrador" for an account without a name', async () => {
+          const raffleId = await givenClosedManualRaffle();
+          const admin = await givenOperator(null);
+          await start().execute({ raffleId, operatorId: admin });
+
+          const live = await queries().liveData(raffleId);
+
+          expect(live.liveSession?.conductedBy).toEqual({ name: 'Administrador' });
+        });
+
+        it('names no executor for a draw recorded before the executor was kept', async () => {
+          const raffleId = await givenClosedRaffle([1]);
+          await drawWith().execute(raffleId);
+          await prisma.draw.update({
+            where: { raffleId },
+            data: { executedBy: null, executedByKind: null },
+          });
+
+          const live = await queries().liveData(raffleId);
+
+          expect(live.result?.executedBy).toBeNull();
+        });
       });
     });
   });

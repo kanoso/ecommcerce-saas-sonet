@@ -26,6 +26,8 @@ describe('LiveDrawController (DT-23)', () => {
       startedAt: t0,
       updatedAt: t0,
       finishedAt,
+      startedBy: 'op-01',
+      finishedBy: finishedAt ? 'op-01' : null,
     });
 
   let start: { execute: jest.Mock };
@@ -57,6 +59,7 @@ describe('LiveDrawController (DT-23)', () => {
       actualizada_en: t0.toISOString(),
       finalizada_en: null,
     });
+    expect(JSON.stringify(res)).not.toContain('op-01');
   });
 
   it('advances from the step the operator saw', async () => {

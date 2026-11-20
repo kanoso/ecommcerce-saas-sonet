@@ -72,7 +72,7 @@ describe('LiveDrawSession', () => {
   const t1 = new Date('2026-11-21T20:00:05Z');
 
   const start = (totalSteps = 3) =>
-    LiveDrawSession.start({ raffleId: 'r1', drawId: 'd1', totalSteps, now: t0 });
+    LiveDrawSession.start({ raffleId: 'r1', drawId: 'd1', totalSteps, now: t0, startedBy: 'op-1' });
 
   it('starts at step 0, in progress', () => {
     const session = start();
@@ -84,46 +84,65 @@ describe('LiveDrawSession', () => {
     expect(session.inProgress).toBe(true);
   });
 
+  it('stores who started it, and no finisher yet', () => {
+    const session = start().advance(0, t1, 'op-2');
+    expect(session.startedBy).toBe('op-1');
+    expect(session.finishedBy).toBeNull();
+  });
+
+  it('stores who revealed the last step, keeping the starter', () => {
+    const done = start(2).advance(0, t1, 'op-1').advance(1, t1, 'op-2');
+    expect(done.startedBy).toBe('op-1');
+    expect(done.finishedBy).toBe('op-2');
+  });
+
+  it('stores who finished it early; a later finish changes nothing', () => {
+    const done = start(5).finish(t1, 'op-2');
+    expect(done.startedBy).toBe('op-1');
+    expect(done.finishedBy).toBe('op-2');
+    expect(done.finish(t1, 'op-3').finishedBy).toBe('op-2');
+  });
+
   it('refuses a session without steps', () => {
     expect(() => start(0)).toThrow();
   });
 
   it('advances one step from the expected one', () => {
-    const next = start().advance(0, t1);
+    const next = start().advance(0, t1, 'op-1');
     expect(next.step).toBe(1);
     expect(next.updatedAt).toEqual(t1);
     expect(next.inProgress).toBe(true);
   });
 
   it('refuses a stale or duplicate advance', () => {
-    const at1 = start().advance(0, t1);
-    expect(() => at1.advance(0, t1)).toThrow(LiveDrawStepConflictError);
-    expect(() => at1.advance(2, t1)).toThrow(LiveDrawStepConflictError);
+    const at1 = start().advance(0, t1, 'op-1');
+    expect(() => at1.advance(0, t1, 'op-1')).toThrow(LiveDrawStepConflictError);
+    expect(() => at1.advance(2, t1, 'op-1')).toThrow(LiveDrawStepConflictError);
   });
 
   it('finishes on its own when the last step is revealed', () => {
-    const done = start(2).advance(0, t1).advance(1, t1);
+    const done = start(2).advance(0, t1, 'op-1').advance(1, t1, 'op-1');
     expect(done.step).toBe(2);
     expect(done.finishedAt).toEqual(t1);
     expect(done.inProgress).toBe(false);
   });
 
   it('never advances past the last step', () => {
-    const done = start(1).advance(0, t1);
-    expect(() => done.advance(1, t1)).toThrow(LiveDrawStepConflictError);
+    const done = start(1).advance(0, t1, 'op-1');
+    expect(() => done.advance(1, t1, 'op-1')).toThrow(LiveDrawStepConflictError);
   });
 
   it('reveals everything when finished early, and stays finished', () => {
-    const done = start(5).advance(0, t1).finish(t1);
+    const done = start(5).advance(0, t1, 'op-1').finish(t1, 'op-1');
     expect(done.step).toBe(5);
     expect(done.finishedAt).toEqual(t1);
-    expect(done.finish(new Date('2026-11-21T21:00:00Z'))).toBe(done);
+    expect(done.finish(new Date('2026-11-21T21:00:00Z'), 'op-2')).toBe(done);
   });
 
   it('names the current step in a conflict', () => {
-    const at1 = start().advance(0, t1);
+    const at1 = start().advance(0, t1, 'op-1');
     try {
-      at1.advance(0, t1);
+      at1.advance(0, t1, 'op-1');
       fail('expected a conflict');
     } catch (error) {
       expect(error).toBeInstanceOf(LiveDrawStepConflictError);

@@ -19,6 +19,7 @@ import {
   adminRaffleDetail,
   liveData,
   liveDrawSession,
+  liveDrawSessionOf,
   myTicket,
   alert as presentAlert,
   order as presentOrder,
@@ -133,7 +134,9 @@ describe('raffleSummary presenter (spec §11)', () => {
         startedAt: '2026-11-11T18:01:00.000Z',
         updatedAt: '2026-11-11T18:02:00.000Z',
         finishedAt: null,
+        conductedBy: { name: 'Carmen López' },
       },
+      drawExecutedBy: { kind: 'ADMIN', name: 'Carmen López' },
       adminWinners: [
         { position: 1, prizeTitle: 'Un auto', status: 'WON', winningNumber: 7, buyerAlias: 'Juan Perez' },
       ],
@@ -146,7 +149,9 @@ describe('raffleSummary presenter (spec §11)', () => {
       iniciada_en: '2026-11-11T18:01:00.000Z',
       actualizada_en: '2026-11-11T18:02:00.000Z',
       finalizada_en: null,
+      conducido_por: { nombre: 'Carmen López' },
     });
+    expect(presented.ejecutado_por).toEqual({ tipo: 'ADMIN', nombre: 'Carmen López' });
     expect(presented.ganadores).toEqual([
       {
         posicion: 1,
@@ -167,6 +172,7 @@ describe('live draw session presenter (DT-23)', () => {
       iniciada_en: '2026-11-11T18:01:00.000Z',
       actualizada_en: '2026-11-11T18:01:05.000Z',
       finalizada_en: null,
+      conducido_por: null,
     };
     expect(
       liveDrawSession({
@@ -206,6 +212,78 @@ describe('live draw session presenter (DT-23)', () => {
       iniciada_en: '2026-11-11T18:01:00.000Z',
       actualizada_en: '2026-11-11T18:01:00.000Z',
       finalizada_en: null,
+      conducido_por: null,
+    });
+  });
+
+  it('names who conducted the session and nothing else about them', () => {
+    const presented = liveDrawSession({
+      step: 0,
+      totalSteps: 2,
+      startedAt: '2026-11-11T18:01:00.000Z',
+      updatedAt: '2026-11-11T18:01:00.000Z',
+      finishedAt: null,
+      conductedBy: { name: 'Carmen López' },
+      // Whatever else reaches the presenter never leaves it.
+      startedBy: 'admin-uuid-1',
+      email: 'carmen@tiendi.pe',
+    } as any);
+
+    expect(presented?.conducido_por).toEqual({ nombre: 'Carmen López' });
+    const json = JSON.stringify(presented);
+    expect(json).not.toContain('admin-uuid-1');
+    expect(json).not.toContain('carmen@tiendi.pe');
+  });
+
+  it('keeps the session state of the operator actions free of the operator id', () => {
+    const presented = liveDrawSessionOf({
+      step: 1,
+      totalSteps: 2,
+      startedAt: new Date('2026-11-11T18:01:00.000Z'),
+      updatedAt: new Date('2026-11-11T18:01:00.000Z'),
+      finishedAt: null,
+      startedBy: 'admin-uuid-1',
+    } as any);
+
+    expect(JSON.stringify(presented)).not.toContain('admin-uuid-1');
+  });
+
+  describe('resultado.ejecutado_por', () => {
+    const resultWith = (executedBy: unknown) =>
+      liveData({
+        raffleId: 'r-1',
+        prizes: [],
+        buyerGroups: [],
+        soldTicketBuyers: {},
+        liveSession: null,
+        result: {
+          extractions: [],
+          winners: [],
+          executedAt: '2026-11-11T18:01:00.000Z',
+          executedBy,
+        },
+      } as any).resultado;
+
+    it('names the admin who executed the draw', () => {
+      expect(resultWith({ kind: 'ADMIN', name: 'Carmen López' })?.ejecutado_por).toEqual({
+        tipo: 'ADMIN',
+        nombre: 'Carmen López',
+      });
+    });
+
+    it('gives tipo SISTEMA and nombre null for a draw run by the job', () => {
+      expect(resultWith({ kind: 'SYSTEM', name: null })?.ejecutado_por).toEqual({
+        tipo: 'SISTEMA',
+        nombre: null,
+      });
+    });
+
+    it('gives null for a legacy draw that recorded no executor', () => {
+      expect(resultWith(null)?.ejecutado_por).toBeNull();
+    });
+
+    it('gives the admin detail a null ejecutado_por for a legacy draw', () => {
+      expect(adminRaffleDetail({ prizes: [], drawExecutedBy: null } as any).ejecutado_por).toBeNull();
     });
   });
 });

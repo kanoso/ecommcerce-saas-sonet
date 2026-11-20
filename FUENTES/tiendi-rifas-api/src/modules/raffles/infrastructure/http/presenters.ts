@@ -13,7 +13,12 @@ import type {
   OperationCollisionUse,
   VerificationDataResponse,
 } from '../../application';
-import { PrizeWinnerView, RaffleQueries } from '../../application/queries/raffle-queries';
+import {
+  DrawExecutorView,
+  LiveDrawConductorView,
+  PrizeWinnerView,
+  RaffleQueries,
+} from '../../application/queries/raffle-queries';
 
 /**
  * The response contract of spec §11: the same snake_case Spanish keys as the
@@ -93,8 +98,26 @@ export function liveDrawSessionOf(s: LiveDrawSessionView) {
   };
 }
 
-export function liveDrawSession(s: LiveDrawSessionView | null) {
-  return s ? liveDrawSessionOf(s) : null;
+/** ADMIN stays ADMIN; the job is SISTEMA. Only the name, never the account's id. */
+export function executedBy(e: DrawExecutorView) {
+  return e.kind === 'ADMIN'
+    ? { tipo: 'ADMIN' as const, nombre: e.name }
+    : { tipo: 'SISTEMA' as const, nombre: null };
+}
+
+/**
+ * The session as the raffle reads show it, with conducido_por: the name of
+ * the admin who started it; null for sessions stored before it was kept.
+ */
+export function liveDrawSession(
+  s: (LiveDrawSessionView & { conductedBy?: LiveDrawConductorView | null }) | null,
+) {
+  return s
+    ? {
+        ...liveDrawSessionOf(s),
+        conducido_por: s.conductedBy ? { nombre: s.conductedBy.name } : null,
+      }
+    : null;
 }
 
 /** A prize's public result on a list: the number only, never the buyer. */
@@ -159,6 +182,8 @@ export function adminRaffleDetail(d: AdminDetail) {
       ? { motivo: d.refusedDraw.reason, fecha: d.refusedDraw.at }
       : null,
     sesion_en_vivo: liveDrawSession(d.liveSession ?? null),
+    /** Who ran the official draw; null before it. */
+    ejecutado_por: d.drawExecutedBy ? executedBy(d.drawExecutedBy) : null,
     // The operator sees every prize's winner, live session or not.
     ganadores: (d.adminWinners ?? []).map((w) => ({
       ...prizeWinner(w),
@@ -220,6 +245,8 @@ export function liveData(l: Live) {
           intento_ganador: l.result.winningAttempt,
           extracciones: (l.result.extractions ?? []).map(extraction),
           ejecutado_en: l.result.executedAt,
+          // Null for a draw recorded before its executor was kept.
+          ejecutado_por: l.result.executedBy ? executedBy(l.result.executedBy) : null,
           version_algoritmo: l.result.algorithmVersion,
           ganadores: l.result.winners.map(winner),
         }

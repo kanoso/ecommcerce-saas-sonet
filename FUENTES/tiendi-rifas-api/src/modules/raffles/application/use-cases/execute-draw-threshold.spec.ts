@@ -200,4 +200,40 @@ describe('ExecuteDrawUseCase Under-Threshold Guard & Winning Attempts', () => {
     expect(draw.extractions[2].isWinner).toBe(true);
     expect(draw.winningNumber).toBe(draw.extractions[2].number);
   });
+
+  describe('who executed the draw', () => {
+    beforeEach(async () => {
+      await setupRaffle([1, 2, 3, 4, 5], 1);
+      await closeSalesUseCase.execute(raffleId);
+    });
+
+    it('records no executor when the system (the job) runs it', async () => {
+      const draw = await executeDrawUseCase.execute(raffleId);
+
+      expect(draw.executedBy).toBeNull();
+      expect(draw.executedByKind).toBe('SYSTEM');
+      const stored = await drawRepo.findByRaffleId(raffleId);
+      expect(stored?.executedBy).toBeNull();
+      expect(stored?.executedByKind).toBe('SYSTEM');
+    });
+
+    it('records the operator who triggered it', async () => {
+      const draw = await executeDrawUseCase.execute(raffleId, 'operator-7');
+
+      expect(draw.executedBy).toBe('operator-7');
+      expect(draw.executedByKind).toBe('ADMIN');
+      const stored = await drawRepo.findByRaffleId(raffleId);
+      expect(stored?.executedBy).toBe('operator-7');
+      expect(stored?.executedByKind).toBe('ADMIN');
+    });
+
+    it('keeps the first executor when the draw is asked for again', async () => {
+      await executeDrawUseCase.execute(raffleId);
+
+      const again = await executeDrawUseCase.execute(raffleId, 'operator-7');
+
+      expect(again.executedBy).toBeNull();
+      expect(again.executedByKind).toBe('SYSTEM');
+    });
+  });
 });

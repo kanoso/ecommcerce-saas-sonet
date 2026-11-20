@@ -13,3 +13,4 @@ export * from './prisma-notification-outbox';
 export * from './persistence.module';
 export * from './prisma-payment-account.repository';
 export * from './prisma-live-draw-session.repository';
+export * from './prisma-operator-directory';

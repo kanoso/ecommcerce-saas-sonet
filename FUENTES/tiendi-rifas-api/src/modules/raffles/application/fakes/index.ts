@@ -17,3 +17,4 @@ export * from './in-memory-notification-outbox';
 export * from './fake-raffle-job-scheduler';
 export * from './in-memory-payment-account.repository';
 export * from './in-memory-live-draw-session.repository';
+export * from './in-memory-operator-directory';

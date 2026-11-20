@@ -68,6 +68,10 @@ export interface LiveDrawSessionProps {
   startedAt: Date;
   updatedAt: Date;
   finishedAt: Date | null;
+  /** The operator who started the session; null for sessions stored before it was kept. */
+  startedBy: string | null;
+  /** The operator whose action ended the session; null while in progress (or for older sessions). */
+  finishedBy: string | null;
 }
 
 /**
@@ -84,6 +88,8 @@ export class LiveDrawSession {
   readonly startedAt: Date;
   readonly updatedAt: Date;
   readonly finishedAt: Date | null;
+  readonly startedBy: string | null;
+  readonly finishedBy: string | null;
 
   constructor(props: LiveDrawSessionProps) {
     this.raffleId = props.raffleId;
@@ -93,6 +99,8 @@ export class LiveDrawSession {
     this.startedAt = props.startedAt;
     this.updatedAt = props.updatedAt;
     this.finishedAt = props.finishedAt;
+    this.startedBy = props.startedBy ?? null;
+    this.finishedBy = props.finishedBy ?? null;
   }
 
   static start(params: {
@@ -100,6 +108,7 @@ export class LiveDrawSession {
     drawId: string;
     totalSteps: number;
     now: Date;
+    startedBy: string;
   }): LiveDrawSession {
     if (!Number.isInteger(params.totalSteps) || params.totalSteps < 1) {
       throw new RaffleValidationError('A live draw needs at least one step');
@@ -112,6 +121,8 @@ export class LiveDrawSession {
       startedAt: params.now,
       updatedAt: params.now,
       finishedAt: null,
+      startedBy: params.startedBy,
+      finishedBy: null,
     });
   }
 
@@ -122,8 +133,10 @@ export class LiveDrawSession {
   /**
    * Reveals the next step. The caller names the step it saw: a double click
    * or a second operator sends a stale one and gets a conflict.
+   * @param by the operator acting; stored as finishedBy only when this step
+   *   is the last one and ends the session, ignored otherwise.
    */
-  advance(expectedStep: number, now: Date): LiveDrawSession {
+  advance(expectedStep: number, now: Date, by: string): LiveDrawSession {
     if (!this.inProgress || expectedStep !== this.step || this.step >= this.totalSteps) {
       throw new LiveDrawStepConflictError(
         this.step,
@@ -133,27 +146,41 @@ export class LiveDrawSession {
       );
     }
     const step = this.step + 1;
+    const finished = step === this.totalSteps;
     return this.with({
       step,
       updatedAt: now,
-      finishedAt: step === this.totalSteps ? now : null,
+      finishedAt: finished ? now : null,
+      finishedBy: finished ? by : null,
     });
   }
 
-  /** Reveals every step at once. A finished session stays as it is. */
-  finish(now: Date): LiveDrawSession {
+  /**
+   * Reveals every step at once. A finished session stays as it is.
+   * @param by the operator acting; stored as finishedBy when this call ends
+   *   the session, ignored on an already finished one.
+   */
+  finish(now: Date, by: string): LiveDrawSession {
     if (!this.inProgress) {
       return this;
     }
-    return this.with({ step: this.totalSteps, updatedAt: now, finishedAt: now });
+    return this.with({
+      step: this.totalSteps,
+      updatedAt: now,
+      finishedAt: now,
+      finishedBy: by,
+    });
   }
 
-  private with(changes: Pick<LiveDrawSessionProps, 'step' | 'updatedAt' | 'finishedAt'>) {
+  private with(
+    changes: Pick<LiveDrawSessionProps, 'step' | 'updatedAt' | 'finishedAt' | 'finishedBy'>,
+  ) {
     return new LiveDrawSession({
       raffleId: this.raffleId,
       drawId: this.drawId,
       totalSteps: this.totalSteps,
       startedAt: this.startedAt,
+      startedBy: this.startedBy,
       ...changes,
     });
   }

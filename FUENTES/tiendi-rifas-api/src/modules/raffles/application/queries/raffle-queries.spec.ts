@@ -1,5 +1,6 @@
 import {
   Draw,
+  DrawMode,
   DrawWinnerStatus,
   LiveDrawSession,
   NotOrderOwnerError,
@@ -17,6 +18,7 @@ import {
   FakeAuditLog,
   InMemoryDrawRepository,
   InMemoryLiveDrawSessionRepository,
+  InMemoryOperatorDirectory,
   InMemoryOrderRepository,
   InMemoryRaffleRepository,
   InMemoryTicketRepository,
@@ -57,7 +59,16 @@ describe('RaffleQueries (F6 read side)', () => {
     orders = new InMemoryOrderRepository();
     draws = new InMemoryDrawRepository();
     auditLog = new FakeAuditLog();
-    queries = new RaffleQueries(raffles, tickets, orders, draws, auditLog);
+    queries = new RaffleQueries({
+      raffles,
+      tickets,
+      orders,
+      draws,
+      auditLog,
+      liveSessions: new InMemoryLiveDrawSessionRepository(),
+      operators: new InMemoryOperatorDirectory(),
+      log: { warn: jest.fn() },
+    });
     await tickets.createBatch(
       Array.from({ length: 100 }, (_, i) =>
         new Ticket({
@@ -479,6 +490,8 @@ describe('RaffleQueries (F6 read side)', () => {
 
   describe('live draw session (DT-23)', () => {
     let sessions: InMemoryLiveDrawSessionRepository;
+    let operators: InMemoryOperatorDirectory;
+    let log: { warn: jest.Mock };
     const t0 = new Date('2026-11-11T18:01:00Z');
     const twoPrizes = [
       { id: 'p-1', position: 1, title: 'Olla arrocera', description: null, images: [] },
@@ -507,8 +520,28 @@ describe('RaffleQueries (F6 read side)', () => {
     });
 
     /** Two prizes of two attempts each: 4 steps. */
-    async function drawnLive(id = 'raffle-1', step: number | null = 0) {
-      await raffles.save(raffleWith(RaffleStatus.DRAWN, { id, prizes: twoPrizes }));
+    async function drawnLive(
+      id = 'raffle-1',
+      step: number | null = 0,
+      who: {
+        startedBy?: string | null;
+        executedBy?: string | null;
+        /** null: a draw recorded before the executor was kept. */
+        executedByKind?: 'ADMIN' | 'SYSTEM' | null;
+        drawMode?: DrawMode;
+      } = {},
+    ) {
+      const startedBy = who.startedBy === undefined ? 'admin-1' : who.startedBy;
+      const executedBy = who.executedBy === undefined ? startedBy : who.executedBy;
+      const executedByKind =
+        who.executedByKind === undefined ? (executedBy ? 'ADMIN' : 'SYSTEM') : who.executedByKind;
+      await raffles.save(
+        raffleWith(RaffleStatus.DRAWN, {
+          id,
+          prizes: twoPrizes,
+          drawMode: who.drawMode ?? DrawMode.MANUAL,
+        }),
+      );
       const draw = new Draw({
         id: `draw-${id}`,
         raffleId: id,
@@ -524,18 +557,45 @@ describe('RaffleQueries (F6 read side)', () => {
         winningAttempt: 2,
         extractions: winnerOf(1, 7).extractions,
         winners: [winnerOf(1, 7), winnerOf(2, 3)],
+        executedBy,
+        executedByKind,
       });
       await draws.save(draw);
       if (step !== null) {
-        let session = LiveDrawSession.start({ raffleId: id, drawId: draw.id, totalSteps: 4, now: t0 });
-        for (let s = 0; s < step; s++) session = session.advance(s, t0);
+        let session =
+          startedBy === null
+            ? new LiveDrawSession({
+                raffleId: id,
+                drawId: draw.id,
+                step: 0,
+                totalSteps: 4,
+                startedAt: t0,
+                updatedAt: t0,
+                finishedAt: null,
+                startedBy: null,
+                finishedBy: null,
+              })
+            : LiveDrawSession.start({ raffleId: id, drawId: draw.id, totalSteps: 4, now: t0, startedBy });
+        for (let s = 0; s < step; s++) session = session.advance(s, t0, startedBy ?? 'admin-1');
         await sessions.create(session);
       }
     }
 
     beforeEach(() => {
       sessions = new InMemoryLiveDrawSessionRepository();
-      queries = new RaffleQueries(raffles, tickets, orders, draws, auditLog, sessions);
+      operators = new InMemoryOperatorDirectory();
+      operators.set('admin-1', 'Carmen López');
+      log = { warn: jest.fn() };
+      queries = new RaffleQueries({
+        raffles,
+        tickets,
+        orders,
+        draws,
+        auditLog,
+        liveSessions: sessions,
+        operators,
+        log,
+      });
     });
 
     it('reports the session in the live data', async () => {
@@ -549,6 +609,147 @@ describe('RaffleQueries (F6 read side)', () => {
         startedAt: t0.toISOString(),
         updatedAt: t0.toISOString(),
         finishedAt: null,
+        conductedBy: { name: 'Carmen López' },
+      });
+    });
+
+    describe('who ran the draw', () => {
+      it('names the admin who started the session and executed the draw, exactly as stored', async () => {
+        await drawnLive('raffle-1', 4);
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(live.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+        expect(live.result?.executedBy).toEqual({ kind: 'ADMIN', name: 'Carmen López' });
+      });
+
+      it('falls back to "Administrador" when the admin has no name', async () => {
+        operators.set('admin-2', '   ');
+        await drawnLive('raffle-1', 1, { startedBy: 'admin-2' });
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(live.liveSession?.conductedBy).toEqual({ name: 'Administrador' });
+        expect(live.result?.executedBy).toEqual({ kind: 'ADMIN', name: 'Administrador' });
+      });
+
+      it('falls back to "Administrador" when the account is not found', async () => {
+        await drawnLive('raffle-1', 1, { startedBy: 'gone-admin' });
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(live.liveSession?.conductedBy).toEqual({ name: 'Administrador' });
+      });
+
+      it('gives no conductor for a legacy session stored without startedBy', async () => {
+        await drawnLive('raffle-1', 1, { startedBy: null, executedBy: null });
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(live.liveSession?.conductedBy).toBeNull();
+      });
+
+      it('attributes a draw the job ran to the system, without a name', async () => {
+        await drawnLive('raffle-1', null, {
+          startedBy: null,
+          executedBy: null,
+          drawMode: DrawMode.AUTOMATIC,
+        });
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(live.liveSession).toBeNull();
+        expect(live.result?.executedBy).toEqual({ kind: 'SYSTEM', name: null });
+      });
+
+      it('names no executor for a legacy draw of a MANUAL raffle conducted live', async () => {
+        await drawnLive('raffle-1', 4, { executedBy: null, executedByKind: null });
+
+        const live = await queries.liveData('raffle-1');
+
+        // Never "automatic": nobody recorded who ran it.
+        expect(live.result?.executedBy).toBeNull();
+        expect(live.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+      });
+
+      it('names no executor for a legacy draw of an AUTOMATIC raffle', async () => {
+        await drawnLive('raffle-1', null, {
+          startedBy: null,
+          executedBy: null,
+          executedByKind: null,
+          drawMode: DrawMode.AUTOMATIC,
+        });
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(live.result?.executedBy).toBeNull();
+      });
+
+      it('gives the admin detail no executor for a legacy draw', async () => {
+        await drawnLive('raffle-1', 4, { executedBy: null, executedByKind: null });
+
+        const detail = await queries.adminRaffleDetail('raffle-1');
+
+        expect(detail.drawExecutedBy).toBeNull();
+      });
+
+      it('never exposes the operator id in the live data', async () => {
+        await drawnLive('raffle-1', 4);
+
+        const live = await queries.liveData('raffle-1');
+
+        expect(JSON.stringify(live)).not.toContain('admin-1');
+      });
+
+      it('gives the admin detail the same conductor and executor', async () => {
+        await drawnLive('raffle-1', 4);
+
+        const detail = await queries.adminRaffleDetail('raffle-1');
+
+        expect(detail.liveSession?.conductedBy).toEqual({ name: 'Carmen López' });
+        expect(detail.drawExecutedBy).toEqual({ kind: 'ADMIN', name: 'Carmen López' });
+      });
+
+      describe('when the name lookup fails', () => {
+        beforeEach(() => {
+          jest
+            .spyOn(operators, 'displayNamesOf')
+            .mockRejectedValue(new Error('connection reset'));
+        });
+
+        it('still answers the live data, with the fallback name, and warns', async () => {
+          await drawnLive('raffle-1', 4);
+
+          const live = await queries.liveData('raffle-1');
+
+          expect(live.liveSession?.conductedBy).toEqual({ name: 'Administrador' });
+          expect(live.result?.executedBy).toEqual({ kind: 'ADMIN', name: 'Administrador' });
+          expect(log.warn).toHaveBeenCalledTimes(1);
+          expect(log.warn.mock.calls[0][0]).not.toContain('admin-1');
+        });
+
+        it('still answers the admin detail, with the fallback name', async () => {
+          await drawnLive('raffle-1', 4);
+
+          const detail = await queries.adminRaffleDetail('raffle-1');
+
+          expect(detail.drawExecutedBy).toEqual({ kind: 'ADMIN', name: 'Administrador' });
+        });
+      });
+
+      it('names the executor of a draw on its own, for the draw response', async () => {
+        await drawnLive('raffle-1', 4);
+        const draw = await draws.findByRaffleId('raffle-1');
+
+        expect(await queries.drawExecutorOf(draw!)).toEqual({ kind: 'ADMIN', name: 'Carmen López' });
+      });
+
+      it('gives the admin detail no executor before the draw', async () => {
+        await raffles.save(raffleWith(RaffleStatus.CLOSED));
+
+        const detail = await queries.adminRaffleDetail('raffle-1');
+
+        expect(detail.drawExecutedBy).toBeNull();
       });
     });
 
