@@ -214,6 +214,10 @@ La comparación con el resultado oficial recorre **todos** los premios: estado, 
 - Calcula todos los ganadores en el navegador y luego anima los premios uno tras otro, cada uno sobre su propio bolillero. Un premio `VOID` se muestra como desierto y se pasa al siguiente.
 - Con movimiento reducido (o duración 0) muestra directamente el resultado final.
 - El resultado oficial coincide solo si coinciden estado, número, índice y digest de cada premio.
+- Los boletos excluidos por un premio anterior (el ganador en `TICKET_ONLY`, o todos los del comprador en `BUYER`) se muestran en la grilla con la etiqueta "FUERA" y el aviso "Excluido: ya ganó el premio N". No entran al bolillero del premio siguiente: no cuentan en los conteos ni aparecen en la tómbola ni en los efectos.
+- El texto completo del modo de exclusión es el mismo en la ficha pública, la página en vivo y el detalle de administración (`core/raffle/exclusion-mode-text.ts` en la web).
+- La cabecera muestra una insignia de estado: **PROGRAMADO**, **EN VIVO**, **FINALIZADO**, **REPETICIÓN** (el espectador volvió a reproducir el sorteo desde el resultado) o **CANCELADO**. Con sesión (`MANUAL`), EN VIVO mientras está en curso y FINALIZADO al terminar. En `AUTOMATIC`, EN VIVO solo mientras la animación corre dentro de los 15 minutos siguientes a `fecha_sorteo` (`AUTO_LIVE_WINDOW_MS`); quien abre la página después ve FINALIZADO.
+- Bajo la insignia, la línea del operador (DT-24): "Conducido por {nombre}" durante la sesión, "Sorteo realizado por {nombre} · {hora}" o "Sorteo automático · {hora}" al terminar. Sin el dato (sesiones y sorteos anteriores) no se muestra.
 
 ### 8.3 Correos de ganador
 Un correo `WINNER` por premio ganado, con clave `<drawId>:prize:<posición>` (un comprador puede ganar varios premios en `TICKET_ONLY`). Asunto: "¡Ganaste el N.º premio de …!".
@@ -240,6 +244,19 @@ En la modalidad `MANUAL` el ritmo del espectáculo lo marca el servidor, no el n
 > La semilla y la ronda drand son públicas desde el sorteo, así que un usuario técnico puede calcular todos los ganadores antes de que se revelen. Es inherente al sorteo verificable y no es una filtración: la sesión solo pausa el espectáculo; el resultado ya está grabado y no puede cambiar.
 
 Las rifas `AUTOMATIC` no usan sesión: el job las sortea y cada navegador las anima a su ritmo.
+
+**Quién condujo el sorteo (DT-24).** `sesion_en_vivo.conducido_por` es `{ nombre }` del administrador que inició la sesión, o `null` en sesiones anteriores a la migración. `resultado.ejecutado_por` es `{ tipo: "ADMIN", nombre }` cuando un administrador disparó el sorteo, `{ tipo: "SISTEMA", nombre: null }` cuando lo corrió el job, o `null` en sorteos anteriores que no registraron su ejecutor (nunca se los presenta como automáticos). Solo se publica el nombre visible de la cuenta, tal como está guardado; si está vacío, "Administrador". Nunca el id, el correo, el teléfono ni el DNI.
+
+### 8.5 Ficha del premio y visor de imágenes (web)
+**Pestaña de ficha del detalle público (`/rifas/:id`).**
+- Con 2 premios o más, un selector de premio arriba de la ficha; con uno solo no se muestra.
+- Por cada premio, sus fotos y la tarjeta **Ficha del premio** (posición, título y descripción, o "No se cuenta con descripción detallada para este premio."). Debajo, la tarjeta **Reglas del sorteo**: intento ganador, modalidad, duración por intento y modo de exclusión. Se quitó la sección "Otros premios": el selector la reemplaza.
+- Compatibilidad: si la rifa no tiene `premios`, o el premio 1 no trae descripción o imágenes, el premio 1 usa los campos heredados (`premio`, `descripcion_premio`, `imagenes_premio`).
+
+**Visor de imágenes (`ImageLightbox`, `src/app/shared/image-lightbox`).** Se abre al tocar una foto en el detalle público y en las miniaturas del detalle de administración.
+- Zoom de 1x a 4x con botones, rueda del mouse, pellizco o doble toque (alterna entre 1x y 2,5x).
+- Con zoom se puede arrastrar la imagen. Anterior y siguiente recorren las fotos del premio.
+- Se cierra con Esc o tocando el fondo.
 
 ---
 
@@ -279,4 +296,5 @@ Procedimiento de respuesta: [RUNBOOK-RIFAS.md §3.4](RUNBOOK-RIFAS.md).
 - **Rifa rechazada por configuración (resuelto, DT-21 punto 7):** una rifa v2 rechazada por `DRAW_CONFIG_FROZEN_LATE`, `DRAW_CONFIG_MISMATCH` o `DRAW_CONFIG_MISSING` queda `CLOSED` con `DRAW_BLOCKED` hasta que un operador la cancela con reembolso total (`POST /api/admin/rifas/:id/cancelar-sorteo-rechazado`, botón "Cancelar y reembolsar" del detalle de la rifa). No se reprograma a otra ronda. **Costo aceptado:** con la lista intacta, ningún comprador gana los premios. El detalle de administración expone `sorteo_rechazado: { motivo, fecha }` mientras la rifa sigue `CLOSED`; la página pública muestra la rifa cancelada igual que cualquier otra cancelación, sin el motivo del operador.
 - **Pruebas de integración dependientes del orden:** 2 pruebas de `describe('stuck jobs')` en `tiendi-rifas-api/test/jobs.integration-spec.ts` fallan al correr la suite completa. También fallan en el commit anterior (`5c285f3`), así que no las introdujo este cambio.
 - **Sorteo en vivo (resuelto, DT-23):** el sorteo manual con varios premios quedaba detenido en la pausa entre premios y nunca pedía el sorteo oficial. Ahora el sorteo se registra al iniciar la sesión en vivo y cada paso lo revela el servidor (§8.4). Migración `20261121000000_live_draw_session`.
+- **Quién condujo el sorteo (DT-24):** la migración `20261122000000_live_draw_operators` agrega `Draw.executedByKind` (`ADMIN` o `SYSTEM`), `Draw.executedBy`, `LiveDrawSession.startedBy` y `LiveDrawSession.finishedBy` (todas nullable), el CHECK `Draw_executedBy_kind` y extiende `trg_live_draw_session_forward` para que `startedBy` no cambie. Los sorteos anteriores responden `ejecutado_por: null` y las sesiones anteriores `conducido_por: null`.
 - **Migraciones:** `20261117000000_multi_prize_raffles` y `20261118000000_draw_config_integrity_guards`. La segunda redefine funciones de la primera sin modificarla. `20261119000000_cancel_refused_draw` agrega `trg_raffle_closed_exit`: una rifa `CLOSED` solo pasa a `DRAWN` o a `CANCELLED` con motivo.

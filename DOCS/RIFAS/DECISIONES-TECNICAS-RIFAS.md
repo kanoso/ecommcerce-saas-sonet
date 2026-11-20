@@ -727,3 +727,38 @@ Además, el catálogo trataba `CLOSED` como `DRAWN`, mezclaba ambas en "Finaliza
 - Si el operador abandona la sesión, el resultado sigue registrado y verificable; cualquier operador puede retomarla desde la página en vivo o terminarla con "Revelar todo".
 - El total de pasos lo fija el servidor con el sorteo grabado; la web aplica la misma regla sobre su cálculo local.
 - La migración es `20261121000000_live_draw_session`.
+
+---
+
+## DT-24: La página en vivo muestra quién condujo el sorteo, solo por su nombre
+
+**Fecha:** 2026-11-22
+**Estado:** Implementada (pendiente de commit); integración y e2e pendientes de ejecutar contra PostgreSQL
+**Fase:** Sorteo manual en vivo y ficha pública
+
+### Contexto
+Con DT-23 el sorteo oficial lo dispara un administrador al iniciar la sesión en vivo, pero el operador solo quedaba en la auditoría (`LIVE_DRAW_STARTED` y `LIVE_DRAW_FINISHED`, `data.operatorId`). El público no veía quién conducía el sorteo ni si lo había corrido el job. La decisión de producto es mostrar el nombre de la cuenta del administrador tal como está guardado (por ejemplo, "Carmen López").
+
+### Decisión
+1. **Quién inició la sesión.** `LiveDrawSession.startedBy` guarda el operador (id de `User`) que llamó a `POST /api/admin/rifas/:id/en-vivo/iniciar`. El trigger `trg_live_draw_session_forward` lo trata como el inicio: no se puede cambiar después.
+2. **Quién la terminó.** `LiveDrawSession.finishedBy` guarda el operador cuya acción terminó la sesión: `finalizar`, o el `avanzar` que revela el último paso. Se guarda siempre que la termina un administrador, aunque sea el mismo que la inició. Es solo interno: no se publica.
+3. **Quién ejecutó el sorteo.** `Draw` no guardaba quién lo ejecutaba, así que se agregan `Draw.executedByKind` (`ADMIN` o `SYSTEM`) y `Draw.executedBy`. `ExecuteDrawUseCase` siempre fija el tipo: `ADMIN` con el operador en `executedBy` cuando un administrador dispara el sorteo con `POST /api/admin/rifas/:id/sorteo` o con `en-vivo/iniciar`, y `SYSTEM` (sin `executedBy`) cuando lo corre el job de la modalidad `AUTOMATIC`. El CHECK `Draw_executedBy_kind` exige esa combinación. Un sorteo ya registrado conserva su ejecutor: volver a pedirlo no lo cambia.
+4. **Endpoint público.** `GET /api/rifas/:id/en-vivo` agrega:
+   - `sesion_en_vivo.conducido_por: { nombre } | null`: quien inició la sesión.
+   - `resultado.ejecutado_por: { tipo: 'ADMIN' | 'SISTEMA', nombre: string | null } | null`: `ADMIN` con el nombre del operador, `SISTEMA` con `nombre: null` cuando lo corrió el job, o `null` si el sorteo no registró su ejecutor (datos anteriores).
+5. **Detalle de administración.** `GET /api/admin/rifas/:id` agrega `sesion_en_vivo.conducido_por` con la misma forma y `ejecutado_por` en la raíz de la respuesta (`null` antes del sorteo y en sorteos anteriores que no registraron su ejecutor). Las respuestas de `en-vivo/iniciar`, `avanzar`, `finalizar` y `POST /api/admin/rifas/:id/sorteo` no cambian.
+6. **Privacidad.** Se publica solo el nombre visible de la cuenta (`User.name`), tal como está guardado. Si está vacío, en blanco o la cuenta no existe, se muestra "Administrador". Nunca se exponen el id del usuario, el correo, el teléfono ni el DNI. El nombre lo resuelve un puerto (`OperatorDirectory`, que en Prisma lee solo `id` y `name`): los casos de uso y los controladores no consultan Prisma directamente.
+7. **Datos anteriores.** Las sesiones guardadas antes de esta migración no tienen `startedBy` y responden `conducido_por: null`. Los sorteos anteriores no tienen `executedByKind` y responden `ejecutado_por: null`: no se muestra ningún ejecutor. No se infiere `SISTEMA` de un `executedBy` vacío, porque un sorteo `MANUAL` conducido en vivo por un administrador se mostraría como automático en una página de verificación. No hay migración de datos; la auditoría sigue siendo la fuente para esos casos.
+8. **Web.** La cabecera de la página en vivo muestra una línea de operador: "Conducido por {nombre}" durante la sesión, "Sorteo realizado por {nombre} · {hora}" al terminar, o "Sorteo automático · {hora}" cuando el sorteo es `SISTEMA`. Si la API no da el dato (datos anteriores), la línea no se muestra.
+
+### Alternativas descartadas
+- **Tratar `executedBy` vacío como el sistema:** evita una columna, pero los sorteos anteriores (incluidos los `MANUAL` conducidos por un administrador) se mostrarían como "Sorteo automático". Se prefirió un tipo explícito y `null` para lo desconocido.
+- **Leer el operador de la auditoría al responder:** obliga a recorrer eventos en cada consulta de la página (cada ~1 s) y mezcla el registro probatorio con la vista pública.
+- **Publicar el id o el correo del operador:** expone datos personales sin aportar al público más que el nombre.
+- **Clave foránea a `User`:** los ids de operador ya viven sin clave foránea en la auditoría (DT-17); se sigue el mismo criterio.
+
+### Consecuencias
+- El nombre que ve el público depende de cómo esté escrito en la cuenta del administrador: cambiar el nombre de la cuenta cambia lo que se muestra, también en sorteos pasados.
+- Ese nombre se publica tal cual: un administrador no debe poner en él un correo, un teléfono ni un DNI.
+- Un sorteo registrado antes de esta migración no muestra ejecutor: la cabecera no dice "Sorteo automático" ni "Sorteo realizado por".
+- La migración es `20261122000000_live_draw_operators`.
